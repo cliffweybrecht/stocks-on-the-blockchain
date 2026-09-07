@@ -147,15 +147,19 @@ export function mapTerminalRowToAsset(row: TerminalMarketRow): AssetSummary | nu
 
   return {
     chainId: ROBINHOOD_CHAIN_ID,
+    sourceId: "terminal",
+    sourceLabel: "Robinhood Liquidity Terminal",
     symbol,
     name: asNonEmptyString(row.asset?.name) ?? symbol,
     contractAddress,
+    issuer: null,
     logoUrl: asNonEmptyString(row.asset?.logoUrl),
     volume24hUsd: asFiniteNumber(row.observedVolume24h),
     displayedLiquidityUsd: asFiniteNumber(row.displayedLiquidityUsd),
     usdGLiquidityUsd: asFiniteNumber(row.usdGLiquidityUsd),
     poolCount: asFiniteNumber(row.poolCount) ?? 0,
     dexCount: asFiniteNumber(row.dexCount) ?? 0,
+    pools: [],
     robinhoodReferencePriceUsd: asFiniteNumber(row.robinhoodReferencePriceUsd),
     dexMedianPriceUsd: asFiniteNumber(row.dexMedianPriceUsd),
     premiumDiscountPct: asFiniteNumber(row.premiumDiscountPct),
@@ -368,6 +372,7 @@ export function mapTerminalSnapshot(input: {
       cacheStatus: input.cacheStatus,
       cacheAgeMs: input.cacheAgeMs,
       notes: input.notes,
+      sourceFailures: [],
     },
   };
 }

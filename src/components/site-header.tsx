@@ -19,7 +19,13 @@ export function SiteHeader({ provenance }: { provenance?: DataProvenance }) {
         </Link>
         {provenance ? (
           <Badge variant="outline" className="w-fit border-primary/30 bg-primary/10 text-primary">
-            {provenance.sourceId === "mock" ? "Seed / demo data" : "Live Terminal"}
+            {provenance.sourceId === "mock"
+              ? "Seed / demo data"
+              : provenance.sourceId === "composite"
+                ? "Live sources"
+                : provenance.sourceId === "solana"
+                  ? "Live Solana"
+                  : "Live Terminal"}
           </Badge>
         ) : null}
       </div>

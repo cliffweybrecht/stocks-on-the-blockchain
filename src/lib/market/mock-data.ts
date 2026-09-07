@@ -31,13 +31,27 @@ function chainShell(
     name,
     shortName,
     nativeChainId,
+    sourceId: "mock",
+    sourceLabel: "Seed market adapter",
     completenessPct: 100,
     coverageNote,
   };
 }
 
-function stock(partial: Omit<AssetDetail, "detailEnriched">): AssetDetail {
-  return { ...partial, detailEnriched: true };
+function stock(
+  partial: Omit<AssetDetail, "detailEnriched" | "sourceId" | "sourceLabel" | "issuer" | "pools"> & {
+    issuer?: string | null;
+    pools?: AssetDetail["pools"];
+  },
+): AssetDetail {
+  return {
+    issuer: null,
+    pools: [],
+    ...partial,
+    sourceId: "mock",
+    sourceLabel: "Seed market adapter",
+    detailEnriched: true,
+  };
 }
 
 const robinhoodAssets: AssetDetail[] = [
@@ -317,9 +331,26 @@ const solanaAssets: AssetDetail[] = [
     symbol: "NVDAX",
     name: "NVIDIA xStock",
     contractAddress: "NVDAx1111111111111111111111111111111111111",
+    issuer: "Backed / xStocks",
     logoUrl: null,
     volume24hUsd: 7_420_000,
     displayedLiquidityUsd: 3_180_000,
+    pools: [
+      {
+        pairAddress: "So11NVDA111111111111111111111111111111111",
+        dexId: "raydium",
+        volume24hUsd: 5_100_000,
+        liquidityUsd: 1_900_000,
+        priceUsd: 215.85,
+      },
+      {
+        pairAddress: "So11NVDA222222222222222222222222222222222",
+        dexId: "orca",
+        volume24hUsd: 2_320_000,
+        liquidityUsd: 1_040_000,
+        priceUsd: 215.9,
+      },
+    ],
     usdGLiquidityUsd: null,
     poolCount: 8,
     dexCount: 3,
@@ -371,9 +402,26 @@ const solanaAssets: AssetDetail[] = [
     symbol: "TSLAX",
     name: "Tesla xStock",
     contractAddress: "TSLAx1111111111111111111111111111111111111",
+    issuer: "Backed / xStocks",
     logoUrl: null,
     volume24hUsd: 4_880_500,
     displayedLiquidityUsd: 1_920_000,
+    pools: [
+      {
+        pairAddress: "So11TSLA111111111111111111111111111111111",
+        dexId: "raydium",
+        volume24hUsd: 3_400_000,
+        liquidityUsd: 1_210_000,
+        priceUsd: 247.7,
+      },
+      {
+        pairAddress: "So11TSLA222222222222222222222222222222222",
+        dexId: "orca",
+        volume24hUsd: 1_480_500,
+        liquidityUsd: 500_000,
+        priceUsd: 247.8,
+      },
+    ],
     usdGLiquidityUsd: null,
     poolCount: 6,
     dexCount: 2,
@@ -425,6 +473,7 @@ const solanaAssets: AssetDetail[] = [
     symbol: "QQQX",
     name: "Nasdaq-100 xStock",
     contractAddress: "QQQx11111111111111111111111111111111111111",
+    issuer: "Backed / xStocks",
     logoUrl: null,
     volume24hUsd: 1_640_000,
     displayedLiquidityUsd: 980_000,
@@ -752,19 +801,28 @@ export const MOCK_DETAILS: Record<string, AssetDetail[]> = {
 
 function toSummaries(details: AssetDetail[]): AssetSummary[] {
   return sortByVolumeThenLiquidity(
-    details.map(
-      ({
-        buys24h: _b,
-        sells24h: _s,
-        largestPool: _l,
-        concentration: _c,
-        dexes: _d,
-        quoteAssets: _q,
-        price: _p,
-        detailEnriched: _e,
-        ...summary
-      }) => summary,
-    ),
+    details.map((detail) => ({
+      chainId: detail.chainId,
+      sourceId: detail.sourceId,
+      sourceLabel: detail.sourceLabel,
+      symbol: detail.symbol,
+      name: detail.name,
+      contractAddress: detail.contractAddress,
+      issuer: detail.issuer,
+      logoUrl: detail.logoUrl,
+      volume24hUsd: detail.volume24hUsd,
+      displayedLiquidityUsd: detail.displayedLiquidityUsd,
+      usdGLiquidityUsd: detail.usdGLiquidityUsd,
+      poolCount: detail.poolCount,
+      dexCount: detail.dexCount,
+      pools: detail.pools,
+      robinhoodReferencePriceUsd: detail.robinhoodReferencePriceUsd,
+      dexMedianPriceUsd: detail.dexMedianPriceUsd,
+      premiumDiscountPct: detail.premiumDiscountPct,
+      top3ConcentrationPct: detail.top3ConcentrationPct,
+      liquidityCoverageComplete: detail.liquidityCoverageComplete,
+      volume24hCoverageComplete: detail.volume24hCoverageComplete,
+    })),
   );
 }
 
@@ -822,5 +880,6 @@ export function mockProvenance(fetchedAt = new Date().toISOString()): DataProven
     cacheStatus: "fresh",
     cacheAgeMs: 0,
     notes: [MOCK_SOURCE_NOTE],
+    sourceFailures: [],
   };
 }

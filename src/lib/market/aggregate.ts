@@ -49,6 +49,8 @@ export function robinhoodChainMeta(): Omit<
     name: "Robinhood Chain",
     shortName: "RH",
     nativeChainId: ROBINHOOD_CHAIN_NATIVE_ID,
+    sourceId: "terminal",
+    sourceLabel: "Robinhood Liquidity Terminal",
     completenessPct: null,
     coverageNote:
       "Single-chain Terminal snapshot. Volume is the sum of observedVolume24h across reported stocks; missing values stay missing.",

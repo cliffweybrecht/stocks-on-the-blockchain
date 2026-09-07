@@ -1,3 +1,4 @@
+import { findAssetByKey } from "./identity";
 import { MOCK_ASSETS, MOCK_CHAINS, MOCK_DETAILS, mockProvenance } from "./mock-data";
 import type {
   AssetDetailResult,
@@ -26,9 +27,7 @@ export class MockMarketDataSource implements MarketDataSource {
 
   async getAsset(chainId: string, symbol: string): Promise<AssetDetailResult | null> {
     const chain = MOCK_CHAINS.find((entry) => entry.id === chainId);
-    const asset = MOCK_DETAILS[chainId]?.find(
-      (entry) => entry.symbol.toLowerCase() === symbol.toLowerCase(),
-    );
+    const asset = findAssetByKey(MOCK_DETAILS[chainId] ?? [], symbol);
     if (!chain || !asset) return null;
     return { chain, asset, provenance: mockProvenance() };
   }

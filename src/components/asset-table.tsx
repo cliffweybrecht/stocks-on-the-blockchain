@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { assetRouteKey } from "@/lib/market/identity";
 import { formatAddress, formatPct, formatPrice, formatUsdCompact } from "@/lib/market/format";
 import { compareNullableDesc } from "@/lib/market/numbers";
 import type { AssetSummary } from "@/lib/market/types";
@@ -27,7 +28,8 @@ export function AssetTable({ assets, chainId }: { assets: AssetSummary[]; chainI
           (asset) =>
             asset.symbol.toLowerCase().includes(needle) ||
             asset.name.toLowerCase().includes(needle) ||
-            asset.contractAddress.toLowerCase().includes(needle),
+            asset.contractAddress.toLowerCase().includes(needle) ||
+            (asset.issuer ?? "").toLowerCase().includes(needle),
         )
       : assets;
 
@@ -45,7 +47,7 @@ export function AssetTable({ assets, chainId }: { assets: AssetSummary[]; chainI
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onInput={(event) => setQuery(event.currentTarget.value)}
-          placeholder="Filter by symbol, name, or contract"
+          placeholder="Filter by symbol, name, issuer, or contract"
           aria-label="Filter stocks"
           className="h-8 w-full max-w-md rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
         />
@@ -77,14 +79,15 @@ export function AssetTable({ assets, chainId }: { assets: AssetSummary[]; chainI
       <div className="grid gap-3 lg:hidden">
         {rows.map((asset) => (
           <Link
-            key={asset.symbol}
-            href={`/chains/${chainId}/assets/${encodeURIComponent(asset.symbol)}`}
+            key={asset.contractAddress}
+            href={`/chains/${chainId}/assets/${encodeURIComponent(assetRouteKey(asset, assets))}`}
             className="block rounded-xl border border-border bg-card px-4 py-3"
           >
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="font-medium">{asset.symbol}</p>
                 <p className="text-xs text-muted-foreground">{asset.name}</p>
+                {asset.issuer ? <p className="text-xs text-muted-foreground">{asset.issuer}</p> : null}
               </div>
               <p className="num text-primary">{formatUsdCompact(asset.volume24hUsd)}</p>
             </div>
@@ -92,6 +95,15 @@ export function AssetTable({ assets, chainId }: { assets: AssetSummary[]; chainI
               Liq {formatUsdCompact(asset.displayedLiquidityUsd)} · {asset.poolCount} pools ·{" "}
               {formatAddress(asset.contractAddress)}
             </p>
+            {asset.pools.length > 0 ? (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {asset.pools
+                  .slice(0, 3)
+                  .map((pool) => `${pool.dexId} ${formatUsdCompact(pool.volume24hUsd)}`)
+                  .join(" · ")}
+                {asset.pools.length > 3 ? ` · +${asset.pools.length - 3}` : ""}
+              </p>
+            ) : null}
           </Link>
         ))}
       </div>
@@ -101,6 +113,7 @@ export function AssetTable({ assets, chainId }: { assets: AssetSummary[]; chainI
           <TableHeader>
             <TableRow>
               <TableHead>Stock</TableHead>
+              <TableHead>Issuer</TableHead>
               <TableHead>Contract</TableHead>
               <TableHead className="text-right">24h volume</TableHead>
               <TableHead className="text-right">Displayed liq</TableHead>
@@ -112,16 +125,17 @@ export function AssetTable({ assets, chainId }: { assets: AssetSummary[]; chainI
           </TableHeader>
           <TableBody>
             {rows.map((asset) => (
-              <TableRow key={asset.symbol}>
+              <TableRow key={asset.contractAddress}>
                 <TableCell>
                   <Link
-                    href={`/chains/${chainId}/assets/${encodeURIComponent(asset.symbol)}`}
+                    href={`/chains/${chainId}/assets/${encodeURIComponent(assetRouteKey(asset, assets))}`}
                     className="font-medium text-primary hover:underline"
                   >
                     {asset.symbol}
                   </Link>
                   <div className="text-xs text-muted-foreground">{asset.name}</div>
                 </TableCell>
+                <TableCell className="text-xs text-muted-foreground">{asset.issuer ?? "—"}</TableCell>
                 <TableCell className="num text-xs">{formatAddress(asset.contractAddress)}</TableCell>
                 <TableCell className="num text-right">{formatUsdCompact(asset.volume24hUsd)}</TableCell>
                 <TableCell className="num text-right">{formatUsdCompact(asset.displayedLiquidityUsd)}</TableCell>
@@ -131,7 +145,18 @@ export function AssetTable({ assets, chainId }: { assets: AssetSummary[]; chainI
                   {formatPct(asset.premiumDiscountPct)}
                 </TableCell>
                 <TableCell className="num text-right">
-                  {asset.poolCount} / {asset.dexCount}
+                  <div>
+                    {asset.poolCount} / {asset.dexCount}
+                  </div>
+                  {asset.pools.length > 0 ? (
+                    <div className="text-xs text-muted-foreground">
+                      {asset.pools
+                        .slice(0, 2)
+                        .map((pool) => `${pool.dexId} ${formatUsdCompact(pool.volume24hUsd)}`)
+                        .join(" · ")}
+                      {asset.pools.length > 2 ? ` · +${asset.pools.length - 2}` : ""}
+                    </div>
+                  ) : null}
                 </TableCell>
               </TableRow>
             ))}

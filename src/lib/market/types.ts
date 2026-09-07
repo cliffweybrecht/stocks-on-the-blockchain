@@ -6,8 +6,14 @@
  * (`robinhood-chain`). Additional chains come from other adapters later.
  */
 
-export type SourceKind = "mock" | "terminal";
+export type SourceKind = "mock" | "terminal" | "solana" | "composite";
 export type TrustKind = "fact" | "interpretive";
+
+export interface SourceFailure {
+  sourceId: SourceKind;
+  sourceLabel: string;
+  message: string;
+}
 
 export interface DataProvenance {
   sourceId: SourceKind;
@@ -19,6 +25,7 @@ export interface DataProvenance {
   cacheStatus: string | null;
   cacheAgeMs: number | null;
   notes: string[];
+  sourceFailures: readonly SourceFailure[];
 }
 
 export interface ChainVolume {
@@ -26,6 +33,8 @@ export interface ChainVolume {
   name: string;
   shortName: string;
   nativeChainId: string | null;
+  sourceId: SourceKind;
+  sourceLabel: string;
   volume24hUsd: number | null;
   displayedLiquidityUsd: number | null;
   usdGLiquidityUsd: number | null;
@@ -37,17 +46,29 @@ export interface ChainVolume {
   coverageNote: string;
 }
 
+export interface AssetPoolMark {
+  pairAddress: string;
+  dexId: string;
+  volume24hUsd: number | null;
+  liquidityUsd: number | null;
+  priceUsd: number | null;
+}
+
 export interface AssetSummary {
   chainId: string;
+  sourceId: SourceKind;
+  sourceLabel: string;
   symbol: string;
   name: string;
   contractAddress: string;
+  issuer: string | null;
   logoUrl: string | null;
   volume24hUsd: number | null;
   displayedLiquidityUsd: number | null;
   usdGLiquidityUsd: number | null;
   poolCount: number;
   dexCount: number;
+  pools: readonly AssetPoolMark[];
   robinhoodReferencePriceUsd: number | null;
   dexMedianPriceUsd: number | null;
   premiumDiscountPct: number | null;
@@ -112,6 +133,8 @@ export interface ChainListResult {
   chains: ChainVolume[];
   provenance: DataProvenance;
 }
+
+export const SOLANA_CHAIN_ID = "solana";
 
 export interface ChainDetailResult {
   chain: ChainVolume;
