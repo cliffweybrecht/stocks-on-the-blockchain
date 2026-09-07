@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { collectSolanaCandidateTokens, selectEquityMints } from "../solana-discover";
+import { collectSolanaCandidateTokens, mergeTokenIdentities, selectEquityMints } from "../solana-discover";
 
 describe("discovery filters", () => {
   it("keeps Solana tokenized equities and drops crypto, stables, and other chains", () => {
@@ -43,6 +43,23 @@ describe("discovery filters", () => {
     ]);
     expect(selected).toHaveLength(1);
     expect(selected[0]?.mint).toBe("XsNotOnTheOldAllowlist1111111111111111111");
+  });
+
+  it("deduplicates the same mint from search and a registry feed", () => {
+    const merged = mergeTokenIdentities([
+      [{ address: "XsMintA111111111111111111111111111111111", symbol: "TSLAx", name: "Tesla" }],
+      [
+        {
+          address: "XsMintA111111111111111111111111111111111",
+          symbol: "TSLAx",
+          name: "Tesla xStock",
+          underlyingInstrumentType: "equity",
+        },
+      ],
+    ]);
+    expect(merged).toHaveLength(1);
+    expect(merged[0]?.name).toBe("Tesla xStock");
+    expect(merged[0]?.underlyingInstrumentType).toBe("equity");
   });
 
   it("deduplicates the same mint seen on multiple search pairs", () => {

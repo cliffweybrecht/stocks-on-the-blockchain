@@ -13,13 +13,21 @@ export const DEFAULT_SOLANA_DISCOVERY_QUERIES = [
   "xStocks",
   "tokenized stock",
   "tokenized equity",
+  "tokenized share",
   "tokenised stock",
   "backed xstock",
   "Tesla xStock",
   "Meta xStock",
   "Circle xStock",
   "NVIDIA xStock",
+  "Apple xStock",
+  "Microsoft xStock",
+  "Amazon xStock",
+  "Alphabet xStock",
+  "Robinhood xStock",
 ] as const;
+
+export const DEXSCREENER_TOKEN_BATCH_SIZE = 30;
 
 export function solanaSearchPath(query: string): string {
   return `/latest/dex/search?q=${encodeURIComponent(query)}`;
@@ -27,6 +35,18 @@ export function solanaSearchPath(query: string): string {
 
 export function solanaTokenPairsPath(mint: string): string {
   return `/token-pairs/v1/solana/${mint}`;
+}
+
+export function solanaTokensBatchPath(mints: readonly string[]): string {
+  return `/tokens/v1/solana/${mints.join(",")}`;
+}
+
+export function chunkValues<T>(values: readonly T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let index = 0; index < values.length; index += size) {
+    chunks.push(values.slice(index, index + size) as T[]);
+  }
+  return chunks;
 }
 
 export function readPairLabels(pair: DexScreenerPair): string[] {
@@ -50,7 +70,25 @@ export function tokenIdentityFromSide(
 }
 
 function scoreIdentity(token: TokenIdentity): number {
-  return (token.name?.length ?? 0) + (token.symbol?.length ?? 0) + (token.labels?.length ?? 0) * 10;
+  return (
+    (token.name?.length ?? 0) +
+    (token.symbol?.length ?? 0) +
+    (token.labels?.length ?? 0) * 10 +
+    (token.underlyingInstrumentType ? 50 : 0)
+  );
+}
+
+export function mergeTokenIdentities(groups: readonly TokenIdentity[][]): TokenIdentity[] {
+  const byMint = new Map<string, TokenIdentity>();
+  for (const group of groups) {
+    for (const identity of group) {
+      const existing = byMint.get(identity.address);
+      if (!existing || scoreIdentity(identity) > scoreIdentity(existing)) {
+        byMint.set(identity.address, identity);
+      }
+    }
+  }
+  return [...byMint.values()];
 }
 
 export function collectSolanaCandidateTokens(pairs: readonly DexScreenerPair[]): TokenIdentity[] {

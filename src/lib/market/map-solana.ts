@@ -1,6 +1,7 @@
 import { rollupChainFromAssets, sortByVolumeThenLiquidity } from "./aggregate";
 import { asFiniteNumber, asNonEmptyString, compareNullableDesc } from "./numbers";
 import { classifyOrNull, tokenIdentityFromFields } from "./solana-classifier";
+import type { DiscoveredEquityMint } from "./solana-discover";
 import { SOLANA_SOURCE_LABEL, SOLANA_SOURCE_NOTE } from "./trust";
 import {
   SOLANA_CHAIN_ID,
@@ -286,24 +287,86 @@ export function solanaChainMeta(): Omit<
     sourceLabel: SOLANA_SOURCE_LABEL,
     completenessPct: null,
     coverageNote:
-      "Tokenized public equities discovered from DexScreener search, then classified fail-closed. Volume is the sum of pair volume.h24 across every Solana pool for that mint. Search is capped; this is not a full Solana indexer. Missing pair metrics stay missing.",
+      "Tokenized public equities discovered from the live xStocks public registry plus DexScreener search, then classified fail-closed. Volume is the sum of pair volume.h24 across every Solana pool for that mint. Coverage is as discoverable from those live sources + the classifier, not a full Solana indexer. Missing pair metrics stay missing.",
   };
+}
+
+export function unpairedSolanaAsset(row: DiscoveredEquityMint): AssetDetail {
+  const summary: AssetSummary = {
+    chainId: SOLANA_CHAIN_ID,
+    sourceId: "solana",
+    sourceLabel: SOLANA_SOURCE_LABEL,
+    symbol: row.symbol ?? row.mint.slice(0, 8),
+    name: row.name ?? row.symbol ?? row.mint,
+    contractAddress: row.mint,
+    issuer: row.issuer,
+    logoUrl: null,
+    volume24hUsd: null,
+    displayedLiquidityUsd: null,
+    usdGLiquidityUsd: null,
+    poolCount: 0,
+    dexCount: 0,
+    pools: [],
+    robinhoodReferencePriceUsd: null,
+    dexMedianPriceUsd: null,
+    premiumDiscountPct: null,
+    top3ConcentrationPct: null,
+    liquidityCoverageComplete: false,
+    volume24hCoverageComplete: false,
+  };
+  return {
+    ...summary,
+    buys24h: null,
+    sells24h: null,
+    largestPool: null,
+    concentration: { top1Pct: null, top3Pct: null, top5Pct: null },
+    dexes: [],
+    quoteAssets: [],
+    price: {
+      robinhoodReferenceUsd: null,
+      robinhoodBidUsd: null,
+      robinhoodAskUsd: null,
+      robinhoodGeneratedAt: null,
+      isTradingHalt: null,
+      dexMedianUsd: null,
+      dexLiquidityWeightedUsd: null,
+      dexLargestPoolUsd: null,
+      premiumDiscountPct: null,
+      priceDispersionPct: null,
+      priceCoverageComplete: false,
+    },
+    detailEnriched: true,
+  };
+}
+
+export function mergeUnpairedSolanaAssets(
+  mapped: { assets: AssetSummary[]; details: AssetDetail[] },
+  discovered: readonly DiscoveredEquityMint[],
+): { assets: AssetSummary[]; details: AssetDetail[] } {
+  const seen = new Set(mapped.details.map((row) => row.contractAddress));
+  const extras = discovered.filter((row) => !seen.has(row.mint)).map(unpairedSolanaAsset);
+  if (extras.length === 0) return mapped;
+  const details = sortByVolumeThenLiquidity([...mapped.details, ...extras]);
+  const assets = sortByVolumeThenLiquidity([...mapped.assets, ...extras]);
+  return { assets, details };
 }
 
 export function buildSolanaSnapshot(input: {
   pairs: readonly DexScreenerPair[];
   fetchedAt: string;
+  discovered?: readonly DiscoveredEquityMint[];
+  extraNotes?: readonly string[];
 }): {
   chain: ChainVolume;
   assets: AssetSummary[];
   details: AssetDetail[];
   provenance: DataProvenance;
 } {
-  const { assets, details } = mapDexScreenerPairsToSolanaAssets(input.pairs);
+  const mapped = mergeUnpairedSolanaAssets(mapDexScreenerPairsToSolanaAssets(input.pairs), input.discovered ?? []);
   return {
-    chain: rollupChainFromAssets(solanaChainMeta(), assets),
-    assets,
-    details,
+    chain: rollupChainFromAssets(solanaChainMeta(), mapped.assets),
+    assets: mapped.assets,
+    details: mapped.details,
     provenance: {
       sourceId: "solana",
       sourceLabel: SOLANA_SOURCE_LABEL,
@@ -313,7 +376,7 @@ export function buildSolanaSnapshot(input: {
       refreshDurationMs: null,
       cacheStatus: "fresh",
       cacheAgeMs: 0,
-      notes: [SOLANA_SOURCE_NOTE],
+      notes: [SOLANA_SOURCE_NOTE, ...(input.extraNotes ?? [])],
       sourceFailures: [],
     },
   };
