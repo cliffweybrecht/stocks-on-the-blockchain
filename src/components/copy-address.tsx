@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { formatAddress } from "@/lib/market/format";
 
-export function CopyAddress({ address }: { address: string }) {
+export function CopyAddress({ address, compact = false }: { address: string; compact?: boolean }) {
   const [status, setStatus] = useState<"idle" | "copied">("idle");
 
   function onCopy() {
@@ -13,15 +13,17 @@ export function CopyAddress({ address }: { address: string }) {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <code className="num rounded-md bg-muted px-2 py-1 text-xs break-all">{address}</code>
+    <div className={`flex flex-wrap items-center gap-2 ${compact ? "text-xs" : ""}`}>
+      <code className={`num rounded-md bg-muted px-2 py-1 text-xs ${compact ? "max-w-full truncate sm:max-w-none" : "break-all"}`}>
+        {compact ? formatAddress(address) : address}
+      </code>
       <button
         type="button"
         onClick={onCopy}
         onPointerUp={onCopy}
         className="inline-flex h-8 items-center rounded-lg border border-border bg-background px-2.5 text-sm hover:bg-muted"
       >
-        {status === "copied" ? "Copied" : `Copy ${formatAddress(address)}`}
+        {status === "copied" ? "Copied" : compact ? "Copy mint" : `Copy ${formatAddress(address)}`}
       </button>
     </div>
   );

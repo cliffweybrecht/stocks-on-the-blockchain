@@ -8,6 +8,7 @@ import { ProvenanceBar } from "@/components/provenance-bar";
 import { SolanaCoverageBanner } from "@/components/solana-coverage-banner";
 import { TrustBanner } from "@/components/trust-banner";
 import { formatCount, formatUsdCompact } from "@/lib/market/format";
+import { toPinCompareAsset } from "@/lib/desk/pin-compare";
 import { parsePinnedFilter } from "@/lib/desk/solana-chain-href";
 import { parseAssetSortKey, sortAssets } from "@/lib/market/aggregate";
 import { toJumpAsset } from "@/lib/market/asset-search";
@@ -65,10 +66,7 @@ export default async function ChainPage({
   );
   const hydratingCount = laneAssets.filter((asset) => asset.volumeCoverage === "hydrate_incomplete").length;
   const jumpAssets = isSolana ? [...assets, ...etfAssets].map(toJumpAsset) : [];
-  const catalogKeys = laneAssets.map((asset) => ({
-    symbol: asset.symbol,
-    contractAddress: asset.contractAddress,
-  }));
+  const catalogRows = [...assets, ...etfAssets].map(toPinCompareAsset);
 
   return (
     <PageShell
@@ -91,7 +89,7 @@ export default async function ChainPage({
             <p className="mt-2 text-xs text-muted-foreground">
               Press <kbd className="rounded border border-border px-1 font-mono">/</kbd> or{" "}
               <kbd className="rounded border border-border px-1 font-mono">⌘K</kbd> to jump by symbol, name,
-              issuer, or mint. Star a row to pin it in this browser.
+              issuer, or mint. Star two or more rows to compare them. Export CSV is the current filtered list.
             </p>
           ) : null}
         </div>
@@ -128,7 +126,7 @@ export default async function ChainPage({
         ) : (
           <AssetTable
             assets={visibleAssets}
-            catalogAssets={catalogKeys}
+            catalogAssets={catalogRows}
             totalInLane={laneAssets.length}
             equityCount={assets.length}
             etfCount={etfAssets.length}
