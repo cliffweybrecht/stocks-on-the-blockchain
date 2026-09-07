@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -42,12 +41,13 @@ export function AssetTable({ assets, chainId }: { assets: AssetSummary[]; chainI
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Input
+        <input
           value={query}
-          onValueChange={setQuery}
+          onChange={(event) => setQuery(event.target.value)}
+          onInput={(event) => setQuery(event.currentTarget.value)}
           placeholder="Filter by symbol, name, or contract"
           aria-label="Filter stocks"
-          className="max-w-md"
+          className="h-8 w-full max-w-md rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
         />
         <div className="flex flex-wrap gap-2 text-xs">
           {(
@@ -70,6 +70,9 @@ export function AssetTable({ assets, chainId }: { assets: AssetSummary[]; chainI
           ))}
         </div>
       </div>
+      <p className="text-xs text-muted-foreground" aria-live="polite">
+        Showing {rows.length} of {assets.length}
+      </p>
 
       <div className="grid gap-3 lg:hidden">
         {rows.map((asset) => (
