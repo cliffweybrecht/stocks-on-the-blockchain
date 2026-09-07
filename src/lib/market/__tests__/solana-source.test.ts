@@ -21,6 +21,7 @@ function testSource(options: SolanaMarketDataSourceOptions) {
     discoveryQueries: ["xStock"],
     enableRegistry: false,
     enableOndoRegistry: false,
+    enableGeckoTerminal: false,
     backgroundEnrichment: false,
     ...options,
   });
@@ -431,5 +432,104 @@ describe("SolanaMarketDataSource", () => {
     expect(chain?.assets[0]?.symbol).toBe("TSLAx");
     expect(chain?.assets[0]?.volume24hUsd).toBeCloseTo(1_250.25);
     expect(chain?.assets[0]?.volumeCoverage).toBe("reported");
+  });
+
+  it("skips DexScreener preview for mints already confirmed empty", async () => {
+    const tokenUrls: string[] = [];
+    const source = testSource({
+      requestGapMs: 0,
+      cacheMs: 0,
+      staleMs: 0,
+      emptyCacheMs: 60_000,
+      enableRegistry: true,
+      registryBaseUrl: "https://api.xstocks.fi/api/v2",
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [tslaPair()] });
+        if (url.includes("/public/assets")) {
+          return jsonResponse({
+            nodes: [
+              {
+                name: "Tesla xStock",
+                symbol: "TSLAx",
+                deployments: [{ network: "Solana", address: tslaMint }],
+              },
+              {
+                name: "Unpaired Hood xStock",
+                symbol: "UHOODx",
+                deployments: [{ network: "Solana", address: unpairedMint }],
+              },
+            ],
+            page: { currentPage: 0, hasNextPage: false },
+          });
+        }
+        if (url.includes("/tokens/v1/solana/")) {
+          tokenUrls.push(url);
+          return jsonResponse([]);
+        }
+        if (url.includes("/token-pairs/v1/solana/")) return jsonResponse([tslaPair()]);
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    const first = await source.listChains();
+    expect(first.chains[0]?.assetsWithNoIndexedPools).toBeGreaterThan(0);
+    const previewCallsAfterFirst = tokenUrls.length;
+    expect(previewCallsAfterFirst).toBeGreaterThan(0);
+
+    await source.listChains();
+    expect(tokenUrls.length).toBe(previewCallsAfterFirst);
+
+    const chain = await source.getChain("solana");
+    const unpaired = chain?.assets.find((asset) => asset.contractAddress === unpairedMint);
+    expect(unpaired?.volumeCoverage).toBe("no_indexed_pools");
+    expect(unpaired?.volume24hUsd).toBeNull();
+  });
+
+  it("merges public GeckoTerminal search candidates without treating them as an admission list", async () => {
+    const urls: string[] = [];
+    const geckoMint = "XsGeckoHood11111111111111111111111111111";
+    const geckoPair = {
+      chainId: "solana",
+      dexId: "raydium",
+      pairAddress: "pair-gecko",
+      baseToken: { address: geckoMint, name: "Robinhood xStock", symbol: "HOODx" },
+      quoteToken: { address: "usdc", name: "USDC", symbol: "USDC" },
+      volume: { h24: 88 },
+      liquidity: { usd: 20 },
+    };
+    const source = testSource({
+      requestGapMs: 0,
+      enableGeckoTerminal: true,
+      geckoTerminalBaseUrl: "https://api.geckoterminal.com/api/v2",
+      fetchImpl: async (input) => {
+        const url = String(input);
+        urls.push(url);
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [tslaPair()] });
+        if (url.includes("geckoterminal.com")) {
+          return jsonResponse({
+            data: [],
+            included: [
+              {
+                type: "token",
+                attributes: { address: geckoMint, name: "Robinhood xStock", symbol: "HOODx" },
+              },
+            ],
+          });
+        }
+        if (url.includes(`/tokens/v1/solana/`) && url.includes(geckoMint)) return jsonResponse([geckoPair]);
+        if (url.includes(`/token-pairs/v1/solana/${geckoMint}`)) return jsonResponse([geckoPair]);
+        if (url.includes(`/token-pairs/v1/solana/${tslaMint}`)) return jsonResponse([tslaPair()]);
+        if (url.includes("/tokens/v1/solana/")) return jsonResponse([tslaPair()]);
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    const chain = await source.getChain("solana");
+    expect(urls.some((url) => url.includes("geckoterminal.com") && url.includes("search/pools"))).toBe(true);
+    expect(chain?.assets.map((asset) => asset.symbol).sort()).toEqual(["HOODx", "TSLAx"]);
+    const hood = chain?.assets.find((asset) => asset.symbol === "HOODx");
+    expect(hood?.volume24hUsd).toBe(88);
+    expect(hood?.volumeCoverage).toBe("reported");
   });
 });

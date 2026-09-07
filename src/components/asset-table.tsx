@@ -188,10 +188,12 @@ export function AssetTable({
         {totalInLane}
         {coverageFilter !== "all" ? ` · ${coverageFilter.replace("-", " ")}` : ""}
       </p>
-      {coverageFilter === "all" && hydratingCount > 0 ? (
+      {hydratingCount > 0 ? (
         <p className="text-xs text-muted-foreground">
-          {hydratingCount} still hydrating {hydratingCount === 1 ? "row sits" : "rows sit"} below names with reported
-          volume. That volume is unknown, not zero.
+          {hydratingCount} {hydratingCount === 1 ? "row is" : "rows are"} still hydrating DexScreener
+          {coverageFilter === "with-volume"
+            ? " and will appear here once volume is reported. Reload to pick up background enrichment."
+            : " below names with reported volume. That volume is unknown, not zero — reload to see counts rise."}
         </p>
       ) : null}
 

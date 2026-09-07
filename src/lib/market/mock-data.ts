@@ -26,6 +26,7 @@ function chainShell(
   | "assetsWithVolume"
   | "assetsWithPools"
   | "assetsStillHydrating"
+  | "assetsWithNoIndexedPools"
   | "reportedPoolCount"
   | "peakDexCount"
 > {

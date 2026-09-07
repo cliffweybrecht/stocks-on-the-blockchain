@@ -3,6 +3,7 @@ import {
   assetMatchesCoverageFilter,
   inferVolumeCoverage,
   parseCoverageFilter,
+  solanaHydrateProgress,
 } from "../volume-coverage";
 
 describe("inferVolumeCoverage", () => {
@@ -47,5 +48,21 @@ describe("coverage filters", () => {
     expect(assetMatchesCoverageFilter(reported, "no-pools")).toBe(false);
     expect(assetMatchesCoverageFilter(noPools, "no-pools")).toBe(true);
     expect(assetMatchesCoverageFilter(poolsNoVolume, "no-pools")).toBe(false);
+  });
+});
+
+describe("solanaHydrateProgress", () => {
+  it("separates still-hydrating from confirmed DexScreener-empty", () => {
+    const progress = solanaHydrateProgress({
+      assetCount: 100,
+      assetsWithVolume: 48,
+      assetsWithPools: 50,
+      assetsStillHydrating: 10,
+      assetsWithNoIndexedPools: 40,
+    });
+    expect(progress.checked).toBe(90);
+    expect(progress.checkedPct).toBe(90);
+    expect(progress.confirmedNoPools).toBe(40);
+    expect(progress.stillHydrating).toBe(10);
   });
 });

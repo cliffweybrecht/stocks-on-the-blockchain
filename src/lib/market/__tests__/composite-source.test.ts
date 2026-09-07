@@ -44,6 +44,7 @@ function chain(id: string, sourceId: SourceKind, volume: number | null): ChainVo
     assetsWithVolume: volume === null ? 0 : 1,
     assetsWithPools: 1,
     assetsStillHydrating: 0,
+    assetsWithNoIndexedPools: 0,
     reportedPoolCount: 1,
     peakDexCount: 1,
     etfCount: 0,
