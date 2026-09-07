@@ -26,14 +26,24 @@ export default async function AssetPage({
   params: Promise<{ chainId: string; symbol: string }>;
 }) {
   const { chainId, symbol } = await params;
+  const source = createMarketDataSource();
 
+  let result;
   try {
-    const source = createMarketDataSource();
-    const result = await source.getAsset(chainId, decodeURIComponent(symbol));
-    if (!result) notFound();
+    result = await source.getAsset(chainId, decodeURIComponent(symbol));
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : "Asset snapshot failed.";
+    return (
+      <PageShell>
+        <ErrorState title="Could not load this stock" detail={detail} />
+      </PageShell>
+    );
+  }
 
-    const { chain, asset, provenance } = result;
-    const halt = asset.price.isTradingHalt;
+  if (!result) notFound();
+
+  const { chain, asset, provenance } = result;
+  const halt = asset.price.isTradingHalt;
 
     return (
       <PageShell provenance={provenance}>
@@ -204,12 +214,4 @@ export default async function AssetPage({
         </div>
       </PageShell>
     );
-  } catch (error) {
-    const detail = error instanceof Error ? error.message : "Asset snapshot failed.";
-    return (
-      <PageShell>
-        <ErrorState title="Could not load this stock" detail={detail} />
-      </PageShell>
-    );
-  }
 }
