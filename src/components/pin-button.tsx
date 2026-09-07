@@ -1,7 +1,7 @@
 "use client";
 
 import { Star } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 
 export function PinButton({
   pinned,
@@ -13,10 +13,9 @@ export function PinButton({
   label: string;
 }) {
   return (
-    <Button
+    <button
       type="button"
-      variant="ghost"
-      size="icon-xs"
+      className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
       aria-pressed={pinned}
       aria-label={pinned ? `Unpin ${label}` : `Pin ${label}`}
       title={pinned ? "Unpin from this browser" : "Pin in this browser"}
@@ -27,6 +26,6 @@ export function PinButton({
       }}
     >
       <Star className={pinned ? "fill-primary text-primary" : "text-muted-foreground"} />
-    </Button>
+    </button>
   );
 }

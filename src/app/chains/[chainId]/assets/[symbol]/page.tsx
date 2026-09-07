@@ -84,14 +84,14 @@ export default async function AssetPage({
           </nav>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex items-start gap-2">
-              <div>
-                <p className="text-xs tracking-[0.18em] text-primary uppercase">{chain.name}</p>
+            <div>
+              <p className="text-xs tracking-[0.18em] text-primary uppercase">{chain.name}</p>
+              <div className="mt-1 flex items-center gap-2">
                 <h2 className="font-heading text-3xl font-semibold tracking-tight">{asset.symbol}</h2>
-                <p className="mt-1 text-muted-foreground">{asset.name}</p>
-                {asset.issuer ? <p className="mt-1 text-sm text-muted-foreground">Issuer · {asset.issuer}</p> : null}
+                {isSolana ? <AssetPin mint={asset.contractAddress} label={asset.symbol} /> : null}
               </div>
-              {isSolana ? <AssetPin mint={asset.contractAddress} label={asset.symbol} /> : null}
+              <p className="mt-1 text-muted-foreground">{asset.name}</p>
+              {asset.issuer ? <p className="mt-1 text-sm text-muted-foreground">Issuer · {asset.issuer}</p> : null}
             </div>
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline">
