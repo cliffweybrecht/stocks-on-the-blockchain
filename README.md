@@ -104,7 +104,7 @@ SOLANA_MARKET_ENABLED=true
 npm run dev -- --port 43147
 ```
 
-`CompositeMarketDataSource` merges the two adapters. The home page ranks every returned chain by `volume24hUsd` (nulls last). If Solana is down, Robinhood Chain still renders and provenance lists the Solana failure. If Terminal is down while Solana loaded, the Solana coverage banner stays primary and Terminal is a quiet secondary note — not a red error that dominates the desk. If both fail, the desk shows an error instead of fabricating a ranking.
+`CompositeMarketDataSource` merges the two adapters. The home page ranks every returned chain by `volume24hUsd` (nulls last). If Solana is down, Robinhood Chain still renders and provenance lists the Solana failure. If Terminal is down while Solana loaded, Solana coverage stays primary and Terminal is a quiet secondary note — not a red error that dominates the desk. If both fail, the desk shows an error instead of fabricating a ranking.
 
 ### Scripts
 
@@ -165,8 +165,8 @@ Robinhood marks stay null on Solana. Off-Solana pairs are ignored.
 
 ## Trust labeling
 
-- Persistent disclaimer on every page
-- Solana coverage banner: classified vs with-volume vs still-hydrating vs confirmed-no-pools. Banner tiles deep-link those filters. Rank # is the current filtered view.
+- Persistent disclaimer in the site footer (Solana chain/asset pages do not repeat the gold trust banner)
+- Solana coverage is a single muted line; table chips still filter classified / with-volume / still-hydrating / confirmed-no-pools. Rank # is the current filtered view.
 - Solana desk jump (`/` or ⌘K) searches symbol, name, issuer, and mint with collision-safe deep links. Stars pin mints in `localStorage` (`sotb.solana.favoriteMints.v1`); pinned rows float to the top, or filter with `?pinned=1`. Two or more pins open a compare strip. Export CSV downloads the current filtered+sorted lane (null volume stays blank). TSLAx and TSLAon stay separate.
 - Solana chain list defaults to **With volume**, ranked by coverage tier then aggregate 24h volume (nulls last). Click column headers to change sort. Warm navigations show skeletons instead of an empty table.
 - **Reported** vs **Interpretive** badges on metrics
