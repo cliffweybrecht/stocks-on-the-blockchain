@@ -1,12 +1,13 @@
 import { sortByVolumeThenLiquidity } from "./aggregate";
 import { COMPOSITE_SOURCE_NOTE } from "./trust";
-import type {
-  AssetDetailResult,
-  ChainDetailResult,
-  ChainListResult,
-  DataProvenance,
-  MarketDataSource,
-  SourceFailure,
+import {
+  SOLANA_CHAIN_ID,
+  type AssetDetailResult,
+  type ChainDetailResult,
+  type ChainListResult,
+  type DataProvenance,
+  type MarketDataSource,
+  type SourceFailure,
 } from "./types";
 
 function errorMessage(error: unknown): string {
@@ -53,17 +54,32 @@ export class CompositeMarketDataSource implements MarketDataSource {
       throw new Error(failures.map((failure) => `${failure.sourceLabel}: ${failure.message}`).join(" · "));
     }
 
+    const hasSolana = chains.some((chain) => chain.id === SOLANA_CHAIN_ID);
+    const loudFailures: SourceFailure[] = [];
+    let terminalFailed = false;
+    for (const failure of failures) {
+      if (hasSolana && failure.sourceId === "terminal") {
+        terminalFailed = true;
+        notes.push(
+          `Robinhood Terminal unavailable (${failure.message}). Solana coverage is shown from DexScreener; Terminal is a secondary source and is not required for this desk.`,
+        );
+        continue;
+      }
+      loudFailures.push(failure);
+    }
+
+    const solanaAdapter = this.adapters.find((adapter) => adapter.id === "solana");
     const provenance: DataProvenance = {
       sourceId: "composite",
-      sourceLabel: this.label,
+      sourceLabel: terminalFailed && solanaAdapter ? solanaAdapter.label : this.label,
       fetchedAt,
       generatedAt,
       refreshStartedAt: fetchedAt,
       refreshDurationMs: null,
-      cacheStatus: failures.length > 0 ? "partial" : "fresh",
+      cacheStatus: loudFailures.length > 0 ? "partial" : "fresh",
       cacheAgeMs: 0,
       notes,
-      sourceFailures: failures,
+      sourceFailures: loudFailures,
     };
 
     return {

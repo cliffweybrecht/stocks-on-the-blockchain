@@ -1,12 +1,15 @@
 import { createRequestGate, mapWithConcurrency } from "./async-pool";
 import { findAssetByKey } from "./identity";
-import { buildSolanaSnapshot, unwrapDexScreenerPairs, unwrapDexScreenerSearch } from "./map-solana";
+import { buildSolanaSnapshot, unwrapDexScreenerPairs, unwrapDexScreenerSearch, type DexScreenerPair } from "./map-solana";
 import {
   chunkValues,
   collectSolanaCandidateTokens,
   DEFAULT_SOLANA_DISCOVERY_QUERIES,
   DEXSCREENER_TOKEN_BATCH_SIZE,
   mergeTokenIdentities,
+  mintsInPairs,
+  pairsTouchingMints,
+  prioritizeMintsForHydrate,
   selectInstrumentMints,
   solanaSearchPath,
   solanaTokenPairsPath,
@@ -32,14 +35,18 @@ import {
 } from "./types";
 import type { TokenIdentity } from "./solana-classifier";
 
+export const SOLANA_DEFAULTS = {
+  timeoutMs: 12_000,
+  cacheMs: 5 * 60_000,
+  staleMs: 15 * 60_000,
+  requestGapMs: 50,
+  maxConcurrent: 6,
+  /** DexScreener hydrate budget after discovery. Search pairs are seeded even if this is 0. */
+  homeBudgetMs: 20_000,
+  fullBudgetMs: 45_000,
+} as const;
+
 const DEFAULT_BASE_URL = "https://api.dexscreener.com";
-const DEFAULT_TIMEOUT_MS = 12_000;
-const DEFAULT_CACHE_MS = 5 * 60_000;
-const DEFAULT_STALE_MS = 15 * 60_000;
-const DEFAULT_REQUEST_GAP_MS = 80;
-const DEFAULT_MAX_CONCURRENT = 4;
-const DEFAULT_HOME_BUDGET_MS = 12_000;
-const DEFAULT_FULL_BUDGET_MS = 25_000;
 
 type SnapshotMode = "light" | "full";
 
@@ -49,6 +56,10 @@ interface CachedSnapshot {
   discovered: DiscoveredEquityMint[];
   discoveredEtfs: DiscoveredEquityMint[];
   extraNotes: string[];
+  pairRows: DexScreenerPair[];
+  pendingPreviewMints: string[];
+  pendingFullMints: string[];
+  failedMints: string[];
   createdAt: number;
   expiresAt: number;
   staleUntil: number;
@@ -69,6 +80,7 @@ export interface SolanaMarketDataSourceOptions {
   enableOndoRegistry?: boolean;
   ondoRegistryUrl?: string;
   retries?: number;
+  backgroundEnrichment?: boolean;
   fetchImpl?: FetchLike;
 }
 
@@ -78,6 +90,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
   private cache: CachedSnapshot | null = null;
   private inflight: Promise<CachedSnapshot> | null = null;
   private inflightMode: SnapshotMode | null = null;
+  private backgroundWork: Promise<void> | null = null;
 
   constructor(private readonly options: SolanaMarketDataSourceOptions = {}) {}
 
@@ -86,15 +99,15 @@ export class SolanaMarketDataSource implements MarketDataSource {
   }
 
   private get timeoutMs() {
-    return this.options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    return this.options.timeoutMs ?? SOLANA_DEFAULTS.timeoutMs;
   }
 
   private get requestGapMs() {
-    return this.options.requestGapMs ?? DEFAULT_REQUEST_GAP_MS;
+    return this.options.requestGapMs ?? SOLANA_DEFAULTS.requestGapMs;
   }
 
   private get maxConcurrent() {
-    return this.options.maxConcurrent ?? DEFAULT_MAX_CONCURRENT;
+    return this.options.maxConcurrent ?? SOLANA_DEFAULTS.maxConcurrent;
   }
 
   private get discoveryQueries() {
@@ -122,11 +135,23 @@ export class SolanaMarketDataSource implements MarketDataSource {
   }
 
   private get cacheMs() {
-    return this.options.cacheMs ?? DEFAULT_CACHE_MS;
+    return this.options.cacheMs ?? SOLANA_DEFAULTS.cacheMs;
   }
 
   private get staleMs() {
-    return this.options.staleMs ?? DEFAULT_STALE_MS;
+    return this.options.staleMs ?? SOLANA_DEFAULTS.staleMs;
+  }
+
+  private get homeBudgetMs() {
+    return this.options.homeBudgetMs ?? SOLANA_DEFAULTS.homeBudgetMs;
+  }
+
+  private get fullBudgetMs() {
+    return this.options.fullBudgetMs ?? SOLANA_DEFAULTS.fullBudgetMs;
+  }
+
+  private get backgroundEnrichment() {
+    return this.options.backgroundEnrichment !== false;
   }
 
   private gate() {
@@ -137,7 +162,12 @@ export class SolanaMarketDataSource implements MarketDataSource {
     return fetchJsonOrText(url, this.timeoutMs, this.fetchImpl, label, this.options.retries ?? 2);
   }
 
-  private async loadSearchIdentities(): Promise<{ identities: TokenIdentity[]; error: Error | null; failedQueries: number }> {
+  private async loadSearchIdentities(): Promise<{
+    identities: TokenIdentity[];
+    pairs: DexScreenerPair[];
+    error: Error | null;
+    failedQueries: number;
+  }> {
     const gate = this.gate();
     const results = await mapWithConcurrency(this.discoveryQueries, this.maxConcurrent, async (query) => {
       try {
@@ -145,15 +175,17 @@ export class SolanaMarketDataSource implements MarketDataSource {
         return { pairs: unwrapDexScreenerSearch(payload), error: null as Error | null };
       } catch (error) {
         return {
-          pairs: [],
+          pairs: [] as DexScreenerPair[],
           error: error instanceof Error ? error : new Error("DexScreener search failed."),
         };
       }
     });
-    const identities = collectSolanaCandidateTokens(results.flatMap((row) => row.pairs));
+    const pairs = results.flatMap((row) => row.pairs);
+    const identities = collectSolanaCandidateTokens(pairs);
     const errors = results.map((row) => row.error).filter((error): error is Error => error !== null);
     return {
       identities,
+      pairs,
       error: errors.length === results.length && results.length > 0 ? errors[0]! : null,
       failedQueries: errors.length,
     };
@@ -206,7 +238,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
     const pairRows: ReturnType<typeof unwrapDexScreenerPairs> = [];
 
     const results = await mapWithConcurrency(chunks, this.maxConcurrent, async (chunk) => {
-      if (Date.now() > deadline) {
+      if (Date.now() >= deadline) {
         return { ok: false as const, incomplete: true, chunk, pairs: [] };
       }
       try {
@@ -238,7 +270,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
     const pairRows: ReturnType<typeof unwrapDexScreenerPairs> = [];
 
     const results = await mapWithConcurrency(mints, this.maxConcurrent, async (mint) => {
-      if (Date.now() > deadline) {
+      if (Date.now() >= deadline) {
         return { ok: false as const, incomplete: true, mint, pairs: [] };
       }
       try {
@@ -263,19 +295,14 @@ export class SolanaMarketDataSource implements MarketDataSource {
     return { pairRows, failedMints, incompleteMints };
   }
 
-  private mintsWithPairs(
-    pairs: readonly { baseToken?: { address?: unknown }; quoteToken?: { address?: unknown } }[],
-    discovered: readonly DiscoveredEquityMint[],
-  ) {
-    const wanted = new Set(discovered.map((row) => row.mint));
-    const found = new Set<string>();
-    for (const pair of pairs) {
-      for (const side of [pair.baseToken, pair.quoteToken]) {
-        const address = typeof side?.address === "string" ? side.address : null;
-        if (address && wanted.has(address)) found.add(address);
-      }
-    }
-    return discovered.map((row) => row.mint).filter((mint) => found.has(mint));
+  private coverageScore(snapshot: CachedSnapshot): number {
+    const full = snapshot.aggregation === "all-pools" ? 1_000_000 : 0;
+    return (
+      full +
+      snapshot.mapped.chain.assetsWithVolume * 1_000 +
+      snapshot.mapped.chain.assetsWithPools * 10 +
+      snapshot.pairRows.length
+    );
   }
 
   private cacheSatisfies(mode: SnapshotMode, now: number): CachedSnapshot | null {
@@ -285,10 +312,64 @@ export class SolanaMarketDataSource implements MarketDataSource {
     return this.cache;
   }
 
+  private commitCache(next: CachedSnapshot): CachedSnapshot {
+    const merged = this.preferRicherCache(next);
+    this.cache = merged;
+    this.scheduleEnrichment();
+    return merged;
+  }
+
+  private rebuildSnapshot(
+    snapshot: Omit<CachedSnapshot, "mapped" | "createdAt" | "expiresAt" | "staleUntil"> & {
+      createdAt?: number;
+      refreshDurationMs: number;
+    },
+  ): CachedSnapshot {
+    const incompleteMints = new Set([...snapshot.pendingPreviewMints, ...snapshot.pendingFullMints]);
+    const extraNotes = [...snapshot.extraNotes];
+    const hydrating = incompleteMints.size;
+    if (hydrating > 0) {
+      extraNotes.push(
+        `${hydrating} mint(s) still hydrating DexScreener volume in the background. Counts are so-far, not final.`,
+      );
+    }
+    const now = Date.now();
+    const mapped = buildSolanaSnapshot({
+      pairs: snapshot.pairRows,
+      fetchedAt: new Date().toISOString(),
+      discovered: snapshot.discovered,
+      discoveredEtfs: snapshot.discoveredEtfs,
+      extraNotes,
+      failedMints: new Set(snapshot.failedMints),
+      incompleteMints,
+      aggregation: snapshot.aggregation,
+      refreshDurationMs: snapshot.refreshDurationMs,
+      cacheStatus: hydrating > 0 ? "partial" : "fresh",
+      cacheAgeMs: 0,
+    });
+    if (mapped.assets.length === 0 && mapped.etfAssets.length === 0) {
+      throw new Error(
+        "Discovery returned candidates but none classified as verifiable tokenized equities. Nothing was invented.",
+      );
+    }
+    return {
+      mapped,
+      aggregation: snapshot.aggregation,
+      discovered: snapshot.discovered,
+      discoveredEtfs: snapshot.discoveredEtfs,
+      extraNotes,
+      pairRows: snapshot.pairRows,
+      pendingPreviewMints: snapshot.pendingPreviewMints,
+      pendingFullMints: snapshot.pendingFullMints,
+      failedMints: snapshot.failedMints,
+      createdAt: snapshot.createdAt ?? now,
+      expiresAt: now + this.cacheMs,
+      staleUntil: now + this.staleMs,
+    };
+  }
+
   private async refresh(mode: SnapshotMode): Promise<CachedSnapshot> {
     const started = Date.now();
-    const budgetMs = mode === "light" ? (this.options.homeBudgetMs ?? DEFAULT_HOME_BUDGET_MS) : (this.options.fullBudgetMs ?? DEFAULT_FULL_BUDGET_MS);
-    const deadline = started + budgetMs;
     const extraNotes: string[] = [];
 
     const searchTask = this.loadSearchIdentities();
@@ -345,90 +426,169 @@ export class SolanaMarketDataSource implements MarketDataSource {
     }
 
     const allDiscovered = [...discovered, ...discoveredEtfs];
-    const preview = await this.hydratePreviewPairs(
-      allDiscovered.map((row) => row.mint),
-      deadline,
+    const classifiedMints = new Set(allDiscovered.map((row) => row.mint));
+    const searchMints = new Set(searchResult.identities.map((token) => token.address).filter((mint) => classifiedMints.has(mint)));
+    const seedPairs = pairsTouchingMints(searchResult.pairs, classifiedMints);
+    const seededMints = mintsInPairs(seedPairs, classifiedMints);
+
+    const remainingPreview = prioritizeMintsForHydrate(
+      allDiscovered.map((row) => row.mint).filter((mint) => !seededMints.has(mint)),
+      searchMints,
     );
+
+    const hydrateDeadline = Date.now() + (mode === "light" ? this.homeBudgetMs : this.fullBudgetMs);
+    const preview = await this.hydratePreviewPairs(remainingPreview, hydrateDeadline);
+    const pairRows = [...seedPairs, ...preview.pairRows];
+    const failedMints = new Set(preview.failedMints);
+    const pendingPreview = [...preview.incompleteMints];
+
     extraNotes.push(
-      `Classified ${discovered.length} public equities and ${discoveredEtfs.length} ETF/index products. ${preview.failedMints.size} mint batch(es) failed DexScreener preview; ${preview.incompleteMints.size} did not finish before the snapshot budget.`,
+      `Classified ${discovered.length} public equities and ${discoveredEtfs.length} ETF/index products. ${seededMints.size} mint(s) seeded from DexScreener search. ${preview.failedMints.size} mint batch(es) failed DexScreener preview; ${pendingPreview.length} did not finish before the snapshot budget.`,
     );
 
     const aggregation: VolumeAggregation = mode === "light" ? "primary-pair" : "all-pools";
-    let pairRows = preview.pairRows;
-    const failedMints = new Set(preview.failedMints);
-    const incompleteMints = new Set(preview.incompleteMints);
+    let finalPairs = pairRows;
+    const pendingFull: string[] = [];
 
     if (mode === "full") {
-      const activeMints = this.mintsWithPairs(preview.pairRows, allDiscovered).filter(
-        (mint) => !failedMints.has(mint) && !incompleteMints.has(mint),
+      const knownPairMints = mintsInPairs(pairRows, classifiedMints);
+      const activeMints = prioritizeMintsForHydrate(
+        [...knownPairMints].filter((mint) => !failedMints.has(mint) && !preview.incompleteMints.has(mint)),
+        searchMints,
       );
       if (activeMints.length > 0) {
-        const full = await this.hydrateFullPools(activeMints, deadline);
-        pairRows = full.pairRows;
+        const full = await this.hydrateFullPools(activeMints, hydrateDeadline);
+        finalPairs = full.pairRows.length > 0 ? full.pairRows : pairRows;
+        if (full.pairRows.length > 0) {
+          const fullMints = mintsInPairs(full.pairRows, classifiedMints);
+          finalPairs = [...pairRows.filter((pair) => {
+            const touched = mintsInPairs([pair], classifiedMints);
+            return [...touched].every((mint) => !fullMints.has(mint));
+          }), ...full.pairRows];
+        }
         full.failedMints.forEach((mint) => failedMints.add(mint));
-        full.incompleteMints.forEach((mint) => incompleteMints.add(mint));
+        pendingFull.push(...full.incompleteMints);
       }
-      if (incompleteMints.size > 0) {
+      if (pendingPreview.length > 0 || pendingFull.length > 0) {
         extraNotes.push(
-          "DexScreener every-pool hydrate hit the snapshot budget. Volume for unfinished mints is unknown, not zero.",
+          "DexScreener every-pool hydrate hit the snapshot budget. Unfinished mints keep unknown volume, not zero, and continue in the background.",
         );
       }
     } else {
       extraNotes.push(
-        "Home snapshot uses DexScreener primary-pair volume per mint so the chain list is not blocked on every-pool hydrate. Open Solana for full pool aggregation.",
+        "Home snapshot uses DexScreener search pairs plus a time-boxed primary-pair hydrate. Open Solana for every-pool aggregation. Remaining mints keep hydrating in the background.",
       );
     }
 
-    const now = Date.now();
-    const mapped = buildSolanaSnapshot({
-      pairs: pairRows,
-      fetchedAt: new Date().toISOString(),
+    return this.rebuildSnapshot({
+      aggregation,
       discovered,
       discoveredEtfs,
       extraNotes,
-      failedMints,
-      incompleteMints,
-      aggregation,
-      refreshDurationMs: now - started,
-      cacheStatus: "fresh",
-      cacheAgeMs: 0,
+      pairRows: finalPairs,
+      pendingPreviewMints: pendingPreview,
+      pendingFullMints: pendingFull,
+      failedMints: [...failedMints],
+      refreshDurationMs: Date.now() - started,
     });
-    if (mapped.assets.length === 0 && mapped.etfAssets.length === 0) {
-      throw new Error(
-        "Discovery returned candidates but none classified as verifiable tokenized equities. Nothing was invented.",
-      );
+  }
+
+  private scheduleEnrichment(): void {
+    if (!this.backgroundEnrichment) return;
+    const snapshot = this.cache;
+    if (!snapshot) return;
+    if (snapshot.pendingPreviewMints.length === 0 && snapshot.pendingFullMints.length === 0) return;
+    if (this.backgroundWork) return;
+    this.backgroundWork = this.enrichInBackground(snapshot.aggregation)
+      .catch(() => undefined)
+      .finally(() => {
+        this.backgroundWork = null;
+      });
+  }
+
+  private async enrichInBackground(mode: VolumeAggregation): Promise<void> {
+    const snapshot = this.cache;
+    if (!snapshot) return;
+    const classifiedMints = new Set([...snapshot.discovered, ...snapshot.discoveredEtfs].map((row) => row.mint));
+    const knownMints = mintsInPairs(snapshot.pairRows, classifiedMints);
+    const deadline = Date.now() + this.fullBudgetMs;
+
+    let pairRows = snapshot.pairRows;
+    const failedMints = new Set(snapshot.failedMints);
+    let pendingPreview = snapshot.pendingPreviewMints;
+    let pendingFull = snapshot.pendingFullMints;
+
+    if (pendingPreview.length > 0) {
+      const ordered = prioritizeMintsForHydrate(pendingPreview, knownMints);
+      const preview = await this.hydratePreviewPairs(ordered, deadline);
+      pairRows = [...pairRows, ...preview.pairRows];
+      preview.failedMints.forEach((mint) => failedMints.add(mint));
+      pendingPreview = [...preview.incompleteMints];
+      const newlyKnown = mintsInPairs(preview.pairRows, classifiedMints);
+      if (mode === "all-pools") {
+        pendingFull = prioritizeMintsForHydrate([...new Set([...pendingFull, ...newlyKnown])], newlyKnown);
+      }
     }
 
-    return {
-      mapped,
-      aggregation,
-      discovered,
-      discoveredEtfs,
-      extraNotes,
-      createdAt: now,
-      expiresAt: now + this.cacheMs,
-      staleUntil: now + this.staleMs,
-    };
+    if (mode === "all-pools" && pendingFull.length > 0) {
+      const full = await this.hydrateFullPools(pendingFull, deadline);
+      if (full.pairRows.length > 0) {
+        const fullMints = mintsInPairs(full.pairRows, classifiedMints);
+        pairRows = [
+          ...pairRows.filter((pair) => {
+            const touched = mintsInPairs([pair], classifiedMints);
+            return [...touched].every((mint) => !fullMints.has(mint));
+          }),
+          ...full.pairRows,
+        ];
+      }
+      full.failedMints.forEach((mint) => failedMints.add(mint));
+      pendingFull = [...full.incompleteMints];
+    }
+
+    const next = this.rebuildSnapshot({
+      aggregation: snapshot.aggregation,
+      discovered: snapshot.discovered,
+      discoveredEtfs: snapshot.discoveredEtfs,
+      extraNotes: snapshot.extraNotes.filter((note) => !/still hydrating DexScreener volume/.test(note)),
+      pairRows,
+      pendingPreviewMints: pendingPreview,
+      pendingFullMints: pendingFull,
+      failedMints: [...failedMints],
+      createdAt: snapshot.createdAt,
+      refreshDurationMs: snapshot.mapped.provenance.refreshDurationMs ?? 0,
+    });
+    this.cache = this.preferRicherCache(next);
+    if ((this.cache.pendingPreviewMints.length > 0 || this.cache.pendingFullMints.length > 0) && Date.now() < deadline) {
+      // Budget remaining but nothing progressed — stop to avoid a tight loop.
+    }
+  }
+
+  /** Test hook: wait for in-flight background volume enrichment. */
+  async flushBackgroundWork(): Promise<void> {
+    if (this.backgroundWork) await this.backgroundWork;
   }
 
   private async loadCached(mode: SnapshotMode): Promise<CachedSnapshot> {
     const now = Date.now();
     const hit = this.cacheSatisfies(mode, now);
     if (hit) {
+      this.scheduleEnrichment();
       if (hit.expiresAt <= now && !this.inflight) {
         this.inflightMode = mode;
         this.inflight = this.refresh(mode)
-          .then((next) => {
-            this.cache = this.preferRicherCache(next);
-            return this.cache;
-          })
+          .then((next) => this.commitCache(next))
           .finally(() => {
             this.inflight = null;
             this.inflightMode = null;
           });
       }
       const age = now - hit.createdAt;
-      hit.mapped.provenance.cacheStatus = hit.expiresAt > now ? "fresh" : "stale";
+      hit.mapped.provenance.cacheStatus = hit.pendingPreviewMints.length + hit.pendingFullMints.length > 0
+        ? "partial"
+        : hit.expiresAt > now
+          ? "fresh"
+          : "stale";
       hit.mapped.provenance.cacheAgeMs = age;
       return hit;
     }
@@ -444,10 +604,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
 
     this.inflightMode = mode;
     this.inflight = this.refresh(mode)
-      .then((next) => {
-        this.cache = this.preferRicherCache(next);
-        return this.cache;
-      })
+      .then((next) => this.commitCache(next))
       .finally(() => {
         this.inflight = null;
         this.inflightMode = null;
@@ -456,15 +613,10 @@ export class SolanaMarketDataSource implements MarketDataSource {
   }
 
   private preferRicherCache(next: CachedSnapshot): CachedSnapshot {
-    if (
-      this.cache &&
-      this.cache.aggregation === "all-pools" &&
-      next.aggregation === "primary-pair" &&
-      this.cache.expiresAt > Date.now()
-    ) {
-      return this.cache;
-    }
-    return next;
+    if (!this.cache) return next;
+    if (this.cache.staleUntil <= Date.now()) return next;
+    if (this.coverageScore(next) >= this.coverageScore(this.cache)) return next;
+    return this.cache;
   }
 
   async listChains(): Promise<ChainListResult> {

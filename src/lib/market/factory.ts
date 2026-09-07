@@ -1,6 +1,6 @@
 import { CompositeMarketDataSource } from "./composite-source";
 import { MockMarketDataSource } from "./mock-source";
-import { SolanaMarketDataSource } from "./solana-source";
+import { SOLANA_DEFAULTS, SolanaMarketDataSource } from "./solana-source";
 import { TerminalMarketDataSource } from "./terminal-source";
 import type { MarketDataSource } from "./types";
 
@@ -29,26 +29,26 @@ export function getSolanaDexScreenerBaseUrl(env: MarketEnv = process.env): strin
 
 function buildLiveAdapters(env: MarketEnv): MarketDataSource[] {
   const adapters: MarketDataSource[] = [];
-  const terminalUrl = getTerminalBaseUrl(env);
-  if (terminalUrl) {
-    adapters.push(new TerminalMarketDataSource(terminalUrl));
-  }
   if (isSolanaMarketEnabled(env)) {
     adapters.push(
       new SolanaMarketDataSource({
         baseUrl: getSolanaDexScreenerBaseUrl(env),
-        timeoutMs: envNumber(env, "SOLANA_TIMEOUT_MS", 12_000),
-        requestGapMs: envNumber(env, "SOLANA_REQUEST_GAP_MS", 80),
-        cacheMs: envNumber(env, "SOLANA_CACHE_MS", 5 * 60_000),
-        maxConcurrent: envNumber(env, "SOLANA_MAX_CONCURRENT", 4),
-        homeBudgetMs: envNumber(env, "SOLANA_HOME_BUDGET_MS", 12_000),
-        fullBudgetMs: envNumber(env, "SOLANA_FULL_BUDGET_MS", 25_000),
+        timeoutMs: envNumber(env, "SOLANA_TIMEOUT_MS", SOLANA_DEFAULTS.timeoutMs),
+        requestGapMs: envNumber(env, "SOLANA_REQUEST_GAP_MS", SOLANA_DEFAULTS.requestGapMs),
+        cacheMs: envNumber(env, "SOLANA_CACHE_MS", SOLANA_DEFAULTS.cacheMs),
+        maxConcurrent: envNumber(env, "SOLANA_MAX_CONCURRENT", SOLANA_DEFAULTS.maxConcurrent),
+        homeBudgetMs: envNumber(env, "SOLANA_HOME_BUDGET_MS", SOLANA_DEFAULTS.homeBudgetMs),
+        fullBudgetMs: envNumber(env, "SOLANA_FULL_BUDGET_MS", SOLANA_DEFAULTS.fullBudgetMs),
         enableRegistry: env.SOLANA_XSTOCKS_REGISTRY_ENABLED?.trim().toLowerCase() !== "false",
         registryBaseUrl: env.SOLANA_XSTOCKS_REGISTRY_URL?.trim() || undefined,
         enableOndoRegistry: env.SOLANA_ONDO_REGISTRY_ENABLED?.trim().toLowerCase() !== "false",
         ondoRegistryUrl: env.SOLANA_ONDO_REGISTRY_URL?.trim() || undefined,
       }),
     );
+  }
+  const terminalUrl = getTerminalBaseUrl(env);
+  if (terminalUrl) {
+    adapters.push(new TerminalMarketDataSource(terminalUrl));
   }
   return adapters;
 }

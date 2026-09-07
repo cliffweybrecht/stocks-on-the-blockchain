@@ -21,6 +21,7 @@ function testSource(options: SolanaMarketDataSourceOptions) {
     discoveryQueries: ["xStock"],
     enableRegistry: false,
     enableOndoRegistry: false,
+    backgroundEnrichment: false,
     ...options,
   });
 }
@@ -74,7 +75,7 @@ describe("SolanaMarketDataSource", () => {
     expect(list.chains[0]?.volume24hUsd).toBeCloseTo(1_250.25);
     expect(list.chains[0]?.assetsWithPools).toBe(1);
     expect(urls.some((url) => url.includes("/latest/dex/search?q=xStock"))).toBe(true);
-    expect(urls.some((url) => url.includes(`/tokens/v1/solana/${tslaMint}`))).toBe(true);
+    expect(urls.some((url) => url.includes(`/tokens/v1/solana/${tslaMint}`))).toBe(false);
     expect(urls.some((url) => url.includes(`/token-pairs/v1/solana/${tslaMint}`))).toBe(false);
 
     const chain = await source.getChain("solana");
@@ -296,6 +297,123 @@ describe("SolanaMarketDataSource", () => {
     expect(searchCalls).toBe(1);
   });
 
+  it("keeps search-pair volume when the DexScreener preview budget is already spent", async () => {
+    const tokenUrls: string[] = [];
+    const source = testSource({
+      requestGapMs: 0,
+      homeBudgetMs: 0,
+      fullBudgetMs: 0,
+      enableRegistry: true,
+      registryBaseUrl: "https://api.xstocks.fi/api/v2",
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [tslaPair()] });
+        if (url.includes("/public/assets")) {
+          return jsonResponse({
+            nodes: [
+              {
+                name: "Tesla xStock",
+                symbol: "TSLAx",
+                deployments: [{ network: "Solana", address: tslaMint }],
+              },
+              {
+                name: "Robinhood xStock",
+                symbol: "HOODx",
+                deployments: [{ network: "Solana", address: hoodMint }],
+              },
+              {
+                name: "Unpaired Hood xStock",
+                symbol: "UHOODx",
+                deployments: [{ network: "Solana", address: unpairedMint }],
+              },
+            ],
+            page: { currentPage: 0, hasNextPage: false },
+          });
+        }
+        if (url.includes("/tokens/v1/solana/")) {
+          tokenUrls.push(url);
+          return jsonResponse([tslaPair()]);
+        }
+        if (url.includes("/token-pairs/v1/solana/")) return jsonResponse([tslaPair()]);
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    const list = await source.listChains();
+    expect(list.chains[0]?.assetCount).toBe(3);
+    expect(list.chains[0]?.assetsWithVolume).toBeGreaterThan(0);
+    expect(list.chains[0]?.assetsStillHydrating).toBeGreaterThan(0);
+    expect(tokenUrls).toEqual([]);
+
+    const chain = await source.getChain("solana");
+    const tsla = chain?.assets.find((asset) => asset.symbol === "TSLAx");
+    const unpaired = chain?.assets.find((asset) => asset.contractAddress === unpairedMint);
+    expect(tsla?.volume24hUsd).toBeCloseTo(1_250.25);
+    expect(tsla?.volumeCoverage).toBe("reported");
+    expect(unpaired?.volume24hUsd).toBeNull();
+    expect(unpaired?.volumeCoverage).toBe("hydrate_incomplete");
+    expect(chain?.provenance.notes.some((note) => /still hydrating/.test(note))).toBe(true);
+  });
+
+  it("hydrates remaining registry mints in the background so with-volume counts rise", async () => {
+    let release: (() => void) | undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const hoodPair = {
+      chainId: "solana",
+      dexId: "raydium",
+      pairAddress: "pair-hood",
+      baseToken: { address: hoodMint, name: "Robinhood xStock", symbol: "HOODx" },
+      quoteToken: { address: "usdc", name: "USDC", symbol: "USDC" },
+      volume: { h24: 40 },
+      liquidity: { usd: 12 },
+    };
+    const source = testSource({
+      requestGapMs: 0,
+      homeBudgetMs: 0,
+      fullBudgetMs: 5_000,
+      backgroundEnrichment: true,
+      enableRegistry: true,
+      registryBaseUrl: "https://api.xstocks.fi/api/v2",
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [tslaPair()] });
+        if (url.includes("/public/assets")) {
+          return jsonResponse({
+            nodes: [
+              {
+                name: "Tesla xStock",
+                symbol: "TSLAx",
+                deployments: [{ network: "Solana", address: tslaMint }],
+              },
+              {
+                name: "Robinhood xStock",
+                symbol: "HOODx",
+                deployments: [{ network: "Solana", address: hoodMint }],
+              },
+            ],
+            page: { currentPage: 0, hasNextPage: false },
+          });
+        }
+        if (url.includes("/tokens/v1/solana/")) {
+          await gate;
+          return jsonResponse([hoodPair]);
+        }
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    const first = await source.listChains();
+    expect(first.chains[0]?.assetsWithVolume).toBe(1);
+    expect(first.chains[0]?.assetsStillHydrating).toBeGreaterThan(0);
+    release?.();
+    await source.flushBackgroundWork();
+    const second = await source.listChains();
+    expect(second.chains[0]?.assetsWithVolume).toBe(2);
+    expect(second.chains[0]?.assetsStillHydrating).toBe(0);
+  });
+
   it("keeps classified equities when one DexScreener pool hydrate fails", async () => {
     const source = testSource({
       requestGapMs: 0,
@@ -311,7 +429,7 @@ describe("SolanaMarketDataSource", () => {
     const chain = await source.getChain("solana");
     expect(chain?.assets).toHaveLength(1);
     expect(chain?.assets[0]?.symbol).toBe("TSLAx");
-    expect(chain?.assets[0]?.volumeCoverage).toBe("hydrate_failed");
-    expect(chain?.assets[0]?.volume24hUsd).toBeNull();
+    expect(chain?.assets[0]?.volume24hUsd).toBeCloseTo(1_250.25);
+    expect(chain?.assets[0]?.volumeCoverage).toBe("reported");
   });
 });

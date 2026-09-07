@@ -43,6 +43,7 @@ function chain(id: string, sourceId: SourceKind, volume: number | null): ChainVo
     assetCount: 1,
     assetsWithVolume: volume === null ? 0 : 1,
     assetsWithPools: 1,
+    assetsStillHydrating: 0,
     reportedPoolCount: 1,
     peakDexCount: 1,
     etfCount: 0,
@@ -117,6 +118,27 @@ describe("CompositeMarketDataSource", () => {
     expect(result.provenance.sourceFailures).toEqual([
       { sourceId: "solana", sourceLabel: "Solana", message: "DexScreener 502" },
     ]);
+  });
+
+  it("keeps Terminal failures as a quiet note when Solana coverage loaded", async () => {
+    const terminal = new FakeSource("terminal", "Terminal", {
+      list: async () => {
+        throw new Error("ECONNREFUSED");
+      },
+    });
+    const solana = new FakeSource("solana", "Solana", {
+      list: async () => ({
+        chains: [chain("solana", "solana", 12_000_000)],
+        provenance: provenance("solana", "Solana"),
+      }),
+    });
+
+    const result = await new CompositeMarketDataSource([solana, terminal]).listChains();
+    expect(result.chains.map((entry) => entry.id)).toEqual(["solana"]);
+    expect(result.provenance.sourceFailures).toEqual([]);
+    expect(result.provenance.sourceLabel).toBe("Solana");
+    expect(result.provenance.cacheStatus).toBe("fresh");
+    expect(result.provenance.notes.some((note) => /Robinhood Terminal unavailable/.test(note))).toBe(true);
   });
 
   it("throws only when every adapter fails", async () => {

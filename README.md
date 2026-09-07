@@ -41,14 +41,15 @@ Uses DexScreener’s public API (no API key) plus the public **xStocks / Backed*
    - public Ondo GM constants (`ondoprotocol/gm-solana-simulator` `GM_TOKENS`; not an admission list; Ondo’s keyed `api.gm.ondo.finance` is **not** used)
    - DexScreener `GET /latest/dex/search?q=…` (category/issuer probes; search is capped)
 2. **Classify** each Solana mint fail-closed as a tokenized public equity **or** a separate ETF/index product
-3. **Hydrate** pools in two DexScreener steps, with bounded concurrency, 429 retries, and a time budget:
-   - `GET /tokens/v1/solana/{mints}` in batches of 30 (home/light path stops here)
-   - `GET /token-pairs/v1/solana/{mint}` for each active mint on the chain page so **every Solana pool** is included (the batch endpoint only returns one primary pair)
-4. **Aggregate** those pools into one stock row keyed by mint. Classified mints with no DexScreener pools still appear, with **null** volume (ranked last) and an explicit coverage reason
+3. **Hydrate** pools in two DexScreener steps, with bounded concurrency, 429 retries, and a time budget that starts **after** discovery:
+   - Seed volume from DexScreener **search pairs** immediately (so a spent budget cannot render 0/0 after classify)
+   - `GET /tokens/v1/solana/{mints}` in batches of 30 for remaining registry/Ondo mints, **search-known mints first**
+   - `GET /token-pairs/v1/solana/{mint}` for each active mint on the chain page so **every Solana pool** is included
+4. **Aggregate** those pools into one stock row keyed by mint. Classified mints with no DexScreener pools still appear, with **null** volume (ranked last) and an explicit coverage reason. Unfinished mints are labeled **still hydrating**, not zero, and keep filling the process cache in the background.
 
 The historical Backed xStock mint list in `src/lib/market/solana-allowlist.ts` is a **test fixture only**. It is not a production admission gate.
 
-Process-level snapshot cache (default 5 minutes) is shared across home / chain / asset requests so a warm home load is milliseconds, not a full discovery. Home uses the cached/light primary-pair rollup; the Solana chain page upgrades to every-pool aggregation. If DexScreener is slow, the adapter **fails closed with a partial snapshot** (`still loading / source slow` or `volume fetch failed`) rather than hanging for minutes. Null volume is never coerced to zero.
+Process-level snapshot cache (default 5 minutes) is shared across home / chain / asset requests so a warm home load is milliseconds, not a full discovery. Home uses search-seeded + light primary-pair volume; the Solana chain page upgrades to every-pool aggregation. If DexScreener is slow, the adapter **returns a partial snapshot** (`M with volume so far`, `K still hydrating`) rather than hanging or showing 0 volume after classify. Null volume is never coerced to zero. Subsequent requests reuse and enrich that cache — with-volume counts rise instead of staying stuck at 0.
 
 Coverage is **as discoverable from the live xStocks registry + public Ondo GM mint list + DexScreener search + the classifier**, not a full Solana index. Search results are noisy and capped (~30 pairs per query, no page cursor). Most classified names have **no DexScreener pools** and therefore appear with null volume (ranked last), labeled **No pools yet**.
 
@@ -68,11 +69,11 @@ Override hosts only if you have a proxy:
 SOLANA_MARKET_ENABLED=true
 SOLANA_DEXSCREENER_BASE_URL=https://api.dexscreener.com
 SOLANA_TIMEOUT_MS=12000
-SOLANA_REQUEST_GAP_MS=80
-SOLANA_MAX_CONCURRENT=4
+SOLANA_REQUEST_GAP_MS=50
+SOLANA_MAX_CONCURRENT=6
 SOLANA_CACHE_MS=300000
-SOLANA_HOME_BUDGET_MS=12000
-SOLANA_FULL_BUDGET_MS=25000
+SOLANA_HOME_BUDGET_MS=20000
+SOLANA_FULL_BUDGET_MS=45000
 SOLANA_XSTOCKS_REGISTRY_URL=https://api.xstocks.fi/api/v2
 SOLANA_XSTOCKS_REGISTRY_ENABLED=true
 SOLANA_ONDO_REGISTRY_ENABLED=true
@@ -89,7 +90,7 @@ SOLANA_MARKET_ENABLED=true
 npm run dev -- --port 43147
 ```
 
-`CompositeMarketDataSource` merges the two adapters. The home page ranks every returned chain by `volume24hUsd` (nulls last). If Solana is down, Robinhood Chain still renders and provenance lists the Solana failure. If both fail, the desk shows an error instead of fabricating a ranking.
+`CompositeMarketDataSource` merges the two adapters. The home page ranks every returned chain by `volume24hUsd` (nulls last). If Solana is down, Robinhood Chain still renders and provenance lists the Solana failure. If Terminal is down while Solana loaded, the Solana coverage banner stays primary and Terminal is a quiet secondary note — not a red error that dominates the desk. If both fail, the desk shows an error instead of fabricating a ranking.
 
 ### Scripts
 
