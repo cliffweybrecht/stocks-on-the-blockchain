@@ -51,7 +51,8 @@ export default async function ChainPage({
   const { chain, assets, etfAssets = [], provenance } = result;
   const isSolana = chain.id === SOLANA_CHAIN_ID;
   const lane = query.lane === "etf" && etfAssets.length > 0 ? "etf" : "equity";
-  const coverageFilter = parseCoverageFilter(query.coverage);
+  const defaultCoverage = isSolana ? "with-volume" : "all";
+  const coverageFilter = parseCoverageFilter(query.coverage, defaultCoverage);
   const laneAssets = lane === "etf" ? etfAssets : assets;
   const visibleAssets = laneAssets.filter((asset) => assetMatchesCoverageFilter(asset, coverageFilter));
 
@@ -108,6 +109,7 @@ export default async function ChainPage({
             etfCount={etfAssets.length}
             lane={lane}
             coverageFilter={coverageFilter}
+            defaultCoverage={defaultCoverage}
             chainId={chain.id}
             showRobinhoodMarks={!isSolana}
           />

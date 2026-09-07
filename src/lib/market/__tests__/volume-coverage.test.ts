@@ -24,8 +24,11 @@ describe("coverage filters", () => {
     expect(parseCoverageFilter("no-pools")).toBe("no-pools");
     expect(parseCoverageFilter("all")).toBe("all");
     expect(parseCoverageFilter(undefined)).toBe("all");
+    expect(parseCoverageFilter(undefined, "with-volume")).toBe("with-volume");
+    expect(parseCoverageFilter("all", "with-volume")).toBe("all");
     expect(parseCoverageFilter(["with-volume", "no-pools"])).toBe("with-volume");
     expect(parseCoverageFilter("zero")).toBe("all");
+    expect(parseCoverageFilter("zero", "with-volume")).toBe("with-volume");
   });
 
   it("never treats null volume as matching With volume", () => {

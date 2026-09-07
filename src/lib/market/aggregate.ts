@@ -4,18 +4,83 @@ import {
   ROBINHOOD_CHAIN_NATIVE_ID,
   type AssetSummary,
   type ChainVolume,
+  type VolumeCoverage,
 } from "./types";
 
-export function sortByVolumeThenLiquidity<T extends { volume24hUsd: number | null; displayedLiquidityUsd: number | null; symbol?: string }>(
-  rows: readonly T[],
-): T[] {
-  return [...rows].sort((a, b) => {
-    const volume = compareNullableDesc(a.volume24hUsd, b.volume24hUsd);
-    if (volume !== 0) return volume;
-    const liquidity = compareNullableDesc(a.displayedLiquidityUsd, b.displayedLiquidityUsd);
-    if (liquidity !== 0) return liquidity;
-    return (a.symbol ?? "").localeCompare(b.symbol ?? "");
-  });
+/** Lower is better. Reported volume always outranks unknown volume. */
+export const VOLUME_COVERAGE_RANK: Record<VolumeCoverage, number> = {
+  reported: 0,
+  pools_without_volume: 1,
+  hydrate_incomplete: 2,
+  hydrate_failed: 3,
+  no_indexed_pools: 4,
+};
+
+export type AssetSortKey = "volume24hUsd" | "displayedLiquidityUsd" | "poolCount" | "premiumDiscountPct";
+
+export interface RankableRow {
+  volume24hUsd: number | null;
+  displayedLiquidityUsd: number | null;
+  poolCount?: number;
+  symbol?: string;
+  volumeCoverage?: VolumeCoverage;
+  premiumDiscountPct?: number | null;
+}
+
+export function coverageSortRank(row: RankableRow): number {
+  if (row.volumeCoverage) return VOLUME_COVERAGE_RANK[row.volumeCoverage];
+  if (row.volume24hUsd !== null) return VOLUME_COVERAGE_RANK.reported;
+  if ((row.poolCount ?? 0) > 0) return VOLUME_COVERAGE_RANK.pools_without_volume;
+  return VOLUME_COVERAGE_RANK.no_indexed_pools;
+}
+
+const VOLUME_SORT_CHAIN = ["coverage", "volume24hUsd", "displayedLiquidityUsd", "poolCount", "symbol"] as const;
+
+type RankKey = (typeof VOLUME_SORT_CHAIN)[number] | "premiumDiscountPct";
+
+function compareRankKey(a: RankableRow, b: RankableRow, key: RankKey): number {
+  switch (key) {
+    case "coverage":
+      return coverageSortRank(a) - coverageSortRank(b);
+    case "volume24hUsd":
+      return compareNullableDesc(a.volume24hUsd, b.volume24hUsd);
+    case "displayedLiquidityUsd":
+      return compareNullableDesc(a.displayedLiquidityUsd, b.displayedLiquidityUsd);
+    case "poolCount":
+      return (b.poolCount ?? 0) - (a.poolCount ?? 0);
+    case "premiumDiscountPct":
+      return compareNullableDesc(a.premiumDiscountPct ?? null, b.premiumDiscountPct ?? null);
+    case "symbol":
+      return (a.symbol ?? "").localeCompare(b.symbol ?? "");
+  }
+}
+
+/**
+ * Default ranking: coverage tier, then 24h volume (nulls last), liquidity, pool
+ * count, symbol. Other primary keys keep those as tie-breaks.
+ */
+export function compareAssetsByRank(
+  a: RankableRow,
+  b: RankableRow,
+  primary: AssetSortKey = "volume24hUsd",
+): number {
+  const chain: RankKey[] =
+    primary === "volume24hUsd"
+      ? [...VOLUME_SORT_CHAIN]
+      : [primary, ...VOLUME_SORT_CHAIN.filter((key) => key !== primary)];
+  for (const key of chain) {
+    const compared = compareRankKey(a, b, key);
+    if (compared !== 0) return compared;
+  }
+  return 0;
+}
+
+export function sortByVolumeThenLiquidity<T extends RankableRow>(rows: readonly T[]): T[] {
+  return [...rows].sort((a, b) => compareAssetsByRank(a, b));
+}
+
+export function sortAssets<T extends RankableRow>(rows: readonly T[], primary: AssetSortKey = "volume24hUsd"): T[] {
+  return [...rows].sort((a, b) => compareAssetsByRank(a, b, primary));
 }
 
 export function rollupChainFromAssets(
