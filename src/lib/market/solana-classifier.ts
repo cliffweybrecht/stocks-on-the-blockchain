@@ -75,6 +75,12 @@ const ETF_INDEX_SYMBOLS = new Set([
   "IVVX",
   "IWM",
   "IWMX",
+  "JPST",
+  "JPSTX",
+  "PSQ",
+  "PSQX",
+  "QLD",
+  "QLDX",
   "QQQ",
   "QQQX",
   "SGOV",
@@ -85,10 +91,26 @@ const ETF_INDEX_SYMBOLS = new Set([
   "SOXLX",
   "SOXS",
   "SOXSX",
+  "SPXL",
+  "SPXLX",
   "SPY",
   "SPYX",
+  "SQQQ",
+  "SQQQX",
+  "TBLL",
+  "TBLLX",
+  "TNA",
+  "TNAX",
+  "TQQQ",
+  "TQQQX",
   "TLT",
   "TLTX",
+  "TZA",
+  "TZAX",
+  "UPRO",
+  "UPROX",
+  "UVXY",
+  "UVXYX",
   "VOO",
   "VOOX",
   "VTI",
@@ -117,7 +139,7 @@ const ISSUER_NAME_PATTERNS: readonly { re: RegExp; issuer: string }[] = [
 ];
 
 const ETF_NAME =
-  /\b(?:etf|s&p(?:\s*500)?|sp500|sp\s*500|nasdaq-?100|nasdaq\s+xstocks?|dow\s*jones|russell(?:\s*2000)?|index|ishares|spdr|spyder|vanguard|vaneck|direxion|global\s+x|roundhill|proshares|volatility\s+shares|2x\s+long|3x\s+(?:long|short)|leveraged|silver trust|gold miners|bitcoin strategy)\b/i;
+  /\b(?:etf|s&p(?:\s*500)?|sp500|sp\s*500|nasdaq-?100|nasdaq\s+xstocks?|dow\s*jones|russell(?:\s*2000)?|index|ishares|spdr|spyder|vanguard|vaneck|direxion|global\s+x|roundhill|proshares|volatility\s+shares|2x\s+long|3x\s+(?:long|short)|leveraged|ultra-?short|ultra-?pro|silver trust|gold miners|bitcoin strategy)\b/i;
 
 const COMMODITY_PRODUCT_NAME =
   /^(?:tokeni[sz]ed\s+)?(?:gold|silver|crude\s+oil|precious\s+metal|pax\s*gold)(?:\s+xstocks?)?$/i;

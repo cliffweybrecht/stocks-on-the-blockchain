@@ -115,7 +115,7 @@ Search queries (probes, not an admission list): `xStock`, `xStocks`, `tokenized 
 - Commodities (gold, oil, PAXG, …)
 - Unrelated RWAs, pre-IPO / PreStocks, private-company names (SpaceX, xAI, OpenAI, …), generic “xStocks” / “Tokenized Equity” baskets, and unverifiable tickers (a token named `Tesla` is not enough)
 - Copycat `xStock` names whose mint does not use Backed’s `Xs…` convention
-- ETFs and index products (`SPYx`, `QQQx`, iShares/Vanguard/VanEck wrappers, leveraged 2x/3x, “Gold xStock”, …) unless a future category explicitly supports them
+- ETFs and index products (`SPYx`, `QQQx`, `TQQQx`, iShares/Vanguard/VanEck wrappers, leveraged 2x/3x, ultra-short income funds, “Gold xStock”, …) unless a future category explicitly supports them
 - Private-company names even when they use xStock branding (SpaceX, SHEIN, xAI, OpenAI, …)
 
 Listed operating companies whose names contain “Gold” or “Real Estate” (Royal Gold, Laopu Gold, Wharf Real Estate, Nasdaq Inc.) can be admitted when they are verifiable xStocks. A token that *is* gold/silver as the product (`Gold xStock`) is still excluded.

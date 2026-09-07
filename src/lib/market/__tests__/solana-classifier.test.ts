@@ -269,5 +269,19 @@ describe("classifyTokenizedEquity", () => {
         name: "Micron 2x Long ETF xStock",
       }).kind,
     ).toBe("reject");
+    expect(
+      classifyTokenizedEquity({
+        address: "XsTqqq1111111111111111111111111111111111",
+        symbol: "TQQQx",
+        name: "TQQQ xStock",
+      }).kind,
+    ).toBe("reject");
+    expect(
+      classifyTokenizedEquity({
+        address: "XsJpst1111111111111111111111111111111111",
+        symbol: "JPSTx",
+        name: "JPMorgan Ultra-Short Income xStock",
+      }).kind,
+    ).toBe("reject");
   });
 });
