@@ -34,33 +34,52 @@ Calls `GET {TERMINAL_BASE_URL}/api/market/liquidity` and maps rows to **one hone
 SOLANA_MARKET_ENABLED=true npm run dev -- --port 43147
 ```
 
-Uses DexScreener’s public API (no API key) plus the public **xStocks / Backed** asset registry. The Solana adapter is a pipeline, not a mint allowlist:
+Uses DexScreener’s public API (no API key) plus the public **xStocks / Backed** asset registry and the public **Ondo GM mint list**. The Solana adapter is a pipeline, not a mint allowlist:
 
 1. **Discover** candidates from:
    - live `GET https://api.xstocks.fi/api/v2/public/assets?network=Solana` (paginated; not an admission list)
+   - public Ondo GM constants (`ondoprotocol/gm-solana-simulator` `GM_TOKENS`; not an admission list; Ondo’s keyed `api.gm.ondo.finance` is **not** used)
    - DexScreener `GET /latest/dex/search?q=…` (category/issuer probes; search is capped)
-2. **Classify** each Solana mint fail-closed as a tokenized public equity
-3. **Hydrate** pools in two DexScreener steps:
-   - `GET /tokens/v1/solana/{mints}` in batches of 30 to see which discovered mints have any DEX market
-   - `GET /token-pairs/v1/solana/{mint}` for each active mint so **every Solana pool** is included (the batch endpoint only returns one primary pair)
-4. **Aggregate** those pools into one stock row keyed by mint. Classified mints with no DexScreener pools still appear, with null volume (ranked last)
+2. **Classify** each Solana mint fail-closed as a tokenized public equity **or** a separate ETF/index product
+3. **Hydrate** pools in two DexScreener steps, with bounded concurrency, 429 retries, and a time budget:
+   - `GET /tokens/v1/solana/{mints}` in batches of 30 (home/light path stops here)
+   - `GET /token-pairs/v1/solana/{mint}` for each active mint on the chain page so **every Solana pool** is included (the batch endpoint only returns one primary pair)
+4. **Aggregate** those pools into one stock row keyed by mint. Classified mints with no DexScreener pools still appear, with **null** volume (ranked last) and an explicit coverage reason
 
 The historical Backed xStock mint list in `src/lib/market/solana-allowlist.ts` is a **test fixture only**. It is not a production admission gate.
 
-Coverage is **as discoverable from the live xStocks registry + DexScreener search + the classifier**, not a full Solana index. Search results are noisy and capped (~30 pairs per query, no page cursor); the registry is the main way to see beyond that window. Most registry names have **no DexScreener pools** and therefore appear with null volume (ranked last). The registry schema includes `underlying.type` (`Equity` vs `ETF`); live payloads often leave that field null, so name/symbol rules remain the working ETF/commodity filter, and the type is used when present. Ondo and other issuers are included only if they appear in those live sources and pass the classifier (their keyed/private APIs are not used). If discovery or classification yields zero verifiable stocks, or DexScreener hydrate errors, the adapter **fails closed** — no invented volume. If the xStocks registry is down, discovery continues from DexScreener search alone.
+Process-level snapshot cache (default 5 minutes) is shared across home / chain / asset requests so a warm home load is milliseconds, not a full discovery. Home uses the cached/light primary-pair rollup; the Solana chain page upgrades to every-pool aggregation. If DexScreener is slow, the adapter **fails closed with a partial snapshot** (`still loading / source slow` or `volume fetch failed`) rather than hanging for minutes. Null volume is never coerced to zero.
+
+Coverage is **as discoverable from the live xStocks registry + public Ondo GM mint list + DexScreener search + the classifier**, not a full Solana index. Search results are noisy and capped (~30 pairs per query, no page cursor). Most classified names have **no DexScreener pools** and therefore appear with null volume (ranked last), labeled **No pools yet**.
+
+| Issuer / source | In this desk | Notes |
+| --- | --- | --- |
+| Backed / xStocks | Yes, when the public registry or DexScreener search returns them and the classifier admits | Primary live equity universe on Solana today |
+| Ondo Stocks | Yes, from the **public** GM mint list + DexScreener names that pass the classifier | Keyed Ondo API is out (403 without a key). Many Ondo mints have no DexScreener pools |
+| Dinari / dShares | No | Not a live public Solana source in this adapter |
+| PreStocks / private names | No | Fail-closed (SpaceX, OpenAI, SHEIN, …) |
+| ETF / index xStocks and Ondo ETFs | Separate **ETF / index** tab only | Never mixed into equity ranking |
+
+The registry schema includes `underlying.type` (`Equity` vs `ETF`); live payloads often leave that field null, so name/symbol rules remain the working ETF/commodity filter, and the type is used when present. If discovery or classification yields zero verifiable stocks, the adapter **fails closed** — no invented volume. If the xStocks registry or Ondo list is down, discovery continues from whatever sources still work.
 
 Override hosts only if you have a proxy:
 
 ```bash
 SOLANA_MARKET_ENABLED=true
 SOLANA_DEXSCREENER_BASE_URL=https://api.dexscreener.com
-SOLANA_TIMEOUT_MS=15000
-SOLANA_REQUEST_GAP_MS=200
+SOLANA_TIMEOUT_MS=12000
+SOLANA_REQUEST_GAP_MS=80
+SOLANA_MAX_CONCURRENT=4
+SOLANA_CACHE_MS=300000
+SOLANA_HOME_BUDGET_MS=12000
+SOLANA_FULL_BUDGET_MS=25000
 SOLANA_XSTOCKS_REGISTRY_URL=https://api.xstocks.fi/api/v2
 SOLANA_XSTOCKS_REGISTRY_ENABLED=true
+SOLANA_ONDO_REGISTRY_ENABLED=true
+SOLANA_ONDO_REGISTRY_URL=https://raw.githubusercontent.com/ondoprotocol/gm-solana-simulator/main/constants.rs
 ```
 
-Set `SOLANA_XSTOCKS_REGISTRY_ENABLED=false` to disable the live registry and use DexScreener search only.
+Set `SOLANA_XSTOCKS_REGISTRY_ENABLED=false` or `SOLANA_ONDO_REGISTRY_ENABLED=false` to disable those candidate sources.
 
 ### Terminal + Solana together
 
@@ -97,38 +116,42 @@ Each chain and asset carries `sourceId` / `sourceLabel`. Composite provenance al
 
 ### Solana discovery + classifier
 
-Search queries (probes, not an admission list): `xStock`, `xStocks`, `tokenized stock`, `tokenized equity`, `tokenized share`, `tokenised stock`, `backed xstock`, plus single-name probes such as `Tesla xStock` / `Apple xStock` / `Microsoft xStock` / `Robinhood xStock` because DexScreener search is capped and has no pagination. The **xStocks public registry** is the primary way to discover the broader Backed universe (`GET /public/assets?network=Solana`, paginated). Registry `underlying.type` (`Equity` vs `ETF`) is a classifier signal from the issuer, not a mint allowlist. Search remains a fallback and a path for any non-Backed names DexScreener happens to return.
+Search queries (probes, not an admission list): `xStock`, `xStocks`, `tokenized stock`, `tokenized equity`, `tokenized share`, `tokenised stock`, `backed xstock`, `Ondo Tokenized`, plus single-name probes such as `Tesla xStock` / `Apple xStock` / `NVIDIA (Ondo Tokenized)` because DexScreener search is capped and has no pagination. The **xStocks public registry** is the primary way to discover the broader Backed universe. The **public Ondo GM mint list** is the way to see Ondo mints without a key.
 
-**Admitted** only with a verifiable equity signal, for example:
+**Admitted as equity** only with a verifiable equity signal, for example:
 
-- Name contains `xStock`
+- Name contains `xStock` and a Backed `Xs…` mint
 - Phrase like `tokenized stock` / `tokenized equity`
 - Explicit equity/stock labels from the source
 - Known public-equity issuer keyword (Dinari, dShares, Backed) plus a ticker-like symbol
 - Backed mint convention (`Xs…` + `TSLAx`-style symbol)
+- Ondo mint convention (`…ondo` + `TSLAon`-style symbol) or `NVIDIA (Ondo Tokenized)` with that mint suffix
 - Live issuer instrument type `Equity` plus a ticker-like symbol, after the reject rules still pass
+
+**Admitted as ETF / index** (separate tab, not the equity ranking) when the same issuer conventions hold and the product is an ETF/index (`SPYx`, `QQQx`, `SPYon`, iShares/Vanguard/VanEck wrappers, leveraged 2x/3x, …).
 
 **Excluded** (fail closed):
 
 - Ordinary crypto and wrapped natives (SOL, BONK, JUP, …)
-- Stablecoins (USDC, USDT, …)
+- Stablecoins (USDC, USDT, USDY, …)
 - Commodities (gold, oil, PAXG, …)
 - Unrelated RWAs, pre-IPO / PreStocks, private-company names (SpaceX, xAI, OpenAI, …), generic “xStocks” / “Tokenized Equity” baskets, and unverifiable tickers (a token named `Tesla` is not enough)
-- Copycat `xStock` names whose mint does not use Backed’s `Xs…` convention
-- ETFs and index products (`SPYx`, `QQQx`, `TQQQx`, iShares/Vanguard/VanEck wrappers, leveraged 2x/3x, ultra-short income funds, “Gold xStock”, …) unless a future category explicitly supports them
-- Private-company names even when they use xStock branding (SpaceX, SHEIN, xAI, OpenAI, …)
+- Copycat `xStock` / Ondo names whose mint does not use the issuer convention
 
 Listed operating companies whose names contain “Gold” or “Real Estate” (Royal Gold, Laopu Gold, Wharf Real Estate, Nasdaq Inc.) can be admitted when they are verifiable xStocks. A token that *is* gold/silver as the product (`Gold xStock`) is still excluded.
 
-Volume = sum of returned pair `volume.h24` for that mint across every Solana pool. A DexScreener pair is never treated as one stock. Duplicate `pairAddress` values are dropped. Null/unknown volume stays null and ranks last; a reported `0` is a real zero.
+Volume = sum of returned pair `volume.h24` for that mint across every Solana pool on the chain page. Home may show DexScreener primary-pair volume until that full snapshot is cached. A DexScreener pair is never treated as one stock. Duplicate `pairAddress` values are dropped. Null/unknown volume stays null and ranks last; a reported `0` is a real zero.
 
-Different mints for the same ticker (two Tesla issuers) stay **separate** stock rows. Issuer/provider is shown when the classifier can infer it. Each row keeps mint, symbol, name, pool count, per-pool volume/liquidity/price, aggregate 24h volume, displayed liquidity, and provenance.
+The UI says **why** volume is missing: no indexed pools, pools without reported 24h volume, fetch failure, or hydrate still running.
 
-Robinhood marks stay null on Solana. Off-Solana pairs are ignored. Snapshots are cached briefly (~60s). Requests are spaced (`SOLANA_REQUEST_GAP_MS`) so DexScreener is not hammered.
+Different mints for the same ticker (Tesla xStock vs Tesla Ondo) stay **separate** stock rows. Issuer/provider is shown when the classifier can infer it. Each row keeps mint, symbol, name, pool count, per-pool volume/liquidity/price, aggregate 24h volume, displayed liquidity, and provenance.
+
+Robinhood marks stay null on Solana. Off-Solana pairs are ignored.
 
 ## Trust labeling
 
 - Persistent disclaimer on every page
+- Solana coverage banner: classified vs with-volume vs with-pools, plus ETF count
 - **Reported** vs **Interpretive** badges on metrics
 - Displayed liquidity is never described as buy capacity
 - No arb, profitability, or “you can trade this on Robinhood” copy

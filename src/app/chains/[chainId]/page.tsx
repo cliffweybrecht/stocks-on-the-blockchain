@@ -5,18 +5,24 @@ import { ErrorState } from "@/components/error-state";
 import { Metric } from "@/components/metric";
 import { PageShell } from "@/components/page-shell";
 import { ProvenanceBar } from "@/components/provenance-bar";
+import { SolanaCoverageBanner } from "@/components/solana-coverage-banner";
 import { TrustBanner } from "@/components/trust-banner";
 import { formatCount, formatUsdCompact } from "@/lib/market/format";
 import { createMarketDataSource } from "@/lib/market/factory";
+import { SOLANA_CHAIN_ID } from "@/lib/market/types";
+import { assetMatchesCoverageFilter, parseCoverageFilter } from "@/lib/market/volume-coverage";
 
 export const dynamic = "force-dynamic";
 
 export default async function ChainPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ chainId: string }>;
+  searchParams: Promise<{ lane?: string; coverage?: string }>;
 }) {
   const { chainId } = await params;
+  const query = await searchParams;
   const source = createMarketDataSource();
 
   let result;
@@ -42,7 +48,12 @@ export default async function ChainPage({
     );
   }
 
-  const { chain, assets, provenance } = result;
+  const { chain, assets, etfAssets = [], provenance } = result;
+  const isSolana = chain.id === SOLANA_CHAIN_ID;
+  const lane = query.lane === "etf" && etfAssets.length > 0 ? "etf" : "equity";
+  const coverageFilter = parseCoverageFilter(query.coverage);
+  const laneAssets = lane === "etf" ? etfAssets : assets;
+  const visibleAssets = laneAssets.filter((asset) => assetMatchesCoverageFilter(asset, coverageFilter));
 
   return (
     <PageShell provenance={provenance}>
@@ -60,6 +71,7 @@ export default async function ChainPage({
           <p className="mt-1 text-sm text-muted-foreground">{chain.coverageNote}</p>
         </div>
         <TrustBanner />
+        {isSolana ? <SolanaCoverageBanner chain={chain} /> : null}
         <ProvenanceBar provenance={provenance} />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Metric label="24h volume" value={formatUsdCompact(chain.volume24hUsd)} hint={`Sum of reported 24h volume · ${chain.sourceLabel}`} />
@@ -68,20 +80,37 @@ export default async function ChainPage({
             value={formatUsdCompact(chain.displayedLiquidityUsd)}
             hint="Provider-reported, not executable"
           />
-          <Metric label="Stocks in snapshot" value={formatCount(chain.assetCount)} />
+          <Metric
+            label="Classified equities"
+            value={formatCount(chain.assetCount)}
+            hint={`${formatCount(chain.assetsWithVolume)} with volume · ${formatCount(chain.assetsWithPools)} with pools`}
+          />
           <Metric
             label="Reported pools"
             value={formatCount(chain.reportedPoolCount)}
-            hint={`Peak DEX count on one stock: ${formatCount(chain.peakDexCount)}`}
+            hint={
+              chain.etfCount > 0
+                ? `${formatCount(chain.etfCount)} ETF/index products in a separate tab`
+                : `Peak DEX count on one stock: ${formatCount(chain.peakDexCount)}`
+            }
           />
         </div>
-        {assets.length === 0 ? (
+        {assets.length === 0 && etfAssets.length === 0 ? (
           <EmptyState
             title="No stocks on this chain snapshot"
-            detail="The source listed the chain but returned no asset rows. That is an empty snapshot, not zero volume."
+            detail="The source listed the chain but returned no asset rows. That is an empty snapshot, not zero volume. On Solana this usually means live discovery found no verifiable public equities."
           />
         ) : (
-          <AssetTable assets={assets} chainId={chain.id} />
+          <AssetTable
+            assets={visibleAssets}
+            totalInLane={laneAssets.length}
+            equityCount={assets.length}
+            etfCount={etfAssets.length}
+            lane={lane}
+            coverageFilter={coverageFilter}
+            chainId={chain.id}
+            showRobinhoodMarks={!isSolana}
+          />
         )}
       </div>
     </PageShell>

@@ -19,8 +19,19 @@ export function sortByVolumeThenLiquidity<T extends { volume24hUsd: number | nul
 }
 
 export function rollupChainFromAssets(
-  chain: Omit<ChainVolume, "volume24hUsd" | "displayedLiquidityUsd" | "usdGLiquidityUsd" | "assetCount" | "assetsWithVolume" | "reportedPoolCount" | "peakDexCount">,
+  chain: Omit<
+    ChainVolume,
+    | "volume24hUsd"
+    | "displayedLiquidityUsd"
+    | "usdGLiquidityUsd"
+    | "assetCount"
+    | "assetsWithVolume"
+    | "assetsWithPools"
+    | "reportedPoolCount"
+    | "peakDexCount"
+  >,
   assets: readonly AssetSummary[],
+  extras?: { etfCount?: number; volumeAggregation?: ChainVolume["volumeAggregation"] },
 ): ChainVolume {
   return {
     ...chain,
@@ -29,8 +40,11 @@ export function rollupChainFromAssets(
     usdGLiquidityUsd: sumNullable(assets.map((asset) => asset.usdGLiquidityUsd)),
     assetCount: assets.length,
     assetsWithVolume: assets.filter((asset) => asset.volume24hUsd !== null).length,
+    assetsWithPools: assets.filter((asset) => asset.poolCount > 0).length,
     reportedPoolCount: assets.reduce((sum, asset) => sum + asset.poolCount, 0),
     peakDexCount: maxNullable(assets.map((asset) => asset.dexCount)) ?? 0,
+    etfCount: extras?.etfCount ?? chain.etfCount ?? 0,
+    volumeAggregation: extras?.volumeAggregation ?? chain.volumeAggregation ?? "all-pools",
   };
 }
 
@@ -41,6 +55,7 @@ export function robinhoodChainMeta(): Omit<
   | "usdGLiquidityUsd"
   | "assetCount"
   | "assetsWithVolume"
+  | "assetsWithPools"
   | "reportedPoolCount"
   | "peakDexCount"
 > {
@@ -52,6 +67,8 @@ export function robinhoodChainMeta(): Omit<
     sourceId: "terminal",
     sourceLabel: "Robinhood Liquidity Terminal",
     completenessPct: null,
+    etfCount: 0,
+    volumeAggregation: "all-pools",
     coverageNote:
       "Single-chain Terminal snapshot. Volume is the sum of observedVolume24h across reported stocks; missing values stay missing.",
   };

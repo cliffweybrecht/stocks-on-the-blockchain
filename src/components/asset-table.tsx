@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -13,11 +14,62 @@ import {
 import { assetRouteKey } from "@/lib/market/identity";
 import { formatAddress, formatPct, formatPrice, formatUsdCompact } from "@/lib/market/format";
 import { compareNullableDesc } from "@/lib/market/numbers";
-import type { AssetSummary } from "@/lib/market/types";
+import type { AssetSummary, InstrumentKind, VolumeCoverage } from "@/lib/market/types";
+import {
+  type CoverageFilter,
+  volumeCoverageLabel,
+} from "@/lib/market/volume-coverage";
 
-type SortKey = "volume24hUsd" | "displayedLiquidityUsd" | "premiumDiscountPct";
+type SortKey = "volume24hUsd" | "displayedLiquidityUsd" | "poolCount" | "premiumDiscountPct";
 
-export function AssetTable({ assets, chainId }: { assets: AssetSummary[]; chainId: string }) {
+function coverageVariant(coverage: VolumeCoverage): "default" | "secondary" | "outline" | "destructive" {
+  switch (coverage) {
+    case "reported":
+      return "default";
+    case "no_indexed_pools":
+      return "secondary";
+    case "pools_without_volume":
+      return "outline";
+    case "hydrate_failed":
+      return "destructive";
+    case "hydrate_incomplete":
+      return "outline";
+  }
+}
+
+function chipClass(active: boolean): string {
+  return `rounded-full border px-3 py-1 text-xs ${
+    active ? "border-primary bg-primary/15 text-primary" : "border-border text-muted-foreground"
+  }`;
+}
+
+function chainHref(chainId: string, lane: InstrumentKind, coverage: CoverageFilter): string {
+  const params = new URLSearchParams();
+  if (lane === "etf") params.set("lane", "etf");
+  if (coverage !== "all") params.set("coverage", coverage);
+  const query = params.toString();
+  return query ? `/chains/${chainId}?${query}` : `/chains/${chainId}`;
+}
+
+export function AssetTable({
+  assets,
+  chainId,
+  totalInLane,
+  equityCount,
+  etfCount = 0,
+  lane = "equity",
+  coverageFilter = "all",
+  showRobinhoodMarks = true,
+}: {
+  assets: AssetSummary[];
+  chainId: string;
+  totalInLane: number;
+  equityCount: number;
+  etfCount?: number;
+  lane?: InstrumentKind;
+  coverageFilter?: CoverageFilter;
+  showRobinhoodMarks?: boolean;
+}) {
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("volume24hUsd");
 
@@ -34,31 +86,54 @@ export function AssetTable({ assets, chainId }: { assets: AssetSummary[]; chainI
       : assets;
 
     return [...filtered].sort((a, b) => {
-      const compared = compareNullableDesc(a[sortKey], b[sortKey]);
+      const left = sortKey === "poolCount" ? a.poolCount : a[sortKey];
+      const right = sortKey === "poolCount" ? b.poolCount : b[sortKey];
+      const compared =
+        sortKey === "poolCount"
+          ? (right as number) - (left as number)
+          : compareNullableDesc(left as number | null, right as number | null);
       if (compared !== 0) return compared;
       return a.symbol.localeCompare(b.symbol);
     });
   }, [assets, query, sortKey]);
 
+  const sortButtons = (
+    [
+      ["volume24hUsd", "Volume"],
+      ["displayedLiquidityUsd", "Liquidity"],
+      ["poolCount", "Pools"],
+      ...(showRobinhoodMarks ? ([["premiumDiscountPct", "RH vs DEX"]] as const) : []),
+    ] as const
+  );
+
   return (
     <div className="space-y-3">
+      {etfCount > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          <Link href={chainHref(chainId, "equity", coverageFilter)} className={chipClass(lane === "equity")}>
+            Equities ({equityCount})
+          </Link>
+          <Link href={chainHref(chainId, "etf", coverageFilter)} className={chipClass(lane === "etf")}>
+            ETF / index ({etfCount})
+          </Link>
+        </div>
+      ) : null}
+      {lane === "etf" ? (
+        <p className="text-xs text-muted-foreground">
+          ETF and index products are catalogued here and are not mixed into the public-equity ranking.
+        </p>
+      ) : null}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onInput={(event) => setQuery(event.currentTarget.value)}
-          placeholder="Filter by symbol, name, issuer, or contract"
+          placeholder="Filter by symbol, name, issuer, or mint"
           aria-label="Filter stocks"
           className="h-8 w-full max-w-md rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
         />
         <div className="flex flex-wrap gap-2 text-xs">
-          {(
-            [
-              ["volume24hUsd", "Volume"],
-              ["displayedLiquidityUsd", "Liquidity"],
-              ["premiumDiscountPct", "RH vs DEX"],
-            ] as const
-          ).map(([key, label]) => (
+          {sortButtons.map(([key, label]) => (
             <button
               key={key}
               type="button"
@@ -72,8 +147,27 @@ export function AssetTable({ assets, chainId }: { assets: AssetSummary[]; chainI
           ))}
         </div>
       </div>
+      <div className="flex flex-wrap gap-2 text-xs">
+        {(
+          [
+            ["all", "All"],
+            ["with-volume", "With volume"],
+            ["with-pools", "With pools"],
+            ["no-pools", "No pools yet"],
+          ] as const
+        ).map(([key, label]) => (
+          <Link
+            key={key}
+            href={chainHref(chainId, lane, key)}
+            className={chipClass(coverageFilter === key)}
+          >
+            {label}
+          </Link>
+        ))}
+      </div>
       <p className="text-xs text-muted-foreground" aria-live="polite">
-        Showing {rows.length} of {assets.length}
+        Showing {rows.length} of {totalInLane}
+        {coverageFilter !== "all" ? ` · ${coverageFilter.replace("-", " ")}` : ""}
       </p>
 
       <div className="grid gap-3 lg:hidden">
@@ -91,10 +185,13 @@ export function AssetTable({ assets, chainId }: { assets: AssetSummary[]; chainI
               </div>
               <p className="num text-primary">{formatUsdCompact(asset.volume24hUsd)}</p>
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Liq {formatUsdCompact(asset.displayedLiquidityUsd)} · {asset.poolCount} pools ·{" "}
-              {formatAddress(asset.contractAddress)}
-            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <Badge variant={coverageVariant(asset.volumeCoverage)}>{volumeCoverageLabel(asset.volumeCoverage)}</Badge>
+              <span className="text-xs text-muted-foreground">
+                Liq {formatUsdCompact(asset.displayedLiquidityUsd)} · {asset.poolCount} pools ·{" "}
+                {formatAddress(asset.contractAddress)}
+              </span>
+            </div>
             {asset.pools.length > 0 ? (
               <p className="mt-1 text-xs text-muted-foreground">
                 {asset.pools
@@ -114,12 +211,19 @@ export function AssetTable({ assets, chainId }: { assets: AssetSummary[]; chainI
             <TableRow>
               <TableHead>Stock</TableHead>
               <TableHead>Issuer</TableHead>
-              <TableHead>Contract</TableHead>
+              <TableHead>Mint</TableHead>
+              <TableHead>Coverage</TableHead>
               <TableHead className="text-right">24h volume</TableHead>
               <TableHead className="text-right">Displayed liq</TableHead>
-              <TableHead className="text-right">RH mark</TableHead>
-              <TableHead className="text-right">DEX median</TableHead>
-              <TableHead className="text-right">RH vs DEX</TableHead>
+              {showRobinhoodMarks ? (
+                <>
+                  <TableHead className="text-right">RH mark</TableHead>
+                  <TableHead className="text-right">DEX median</TableHead>
+                  <TableHead className="text-right">RH vs DEX</TableHead>
+                </>
+              ) : (
+                <TableHead className="text-right">DEX median</TableHead>
+              )}
               <TableHead className="text-right">Pools / DEXes</TableHead>
             </TableRow>
           </TableHeader>
@@ -137,13 +241,24 @@ export function AssetTable({ assets, chainId }: { assets: AssetSummary[]; chainI
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">{asset.issuer ?? "—"}</TableCell>
                 <TableCell className="num text-xs">{formatAddress(asset.contractAddress)}</TableCell>
+                <TableCell>
+                  <Badge variant={coverageVariant(asset.volumeCoverage)}>
+                    {volumeCoverageLabel(asset.volumeCoverage)}
+                  </Badge>
+                </TableCell>
                 <TableCell className="num text-right">{formatUsdCompact(asset.volume24hUsd)}</TableCell>
                 <TableCell className="num text-right">{formatUsdCompact(asset.displayedLiquidityUsd)}</TableCell>
-                <TableCell className="num text-right">{formatPrice(asset.robinhoodReferencePriceUsd)}</TableCell>
-                <TableCell className="num text-right">{formatPrice(asset.dexMedianPriceUsd)}</TableCell>
-                <TableCell className="num text-right text-interpretive">
-                  {formatPct(asset.premiumDiscountPct)}
-                </TableCell>
+                {showRobinhoodMarks ? (
+                  <>
+                    <TableCell className="num text-right">{formatPrice(asset.robinhoodReferencePriceUsd)}</TableCell>
+                    <TableCell className="num text-right">{formatPrice(asset.dexMedianPriceUsd)}</TableCell>
+                    <TableCell className="num text-right text-interpretive">
+                      {formatPct(asset.premiumDiscountPct)}
+                    </TableCell>
+                  </>
+                ) : (
+                  <TableCell className="num text-right">{formatPrice(asset.dexMedianPriceUsd)}</TableCell>
+                )}
                 <TableCell className="num text-right">
                   <div>
                     {asset.poolCount} / {asset.dexCount}
@@ -166,7 +281,11 @@ export function AssetTable({ assets, chainId }: { assets: AssetSummary[]; chainI
 
       {rows.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-          No stocks match that filter.
+          {totalInLane === 0
+            ? lane === "etf"
+              ? "No verifiable Solana ETF/index products in this snapshot."
+              : "No verifiable tokenized equities in this snapshot. Discovery is fail-closed and is not a full Solana index."
+            : "No stocks match that filter. Null volume stays hidden when “With volume” is on — it is unknown, not zero."}
         </p>
       ) : null}
     </div>

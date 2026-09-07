@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/table";
 import { formatCount, formatPct, formatPrice, formatRelativeTime, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
 import { createMarketDataSource } from "@/lib/market/factory";
+import { SOLANA_CHAIN_ID } from "@/lib/market/types";
+import { volumeCoverageLabel } from "@/lib/market/volume-coverage";
 
 export const dynamic = "force-dynamic";
 
@@ -84,6 +86,8 @@ export default async function AssetPage({
                     ? "DexScreener row"
                     : "Terminal row"}
               </Badge>
+              {asset.instrumentKind === "etf" ? <Badge variant="secondary">ETF / index</Badge> : null}
+              <Badge variant="outline">{volumeCoverageLabel(asset.volumeCoverage)}</Badge>
               {asset.detailEnriched ? <Badge variant="secondary">Enriched detail</Badge> : null}
               {halt ? <Badge variant="destructive">Trading halt reported</Badge> : null}
             </div>
@@ -95,6 +99,8 @@ export default async function AssetPage({
           <section className="space-y-3">
             <h3 className="font-heading text-lg font-medium">Identity</h3>
             <CopyAddress address={asset.contractAddress} />
+            {asset.issuer ? <p className="text-sm text-muted-foreground">Issuer · {asset.issuer}</p> : null}
+            {asset.coverageNote ? <p className="text-sm text-muted-foreground">{asset.coverageNote}</p> : null}
           </section>
 
           <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -187,7 +193,7 @@ export default async function AssetPage({
                     {asset.pools.map((pool, index) => (
                       <TableRow key={pool.pairAddress || `${pool.dexId}-${index}`}>
                         <TableCell>{pool.dexId}</TableCell>
-                        <TableCell className="num text-xs">{pool.pairAddress || "—"}</TableCell>
+                        <TableCell className="num max-w-[9rem] truncate text-xs sm:max-w-none">{pool.pairAddress || "—"}</TableCell>
                         <TableCell className="num text-right">{formatUsdFull(pool.volume24hUsd)}</TableCell>
                         <TableCell className="num text-right">{formatUsdFull(pool.liquidityUsd)}</TableCell>
                         <TableCell className="num text-right">{formatPrice(pool.priceUsd)}</TableCell>
@@ -196,6 +202,14 @@ export default async function AssetPage({
                   </TableBody>
                 </Table>
               </div>
+            </section>
+          ) : chain.id === SOLANA_CHAIN_ID ? (
+            <section className="rounded-xl border border-dashed border-border bg-card px-4 py-6">
+              <h3 className="font-heading text-lg font-medium">No indexed Solana pools</h3>
+              <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+                {asset.coverageNote ??
+                  "DexScreener has no indexed pools for this mint in this snapshot. That is unknown volume, not zero. The mint can still be a live tokenized equity that trades elsewhere or has not been indexed yet."}
+              </p>
             </section>
           ) : null}
 

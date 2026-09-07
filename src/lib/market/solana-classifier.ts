@@ -17,12 +17,18 @@ export interface EquityClassification {
   reason: string;
 }
 
+export interface EtfClassification {
+  kind: "etf";
+  issuer: string | null;
+  reason: string;
+}
+
 export interface RejectClassification {
   kind: "reject";
   reason: string;
 }
 
-export type TokenClassification = EquityClassification | RejectClassification;
+export type TokenClassification = EquityClassification | EtfClassification | RejectClassification;
 
 const CRYPTO_STABLE_SYMBOLS = new Set([
   "BONK",
@@ -56,6 +62,10 @@ const CRYPTO_STABLE_SYMBOLS = new Set([
   "USDG",
   "USD1",
   "UST",
+  "USDY",
+  "USDON",
+  "OUSG",
+  "OMMF",
   "WBTC",
   "WETH",
   "WIF",
@@ -115,6 +125,100 @@ const ETF_INDEX_SYMBOLS = new Set([
   "VOOX",
   "VTI",
   "VTIX",
+  "IBIT",
+  "IBITX",
+  "IBITON",
+  "GLD",
+  "GLDX",
+  "GLDON",
+  "GDXX",
+  "GDXON",
+  "GDXJ",
+  "GDXJX",
+  "EFA",
+  "EFAX",
+  "EFAON",
+  "IEFA",
+  "IEFAX",
+  "IEFAON",
+  "IEMG",
+  "IEMGX",
+  "IEMGON",
+  "AGG",
+  "AGGX",
+  "AGGON",
+  "BND",
+  "BNDX",
+  "BNDON",
+  "VNQ",
+  "VNQX",
+  "VNQON",
+  "XLF",
+  "XLFX",
+  "XLFON",
+  "XLK",
+  "XLKX",
+  "XLKON",
+  "XLE",
+  "XLEX",
+  "XLEON",
+  "XLV",
+  "XLVX",
+  "XLVON",
+  "SMH",
+  "SMHX",
+  "SMHON",
+  "QQQM",
+  "QQQMX",
+  "QQQMON",
+  "ARKK",
+  "ARKKX",
+  "ARKKON",
+  "HYG",
+  "HYGX",
+  "HYGON",
+  "LQD",
+  "LQDX",
+  "LQDON",
+  "BIL",
+  "BILX",
+  "BILON",
+  "SHV",
+  "SHVX",
+  "SHVON",
+  "USO",
+  "USOX",
+  "USOON",
+  "BITO",
+  "BITOX",
+  "BITOON",
+  "GBTC",
+  "GBTCX",
+  "GBTCON",
+  "JEPI",
+  "JEPIX",
+  "JEPION",
+  "JEPQ",
+  "JEPQX",
+  "JEPQON",
+  "VEA",
+  "VEAX",
+  "VEAON",
+  "VWO",
+  "VWOX",
+  "VWOON",
+  "ITOT",
+  "ITOTX",
+  "ITOTON",
+  "SPLG",
+  "SPLGX",
+  "SPLGON",
+  "MAGS",
+  "MAGSX",
+  "MAGSON",
+  "EWY",
+  "EWYX",
+  "EWYON",
 ]);
 
 const GENERIC_CATEGORY_SYMBOLS = new Set(["EQUITY", "RWA", "STOCK", "STOCKS", "XSTOCK", "XSTOCKS"]);
@@ -136,6 +240,7 @@ const ISSUER_NAME_PATTERNS: readonly { re: RegExp; issuer: string }[] = [
   { re: /\bdinari\b/i, issuer: "Dinari" },
   { re: /\bdshares?\b/i, issuer: "dShares" },
   { re: /\bbacked(?:\s+finance)?\b/i, issuer: "Backed" },
+  { re: /\bondo\b/i, issuer: "Ondo" },
 ];
 
 const ETF_NAME =
@@ -149,6 +254,13 @@ const CRYPTO_NAME =
 
 const PRIVATE_OR_PREIPO_NAME =
   /\b(?:prestocks?|pre-?ipo|pre\s+ipo|spacex|xai|openai|anthropic|stripe|shein)\b/i;
+
+const PRIVATE_BASE_SYMBOLS = new Set(["SPCX", "SPACEX", "OPENAI", "SHEIN", "XAI", "STRIPE", "ANTHROPIC"]);
+
+const ONDO_NON_EQUITY_NAME =
+  /\b(?:usdy|ousg|ommf|usd\s*y|dollar\s+yield|tokenized\s+currency|us\s+dollar\s+yield|treasury\s+bill)\b/i;
+
+const ONDO_TOKENIZED_NAME = /\bondo\s+tokenized\b|\(ondo tokenized\)|tokenized\s+stock\s+\(ondo\)/i;
 
 const TOKENIZED_REAL_ESTATE_RWA = /tokeni[sz]ed\s+real\s+estate/i;
 
@@ -206,6 +318,9 @@ export function inferIssuer(name: string | null, symbol: string | null, address:
   if (/^Xs/.test(address) && /^[A-Z]{1,5}X$/i.test(symbol ?? "")) {
     return "Backed / xStocks";
   }
+  if (ondoMintConvention(address, symbol)) {
+    return "Ondo";
+  }
   return null;
 }
 
@@ -217,12 +332,114 @@ function backedTickerSymbol(symbol: string | null): boolean {
   return Boolean(symbol && /^[A-Z]{1,5}X$/.test(symbol));
 }
 
+export function ondoTickerSymbol(symbol: string | null): boolean {
+  return Boolean(symbol && /^[A-Z]{1,5}ON$/.test(symbol));
+}
+
+export function ondoMintConvention(address: string, symbol: string | null): boolean {
+  return /ondo$/i.test(address) && ondoTickerSymbol(symbol);
+}
+
 function isGenericCategory(name: string | null, symbol: string | null): boolean {
   if (symbol && GENERIC_CATEGORY_SYMBOLS.has(symbol)) return true;
   return Boolean(name && GENERIC_CATEGORY_NAME.test(name));
 }
 
-export function classifyTokenizedEquity(token: TokenIdentity): TokenClassification {
+function privateCompanySymbol(symbol: string | null): boolean {
+  if (!symbol) return false;
+  if (PRIVATE_BASE_SYMBOLS.has(symbol)) return true;
+  if (symbol.endsWith("ON") && PRIVATE_BASE_SYMBOLS.has(symbol.slice(0, -2))) return true;
+  if (symbol.endsWith("X") && PRIVATE_BASE_SYMBOLS.has(symbol.slice(0, -1))) return true;
+  return false;
+}
+
+export function isEtfOrIndexSymbol(symbol: string | null): boolean {
+  if (!symbol) return false;
+  if (ETF_INDEX_SYMBOLS.has(symbol)) return true;
+  // Strip Ondo `on` suffix only. Do not strip a trailing `x`: GDx (General Dynamics)
+  // must not be treated as GDX (VanEck Gold Miners).
+  if (symbol.endsWith("ON") && ETF_INDEX_SYMBOLS.has(symbol.slice(0, -2))) return true;
+  return false;
+}
+
+function etfReason(token: TokenIdentity, name: string | null, symbol: string | null, labels: readonly string[]): string | null {
+  if (isEtfOrIndexSymbol(symbol)) return "ETF or index symbol";
+  if (name && ETF_NAME.test(name)) return "ETF or index name";
+  if (labels.some((label) => ETF_LABELS.has(label))) return "ETF or index label";
+  if (token.underlyingInstrumentType === "etf") return "issuer-classified ETF";
+  return null;
+}
+
+function hasVerifiableInstrumentSignal(input: {
+  address: string;
+  name: string | null;
+  symbol: string | null;
+  issuer: string | null;
+  labels: readonly string[];
+  underlyingInstrumentType?: TokenIdentity["underlyingInstrumentType"];
+}): { ok: true; reason: string } | { ok: false } {
+  const { address, name, symbol, issuer, labels } = input;
+
+  if (name && COMPANY_XSTOCK_NAME.test(name)) {
+    if (!/^Xs/.test(address)) {
+      return { ok: false };
+    }
+    return { ok: true, reason: "xStock name" };
+  }
+
+  if (name && ONDO_TOKENIZED_NAME.test(name)) {
+    if (!/ondo$/i.test(address)) {
+      return { ok: false };
+    }
+    return { ok: true, reason: "Ondo tokenized name" };
+  }
+
+  if (name && TOKENIZED_EQUITY_PHRASE.test(name) && !GENERIC_CATEGORY_NAME.test(name) && tickerLike(symbol)) {
+    return { ok: true, reason: "tokenized equity phrase" };
+  }
+
+  if (labels.some((label) => EQUITY_LABELS.has(label)) && (tickerLike(symbol) || backedTickerSymbol(symbol) || ondoTickerSymbol(symbol))) {
+    return { ok: true, reason: "explicit equity label" };
+  }
+
+  if (issuer && issuer !== "Backed / xStocks" && issuer !== "Ondo" && (tickerLike(symbol) || backedTickerSymbol(symbol) || ondoTickerSymbol(symbol))) {
+    return { ok: true, reason: "known issuer with equity signal" };
+  }
+
+  if (backedTickerSymbol(symbol) && name && /\b(?:stock|equity|share)s?\b/i.test(name) && /^Xs/.test(address)) {
+    return { ok: true, reason: "tickerx symbol with equity name" };
+  }
+
+  if (backedTickerSymbol(symbol) && /^Xs/.test(address)) {
+    return { ok: true, reason: "Backed mint convention plus tickerx" };
+  }
+
+  if (ondoMintConvention(address, symbol)) {
+    return { ok: true, reason: "Ondo mint convention plus tickeron" };
+  }
+
+  if (
+    name &&
+    /\btokeni[sz]ed\b/i.test(name) &&
+    /\b(?:stock|equity|shares?)\b/i.test(name) &&
+    (tickerLike(symbol) || ondoTickerSymbol(symbol)) &&
+    !GENERIC_CATEGORY_NAME.test(name)
+  ) {
+    return { ok: true, reason: "tokenized plus ticker symbol" };
+  }
+
+  if (
+    input.underlyingInstrumentType === "equity" &&
+    (tickerLike(symbol) || backedTickerSymbol(symbol) || ondoTickerSymbol(symbol)) &&
+    !isGenericCategory(name, symbol)
+  ) {
+    return { ok: true, reason: "issuer-classified public equity" };
+  }
+
+  return { ok: false };
+}
+
+export function classifyTokenizedInstrument(token: TokenIdentity): TokenClassification {
   const address = asNonEmptyString(token.address);
   if (!address) {
     return { kind: "reject", reason: "missing mint" };
@@ -248,7 +465,13 @@ export function classifyTokenizedEquity(token: TokenIdentity): TokenClassificati
   if (name && COMMODITY_PRODUCT_NAME.test(name)) {
     return { kind: "reject", reason: "commodity product" };
   }
+  if (name && ONDO_NON_EQUITY_NAME.test(name)) {
+    return { kind: "reject", reason: "Ondo non-equity product" };
+  }
   if (name && PRIVATE_OR_PREIPO_NAME.test(name)) {
+    return { kind: "reject", reason: "not a public equity" };
+  }
+  if (privateCompanySymbol(symbol)) {
     return { kind: "reject", reason: "not a public equity" };
   }
   if (name && TOKENIZED_REAL_ESTATE_RWA.test(name)) {
@@ -257,71 +480,53 @@ export function classifyTokenizedEquity(token: TokenIdentity): TokenClassificati
   if (isGenericCategory(name, symbol)) {
     return { kind: "reject", reason: "generic category token" };
   }
-
-  if (symbol && ETF_INDEX_SYMBOLS.has(symbol)) {
-    return { kind: "reject", reason: "ETF or index symbol" };
-  }
-  if (name && ETF_NAME.test(name)) {
-    return { kind: "reject", reason: "ETF or index name" };
-  }
-  if (labels.some((label) => ETF_LABELS.has(label))) {
-    return { kind: "reject", reason: "ETF or index label" };
-  }
-  if (token.underlyingInstrumentType === "etf") {
-    return { kind: "reject", reason: "issuer-classified ETF" };
+  if (name && ONDO_TOKENIZED_NAME.test(name) && !/ondo$/i.test(address)) {
+    return { kind: "reject", reason: "Ondo branding without Ondo mint convention" };
   }
 
-  const issuer = inferIssuer(name, token.symbol ?? null, address);
+  const issuer = inferIssuer(name, symbol, address);
+  const signal = hasVerifiableInstrumentSignal({
+    address,
+    name,
+    symbol,
+    issuer,
+    labels,
+    underlyingInstrumentType: token.underlyingInstrumentType,
+  });
+  const etf = etfReason(token, name, symbol, labels);
 
-  if (name && COMPANY_XSTOCK_NAME.test(name)) {
-    if (!/^Xs/.test(address)) {
-      return { kind: "reject", reason: "xStock branding without Backed mint convention" };
+  if (etf) {
+    if (signal.ok) {
+      return { kind: "etf", issuer: issuer ?? (ondoMintConvention(address, symbol) ? "Ondo" : null), reason: etf };
     }
-    return { kind: "equity", issuer: issuer ?? "Backed / xStocks", reason: "xStock name" };
+    return { kind: "reject", reason: etf };
   }
 
-  if (name && TOKENIZED_EQUITY_PHRASE.test(name) && !GENERIC_CATEGORY_NAME.test(name) && tickerLike(symbol)) {
-    return { kind: "equity", issuer, reason: "tokenized equity phrase" };
+  if (name && COMPANY_XSTOCK_NAME.test(name) && !/^Xs/.test(address)) {
+    return { kind: "reject", reason: "xStock branding without Backed mint convention" };
   }
 
-  if (labels.some((label) => EQUITY_LABELS.has(label)) && (tickerLike(symbol) || backedTickerSymbol(symbol))) {
-    return { kind: "equity", issuer, reason: "explicit equity label" };
-  }
-
-  if (issuer && issuer !== "Backed / xStocks" && (tickerLike(symbol) || backedTickerSymbol(symbol))) {
-    return { kind: "equity", issuer, reason: "known issuer with equity signal" };
-  }
-
-  if (backedTickerSymbol(symbol) && name && /\b(?:stock|equity|share)s?\b/i.test(name) && /^Xs/.test(address)) {
-    return { kind: "equity", issuer: issuer ?? "Backed / xStocks", reason: "tickerx symbol with equity name" };
-  }
-
-  if (backedTickerSymbol(symbol) && /^Xs/.test(address)) {
-    return { kind: "equity", issuer: issuer ?? "Backed / xStocks", reason: "Backed mint convention plus tickerx" };
-  }
-
-  if (
-    name &&
-    /\btokeni[sz]ed\b/i.test(name) &&
-    /\b(?:stock|equity|shares?)\b/i.test(name) &&
-    tickerLike(symbol) &&
-    !GENERIC_CATEGORY_NAME.test(name)
-  ) {
-    return { kind: "equity", issuer, reason: "tokenized plus ticker symbol" };
-  }
-
-  if (
-    token.underlyingInstrumentType === "equity" &&
-    (tickerLike(symbol) || backedTickerSymbol(symbol)) &&
-    !isGenericCategory(name, symbol)
-  ) {
-    return { kind: "equity", issuer, reason: "issuer-classified public equity" };
+  if (signal.ok) {
+    return { kind: "equity", issuer, reason: signal.reason };
   }
 
   return { kind: "reject", reason: "no verifiable tokenized-equity signal" };
 }
 
+export function classifyTokenizedEquity(token: TokenIdentity): Exclude<TokenClassification, EtfClassification> {
+  const result = classifyTokenizedInstrument(token);
+  if (result.kind === "etf") {
+    return { kind: "reject", reason: result.reason };
+  }
+  return result;
+}
+
 export function classifyOrNull(token: TokenIdentity): EquityClassification | null {
-  const result = classifyTokenizedEquity(token);
+  const result = classifyTokenizedInstrument(token);
   return result.kind === "equity" ? result : null;
+}
+
+export function classifyEtfOrNull(token: TokenIdentity): EtfClassification | null {
+  const result = classifyTokenizedInstrument(token);
+  return result.kind === "etf" ? result : null;
 }

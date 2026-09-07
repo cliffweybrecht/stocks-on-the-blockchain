@@ -1,8 +1,9 @@
 import { rollupChainFromAssets, sortByVolumeThenLiquidity } from "./aggregate";
 import { asFiniteNumber, asNonEmptyString, compareNullableDesc } from "./numbers";
-import { classifyOrNull, tokenIdentityFromFields } from "./solana-classifier";
+import { classifyTokenizedInstrument, tokenIdentityFromFields } from "./solana-classifier";
 import type { DiscoveredEquityMint } from "./solana-discover";
 import { SOLANA_SOURCE_LABEL, SOLANA_SOURCE_NOTE } from "./trust";
+import { inferVolumeCoverage, volumeCoverageNote } from "./volume-coverage";
 import {
   SOLANA_CHAIN_ID,
   type AssetDetail,
@@ -11,6 +12,9 @@ import {
   type ChainVolume,
   type DataProvenance,
   type DexSlice,
+  type InstrumentKind,
+  type VolumeAggregation,
+  type VolumeCoverage,
 } from "./types";
 
 export interface DexScreenerPair {
@@ -60,13 +64,15 @@ function classifiedSide(token: DexScreenerPair["baseToken"]) {
     name: token?.name,
   });
   if (!identity) return null;
-  const classified = classifyOrNull(identity);
-  if (!classified) return null;
+  const classified = classifyTokenizedInstrument(identity);
+  if (classified.kind === "reject") return null;
   return {
     address: identity.address,
     symbol: asNonEmptyString(identity.symbol) ?? identity.address.slice(0, 8),
     name: asNonEmptyString(identity.name) ?? asNonEmptyString(identity.symbol) ?? identity.address,
     issuer: classified.issuer,
+    kind: classified.kind,
+    reason: classified.reason,
   };
 }
 
@@ -90,6 +96,7 @@ interface MintAccumulator {
   name: string;
   address: string;
   issuer: string | null;
+  kind: InstrumentKind;
   volumes: number[];
   liquidities: number[];
   prices: number[];
@@ -107,6 +114,7 @@ function emptyAccumulator(side: NonNullable<ReturnType<typeof classifiedSide>>):
     name: side.name,
     address: side.address,
     issuer: side.issuer,
+    kind: side.kind,
     volumes: [],
     liquidities: [],
     prices: [],
@@ -133,7 +141,7 @@ function addPairToBucket(bucket: MintAccumulator, pair: DexScreenerPair) {
 
   if (volume !== null) bucket.volumes.push(volume);
   if (liquidity !== null) bucket.liquidities.push(liquidity);
-  if (price !== null) bucket.prices.push(price);
+  if (price !== null && price > 0) bucket.prices.push(price);
   if (buys !== null) bucket.buys.push(buys);
   if (sells !== null) bucket.sells.push(sells);
 
@@ -157,7 +165,12 @@ function addPairToBucket(bucket: MintAccumulator, pair: DexScreenerPair) {
 
 export function mapDexScreenerPairsToSolanaAssets(
   pairs: readonly DexScreenerPair[],
-): { assets: AssetSummary[]; details: AssetDetail[] } {
+): {
+  assets: AssetSummary[];
+  details: AssetDetail[];
+  etfAssets: AssetSummary[];
+  etfDetails: AssetDetail[];
+} {
   const byMint = new Map<string, MintAccumulator>();
 
   for (const pair of pairs) {
@@ -202,6 +215,8 @@ export function mapDexScreenerPairsToSolanaAssets(
       })
       .sort((a, b) => (b.displayedLiquidityUsd ?? -1) - (a.displayedLiquidityUsd ?? -1));
 
+    const poolCount = bucket.pairAddresses.size || bucket.pools.length;
+    const volumeCoverage: VolumeCoverage = inferVolumeCoverage({ volume24hUsd, poolCount });
     const summary: AssetSummary = {
       chainId: SOLANA_CHAIN_ID,
       sourceId: "solana",
@@ -214,7 +229,7 @@ export function mapDexScreenerPairsToSolanaAssets(
       volume24hUsd,
       displayedLiquidityUsd,
       usdGLiquidityUsd: null,
-      poolCount: bucket.pairAddresses.size || bucket.pools.length,
+      poolCount,
       dexCount: bucket.dexes.size,
       pools,
       robinhoodReferencePriceUsd: null,
@@ -223,6 +238,9 @@ export function mapDexScreenerPairsToSolanaAssets(
       top3ConcentrationPct: null,
       liquidityCoverageComplete: bucket.liquidities.length > 0,
       volume24hCoverageComplete: bucket.volumes.length > 0,
+      instrumentKind: bucket.kind,
+      volumeCoverage,
+      coverageNote: null,
     };
 
     summaries.push(summary);
@@ -262,9 +280,16 @@ export function mapDexScreenerPairsToSolanaAssets(
     });
   }
 
+  const equitySummaries = summaries.filter((row) => row.instrumentKind === "equity");
+  const equityDetails = details.filter((row) => row.instrumentKind === "equity");
+  const etfSummaries = summaries.filter((row) => row.instrumentKind === "etf");
+  const etfDetails = details.filter((row) => row.instrumentKind === "etf");
+
   return {
-    assets: sortByVolumeThenLiquidity(summaries),
-    details: sortByVolumeThenLiquidity(details),
+    assets: sortByVolumeThenLiquidity(equitySummaries),
+    details: sortByVolumeThenLiquidity(equityDetails),
+    etfAssets: sortByVolumeThenLiquidity(etfSummaries),
+    etfDetails: sortByVolumeThenLiquidity(etfDetails),
   };
 }
 
@@ -275,6 +300,7 @@ export function solanaChainMeta(): Omit<
   | "usdGLiquidityUsd"
   | "assetCount"
   | "assetsWithVolume"
+  | "assetsWithPools"
   | "reportedPoolCount"
   | "peakDexCount"
 > {
@@ -286,12 +312,27 @@ export function solanaChainMeta(): Omit<
     sourceId: "solana",
     sourceLabel: SOLANA_SOURCE_LABEL,
     completenessPct: null,
+    etfCount: 0,
+    volumeAggregation: "all-pools",
     coverageNote:
-      "Tokenized public equities discovered from the live xStocks public registry plus DexScreener search, then classified fail-closed. Volume is the sum of pair volume.h24 across every Solana pool for that mint. Coverage is as discoverable from those live sources + the classifier, not a full Solana indexer. Missing pair metrics stay missing.",
+      "Tokenized public equities discovered from the live xStocks public registry, the public Ondo GM mint list, and DexScreener search, then classified fail-closed. Volume is the sum of pair volume.h24 across every Solana pool for that mint. Coverage is as discoverable from those live sources + the classifier, not a full Solana indexer. Missing pair metrics stay missing — a dash is not zero. ETF/index products are catalogued separately and are not mixed into equity ranking.",
   };
 }
 
-export function unpairedSolanaAsset(row: DiscoveredEquityMint): AssetDetail {
+export function unpairedSolanaAsset(
+  row: DiscoveredEquityMint,
+  options: {
+    failedMints?: ReadonlySet<string>;
+    incompleteMints?: ReadonlySet<string>;
+    aggregation?: VolumeAggregation;
+  } = {},
+): AssetDetail {
+  const volumeCoverage = inferVolumeCoverage({
+    volume24hUsd: null,
+    poolCount: 0,
+    hydrateFailed: options.failedMints?.has(row.mint) ?? false,
+    hydrateIncomplete: options.incompleteMints?.has(row.mint) ?? false,
+  });
   const summary: AssetSummary = {
     chainId: SOLANA_CHAIN_ID,
     sourceId: "solana",
@@ -313,6 +354,13 @@ export function unpairedSolanaAsset(row: DiscoveredEquityMint): AssetDetail {
     top3ConcentrationPct: null,
     liquidityCoverageComplete: false,
     volume24hCoverageComplete: false,
+    instrumentKind: row.kind ?? "equity",
+    volumeCoverage,
+    coverageNote: volumeCoverageNote(volumeCoverage, {
+      poolCount: 0,
+      volume24hUsd: null,
+      aggregation: options.aggregation ?? "all-pools",
+    }),
   };
   return {
     ...summary,
@@ -339,15 +387,33 @@ export function unpairedSolanaAsset(row: DiscoveredEquityMint): AssetDetail {
   };
 }
 
+function annotateMappedCoverage(
+  rows: AssetDetail[],
+  aggregation: VolumeAggregation,
+): AssetDetail[] {
+  return rows.map((row) => {
+    const coverageNote = volumeCoverageNote(row.volumeCoverage, {
+      poolCount: row.poolCount,
+      volume24hUsd: row.volume24hUsd,
+      aggregation,
+    });
+    return { ...row, coverageNote };
+  });
+}
+
 export function mergeUnpairedSolanaAssets(
   mapped: { assets: AssetSummary[]; details: AssetDetail[] },
   discovered: readonly DiscoveredEquityMint[],
+  options: {
+    failedMints?: ReadonlySet<string>;
+    incompleteMints?: ReadonlySet<string>;
+    aggregation?: VolumeAggregation;
+  } = {},
 ): { assets: AssetSummary[]; details: AssetDetail[] } {
   const seen = new Set(mapped.details.map((row) => row.contractAddress));
-  const extras = discovered.filter((row) => !seen.has(row.mint)).map(unpairedSolanaAsset);
-  if (extras.length === 0) return mapped;
-  const details = sortByVolumeThenLiquidity([...mapped.details, ...extras]);
-  const assets = sortByVolumeThenLiquidity([...mapped.assets, ...extras]);
+  const extras = discovered.filter((row) => !seen.has(row.mint)).map((row) => unpairedSolanaAsset(row, options));
+  const details = sortByVolumeThenLiquidity(annotateMappedCoverage([...mapped.details, ...extras], options.aggregation ?? "all-pools"));
+  const assets = sortByVolumeThenLiquidity(details);
   return { assets, details };
 }
 
@@ -355,27 +421,71 @@ export function buildSolanaSnapshot(input: {
   pairs: readonly DexScreenerPair[];
   fetchedAt: string;
   discovered?: readonly DiscoveredEquityMint[];
+  discoveredEtfs?: readonly DiscoveredEquityMint[];
   extraNotes?: readonly string[];
+  failedMints?: ReadonlySet<string>;
+  incompleteMints?: ReadonlySet<string>;
+  aggregation?: VolumeAggregation;
+  refreshDurationMs?: number | null;
+  cacheStatus?: string | null;
+  cacheAgeMs?: number | null;
 }): {
   chain: ChainVolume;
   assets: AssetSummary[];
   details: AssetDetail[];
+  etfAssets: AssetSummary[];
+  etfDetails: AssetDetail[];
   provenance: DataProvenance;
 } {
-  const mapped = mergeUnpairedSolanaAssets(mapDexScreenerPairsToSolanaAssets(input.pairs), input.discovered ?? []);
+  const aggregation = input.aggregation ?? "all-pools";
+  const mapped = mapDexScreenerPairsToSolanaAssets(input.pairs);
+  const equities = mergeUnpairedSolanaAssets(
+    { assets: mapped.assets, details: mapped.details },
+    (input.discovered ?? []).filter((row) => row.kind !== "etf"),
+    {
+      failedMints: input.failedMints,
+      incompleteMints: input.incompleteMints,
+      aggregation,
+    },
+  );
+  const etfs = mergeUnpairedSolanaAssets(
+    { assets: mapped.etfAssets, details: mapped.etfDetails },
+    input.discoveredEtfs ?? (input.discovered ?? []).filter((row) => row.kind === "etf"),
+    {
+      failedMints: input.failedMints,
+      incompleteMints: input.incompleteMints,
+      aggregation,
+    },
+  );
+  const classified = equities.assets.length;
+  const withVolume = equities.assets.filter((asset) => asset.volume24hUsd !== null).length;
+  const withPools = equities.assets.filter((asset) => asset.poolCount > 0).length;
+  const meta = solanaChainMeta();
+  const coverageNote =
+    `${meta.coverageNote} This snapshot: ${classified} classified equities, ${withVolume} with reported DexScreener volume, ${withPools} with indexed pools. ` +
+    (aggregation === "primary-pair"
+      ? "Home rollup uses DexScreener primary-pair volume per mint; the chain page aggregates every Solana pool."
+      : "Chain ranking uses aggregate volume across every returned Solana pool for that mint.") +
+    (etfs.assets.length > 0 ? ` ${etfs.assets.length} ETF/index products are listed separately and are not in the equity ranking.` : "");
+
   return {
-    chain: rollupChainFromAssets(solanaChainMeta(), mapped.assets),
-    assets: mapped.assets,
-    details: mapped.details,
+    chain: rollupChainFromAssets({ ...meta, coverageNote }, equities.assets, {
+      etfCount: etfs.assets.length,
+      volumeAggregation: aggregation,
+    }),
+    assets: equities.assets,
+    details: equities.details,
+    etfAssets: etfs.assets,
+    etfDetails: etfs.details,
     provenance: {
       sourceId: "solana",
       sourceLabel: SOLANA_SOURCE_LABEL,
       fetchedAt: input.fetchedAt,
       generatedAt: input.fetchedAt,
       refreshStartedAt: input.fetchedAt,
-      refreshDurationMs: null,
-      cacheStatus: "fresh",
-      cacheAgeMs: 0,
+      refreshDurationMs: input.refreshDurationMs ?? null,
+      cacheStatus: input.cacheStatus ?? "fresh",
+      cacheAgeMs: input.cacheAgeMs ?? 0,
       notes: [SOLANA_SOURCE_NOTE, ...(input.extraNotes ?? [])],
       sourceFailures: [],
     },

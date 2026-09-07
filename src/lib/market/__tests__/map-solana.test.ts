@@ -103,10 +103,31 @@ describe("mapDexScreenerPairsToSolanaAssets", () => {
     const aapl = assets[1];
     expect(aapl?.volume24hUsd).toBeNull();
     expect(aapl?.displayedLiquidityUsd).toBeCloseTo(96_308.87);
+    expect(aapl?.volumeCoverage).toBe("pools_without_volume");
+    expect(tsla?.volumeCoverage).toBe("reported");
 
     expect(details[0]?.buys24h).toBe(1287);
     expect(details[0]?.dexes.map((dex) => dex.dexId)).toEqual(["raydium", "orca"]);
     expect(details[0]?.largestPool?.pairAddress).toBe("pair-tsla-usdc");
+  });
+
+  it("ignores non-positive DexScreener prices when computing the DEX median", () => {
+    const { assets } = mapDexScreenerPairsToSolanaAssets([
+      fixturePairs[0]!,
+      {
+        chainId: "solana",
+        dexId: "meteora",
+        pairAddress: "pair-tsla-zero-price",
+        baseToken: { address: tslaMint, name: "Tesla xStock", symbol: "TSLAx" },
+        quoteToken: { address: "usdc", name: "USDC", symbol: "USDC" },
+        priceUsd: "0",
+        volume: { h24: 1 },
+        liquidity: { usd: 1 },
+      },
+    ]);
+    expect(assets).toHaveLength(1);
+    expect(assets[0]?.dexMedianPriceUsd).toBeCloseTo(355.64);
+    expect(assets[0]?.pools).toHaveLength(2);
   });
 
   it("does not treat one DexScreener pair as one stock and deduplicates the same pool", () => {
@@ -183,6 +204,7 @@ describe("mapDexScreenerPairsToSolanaAssets", () => {
         name: "Tesla xStock",
         issuer: "Backed / xStocks",
         reason: "xStock name",
+        kind: "equity",
       },
       {
         mint: "XsUnpairedNflx11111111111111111111111111",
@@ -190,12 +212,14 @@ describe("mapDexScreenerPairsToSolanaAssets", () => {
         name: "Netflix xStock",
         issuer: "Backed / xStocks",
         reason: "xStock name",
+        kind: "equity",
       },
     ]);
     expect(merged.assets.map((asset) => asset.symbol)).toEqual(["TSLAx", "NFLXx"]);
     const nflx = merged.assets.find((asset) => asset.symbol === "NFLXx");
     expect(nflx?.volume24hUsd).toBeNull();
     expect(nflx?.poolCount).toBe(0);
+    expect(nflx?.volumeCoverage).toBe("no_indexed_pools");
     expect(nflx?.contractAddress).toBe("XsUnpairedNflx11111111111111111111111111");
   });
 });
