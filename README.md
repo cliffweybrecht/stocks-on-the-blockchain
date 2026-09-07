@@ -153,6 +153,7 @@ Robinhood marks stay null on Solana. Off-Solana pairs are ignored.
 
 - Persistent disclaimer on every page
 - Solana coverage banner: classified vs with-volume vs with-pools, plus ETF count
+- Solana chain list defaults to **With volume**, ranked by coverage tier then aggregate 24h volume (nulls last). Click column headers to change sort. Rank # is the current filtered view.
 - **Reported** vs **Interpretive** badges on metrics
 - Displayed liquidity is never described as buy capacity
 - No arb, profitability, or “you can trade this on Robinhood” copy

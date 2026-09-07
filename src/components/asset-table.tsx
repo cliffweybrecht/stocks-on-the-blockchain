@@ -11,16 +11,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { type AssetSortKey, assetSortQueryValue, sortAssets } from "@/lib/market/aggregate";
 import { assetRouteKey } from "@/lib/market/identity";
 import { formatAddress, formatPct, formatPrice, formatUsdCompact } from "@/lib/market/format";
-import { compareNullableDesc } from "@/lib/market/numbers";
 import type { AssetSummary, InstrumentKind, VolumeCoverage } from "@/lib/market/types";
 import {
   type CoverageFilter,
   volumeCoverageLabel,
 } from "@/lib/market/volume-coverage";
 
-type SortKey = "volume24hUsd" | "displayedLiquidityUsd" | "poolCount" | "premiumDiscountPct";
+const SORT_LABELS: Record<AssetSortKey, string> = {
+  volume24hUsd: "24h volume",
+  displayedLiquidityUsd: "Displayed liq",
+  poolCount: "Pools",
+  premiumDiscountPct: "RH vs DEX",
+};
 
 function coverageVariant(coverage: VolumeCoverage): "default" | "secondary" | "outline" | "destructive" {
   switch (coverage) {
@@ -43,12 +48,26 @@ function chipClass(active: boolean): string {
   }`;
 }
 
-function chainHref(chainId: string, lane: InstrumentKind, coverage: CoverageFilter): string {
+function chainHref(
+  chainId: string,
+  lane: InstrumentKind,
+  coverage: CoverageFilter,
+  defaultCoverage: CoverageFilter,
+  sortKey: AssetSortKey = "volume24hUsd",
+): string {
   const params = new URLSearchParams();
   if (lane === "etf") params.set("lane", "etf");
-  if (coverage !== "all") params.set("coverage", coverage);
+  if (coverage !== defaultCoverage) params.set("coverage", coverage);
+  const sortQuery = assetSortQueryValue(sortKey);
+  if (sortQuery) params.set("sort", sortQuery);
   const query = params.toString();
   return query ? `/chains/${chainId}?${query}` : `/chains/${chainId}`;
+}
+
+function sortHeadClass(active: boolean, align: "left" | "right" = "right"): string {
+  return `w-full ${align === "right" ? "text-right" : "text-left"} ${
+    active ? "text-primary" : "text-muted-foreground hover:text-foreground"
+  }`;
 }
 
 export function AssetTable({
@@ -59,6 +78,8 @@ export function AssetTable({
   etfCount = 0,
   lane = "equity",
   coverageFilter = "all",
+  defaultCoverage = "all",
+  sortKey = "volume24hUsd",
   showRobinhoodMarks = true,
 }: {
   assets: AssetSummary[];
@@ -68,10 +89,11 @@ export function AssetTable({
   etfCount?: number;
   lane?: InstrumentKind;
   coverageFilter?: CoverageFilter;
+  defaultCoverage?: CoverageFilter;
+  sortKey?: AssetSortKey;
   showRobinhoodMarks?: boolean;
 }) {
   const [query, setQuery] = useState("");
-  const [sortKey, setSortKey] = useState<SortKey>("volume24hUsd");
 
   const rows = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -85,19 +107,11 @@ export function AssetTable({
         )
       : assets;
 
-    return [...filtered].sort((a, b) => {
-      const left = sortKey === "poolCount" ? a.poolCount : a[sortKey];
-      const right = sortKey === "poolCount" ? b.poolCount : b[sortKey];
-      const compared =
-        sortKey === "poolCount"
-          ? (right as number) - (left as number)
-          : compareNullableDesc(left as number | null, right as number | null);
-      if (compared !== 0) return compared;
-      return a.symbol.localeCompare(b.symbol);
-    });
+    return sortAssets(filtered, sortKey);
   }, [assets, query, sortKey]);
 
-  const sortButtons = (
+  const hydratingCount = rows.filter((asset) => asset.volumeCoverage === "hydrate_incomplete").length;
+  const sortColumns = (
     [
       ["volume24hUsd", "Volume"],
       ["displayedLiquidityUsd", "Liquidity"],
@@ -110,10 +124,16 @@ export function AssetTable({
     <div className="space-y-3">
       {etfCount > 0 ? (
         <div className="flex flex-wrap gap-2">
-          <Link href={chainHref(chainId, "equity", coverageFilter)} className={chipClass(lane === "equity")}>
+          <Link
+            href={chainHref(chainId, "equity", coverageFilter, defaultCoverage, sortKey)}
+            className={chipClass(lane === "equity")}
+          >
             Equities ({equityCount})
           </Link>
-          <Link href={chainHref(chainId, "etf", coverageFilter)} className={chipClass(lane === "etf")}>
+          <Link
+            href={chainHref(chainId, "etf", coverageFilter, defaultCoverage, sortKey)}
+            className={chipClass(lane === "etf")}
+          >
             ETF / index ({etfCount})
           </Link>
         </div>
@@ -132,18 +152,15 @@ export function AssetTable({
           aria-label="Filter stocks"
           className="h-8 w-full max-w-md rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
         />
-        <div className="flex flex-wrap gap-2 text-xs">
-          {sortButtons.map(([key, label]) => (
-            <button
+        <div className="flex flex-wrap gap-2 text-xs lg:hidden">
+          {sortColumns.map(([key, label]) => (
+            <Link
               key={key}
-              type="button"
-              onClick={() => setSortKey(key)}
-              className={`rounded-full border px-3 py-1 ${
-                sortKey === key ? "border-primary bg-primary/15 text-primary" : "border-border text-muted-foreground"
-              }`}
+              href={chainHref(chainId, lane, coverageFilter, defaultCoverage, key)}
+              className={chipClass(sortKey === key)}
             >
-              Sort: {label}
-            </button>
+              {label}
+            </Link>
           ))}
         </div>
       </div>
@@ -158,7 +175,7 @@ export function AssetTable({
         ).map(([key, label]) => (
           <Link
             key={key}
-            href={chainHref(chainId, lane, key)}
+            href={chainHref(chainId, lane, key, defaultCoverage, sortKey)}
             className={chipClass(coverageFilter === key)}
           >
             {label}
@@ -166,12 +183,20 @@ export function AssetTable({
         ))}
       </div>
       <p className="text-xs text-muted-foreground" aria-live="polite">
-        Showing {rows.length} of {totalInLane}
+        Ranked by {SORT_LABELS[sortKey]}
+        {sortKey === "volume24hUsd" ? " (coverage, then volume, liquidity, pools)" : ""} · showing {rows.length} of{" "}
+        {totalInLane}
         {coverageFilter !== "all" ? ` · ${coverageFilter.replace("-", " ")}` : ""}
       </p>
+      {coverageFilter === "all" && hydratingCount > 0 ? (
+        <p className="text-xs text-muted-foreground">
+          {hydratingCount} still hydrating {hydratingCount === 1 ? "row sits" : "rows sit"} below names with reported
+          volume. That volume is unknown, not zero.
+        </p>
+      ) : null}
 
       <div className="grid gap-3 lg:hidden">
-        {rows.map((asset) => (
+        {rows.map((asset, index) => (
           <Link
             key={asset.contractAddress}
             href={`/chains/${chainId}/assets/${encodeURIComponent(assetRouteKey(asset, assets))}`}
@@ -179,7 +204,10 @@ export function AssetTable({
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="font-medium">{asset.symbol}</p>
+                <p className="font-medium">
+                  <span className="num mr-2 text-xs text-muted-foreground">#{index + 1}</span>
+                  {asset.symbol}
+                </p>
                 <p className="text-xs text-muted-foreground">{asset.name}</p>
                 {asset.issuer ? <p className="text-xs text-muted-foreground">{asset.issuer}</p> : null}
               </div>
@@ -209,27 +237,63 @@ export function AssetTable({
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-12 text-right">#</TableHead>
               <TableHead>Stock</TableHead>
               <TableHead>Issuer</TableHead>
               <TableHead>Mint</TableHead>
               <TableHead>Coverage</TableHead>
-              <TableHead className="text-right">24h volume</TableHead>
-              <TableHead className="text-right">Displayed liq</TableHead>
+              <TableHead className="text-right" aria-sort={sortKey === "volume24hUsd" ? "descending" : "none"}>
+                <Link
+                  href={chainHref(chainId, lane, coverageFilter, defaultCoverage, "volume24hUsd")}
+                  className={sortHeadClass(sortKey === "volume24hUsd")}
+                >
+                  24h volume{sortKey === "volume24hUsd" ? " ↓" : ""}
+                </Link>
+              </TableHead>
+              <TableHead
+                className="text-right"
+                aria-sort={sortKey === "displayedLiquidityUsd" ? "descending" : "none"}
+              >
+                <Link
+                  href={chainHref(chainId, lane, coverageFilter, defaultCoverage, "displayedLiquidityUsd")}
+                  className={sortHeadClass(sortKey === "displayedLiquidityUsd")}
+                >
+                  Displayed liq{sortKey === "displayedLiquidityUsd" ? " ↓" : ""}
+                </Link>
+              </TableHead>
               {showRobinhoodMarks ? (
                 <>
                   <TableHead className="text-right">RH mark</TableHead>
                   <TableHead className="text-right">DEX median</TableHead>
-                  <TableHead className="text-right">RH vs DEX</TableHead>
+                  <TableHead
+                    className="text-right"
+                    aria-sort={sortKey === "premiumDiscountPct" ? "descending" : "none"}
+                  >
+                    <Link
+                      href={chainHref(chainId, lane, coverageFilter, defaultCoverage, "premiumDiscountPct")}
+                      className={sortHeadClass(sortKey === "premiumDiscountPct")}
+                    >
+                      RH vs DEX{sortKey === "premiumDiscountPct" ? " ↓" : ""}
+                    </Link>
+                  </TableHead>
                 </>
               ) : (
                 <TableHead className="text-right">DEX median</TableHead>
               )}
-              <TableHead className="text-right">Pools / DEXes</TableHead>
+              <TableHead className="text-right" aria-sort={sortKey === "poolCount" ? "descending" : "none"}>
+                <Link
+                  href={chainHref(chainId, lane, coverageFilter, defaultCoverage, "poolCount")}
+                  className={sortHeadClass(sortKey === "poolCount")}
+                >
+                  Pools / DEXes{sortKey === "poolCount" ? " ↓" : ""}
+                </Link>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.map((asset) => (
+            {rows.map((asset, index) => (
               <TableRow key={asset.contractAddress}>
+                <TableCell className="num text-right text-muted-foreground">{index + 1}</TableCell>
                 <TableCell>
                   <Link
                     href={`/chains/${chainId}/assets/${encodeURIComponent(assetRouteKey(asset, assets))}`}

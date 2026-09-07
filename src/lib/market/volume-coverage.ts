@@ -2,10 +2,13 @@ import type { InstrumentKind, VolumeAggregation, VolumeCoverage } from "./types"
 
 export type CoverageFilter = "all" | "with-volume" | "no-pools" | "with-pools";
 
-export function parseCoverageFilter(value: string | string[] | undefined): CoverageFilter {
+export function parseCoverageFilter(
+  value: string | string[] | undefined,
+  fallback: CoverageFilter = "all",
+): CoverageFilter {
   const raw = Array.isArray(value) ? value[0] : value;
-  if (raw === "with-volume" || raw === "no-pools" || raw === "with-pools") return raw;
-  return "all";
+  if (raw === "with-volume" || raw === "no-pools" || raw === "with-pools" || raw === "all") return raw;
+  return fallback;
 }
 
 export function assetMatchesCoverageFilter(

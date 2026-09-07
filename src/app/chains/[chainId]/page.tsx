@@ -9,6 +9,7 @@ import { SolanaCoverageBanner } from "@/components/solana-coverage-banner";
 import { TrustBanner } from "@/components/trust-banner";
 import { formatCount, formatUsdCompact } from "@/lib/market/format";
 import { createMarketDataSource } from "@/lib/market/factory";
+import { parseAssetSortKey, sortAssets } from "@/lib/market/aggregate";
 import { SOLANA_CHAIN_ID } from "@/lib/market/types";
 import { assetMatchesCoverageFilter, parseCoverageFilter } from "@/lib/market/volume-coverage";
 
@@ -19,7 +20,7 @@ export default async function ChainPage({
   searchParams,
 }: {
   params: Promise<{ chainId: string }>;
-  searchParams: Promise<{ lane?: string; coverage?: string }>;
+  searchParams: Promise<{ lane?: string; coverage?: string; sort?: string }>;
 }) {
   const { chainId } = await params;
   const query = await searchParams;
@@ -51,9 +52,14 @@ export default async function ChainPage({
   const { chain, assets, etfAssets = [], provenance } = result;
   const isSolana = chain.id === SOLANA_CHAIN_ID;
   const lane = query.lane === "etf" && etfAssets.length > 0 ? "etf" : "equity";
-  const coverageFilter = parseCoverageFilter(query.coverage);
+  const defaultCoverage = isSolana ? "with-volume" : "all";
+  const coverageFilter = parseCoverageFilter(query.coverage, defaultCoverage);
+  const sortKey = parseAssetSortKey(query.sort);
   const laneAssets = lane === "etf" ? etfAssets : assets;
-  const visibleAssets = laneAssets.filter((asset) => assetMatchesCoverageFilter(asset, coverageFilter));
+  const visibleAssets = sortAssets(
+    laneAssets.filter((asset) => assetMatchesCoverageFilter(asset, coverageFilter)),
+    sortKey,
+  );
 
   return (
     <PageShell provenance={provenance}>
@@ -108,6 +114,8 @@ export default async function ChainPage({
             etfCount={etfAssets.length}
             lane={lane}
             coverageFilter={coverageFilter}
+            defaultCoverage={defaultCoverage}
+            sortKey={sortKey}
             chainId={chain.id}
             showRobinhoodMarks={!isSolana}
           />
