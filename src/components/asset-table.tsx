@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { type AssetSortKey, sortAssets } from "@/lib/market/aggregate";
+import { type AssetSortKey, assetSortQueryValue, sortAssets } from "@/lib/market/aggregate";
 import { assetRouteKey } from "@/lib/market/identity";
 import { formatAddress, formatPct, formatPrice, formatUsdCompact } from "@/lib/market/format";
 import type { AssetSummary, InstrumentKind, VolumeCoverage } from "@/lib/market/types";
@@ -53,10 +53,13 @@ function chainHref(
   lane: InstrumentKind,
   coverage: CoverageFilter,
   defaultCoverage: CoverageFilter,
+  sortKey: AssetSortKey = "volume24hUsd",
 ): string {
   const params = new URLSearchParams();
   if (lane === "etf") params.set("lane", "etf");
   if (coverage !== defaultCoverage) params.set("coverage", coverage);
+  const sortQuery = assetSortQueryValue(sortKey);
+  if (sortQuery) params.set("sort", sortQuery);
   const query = params.toString();
   return query ? `/chains/${chainId}?${query}` : `/chains/${chainId}`;
 }
@@ -76,6 +79,7 @@ export function AssetTable({
   lane = "equity",
   coverageFilter = "all",
   defaultCoverage = "all",
+  sortKey = "volume24hUsd",
   showRobinhoodMarks = true,
 }: {
   assets: AssetSummary[];
@@ -86,10 +90,10 @@ export function AssetTable({
   lane?: InstrumentKind;
   coverageFilter?: CoverageFilter;
   defaultCoverage?: CoverageFilter;
+  sortKey?: AssetSortKey;
   showRobinhoodMarks?: boolean;
 }) {
   const [query, setQuery] = useState("");
-  const [sortKey, setSortKey] = useState<AssetSortKey>("volume24hUsd");
 
   const rows = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -121,13 +125,13 @@ export function AssetTable({
       {etfCount > 0 ? (
         <div className="flex flex-wrap gap-2">
           <Link
-            href={chainHref(chainId, "equity", coverageFilter, defaultCoverage)}
+            href={chainHref(chainId, "equity", coverageFilter, defaultCoverage, sortKey)}
             className={chipClass(lane === "equity")}
           >
             Equities ({equityCount})
           </Link>
           <Link
-            href={chainHref(chainId, "etf", coverageFilter, defaultCoverage)}
+            href={chainHref(chainId, "etf", coverageFilter, defaultCoverage, sortKey)}
             className={chipClass(lane === "etf")}
           >
             ETF / index ({etfCount})
@@ -150,15 +154,13 @@ export function AssetTable({
         />
         <div className="flex flex-wrap gap-2 text-xs lg:hidden">
           {sortColumns.map(([key, label]) => (
-            <button
+            <Link
               key={key}
-              type="button"
-              onClick={() => setSortKey(key)}
-              aria-pressed={sortKey === key}
+              href={chainHref(chainId, lane, coverageFilter, defaultCoverage, key)}
               className={chipClass(sortKey === key)}
             >
               {label}
-            </button>
+            </Link>
           ))}
         </div>
       </div>
@@ -173,7 +175,7 @@ export function AssetTable({
         ).map(([key, label]) => (
           <Link
             key={key}
-            href={chainHref(chainId, lane, key, defaultCoverage)}
+            href={chainHref(chainId, lane, key, defaultCoverage, sortKey)}
             className={chipClass(coverageFilter === key)}
           >
             {label}
@@ -241,25 +243,23 @@ export function AssetTable({
               <TableHead>Mint</TableHead>
               <TableHead>Coverage</TableHead>
               <TableHead className="text-right" aria-sort={sortKey === "volume24hUsd" ? "descending" : "none"}>
-                <button
-                  type="button"
+                <Link
+                  href={chainHref(chainId, lane, coverageFilter, defaultCoverage, "volume24hUsd")}
                   className={sortHeadClass(sortKey === "volume24hUsd")}
-                  onClick={() => setSortKey("volume24hUsd")}
                 >
                   24h volume{sortKey === "volume24hUsd" ? " ↓" : ""}
-                </button>
+                </Link>
               </TableHead>
               <TableHead
                 className="text-right"
                 aria-sort={sortKey === "displayedLiquidityUsd" ? "descending" : "none"}
               >
-                <button
-                  type="button"
+                <Link
+                  href={chainHref(chainId, lane, coverageFilter, defaultCoverage, "displayedLiquidityUsd")}
                   className={sortHeadClass(sortKey === "displayedLiquidityUsd")}
-                  onClick={() => setSortKey("displayedLiquidityUsd")}
                 >
                   Displayed liq{sortKey === "displayedLiquidityUsd" ? " ↓" : ""}
-                </button>
+                </Link>
               </TableHead>
               {showRobinhoodMarks ? (
                 <>
@@ -269,26 +269,24 @@ export function AssetTable({
                     className="text-right"
                     aria-sort={sortKey === "premiumDiscountPct" ? "descending" : "none"}
                   >
-                    <button
-                      type="button"
+                    <Link
+                      href={chainHref(chainId, lane, coverageFilter, defaultCoverage, "premiumDiscountPct")}
                       className={sortHeadClass(sortKey === "premiumDiscountPct")}
-                      onClick={() => setSortKey("premiumDiscountPct")}
                     >
                       RH vs DEX{sortKey === "premiumDiscountPct" ? " ↓" : ""}
-                    </button>
+                    </Link>
                   </TableHead>
                 </>
               ) : (
                 <TableHead className="text-right">DEX median</TableHead>
               )}
               <TableHead className="text-right" aria-sort={sortKey === "poolCount" ? "descending" : "none"}>
-                <button
-                  type="button"
+                <Link
+                  href={chainHref(chainId, lane, coverageFilter, defaultCoverage, "poolCount")}
                   className={sortHeadClass(sortKey === "poolCount")}
-                  onClick={() => setSortKey("poolCount")}
                 >
                   Pools / DEXes{sortKey === "poolCount" ? " ↓" : ""}
-                </button>
+                </Link>
               </TableHead>
             </TableRow>
           </TableHeader>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compareAssetsByRank, sortAssets, sortByVolumeThenLiquidity } from "../aggregate";
+import { compareAssetsByRank, parseAssetSortKey, sortAssets, sortByVolumeThenLiquidity } from "../aggregate";
 import type { RankableRow } from "../aggregate";
 
 function row(partial: Partial<RankableRow> & { symbol: string }): RankableRow {
@@ -112,5 +112,15 @@ describe("compareAssetsByRank", () => {
     expect(sortAssets(rows, "displayedLiquidityUsd").map((asset) => asset.symbol)).toEqual(["C", "B", "A"]);
     expect(sortAssets(rows, "poolCount").map((asset) => asset.symbol)).toEqual(["B", "C", "A"]);
     expect(compareAssetsByRank(rows[0]!, rows[1]!, "volume24hUsd")).toBeLessThan(0);
+  });
+});
+
+describe("parseAssetSortKey", () => {
+  it("maps query values and defaults to volume", () => {
+    expect(parseAssetSortKey(undefined)).toBe("volume24hUsd");
+    expect(parseAssetSortKey("liquidity")).toBe("displayedLiquidityUsd");
+    expect(parseAssetSortKey("pools")).toBe("poolCount");
+    expect(parseAssetSortKey("premium")).toBe("premiumDiscountPct");
+    expect(parseAssetSortKey("nope")).toBe("volume24hUsd");
   });
 });

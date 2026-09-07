@@ -83,6 +83,21 @@ export function sortAssets<T extends RankableRow>(rows: readonly T[], primary: A
   return [...rows].sort((a, b) => compareAssetsByRank(a, b, primary));
 }
 
+export function parseAssetSortKey(value: string | string[] | undefined): AssetSortKey {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (raw === "liquidity" || raw === "displayedLiquidityUsd") return "displayedLiquidityUsd";
+  if (raw === "pools" || raw === "poolCount") return "poolCount";
+  if (raw === "premium" || raw === "premiumDiscountPct") return "premiumDiscountPct";
+  return "volume24hUsd";
+}
+
+export function assetSortQueryValue(key: AssetSortKey): string | null {
+  if (key === "displayedLiquidityUsd") return "liquidity";
+  if (key === "poolCount") return "pools";
+  if (key === "premiumDiscountPct") return "premium";
+  return null;
+}
+
 export function rollupChainFromAssets(
   chain: Omit<
     ChainVolume,
