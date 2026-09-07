@@ -8,6 +8,11 @@ import { ProvenanceBar } from "@/components/provenance-bar";
 import { SolanaCoverageBanner } from "@/components/solana-coverage-banner";
 import { TrustBanner } from "@/components/trust-banner";
 import { formatCount, formatUsdCompact } from "@/lib/market/format";
+import {
+  assetMatchesIssuerFilter,
+  listIssuerFacets,
+  parseIssuerFilter,
+} from "@/lib/desk/issuer-filter";
 import { toPinCompareAsset } from "@/lib/desk/pin-compare";
 import { parsePinnedFilter } from "@/lib/desk/solana-chain-href";
 import { parseAssetSortKey, sortAssets } from "@/lib/market/aggregate";
@@ -23,7 +28,7 @@ export default async function ChainPage({
   searchParams,
 }: {
   params: Promise<{ chainId: string }>;
-  searchParams: Promise<{ lane?: string; coverage?: string; sort?: string; pinned?: string }>;
+  searchParams: Promise<{ lane?: string; coverage?: string; sort?: string; pinned?: string; issuer?: string }>;
 }) {
   const { chainId } = await params;
   const query = await searchParams;
@@ -59,9 +64,14 @@ export default async function ChainPage({
   const coverageFilter = parseCoverageFilter(query.coverage, defaultCoverage);
   const sortKey = parseAssetSortKey(query.sort);
   const pinnedOnly = parsePinnedFilter(query.pinned);
+  const issuerFilter = isSolana ? parseIssuerFilter(query.issuer) : "all";
   const laneAssets = lane === "etf" ? etfAssets : assets;
+  const issuerFacets = isSolana ? listIssuerFacets(laneAssets) : { issuers: [], unknownCount: 0 };
   const visibleAssets = sortAssets(
-    laneAssets.filter((asset) => assetMatchesCoverageFilter(asset, coverageFilter)),
+    laneAssets.filter(
+      (asset) =>
+        assetMatchesCoverageFilter(asset, coverageFilter) && assetMatchesIssuerFilter(asset, issuerFilter),
+    ),
     sortKey,
   );
   const hydratingCount = laneAssets.filter((asset) => asset.volumeCoverage === "hydrate_incomplete").length;
@@ -130,6 +140,9 @@ export default async function ChainPage({
             defaultCoverage={defaultCoverage}
             sortKey={sortKey}
             pinnedOnly={pinnedOnly}
+            issuerFilter={issuerFilter}
+            issuerFacets={issuerFacets.issuers}
+            unknownIssuerCount={issuerFacets.unknownCount}
             chainId={chain.id}
             showRobinhoodMarks={!isSolana}
             enableFavorites={isSolana}

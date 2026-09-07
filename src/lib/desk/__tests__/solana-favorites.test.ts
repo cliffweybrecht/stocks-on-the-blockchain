@@ -53,6 +53,29 @@ describe("solanaChainHref", () => {
       }),
     ).toBe("/chains/solana?lane=etf&coverage=hydrating&sort=pools&pinned=1");
   });
+
+  it("combines a slug-safe issuer param with existing desk filters", () => {
+    expect(solanaChainHref({ chainId: "solana", defaultCoverage: "with-volume", issuer: "all" })).toBe(
+      "/chains/solana",
+    );
+    expect(
+      solanaChainHref({
+        chainId: "solana",
+        defaultCoverage: "with-volume",
+        issuer: "Ondo",
+      }),
+    ).toBe("/chains/solana?issuer=ondo");
+    expect(
+      solanaChainHref({
+        chainId: "solana",
+        coverage: "all",
+        defaultCoverage: "with-volume",
+        sortKey: "poolCount",
+        lane: "etf",
+        issuer: "Backed / xStocks",
+      }),
+    ).toBe("/chains/solana?lane=etf&coverage=all&sort=pools&issuer=backed-xstocks");
+  });
 });
 
 describe("parsePinnedFilter", () => {
