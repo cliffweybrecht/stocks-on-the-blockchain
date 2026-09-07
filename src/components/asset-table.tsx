@@ -18,6 +18,13 @@ import { useSolanaFavorites } from "@/components/use-solana-favorites";
 import { type AssetSortKey, sortAssets } from "@/lib/market/aggregate";
 import { assetMatchesSearch } from "@/lib/market/asset-search";
 import { solanaChainHref } from "@/lib/desk/solana-chain-href";
+import {
+  ALL_ISSUERS,
+  UNKNOWN_ISSUER,
+  issuerFilterLabel,
+  type IssuerFacet,
+  type IssuerFilter,
+} from "@/lib/desk/issuer-filter";
 import { assetRouteKey } from "@/lib/market/identity";
 import { formatAddress, formatPct, formatPrice, formatUsdCompact } from "@/lib/market/format";
 import type { AssetSummary, InstrumentKind } from "@/lib/market/types";
@@ -49,6 +56,7 @@ function emptyCopy(input: {
   query: string;
   pinnedOnly: boolean;
   coverageFilter: CoverageFilter;
+  issuerFilter: IssuerFilter;
 }): string {
   if (input.totalInLane === 0) {
     return input.lane === "etf"
@@ -76,6 +84,12 @@ function emptyCopy(input: {
   if (input.coverageFilter === "no-pools") {
     return "No confirmed-empty mints in this lane. Still-hydrating names live under Still hydrating, not here.";
   }
+  if (input.issuerFilter === UNKNOWN_ISSUER) {
+    return "No stocks with an unknown issuer in this view. Choose All issuers, or another named issuer chip.";
+  }
+  if (input.issuerFilter !== ALL_ISSUERS) {
+    return "No stocks match that issuer in this view. Choose All issuers, or another issuer present in this lane.";
+  }
   return "No stocks match that filter.";
 }
 
@@ -92,6 +106,9 @@ export function AssetTable({
   defaultCoverage = "all",
   sortKey = "volume24hUsd",
   pinnedOnly = false,
+  issuerFilter = ALL_ISSUERS,
+  issuerFacets = [],
+  unknownIssuerCount = 0,
   showRobinhoodMarks = true,
   enableFavorites = false,
 }: {
@@ -120,6 +137,9 @@ export function AssetTable({
   defaultCoverage?: CoverageFilter;
   sortKey?: AssetSortKey;
   pinnedOnly?: boolean;
+  issuerFilter?: IssuerFilter;
+  issuerFacets?: readonly IssuerFacet[];
+  unknownIssuerCount?: number;
   showRobinhoodMarks?: boolean;
   enableFavorites?: boolean;
 }) {
@@ -133,6 +153,7 @@ export function AssetTable({
       coverage: CoverageFilter;
       sortKey: AssetSortKey;
       pinned: boolean;
+      issuer: IssuerFilter;
     }> = {},
   ) =>
     solanaChainHref({
@@ -142,7 +163,10 @@ export function AssetTable({
       defaultCoverage,
       sortKey: next.sortKey ?? sortKey,
       pinned: next.pinned ?? pinnedOnly,
+      issuer: next.issuer ?? issuerFilter,
     });
+  const showIssuerFilter = enableFavorites && (issuerFacets.length > 0 || unknownIssuerCount > 0);
+  const activeIssuerLabel = issuerFilterLabel(issuerFilter, issuerFacets);
 
   const rows = useMemo(() => {
     const searched = query.trim() ? assets.filter((asset) => assetMatchesSearch(asset, query)) : assets;
@@ -236,11 +260,38 @@ export function AssetTable({
           </Link>
         ) : null}
       </div>
+      {showIssuerFilter ? (
+        <div className="flex flex-wrap gap-2 text-xs" aria-label="Filter by issuer">
+          <Link href={hrefFor({ issuer: ALL_ISSUERS })} scroll={false} className={chipClass(issuerFilter === ALL_ISSUERS)}>
+            All issuers
+          </Link>
+          {issuerFacets.map((facet) => (
+            <Link
+              key={facet.slug}
+              href={hrefFor({ issuer: facet.slug })}
+              scroll={false}
+              className={chipClass(issuerFilter === facet.slug)}
+            >
+              {facet.label} ({facet.count})
+            </Link>
+          ))}
+          {unknownIssuerCount > 0 ? (
+            <Link
+              href={hrefFor({ issuer: UNKNOWN_ISSUER })}
+              scroll={false}
+              className={chipClass(issuerFilter === UNKNOWN_ISSUER)}
+            >
+              Unknown ({unknownIssuerCount})
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
       <p className="text-xs text-muted-foreground" aria-live="polite">
         Ranked by {SORT_LABELS[sortKey]}
         {sortKey === "volume24hUsd" ? " (coverage, then volume, liquidity, pools)" : ""}
         {enableFavorites && !pinnedOnly ? " · pinned float to the top" : ""} · showing {rows.length} of {totalInLane}
         {coverageFilter !== "all" ? ` · ${coverageFilter.replace("-", " ")}` : ""}
+        {activeIssuerLabel ? ` · ${activeIssuerLabel}` : ""}
         {pinnedOnly ? " · pinned" : ""}
       </p>
       {hydratingVisible > 0 ? (
@@ -420,7 +471,7 @@ export function AssetTable({
 
       {rows.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-          {emptyCopy({ totalInLane, lane, query, pinnedOnly, coverageFilter })}
+          {emptyCopy({ totalInLane, lane, query, pinnedOnly, coverageFilter, issuerFilter })}
         </p>
       ) : null}
     </div>
