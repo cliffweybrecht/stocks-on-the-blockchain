@@ -83,7 +83,7 @@ export default async function ChainPage({
           <Metric
             label="Classified equities"
             value={formatCount(chain.assetCount)}
-            hint={`${formatCount(chain.assetsWithVolume)} with volume · ${formatCount(chain.assetsWithPools)} with pools`}
+            hint={`${formatCount(chain.assetsWithVolume)} with volume so far · ${formatCount(chain.assetsWithPools)} with pools${chain.assetsStillHydrating > 0 ? ` · ${formatCount(chain.assetsStillHydrating)} still hydrating` : ""}`}
           />
           <Metric
             label="Reported pools"

@@ -94,6 +94,51 @@ export function mergeTokenIdentities(groups: readonly TokenIdentity[][]): TokenI
   return [...byMint.values()];
 }
 
+export function pairsTouchingMints(
+  pairs: readonly DexScreenerPair[],
+  wanted: ReadonlySet<string>,
+): DexScreenerPair[] {
+  return pairs.filter((pair) => {
+    for (const side of [pair.baseToken, pair.quoteToken]) {
+      const address = typeof side?.address === "string" ? side.address : null;
+      if (address && wanted.has(address)) return true;
+    }
+    return false;
+  });
+}
+
+export function mintsInPairs(
+  pairs: readonly { baseToken?: { address?: unknown }; quoteToken?: { address?: unknown } }[],
+  wanted: ReadonlySet<string>,
+): Set<string> {
+  const found = new Set<string>();
+  for (const pair of pairs) {
+    for (const side of [pair.baseToken, pair.quoteToken]) {
+      const address = typeof side?.address === "string" ? side.address : null;
+      if (address && wanted.has(address)) found.add(address);
+    }
+  }
+  return found;
+}
+
+/**
+ * Hydrate DexScreener-known mints before blind registry names so a short budget
+ * still returns volume-bearing stocks instead of 0/0 after classify.
+ */
+export function prioritizeMintsForHydrate(mints: readonly string[], priorityMints: ReadonlySet<string>): string[] {
+  const wanted = new Set(mints);
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+  const push = (mint: string) => {
+    if (!wanted.has(mint) || seen.has(mint)) return;
+    seen.add(mint);
+    ordered.push(mint);
+  };
+  for (const mint of priorityMints) push(mint);
+  for (const mint of mints) push(mint);
+  return ordered;
+}
+
 export function collectSolanaCandidateTokens(pairs: readonly DexScreenerPair[]): TokenIdentity[] {
   const byMint = new Map<string, TokenIdentity>();
 

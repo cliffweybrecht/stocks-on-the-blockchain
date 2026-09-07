@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { collectSolanaCandidateTokens, mergeTokenIdentities, selectEquityMints } from "../solana-discover";
+import { collectSolanaCandidateTokens, mergeTokenIdentities, prioritizeMintsForHydrate, selectEquityMints } from "../solana-discover";
 
 describe("discovery filters", () => {
   it("keeps Solana tokenized equities and drops crypto, stables, and other chains", () => {
@@ -80,5 +80,13 @@ describe("discovery filters", () => {
       "Tesla xStock",
     );
     expect(selectEquityMints(tokens)).toHaveLength(1);
+  });
+
+  it("hydrates DexScreener-known mints before blind registry names", () => {
+    expect(prioritizeMintsForHydrate(["registry-only", "search-seen", "other"], new Set(["search-seen"]))).toEqual([
+      "search-seen",
+      "registry-only",
+      "other",
+    ]);
   });
 });

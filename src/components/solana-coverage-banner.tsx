@@ -6,6 +6,7 @@ export function SolanaCoverageBanner({ chain }: { chain: ChainVolume }) {
   const withVolume = chain.assetsWithVolume;
   const withPools = chain.assetsWithPools;
   const noPools = Math.max(0, classified - withPools);
+  const stillHydrating = chain.assetsStillHydrating;
   const aggregation =
     chain.volumeAggregation === "primary-pair"
       ? "This view uses DexScreener primary-pair volume per mint. Open the Solana chain page for every-pool aggregation."
@@ -16,7 +17,8 @@ export function SolanaCoverageBanner({ chain }: { chain: ChainVolume }) {
       <p className="font-medium text-foreground">Solana coverage is partial and fail-closed</p>
       <p className="mt-2 text-muted-foreground">
         {formatCount(classified)} classified public equities · {formatCount(withVolume)} with reported DexScreener
-        volume · {formatCount(withPools)} with indexed pools · {formatCount(noPools)} with no indexed pools yet
+        volume so far · {formatCount(withPools)} with indexed pools · {formatCount(noPools)} with no indexed pools yet
+        {stillHydrating > 0 ? ` · ${formatCount(stillHydrating)} still hydrating` : ""}
         {chain.etfCount > 0 ? ` · ${formatCount(chain.etfCount)} ETF/index products kept out of this ranking` : ""}.
       </p>
       <p className="mt-1 text-muted-foreground">

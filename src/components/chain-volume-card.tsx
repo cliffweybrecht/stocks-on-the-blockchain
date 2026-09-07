@@ -54,6 +54,12 @@ export function ChainVolumeCard({
               <dd className="num mt-0.5">{formatCount(chain.assetsWithPools)}</dd>
             </div>
           </dl>
+          {chain.assetsStillHydrating > 0 ? (
+            <p className="text-xs text-muted-foreground">
+              {formatCount(chain.assetsStillHydrating)} classified mint(s) still hydrating DexScreener volume. Counts
+              are so far, not final. Null volume is unknown, not zero.
+            </p>
+          ) : null}
           {chain.etfCount > 0 ? (
             <p className="text-xs text-muted-foreground">
               {formatCount(chain.etfCount)} ETF/index products are catalogued on the chain page and are not in this

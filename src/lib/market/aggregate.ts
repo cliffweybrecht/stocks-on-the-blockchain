@@ -27,6 +27,7 @@ export function rollupChainFromAssets(
     | "assetCount"
     | "assetsWithVolume"
     | "assetsWithPools"
+    | "assetsStillHydrating"
     | "reportedPoolCount"
     | "peakDexCount"
   >,
@@ -41,6 +42,7 @@ export function rollupChainFromAssets(
     assetCount: assets.length,
     assetsWithVolume: assets.filter((asset) => asset.volume24hUsd !== null).length,
     assetsWithPools: assets.filter((asset) => asset.poolCount > 0).length,
+    assetsStillHydrating: assets.filter((asset) => asset.volumeCoverage === "hydrate_incomplete").length,
     reportedPoolCount: assets.reduce((sum, asset) => sum + asset.poolCount, 0),
     peakDexCount: maxNullable(assets.map((asset) => asset.dexCount)) ?? 0,
     etfCount: extras?.etfCount ?? chain.etfCount ?? 0,
@@ -54,10 +56,11 @@ export function robinhoodChainMeta(): Omit<
   | "displayedLiquidityUsd"
   | "usdGLiquidityUsd"
   | "assetCount"
-  | "assetsWithVolume"
-  | "assetsWithPools"
-  | "reportedPoolCount"
-  | "peakDexCount"
+    | "assetsWithVolume"
+    | "assetsWithPools"
+    | "assetsStillHydrating"
+    | "reportedPoolCount"
+    | "peakDexCount"
 > {
   return {
     id: ROBINHOOD_CHAIN_ID,

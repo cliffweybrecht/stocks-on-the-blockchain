@@ -301,6 +301,7 @@ export function solanaChainMeta(): Omit<
   | "assetCount"
   | "assetsWithVolume"
   | "assetsWithPools"
+  | "assetsStillHydrating"
   | "reportedPoolCount"
   | "peakDexCount"
 > {
