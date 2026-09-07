@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { AssetPin } from "@/components/asset-pin";
 import { CopyAddress } from "@/components/copy-address";
+import { CoverageBadge } from "@/components/coverage-badge";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { Metric } from "@/components/metric";
@@ -17,8 +19,7 @@ import {
 } from "@/components/ui/table";
 import { formatCount, formatPct, formatPrice, formatRelativeTime, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
 import { createMarketDataSource } from "@/lib/market/factory";
-import { SOLANA_CHAIN_ID } from "@/lib/market/types";
-import { volumeCoverageLabel } from "@/lib/market/volume-coverage";
+import { SOLANA_CHAIN_ID, type AssetSummary } from "@/lib/market/types";
 
 export const dynamic = "force-dynamic";
 
@@ -29,12 +30,16 @@ export default async function AssetPage({
 }) {
   const { chainId, symbol } = await params;
   const source = createMarketDataSource();
+  const decoded = decodeURIComponent(symbol);
 
-  let result;
-  try {
-    result = await source.getAsset(chainId, decodeURIComponent(symbol));
-  } catch (error) {
-    const detail = error instanceof Error ? error.message : "Asset snapshot failed.";
+  const [assetSettled, chainSettled] = await Promise.allSettled([
+    source.getAsset(chainId, decoded),
+    chainId === SOLANA_CHAIN_ID ? source.getChain(chainId) : Promise.resolve(null),
+  ]);
+
+  if (assetSettled.status === "rejected") {
+    const detail =
+      assetSettled.reason instanceof Error ? assetSettled.reason.message : "Asset snapshot failed.";
     return (
       <PageShell>
         <ErrorState title="Could not load this stock" detail={detail} />
@@ -42,6 +47,7 @@ export default async function AssetPage({
     );
   }
 
+  const result = assetSettled.value;
   if (!result) {
     return (
       <PageShell>
@@ -55,9 +61,15 @@ export default async function AssetPage({
 
   const { chain, asset, provenance } = result;
   const halt = asset.price.isTradingHalt;
+  const isSolana = chain.id === SOLANA_CHAIN_ID;
+  const catalog = chainSettled.status === "fulfilled" ? chainSettled.value : null;
+  const jumpAssets: AssetSummary[] = catalog ? [...catalog.assets, ...(catalog.etfAssets ?? [])] : [];
 
     return (
-      <PageShell provenance={provenance}>
+      <PageShell
+        provenance={provenance}
+        solanaJump={jumpAssets.length > 0 ? { chainId: chain.id, assets: jumpAssets } : undefined}
+      >
         <div className="space-y-5">
           <nav className="text-sm text-muted-foreground">
             <Link href="/" className="hover:text-foreground">
@@ -72,11 +84,14 @@ export default async function AssetPage({
           </nav>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-xs tracking-[0.18em] text-primary uppercase">{chain.name}</p>
-              <h2 className="font-heading text-3xl font-semibold tracking-tight">{asset.symbol}</h2>
-              <p className="mt-1 text-muted-foreground">{asset.name}</p>
-              {asset.issuer ? <p className="mt-1 text-sm text-muted-foreground">Issuer · {asset.issuer}</p> : null}
+            <div className="flex items-start gap-2">
+              <div>
+                <p className="text-xs tracking-[0.18em] text-primary uppercase">{chain.name}</p>
+                <h2 className="font-heading text-3xl font-semibold tracking-tight">{asset.symbol}</h2>
+                <p className="mt-1 text-muted-foreground">{asset.name}</p>
+                {asset.issuer ? <p className="mt-1 text-sm text-muted-foreground">Issuer · {asset.issuer}</p> : null}
+              </div>
+              {isSolana ? <AssetPin mint={asset.contractAddress} label={asset.symbol} /> : null}
             </div>
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline">
@@ -87,7 +102,7 @@ export default async function AssetPage({
                     : "Terminal row"}
               </Badge>
               {asset.instrumentKind === "etf" ? <Badge variant="secondary">ETF / index</Badge> : null}
-              <Badge variant="outline">{volumeCoverageLabel(asset.volumeCoverage)}</Badge>
+              <CoverageBadge coverage={asset.volumeCoverage} />
               {asset.detailEnriched ? <Badge variant="secondary">Enriched detail</Badge> : null}
               {halt ? <Badge variant="destructive">Trading halt reported</Badge> : null}
             </div>
@@ -203,12 +218,20 @@ export default async function AssetPage({
                 </Table>
               </div>
             </section>
-          ) : chain.id === SOLANA_CHAIN_ID ? (
+          ) : isSolana ? (
             <section className="rounded-xl border border-dashed border-border bg-card px-4 py-6">
-              <h3 className="font-heading text-lg font-medium">No indexed Solana pools</h3>
+              <h3 className="font-heading text-lg font-medium">
+                {asset.volumeCoverage === "hydrate_incomplete"
+                  ? "Still hydrating"
+                  : asset.volumeCoverage === "no_indexed_pools"
+                    ? "Confirmed no indexed pools"
+                    : "No indexed Solana pools"}
+              </h3>
               <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
                 {asset.coverageNote ??
-                  "DexScreener has no indexed pools for this mint in this snapshot. That is unknown volume, not zero. The mint can still be a live tokenized equity that trades elsewhere or has not been indexed yet."}
+                  (asset.volumeCoverage === "hydrate_incomplete"
+                    ? "DexScreener lookup has not finished for this mint. Volume is unknown, not zero — not the same as confirmed no pools."
+                    : "DexScreener lookup finished and found no indexed Solana pools for this mint. That is the public pair-index ceiling, not zero volume.")}
               </p>
             </section>
           ) : null}

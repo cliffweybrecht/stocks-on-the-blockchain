@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Badge } from "@/components/ui/badge";
+import { CoverageBadge } from "@/components/coverage-badge";
+import { PinButton } from "@/components/pin-button";
 import {
   Table,
   TableBody,
@@ -11,14 +12,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { type AssetSortKey, assetSortQueryValue, sortAssets } from "@/lib/market/aggregate";
+import { useSolanaFavorites } from "@/components/use-solana-favorites";
+import { type AssetSortKey, sortAssets } from "@/lib/market/aggregate";
+import { assetMatchesSearch } from "@/lib/market/asset-search";
+import { solanaChainHref } from "@/lib/desk/solana-chain-href";
 import { assetRouteKey } from "@/lib/market/identity";
 import { formatAddress, formatPct, formatPrice, formatUsdCompact } from "@/lib/market/format";
-import type { AssetSummary, InstrumentKind, VolumeCoverage } from "@/lib/market/types";
-import {
-  type CoverageFilter,
-  volumeCoverageLabel,
-} from "@/lib/market/volume-coverage";
+import type { AssetSummary, InstrumentKind } from "@/lib/market/types";
+import { type CoverageFilter } from "@/lib/market/volume-coverage";
 
 const SORT_LABELS: Record<AssetSortKey, string> = {
   volume24hUsd: "24h volume",
@@ -27,41 +28,10 @@ const SORT_LABELS: Record<AssetSortKey, string> = {
   premiumDiscountPct: "RH vs DEX",
 };
 
-function coverageVariant(coverage: VolumeCoverage): "default" | "secondary" | "outline" | "destructive" {
-  switch (coverage) {
-    case "reported":
-      return "default";
-    case "no_indexed_pools":
-      return "secondary";
-    case "pools_without_volume":
-      return "outline";
-    case "hydrate_failed":
-      return "destructive";
-    case "hydrate_incomplete":
-      return "outline";
-  }
-}
-
 function chipClass(active: boolean): string {
   return `rounded-full border px-3 py-1 text-xs ${
     active ? "border-primary bg-primary/15 text-primary" : "border-border text-muted-foreground"
   }`;
-}
-
-function chainHref(
-  chainId: string,
-  lane: InstrumentKind,
-  coverage: CoverageFilter,
-  defaultCoverage: CoverageFilter,
-  sortKey: AssetSortKey = "volume24hUsd",
-): string {
-  const params = new URLSearchParams();
-  if (lane === "etf") params.set("lane", "etf");
-  if (coverage !== defaultCoverage) params.set("coverage", coverage);
-  const sortQuery = assetSortQueryValue(sortKey);
-  if (sortQuery) params.set("sort", sortQuery);
-  const query = params.toString();
-  return query ? `/chains/${chainId}?${query}` : `/chains/${chainId}`;
 }
 
 function sortHeadClass(active: boolean, align: "left" | "right" = "right"): string {
@@ -70,47 +40,99 @@ function sortHeadClass(active: boolean, align: "left" | "right" = "right"): stri
   }`;
 }
 
+function emptyCopy(input: {
+  totalInLane: number;
+  lane: InstrumentKind;
+  query: string;
+  pinnedOnly: boolean;
+  coverageFilter: CoverageFilter;
+}): string {
+  if (input.totalInLane === 0) {
+    return input.lane === "etf"
+      ? "No verifiable Solana ETF/index products in this snapshot."
+      : "No verifiable tokenized equities in this snapshot. Discovery is fail-closed and is not a full Solana index.";
+  }
+  if (input.query.trim()) {
+    return "No classified names match that search. Try symbol, issuer, or the full mint. Null volume is not hidden by search.";
+  }
+  if (input.pinnedOnly) {
+    return "No pinned Solana names in this view. Pin a row with the star, or switch coverage to All — pins are mint-specific, not ticker-merged.";
+  }
+  if (input.coverageFilter === "with-volume") {
+    return "No stocks with reported DexScreener volume in this snapshot. Null volume stays hidden here because it is unknown, not zero.";
+  }
+  if (input.coverageFilter === "hydrating") {
+    return "Nothing is still hydrating. DexScreener lookup finished for this snapshot.";
+  }
+  if (input.coverageFilter === "no-pools") {
+    return "No confirmed-empty mints in this lane. Still-hydrating names live under Still hydrating, not here.";
+  }
+  return "No stocks match that filter.";
+}
+
 export function AssetTable({
   assets,
+  catalogAssets,
   chainId,
   totalInLane,
   equityCount,
   etfCount = 0,
+  hydratingCount = 0,
   lane = "equity",
   coverageFilter = "all",
   defaultCoverage = "all",
   sortKey = "volume24hUsd",
+  pinnedOnly = false,
   showRobinhoodMarks = true,
+  enableFavorites = false,
 }: {
   assets: AssetSummary[];
+  catalogAssets?: AssetSummary[];
   chainId: string;
   totalInLane: number;
   equityCount: number;
   etfCount?: number;
+  hydratingCount?: number;
   lane?: InstrumentKind;
   coverageFilter?: CoverageFilter;
   defaultCoverage?: CoverageFilter;
   sortKey?: AssetSortKey;
+  pinnedOnly?: boolean;
   showRobinhoodMarks?: boolean;
+  enableFavorites?: boolean;
 }) {
   const [query, setQuery] = useState("");
+  const favorites = useSolanaFavorites();
+  const catalog = catalogAssets ?? assets;
+
+  const hrefFor = (
+    next: Partial<{
+      lane: InstrumentKind;
+      coverage: CoverageFilter;
+      sortKey: AssetSortKey;
+      pinned: boolean;
+    }> = {},
+  ) =>
+    solanaChainHref({
+      chainId,
+      lane: next.lane ?? lane,
+      coverage: next.coverage ?? coverageFilter,
+      defaultCoverage,
+      sortKey: next.sortKey ?? sortKey,
+      pinned: next.pinned ?? pinnedOnly,
+    });
 
   const rows = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    const filtered = needle
-      ? assets.filter(
-          (asset) =>
-            asset.symbol.toLowerCase().includes(needle) ||
-            asset.name.toLowerCase().includes(needle) ||
-            asset.contractAddress.toLowerCase().includes(needle) ||
-            (asset.issuer ?? "").toLowerCase().includes(needle),
-        )
-      : assets;
+    const searched = query.trim() ? assets.filter((asset) => assetMatchesSearch(asset, query)) : assets;
+    const scoped = pinnedOnly ? searched.filter((asset) => favorites.favoriteSet.has(asset.contractAddress)) : searched;
+    const sorted = sortAssets(scoped, sortKey);
+    if (pinnedOnly || !enableFavorites || favorites.favoriteSet.size === 0) return sorted;
+    const pins = sorted.filter((asset) => favorites.favoriteSet.has(asset.contractAddress));
+    const rest = sorted.filter((asset) => !favorites.favoriteSet.has(asset.contractAddress));
+    return [...pins, ...rest];
+  }, [assets, enableFavorites, favorites.favoriteSet, pinnedOnly, query, sortKey]);
 
-    return sortAssets(filtered, sortKey);
-  }, [assets, query, sortKey]);
-
-  const hydratingCount = rows.filter((asset) => asset.volumeCoverage === "hydrate_incomplete").length;
+  const hydratingVisible = rows.filter((asset) => asset.volumeCoverage === "hydrate_incomplete").length;
   const sortColumns = (
     [
       ["volume24hUsd", "Volume"],
@@ -120,20 +142,22 @@ export function AssetTable({
     ] as const
   );
 
+  const coverageChips: Array<[CoverageFilter, string]> = [
+    ["all", "All"],
+    ["with-volume", "With volume"],
+    ["with-pools", "With pools"],
+    ["hydrating", hydratingCount > 0 ? `Still hydrating (${hydratingCount})` : "Still hydrating"],
+    ["no-pools", "Confirmed no pools"],
+  ];
+
   return (
     <div className="space-y-3">
       {etfCount > 0 ? (
         <div className="flex flex-wrap gap-2">
-          <Link
-            href={chainHref(chainId, "equity", coverageFilter, defaultCoverage, sortKey)}
-            className={chipClass(lane === "equity")}
-          >
+          <Link href={hrefFor({ lane: "equity" })} scroll={false} className={chipClass(lane === "equity")}>
             Equities ({equityCount})
           </Link>
-          <Link
-            href={chainHref(chainId, "etf", coverageFilter, defaultCoverage, sortKey)}
-            className={chipClass(lane === "etf")}
-          >
+          <Link href={hrefFor({ lane: "etf" })} scroll={false} className={chipClass(lane === "etf")}>
             ETF / index ({etfCount})
           </Link>
         </div>
@@ -148,116 +172,116 @@ export function AssetTable({
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onInput={(event) => setQuery(event.currentTarget.value)}
-          placeholder="Filter by symbol, name, issuer, or mint"
-          aria-label="Filter stocks"
+          placeholder="Filter this list · / jumps to an asset"
+          aria-label="Filter stocks in this list"
           className="h-8 w-full max-w-md rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
         />
         <div className="flex flex-wrap gap-2 text-xs lg:hidden">
           {sortColumns.map(([key, label]) => (
-            <Link
-              key={key}
-              href={chainHref(chainId, lane, coverageFilter, defaultCoverage, key)}
-              className={chipClass(sortKey === key)}
-            >
+            <Link key={key} href={hrefFor({ sortKey: key })} scroll={false} className={chipClass(sortKey === key)}>
               {label}
             </Link>
           ))}
         </div>
       </div>
       <div className="flex flex-wrap gap-2 text-xs">
-        {(
-          [
-            ["all", "All"],
-            ["with-volume", "With volume"],
-            ["with-pools", "With pools"],
-            ["no-pools", "No pools yet"],
-          ] as const
-        ).map(([key, label]) => (
-          <Link
-            key={key}
-            href={chainHref(chainId, lane, key, defaultCoverage, sortKey)}
-            className={chipClass(coverageFilter === key)}
-          >
+        {coverageChips.map(([key, label]) => (
+          <Link key={key} href={hrefFor({ coverage: key })} scroll={false} className={chipClass(coverageFilter === key)}>
             {label}
           </Link>
         ))}
+        {enableFavorites ? (
+          <Link href={hrefFor({ pinned: !pinnedOnly })} scroll={false} className={chipClass(pinnedOnly)}>
+            Pinned{favorites.ready && favorites.favoriteMints.length > 0 ? ` (${favorites.favoriteMints.length})` : ""}
+          </Link>
+        ) : null}
       </div>
       <p className="text-xs text-muted-foreground" aria-live="polite">
         Ranked by {SORT_LABELS[sortKey]}
-        {sortKey === "volume24hUsd" ? " (coverage, then volume, liquidity, pools)" : ""} · showing {rows.length} of{" "}
-        {totalInLane}
+        {sortKey === "volume24hUsd" ? " (coverage, then volume, liquidity, pools)" : ""}
+        {enableFavorites && !pinnedOnly ? " · pinned float to the top" : ""} · showing {rows.length} of {totalInLane}
         {coverageFilter !== "all" ? ` · ${coverageFilter.replace("-", " ")}` : ""}
+        {pinnedOnly ? " · pinned" : ""}
       </p>
-      {hydratingCount > 0 ? (
-        <p className="text-xs text-muted-foreground">
-          {hydratingCount} {hydratingCount === 1 ? "row is" : "rows are"} still hydrating DexScreener
+      {hydratingVisible > 0 ? (
+        <p className="text-xs text-amber-200/90">
+          {hydratingVisible} {hydratingVisible === 1 ? "row is" : "rows are"} still hydrating DexScreener
           {coverageFilter === "with-volume"
-            ? " and will appear here once volume is reported. Reload to pick up background enrichment."
-            : " below names with reported volume. That volume is unknown, not zero — reload to see counts rise."}
+            ? " and will appear under With volume once a pair reports 24h volume. Reload to pick up background enrichment."
+            : " — that is not the same as confirmed no pools. Volume is unknown, not zero."}
+        </p>
+      ) : coverageFilter === "no-pools" ? (
+        <p className="text-xs text-muted-foreground">
+          Confirmed no pools means DexScreener lookup finished empty. It is not still hydrating, and it is not zero
+          volume.
         </p>
       ) : null}
 
-      <div className="grid gap-3 lg:hidden">
+      {rows.length > 0 ? (
+      <div className="grid gap-2 lg:hidden">
         {rows.map((asset, index) => (
-          <Link
-            key={asset.contractAddress}
-            href={`/chains/${chainId}/assets/${encodeURIComponent(assetRouteKey(asset, assets))}`}
-            className="block rounded-xl border border-border bg-card px-4 py-3"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
+          <div key={asset.contractAddress} className="rounded-xl border border-border bg-card px-3 py-2.5">
+            <div className="flex items-start justify-between gap-2">
+              <Link
+                href={`/chains/${chainId}/assets/${encodeURIComponent(assetRouteKey(asset, catalog))}`}
+                prefetch
+                className="min-w-0 flex-1"
+              >
                 <p className="font-medium">
                   <span className="num mr-2 text-xs text-muted-foreground">#{index + 1}</span>
                   {asset.symbol}
                 </p>
-                <p className="text-xs text-muted-foreground">{asset.name}</p>
+                <p className="truncate text-xs text-muted-foreground">{asset.name}</p>
                 {asset.issuer ? <p className="text-xs text-muted-foreground">{asset.issuer}</p> : null}
+              </Link>
+              <div className="flex items-center gap-1">
+                <p className="num text-sm text-primary">{formatUsdCompact(asset.volume24hUsd)}</p>
+                {enableFavorites ? (
+                  <PinButton
+                    pinned={favorites.isFavorite(asset.contractAddress)}
+                    label={asset.symbol}
+                    onToggle={() => favorites.toggle(asset.contractAddress)}
+                  />
+                ) : null}
               </div>
-              <p className="num text-primary">{formatUsdCompact(asset.volume24hUsd)}</p>
             </div>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <Badge variant={coverageVariant(asset.volumeCoverage)}>{volumeCoverageLabel(asset.volumeCoverage)}</Badge>
+            <div className="mt-1.5 flex flex-wrap items-center gap-2">
+              <CoverageBadge coverage={asset.volumeCoverage} />
               <span className="text-xs text-muted-foreground">
                 Liq {formatUsdCompact(asset.displayedLiquidityUsd)} · {asset.poolCount} pools ·{" "}
                 {formatAddress(asset.contractAddress)}
               </span>
             </div>
-            {asset.pools.length > 0 ? (
-              <p className="mt-1 text-xs text-muted-foreground">
-                {asset.pools
-                  .slice(0, 3)
-                  .map((pool) => `${pool.dexId} ${formatUsdCompact(pool.volume24hUsd)}`)
-                  .join(" · ")}
-                {asset.pools.length > 3 ? ` · +${asset.pools.length - 3}` : ""}
-              </p>
-            ) : null}
-          </Link>
+          </div>
         ))}
       </div>
+      ) : null}
 
+      {rows.length > 0 ? (
       <div className="hidden rounded-xl border border-border bg-card lg:block">
-        <Table>
+        <Table containerClassName="max-h-[min(70vh,42rem)] overflow-auto">
           <TableHeader>
-            <TableRow>
-              <TableHead className="w-12 text-right">#</TableHead>
-              <TableHead>Stock</TableHead>
-              <TableHead>Issuer</TableHead>
-              <TableHead>Mint</TableHead>
-              <TableHead>Coverage</TableHead>
-              <TableHead className="text-right" aria-sort={sortKey === "volume24hUsd" ? "descending" : "none"}>
-                <Link
-                  href={chainHref(chainId, lane, coverageFilter, defaultCoverage, "volume24hUsd")}
-                  className={sortHeadClass(sortKey === "volume24hUsd")}
-                >
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="sticky top-0 z-20 w-12 bg-card text-right">#</TableHead>
+              {enableFavorites ? <TableHead className="sticky top-0 z-20 w-10 bg-card" /> : null}
+              <TableHead className="sticky top-0 z-20 bg-card">Stock</TableHead>
+              <TableHead className="sticky top-0 z-20 bg-card">Issuer</TableHead>
+              <TableHead className="sticky top-0 z-20 bg-card">Mint</TableHead>
+              <TableHead className="sticky top-0 z-20 bg-card">Coverage</TableHead>
+              <TableHead
+                className="sticky top-0 z-20 bg-card text-right"
+                aria-sort={sortKey === "volume24hUsd" ? "descending" : "none"}
+              >
+                <Link href={hrefFor({ sortKey: "volume24hUsd" })} className={sortHeadClass(sortKey === "volume24hUsd")}>
                   24h volume{sortKey === "volume24hUsd" ? " ↓" : ""}
                 </Link>
               </TableHead>
               <TableHead
-                className="text-right"
+                className="sticky top-0 z-20 bg-card text-right"
                 aria-sort={sortKey === "displayedLiquidityUsd" ? "descending" : "none"}
               >
                 <Link
-                  href={chainHref(chainId, lane, coverageFilter, defaultCoverage, "displayedLiquidityUsd")}
+                  href={hrefFor({ sortKey: "displayedLiquidityUsd" })}
                   className={sortHeadClass(sortKey === "displayedLiquidityUsd")}
                 >
                   Displayed liq{sortKey === "displayedLiquidityUsd" ? " ↓" : ""}
@@ -265,14 +289,14 @@ export function AssetTable({
               </TableHead>
               {showRobinhoodMarks ? (
                 <>
-                  <TableHead className="text-right">RH mark</TableHead>
-                  <TableHead className="text-right">DEX median</TableHead>
+                  <TableHead className="sticky top-0 z-20 bg-card text-right">RH mark</TableHead>
+                  <TableHead className="sticky top-0 z-20 bg-card text-right">DEX median</TableHead>
                   <TableHead
-                    className="text-right"
+                    className="sticky top-0 z-20 bg-card text-right"
                     aria-sort={sortKey === "premiumDiscountPct" ? "descending" : "none"}
                   >
                     <Link
-                      href={chainHref(chainId, lane, coverageFilter, defaultCoverage, "premiumDiscountPct")}
+                      href={hrefFor({ sortKey: "premiumDiscountPct" })}
                       className={sortHeadClass(sortKey === "premiumDiscountPct")}
                     >
                       RH vs DEX{sortKey === "premiumDiscountPct" ? " ↓" : ""}
@@ -280,13 +304,13 @@ export function AssetTable({
                   </TableHead>
                 </>
               ) : (
-                <TableHead className="text-right">DEX median</TableHead>
+                <TableHead className="sticky top-0 z-20 bg-card text-right">DEX median</TableHead>
               )}
-              <TableHead className="text-right" aria-sort={sortKey === "poolCount" ? "descending" : "none"}>
-                <Link
-                  href={chainHref(chainId, lane, coverageFilter, defaultCoverage, "poolCount")}
-                  className={sortHeadClass(sortKey === "poolCount")}
-                >
+              <TableHead
+                className="sticky top-0 z-20 bg-card text-right"
+                aria-sort={sortKey === "poolCount" ? "descending" : "none"}
+              >
+                <Link href={hrefFor({ sortKey: "poolCount" })} className={sortHeadClass(sortKey === "poolCount")}>
                   Pools / DEXes{sortKey === "poolCount" ? " ↓" : ""}
                 </Link>
               </TableHead>
@@ -296,9 +320,19 @@ export function AssetTable({
             {rows.map((asset, index) => (
               <TableRow key={asset.contractAddress}>
                 <TableCell className="num text-right text-muted-foreground">{index + 1}</TableCell>
+                {enableFavorites ? (
+                  <TableCell>
+                    <PinButton
+                      pinned={favorites.isFavorite(asset.contractAddress)}
+                      label={asset.symbol}
+                      onToggle={() => favorites.toggle(asset.contractAddress)}
+                    />
+                  </TableCell>
+                ) : null}
                 <TableCell>
                   <Link
-                    href={`/chains/${chainId}/assets/${encodeURIComponent(assetRouteKey(asset, assets))}`}
+                    href={`/chains/${chainId}/assets/${encodeURIComponent(assetRouteKey(asset, catalog))}`}
+                    prefetch
                     className="font-medium text-primary hover:underline"
                   >
                     {asset.symbol}
@@ -308,9 +342,7 @@ export function AssetTable({
                 <TableCell className="text-xs text-muted-foreground">{asset.issuer ?? "—"}</TableCell>
                 <TableCell className="num text-xs">{formatAddress(asset.contractAddress)}</TableCell>
                 <TableCell>
-                  <Badge variant={coverageVariant(asset.volumeCoverage)}>
-                    {volumeCoverageLabel(asset.volumeCoverage)}
-                  </Badge>
+                  <CoverageBadge coverage={asset.volumeCoverage} />
                 </TableCell>
                 <TableCell className="num text-right">{formatUsdCompact(asset.volume24hUsd)}</TableCell>
                 <TableCell className="num text-right">{formatUsdCompact(asset.displayedLiquidityUsd)}</TableCell>
@@ -344,14 +376,11 @@ export function AssetTable({
           </TableBody>
         </Table>
       </div>
+      ) : null}
 
       {rows.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-          {totalInLane === 0
-            ? lane === "etf"
-              ? "No verifiable Solana ETF/index products in this snapshot."
-              : "No verifiable tokenized equities in this snapshot. Discovery is fail-closed and is not a full Solana index."
-            : "No stocks match that filter. Null volume stays hidden when “With volume” is on — it is unknown, not zero."}
+          {emptyCopy({ totalInLane, lane, query, pinnedOnly, coverageFilter })}
         </p>
       ) : null}
     </div>

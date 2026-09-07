@@ -46,7 +46,15 @@ export default async function HomePage() {
             </p>
           </div>
           {chains.some((chain) => chain.id === SOLANA_CHAIN_ID) ? (
-            <SolanaCoverageBanner chain={chains.find((chain) => chain.id === SOLANA_CHAIN_ID)!} />
+            <>
+              <SolanaCoverageBanner chain={chains.find((chain) => chain.id === SOLANA_CHAIN_ID)!} />
+              <p className="text-xs text-muted-foreground">
+                On the Solana desk, press{" "}
+                <kbd className="rounded border border-border px-1 font-mono">/</kbd> or{" "}
+                <kbd className="rounded border border-border px-1 font-mono">⌘K</kbd> to jump by symbol, name,
+                issuer, or mint. Pin rows with the star — pins stay in this browser and are mint-specific.
+              </p>
+            </>
           ) : null}
           {chains.length === 0 ? (
             <EmptyState

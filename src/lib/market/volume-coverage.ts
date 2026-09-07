@@ -1,22 +1,28 @@
 import type { InstrumentKind, VolumeAggregation, VolumeCoverage } from "./types";
 
-export type CoverageFilter = "all" | "with-volume" | "no-pools" | "with-pools";
+export type CoverageFilter = "all" | "with-volume" | "no-pools" | "with-pools" | "hydrating";
 
 export function parseCoverageFilter(
   value: string | string[] | undefined,
   fallback: CoverageFilter = "all",
 ): CoverageFilter {
   const raw = Array.isArray(value) ? value[0] : value;
-  if (raw === "with-volume" || raw === "no-pools" || raw === "with-pools" || raw === "all") return raw;
+  if (raw === "with-volume" || raw === "no-pools" || raw === "with-pools" || raw === "hydrating" || raw === "all") {
+    return raw;
+  }
   return fallback;
 }
 
 export function assetMatchesCoverageFilter(
-  asset: { volume24hUsd: number | null; poolCount: number },
+  asset: { volume24hUsd: number | null; poolCount: number; volumeCoverage?: VolumeCoverage },
   filter: CoverageFilter,
 ): boolean {
   if (filter === "with-volume") return asset.volume24hUsd !== null;
-  if (filter === "no-pools") return asset.poolCount === 0;
+  if (filter === "hydrating") return asset.volumeCoverage === "hydrate_incomplete";
+  if (filter === "no-pools") {
+    if (asset.volumeCoverage === "hydrate_incomplete") return false;
+    return asset.poolCount === 0;
+  }
   if (filter === "with-pools") return asset.poolCount > 0;
   return true;
 }
@@ -39,13 +45,13 @@ export function volumeCoverageLabel(coverage: VolumeCoverage): string {
     case "reported":
       return "With volume";
     case "no_indexed_pools":
-      return "No pools yet";
+      return "Confirmed no pools";
     case "pools_without_volume":
       return "Pools, volume unknown";
     case "hydrate_failed":
       return "Volume fetch failed";
     case "hydrate_incomplete":
-      return "Still loading volume";
+      return "Still hydrating";
   }
 }
 
