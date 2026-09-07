@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import type { VolumeCoverage } from "@/lib/market/types";
 import { volumeCoverageLabel } from "@/lib/market/volume-coverage";
 
@@ -30,9 +31,9 @@ export function coverageBadgeVariant(
   }
 }
 
-export function CoverageBadge({ coverage }: { coverage: VolumeCoverage }) {
+export function CoverageBadge({ coverage, className }: { coverage: VolumeCoverage; className?: string }) {
   return (
-    <Badge variant={coverageBadgeVariant(coverage)} className={coverageBadgeClass(coverage)}>
+    <Badge variant={coverageBadgeVariant(coverage)} className={cn(coverageBadgeClass(coverage), className)}>
       {volumeCoverageLabel(coverage)}
     </Badge>
   );
