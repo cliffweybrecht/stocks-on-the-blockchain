@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifyTokenizedEquity } from "../solana-classifier";
+import { classifyTokenizedEquity, classifyTokenizedInstrument } from "../solana-classifier";
 
 describe("classifyTokenizedEquity", () => {
   it("admits Backed xStock names without consulting an allowlist", () => {
@@ -233,6 +233,44 @@ describe("classifyTokenizedEquity", () => {
     ).toBe("reject");
   });
 
+  it("admits Ondo public-equity convention and still rejects Ondo non-equities", () => {
+    expect(
+      classifyTokenizedEquity({
+        address: "KeGv7bsfR4MheC1CkmnAVceoApjrkvBhHYjWb67ondo",
+        symbol: "TSLAon",
+        name: null,
+      }),
+    ).toMatchObject({ kind: "equity", issuer: "Ondo", reason: "Ondo mint convention plus tickeron" });
+    expect(
+      classifyTokenizedEquity({
+        address: "gEGtLTPNQ7jcg25zTetkbmF7teoDLcrfTnQfmn2ondo",
+        symbol: "NVDAon",
+        name: "NVIDIA (Ondo Tokenized)",
+      }).kind,
+    ).toBe("equity");
+    expect(
+      classifyTokenizedEquity({
+        address: "RandomMint1111111111111111111111111111111",
+        symbol: "TSLAon",
+        name: "Tesla (Ondo Tokenized)",
+      }).kind,
+    ).toBe("reject");
+    expect(
+      classifyTokenizedEquity({
+        address: "USDYmint111111111111111111111111111111111",
+        symbol: "USDY",
+        name: "Ondo US Dollar Yield",
+      }).kind,
+    ).toBe("reject");
+    expect(
+      classifyTokenizedEquity({
+        address: "KeGv7bsfR4MheC1CkmnAVceoApjrkvBhHYjWb67ondo",
+        symbol: "SPCXon",
+        name: "SpaceX (Ondo Tokenized)",
+      }).kind,
+    ).toBe("reject");
+  });
+
   it("still rejects commodity products, ETF wrappers, and private-company xStocks", () => {
     expect(
       classifyTokenizedEquity({
@@ -281,6 +319,29 @@ describe("classifyTokenizedEquity", () => {
         address: "XsJpst1111111111111111111111111111111111",
         symbol: "JPSTx",
         name: "JPMorgan Ultra-Short Income xStock",
+      }).kind,
+    ).toBe("reject");
+  });
+
+  it("classifies verifiable ETF products as etf without putting them in the equity lane", () => {
+    expect(
+      classifyTokenizedInstrument({
+        address: "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+        symbol: "SPYx",
+        name: "SP500 xStock",
+      }),
+    ).toMatchObject({ kind: "etf", issuer: "Backed / xStocks" });
+    expect(
+      classifyTokenizedInstrument({
+        address: "111111111111111111111111111111111111spyondo",
+        symbol: "SPYon",
+      }),
+    ).toMatchObject({ kind: "etf", issuer: "Ondo" });
+    expect(
+      classifyTokenizedEquity({
+        address: "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+        symbol: "SPYx",
+        name: "SP500 xStock",
       }).kind,
     ).toBe("reject");
   });

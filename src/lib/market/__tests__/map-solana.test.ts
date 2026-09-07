@@ -103,6 +103,8 @@ describe("mapDexScreenerPairsToSolanaAssets", () => {
     const aapl = assets[1];
     expect(aapl?.volume24hUsd).toBeNull();
     expect(aapl?.displayedLiquidityUsd).toBeCloseTo(96_308.87);
+    expect(aapl?.volumeCoverage).toBe("pools_without_volume");
+    expect(tsla?.volumeCoverage).toBe("reported");
 
     expect(details[0]?.buys24h).toBe(1287);
     expect(details[0]?.dexes.map((dex) => dex.dexId)).toEqual(["raydium", "orca"]);
@@ -183,6 +185,7 @@ describe("mapDexScreenerPairsToSolanaAssets", () => {
         name: "Tesla xStock",
         issuer: "Backed / xStocks",
         reason: "xStock name",
+        kind: "equity",
       },
       {
         mint: "XsUnpairedNflx11111111111111111111111111",
@@ -190,12 +193,14 @@ describe("mapDexScreenerPairsToSolanaAssets", () => {
         name: "Netflix xStock",
         issuer: "Backed / xStocks",
         reason: "xStock name",
+        kind: "equity",
       },
     ]);
     expect(merged.assets.map((asset) => asset.symbol)).toEqual(["TSLAx", "NFLXx"]);
     const nflx = merged.assets.find((asset) => asset.symbol === "NFLXx");
     expect(nflx?.volume24hUsd).toBeNull();
     expect(nflx?.poolCount).toBe(0);
+    expect(nflx?.volumeCoverage).toBe("no_indexed_pools");
     expect(nflx?.contractAddress).toBe("XsUnpairedNflx11111111111111111111111111");
   });
 });

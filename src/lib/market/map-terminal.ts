@@ -1,5 +1,6 @@
 import { robinhoodChainMeta, rollupChainFromAssets, sortByVolumeThenLiquidity } from "./aggregate";
 import { asBoolean, asFiniteNumber, asNonEmptyString } from "./numbers";
+import { defaultInstrumentFields } from "./volume-coverage";
 import {
   ROBINHOOD_CHAIN_ID,
   type AssetDetail,
@@ -166,6 +167,10 @@ export function mapTerminalRowToAsset(row: TerminalMarketRow): AssetSummary | nu
     top3ConcentrationPct: asFiniteNumber(row.top3ConcentrationPct),
     liquidityCoverageComplete: asBoolean(row.liquidityCoverageComplete),
     volume24hCoverageComplete: asBoolean(row.volume24hCoverageComplete),
+    ...defaultInstrumentFields({
+      volume24hUsd: asFiniteNumber(row.observedVolume24h),
+      poolCount: asFiniteNumber(row.poolCount) ?? 0,
+    }),
   };
 }
 

@@ -8,6 +8,14 @@
 
 export type SourceKind = "mock" | "terminal" | "solana" | "composite";
 export type TrustKind = "fact" | "interpretive";
+export type InstrumentKind = "equity" | "etf";
+export type VolumeAggregation = "all-pools" | "primary-pair" | "none";
+export type VolumeCoverage =
+  | "reported"
+  | "no_indexed_pools"
+  | "pools_without_volume"
+  | "hydrate_failed"
+  | "hydrate_incomplete";
 
 export interface SourceFailure {
   sourceId: SourceKind;
@@ -40,8 +48,11 @@ export interface ChainVolume {
   usdGLiquidityUsd: number | null;
   assetCount: number;
   assetsWithVolume: number;
+  assetsWithPools: number;
   reportedPoolCount: number;
   peakDexCount: number;
+  etfCount: number;
+  volumeAggregation: VolumeAggregation;
   completenessPct: number | null;
   coverageNote: string;
 }
@@ -75,6 +86,9 @@ export interface AssetSummary {
   top3ConcentrationPct: number | null;
   liquidityCoverageComplete: boolean | null;
   volume24hCoverageComplete: boolean | null;
+  instrumentKind: InstrumentKind;
+  volumeCoverage: VolumeCoverage;
+  coverageNote: string | null;
 }
 
 export interface LargestPoolMark {
@@ -139,6 +153,7 @@ export const SOLANA_CHAIN_ID = "solana";
 export interface ChainDetailResult {
   chain: ChainVolume;
   assets: AssetSummary[];
+  etfAssets?: AssetSummary[];
   provenance: DataProvenance;
 }
 

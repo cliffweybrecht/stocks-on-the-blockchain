@@ -42,7 +42,7 @@ export function ChainVolumeCard({
               <dd className="num mt-0.5">{formatUsdCompact(chain.displayedLiquidityUsd)}</dd>
             </div>
             <div>
-              <dt className="text-xs text-muted-foreground">Stocks</dt>
+              <dt className="text-xs text-muted-foreground">Classified</dt>
               <dd className="num mt-0.5">{formatCount(chain.assetCount)}</dd>
             </div>
             <div>
@@ -50,10 +50,16 @@ export function ChainVolumeCard({
               <dd className="num mt-0.5">{formatCount(chain.assetsWithVolume)}</dd>
             </div>
             <div>
-              <dt className="text-xs text-muted-foreground">Reported pools</dt>
-              <dd className="num mt-0.5">{formatCount(chain.reportedPoolCount)}</dd>
+              <dt className="text-xs text-muted-foreground">With pools</dt>
+              <dd className="num mt-0.5">{formatCount(chain.assetsWithPools)}</dd>
             </div>
           </dl>
+          {chain.etfCount > 0 ? (
+            <p className="text-xs text-muted-foreground">
+              {formatCount(chain.etfCount)} ETF/index products are catalogued on the chain page and are not in this
+              equity ranking.
+            </p>
+          ) : null}
           <p className="text-xs text-muted-foreground">{chain.coverageNote}</p>
         </CardContent>
       </Card>

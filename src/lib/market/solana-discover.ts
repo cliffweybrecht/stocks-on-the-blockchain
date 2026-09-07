@@ -1,6 +1,6 @@
 import type { DexScreenerPair } from "./map-solana";
 import { asNonEmptyString } from "./numbers";
-import { classifyOrNull, tokenIdentityFromFields, type TokenIdentity } from "./solana-classifier";
+import { classifyTokenizedInstrument, tokenIdentityFromFields, type TokenIdentity } from "./solana-classifier";
 import { SOLANA_CHAIN_ID } from "./types";
 
 /**
@@ -16,6 +16,7 @@ export const DEFAULT_SOLANA_DISCOVERY_QUERIES = [
   "tokenized share",
   "tokenised stock",
   "backed xstock",
+  "Ondo Tokenized",
   "Tesla xStock",
   "Meta xStock",
   "Circle xStock",
@@ -25,6 +26,8 @@ export const DEFAULT_SOLANA_DISCOVERY_QUERIES = [
   "Amazon xStock",
   "Alphabet xStock",
   "Robinhood xStock",
+  "Tesla (Ondo Tokenized)",
+  "NVIDIA (Ondo Tokenized)",
 ] as const;
 
 export const DEXSCREENER_TOKEN_BATCH_SIZE = 30;
@@ -118,20 +121,42 @@ export interface DiscoveredEquityMint {
   name: string | null;
   issuer: string | null;
   reason: string;
+  kind: "equity" | "etf";
+}
+
+function displayNameFor(token: TokenIdentity, issuer: string | null): string | null {
+  const named = asNonEmptyString(token.name);
+  if (named) return named;
+  const symbol = asNonEmptyString(token.symbol);
+  if (issuer === "Ondo" && symbol) {
+    return `${symbol.replace(/on$/i, "")} (Ondo Tokenized)`;
+  }
+  return symbol;
+}
+
+export function selectInstrumentMints(tokens: readonly TokenIdentity[]): {
+  equities: DiscoveredEquityMint[];
+  etfs: DiscoveredEquityMint[];
+} {
+  const equities: DiscoveredEquityMint[] = [];
+  const etfs: DiscoveredEquityMint[] = [];
+  for (const token of tokens) {
+    const classified = classifyTokenizedInstrument(token);
+    if (classified.kind === "reject") continue;
+    const row: DiscoveredEquityMint = {
+      mint: token.address,
+      symbol: asNonEmptyString(token.symbol),
+      name: displayNameFor(token, classified.issuer),
+      issuer: classified.issuer,
+      reason: classified.reason,
+      kind: classified.kind,
+    };
+    if (classified.kind === "etf") etfs.push(row);
+    else equities.push(row);
+  }
+  return { equities, etfs };
 }
 
 export function selectEquityMints(tokens: readonly TokenIdentity[]): DiscoveredEquityMint[] {
-  const selected: DiscoveredEquityMint[] = [];
-  for (const token of tokens) {
-    const classified = classifyOrNull(token);
-    if (!classified) continue;
-    selected.push({
-      mint: token.address,
-      symbol: asNonEmptyString(token.symbol),
-      name: asNonEmptyString(token.name),
-      issuer: classified.issuer,
-      reason: classified.reason,
-    });
-  }
-  return selected;
+  return selectInstrumentMints(tokens).equities;
 }

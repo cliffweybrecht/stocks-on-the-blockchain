@@ -3,9 +3,11 @@ import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { PageShell } from "@/components/page-shell";
 import { ProvenanceBar } from "@/components/provenance-bar";
+import { SolanaCoverageBanner } from "@/components/solana-coverage-banner";
 import { TrustBanner } from "@/components/trust-banner";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { maxNullable } from "@/lib/market/numbers";
+import { SOLANA_CHAIN_ID } from "@/lib/market/types";
 
 export const dynamic = "force-dynamic";
 
@@ -40,9 +42,12 @@ export default async function HomePage() {
             <h2 className="font-heading text-lg font-medium">Chain volume</h2>
             <p className="text-sm text-muted-foreground">
               Ranked by observed 24h volume when the source reports it. Liquidity is secondary
-              and is displayed, not executable.
+              and is displayed, not executable. Missing volume stays a dash, never a zero.
             </p>
           </div>
+          {chains.some((chain) => chain.id === SOLANA_CHAIN_ID) ? (
+            <SolanaCoverageBanner chain={chains.find((chain) => chain.id === SOLANA_CHAIN_ID)!} />
+          ) : null}
           {chains.length === 0 ? (
             <EmptyState
               title="No chains reported"

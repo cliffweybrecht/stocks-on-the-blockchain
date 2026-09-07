@@ -6,6 +6,13 @@ import type { MarketDataSource } from "./types";
 
 export type MarketEnv = Record<string, string | undefined>;
 
+function envNumber(env: MarketEnv, key: string, fallback: number): number {
+  const raw = env[key];
+  if (raw == null || raw.trim() === "") return fallback;
+  const value = Number(raw);
+  return Number.isFinite(value) && value >= 0 ? value : fallback;
+}
+
 export function getTerminalBaseUrl(env: MarketEnv = process.env): string | null {
   const value = env.TERMINAL_BASE_URL?.trim();
   return value ? value : null;
@@ -20,7 +27,7 @@ export function getSolanaDexScreenerBaseUrl(env: MarketEnv = process.env): strin
   return env.SOLANA_DEXSCREENER_BASE_URL?.trim() || "https://api.dexscreener.com";
 }
 
-export function createLiveAdapters(env: MarketEnv = process.env): MarketDataSource[] {
+function buildLiveAdapters(env: MarketEnv): MarketDataSource[] {
   const adapters: MarketDataSource[] = [];
   const terminalUrl = getTerminalBaseUrl(env);
   if (terminalUrl) {
@@ -30,18 +37,24 @@ export function createLiveAdapters(env: MarketEnv = process.env): MarketDataSour
     adapters.push(
       new SolanaMarketDataSource({
         baseUrl: getSolanaDexScreenerBaseUrl(env),
-        timeoutMs: Number(env.SOLANA_TIMEOUT_MS ?? 15_000),
-        requestGapMs: Number(env.SOLANA_REQUEST_GAP_MS ?? 200),
+        timeoutMs: envNumber(env, "SOLANA_TIMEOUT_MS", 12_000),
+        requestGapMs: envNumber(env, "SOLANA_REQUEST_GAP_MS", 80),
+        cacheMs: envNumber(env, "SOLANA_CACHE_MS", 5 * 60_000),
+        maxConcurrent: envNumber(env, "SOLANA_MAX_CONCURRENT", 4),
+        homeBudgetMs: envNumber(env, "SOLANA_HOME_BUDGET_MS", 12_000),
+        fullBudgetMs: envNumber(env, "SOLANA_FULL_BUDGET_MS", 25_000),
         enableRegistry: env.SOLANA_XSTOCKS_REGISTRY_ENABLED?.trim().toLowerCase() !== "false",
         registryBaseUrl: env.SOLANA_XSTOCKS_REGISTRY_URL?.trim() || undefined,
+        enableOndoRegistry: env.SOLANA_ONDO_REGISTRY_ENABLED?.trim().toLowerCase() !== "false",
+        ondoRegistryUrl: env.SOLANA_ONDO_REGISTRY_URL?.trim() || undefined,
       }),
     );
   }
   return adapters;
 }
 
-export function createMarketDataSource(env: MarketEnv = process.env): MarketDataSource {
-  const adapters = createLiveAdapters(env);
+function buildSource(env: MarketEnv): MarketDataSource {
+  const adapters = buildLiveAdapters(env);
   if (adapters.length === 0) {
     return new MockMarketDataSource();
   }
@@ -49,4 +62,41 @@ export function createMarketDataSource(env: MarketEnv = process.env): MarketData
     return adapters[0] as MarketDataSource;
   }
   return new CompositeMarketDataSource(adapters);
+}
+
+function envFingerprint(env: MarketEnv): string {
+  return [
+    env.TERMINAL_BASE_URL,
+    env.SOLANA_MARKET_ENABLED,
+    env.SOLANA_DEXSCREENER_BASE_URL,
+    env.SOLANA_TIMEOUT_MS,
+    env.SOLANA_REQUEST_GAP_MS,
+    env.SOLANA_CACHE_MS,
+    env.SOLANA_MAX_CONCURRENT,
+    env.SOLANA_HOME_BUDGET_MS,
+    env.SOLANA_FULL_BUDGET_MS,
+    env.SOLANA_XSTOCKS_REGISTRY_ENABLED,
+    env.SOLANA_XSTOCKS_REGISTRY_URL,
+    env.SOLANA_ONDO_REGISTRY_ENABLED,
+    env.SOLANA_ONDO_REGISTRY_URL,
+  ].join("|");
+}
+
+let processSource: MarketDataSource | null = null;
+let processSourceKey: string | null = null;
+
+export function createLiveAdapters(env: MarketEnv = process.env): MarketDataSource[] {
+  return buildLiveAdapters(env);
+}
+
+export function createMarketDataSource(env: MarketEnv = process.env): MarketDataSource {
+  if (env === process.env) {
+    const key = envFingerprint(env);
+    if (!processSource || processSourceKey !== key) {
+      processSource = buildSource(env);
+      processSourceKey = key;
+    }
+    return processSource;
+  }
+  return buildSource(env);
 }

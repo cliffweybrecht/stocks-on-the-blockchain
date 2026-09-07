@@ -7,6 +7,7 @@ import {
   type ChainVolume,
   type DataProvenance,
 } from "./types";
+import { defaultInstrumentFields } from "./volume-coverage";
 
 const GENERATED_AT = "2026-09-06T18:40:00.000Z";
 
@@ -23,6 +24,7 @@ function chainShell(
   | "usdGLiquidityUsd"
   | "assetCount"
   | "assetsWithVolume"
+  | "assetsWithPools"
   | "reportedPoolCount"
   | "peakDexCount"
 > {
@@ -34,14 +36,22 @@ function chainShell(
     sourceId: "mock",
     sourceLabel: "Seed market adapter",
     completenessPct: 100,
+    etfCount: 0,
+    volumeAggregation: "all-pools",
     coverageNote,
   };
 }
 
 function stock(
-  partial: Omit<AssetDetail, "detailEnriched" | "sourceId" | "sourceLabel" | "issuer" | "pools"> & {
+  partial: Omit<
+    AssetDetail,
+    "detailEnriched" | "sourceId" | "sourceLabel" | "issuer" | "pools" | "instrumentKind" | "volumeCoverage" | "coverageNote"
+  > & {
     issuer?: string | null;
     pools?: AssetDetail["pools"];
+    instrumentKind?: AssetDetail["instrumentKind"];
+    volumeCoverage?: AssetDetail["volumeCoverage"];
+    coverageNote?: string | null;
   },
 ): AssetDetail {
   return {
@@ -51,6 +61,11 @@ function stock(
     sourceId: "mock",
     sourceLabel: "Seed market adapter",
     detailEnriched: true,
+    ...defaultInstrumentFields({
+      volume24hUsd: partial.volume24hUsd,
+      poolCount: partial.poolCount,
+      instrumentKind: "equity",
+    }),
   };
 }
 
@@ -822,6 +837,9 @@ function toSummaries(details: AssetDetail[]): AssetSummary[] {
       top3ConcentrationPct: detail.top3ConcentrationPct,
       liquidityCoverageComplete: detail.liquidityCoverageComplete,
       volume24hCoverageComplete: detail.volume24hCoverageComplete,
+      instrumentKind: detail.instrumentKind,
+      volumeCoverage: detail.volumeCoverage,
+      coverageNote: detail.coverageNote,
     })),
   );
 }

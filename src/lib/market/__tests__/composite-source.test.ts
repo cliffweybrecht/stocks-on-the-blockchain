@@ -42,8 +42,11 @@ function chain(id: string, sourceId: SourceKind, volume: number | null): ChainVo
     usdGLiquidityUsd: null,
     assetCount: 1,
     assetsWithVolume: volume === null ? 0 : 1,
+    assetsWithPools: 1,
     reportedPoolCount: 1,
     peakDexCount: 1,
+    etfCount: 0,
+    volumeAggregation: "all-pools",
     completenessPct: 100,
     coverageNote: "test",
   };
