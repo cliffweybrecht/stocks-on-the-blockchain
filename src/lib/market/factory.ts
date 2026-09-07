@@ -31,6 +31,7 @@ export function createLiveAdapters(env: MarketEnv = process.env): MarketDataSour
       new SolanaMarketDataSource({
         baseUrl: getSolanaDexScreenerBaseUrl(env),
         timeoutMs: Number(env.SOLANA_TIMEOUT_MS ?? 15_000),
+        requestGapMs: Number(env.SOLANA_REQUEST_GAP_MS ?? 200),
       }),
     );
   }

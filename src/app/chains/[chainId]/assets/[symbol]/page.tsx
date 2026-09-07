@@ -74,6 +74,7 @@ export default async function AssetPage({
               <p className="text-xs tracking-[0.18em] text-primary uppercase">{chain.name}</p>
               <h2 className="font-heading text-3xl font-semibold tracking-tight">{asset.symbol}</h2>
               <p className="mt-1 text-muted-foreground">{asset.name}</p>
+              {asset.issuer ? <p className="mt-1 text-sm text-muted-foreground">Issuer · {asset.issuer}</p> : null}
             </div>
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline">
@@ -163,6 +164,40 @@ export default async function AssetPage({
               }
             />
           </section>
+
+          {asset.pools.length > 0 ? (
+            <section className="space-y-2">
+              <h3 className="font-heading text-lg font-medium">Solana pools</h3>
+              <p className="text-sm text-muted-foreground">
+                Individual DexScreener pairs for this mint. 24h volume on the stock row is the sum of
+                these pool volumes. One pair is never treated as one stock.
+              </p>
+              <div className="rounded-xl border border-border bg-card">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>DEX</TableHead>
+                      <TableHead>Pair</TableHead>
+                      <TableHead className="text-right">24h volume</TableHead>
+                      <TableHead className="text-right">Displayed liq</TableHead>
+                      <TableHead className="text-right">Price</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {asset.pools.map((pool, index) => (
+                      <TableRow key={pool.pairAddress || `${pool.dexId}-${index}`}>
+                        <TableCell>{pool.dexId}</TableCell>
+                        <TableCell className="num text-xs">{pool.pairAddress || "—"}</TableCell>
+                        <TableCell className="num text-right">{formatUsdFull(pool.volume24hUsd)}</TableCell>
+                        <TableCell className="num text-right">{formatUsdFull(pool.liquidityUsd)}</TableCell>
+                        <TableCell className="num text-right">{formatPrice(pool.priceUsd)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </section>
+          ) : null}
 
           {asset.dexes.length > 0 ? (
             <section className="space-y-2">

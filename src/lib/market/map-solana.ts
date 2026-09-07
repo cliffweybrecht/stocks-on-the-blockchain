@@ -1,10 +1,11 @@
 import { rollupChainFromAssets, sortByVolumeThenLiquidity } from "./aggregate";
-import { asFiniteNumber, asNonEmptyString } from "./numbers";
-import { findAllowlistedMint, type SolanaAllowlistedMint } from "./solana-allowlist";
-import { SOLANA_SOURCE_NOTE } from "./trust";
+import { asFiniteNumber, asNonEmptyString, compareNullableDesc } from "./numbers";
+import { classifyOrNull, tokenIdentityFromFields } from "./solana-classifier";
+import { SOLANA_SOURCE_LABEL, SOLANA_SOURCE_NOTE } from "./trust";
 import {
   SOLANA_CHAIN_ID,
   type AssetDetail,
+  type AssetPoolMark,
   type AssetSummary,
   type ChainVolume,
   type DataProvenance,
@@ -15,8 +16,9 @@ export interface DexScreenerPair {
   chainId?: unknown;
   dexId?: unknown;
   pairAddress?: unknown;
-  baseToken?: { address?: unknown; name?: unknown; symbol?: unknown };
-  quoteToken?: { address?: unknown; name?: unknown; symbol?: unknown };
+  labels?: unknown;
+  baseToken?: { address?: unknown; name?: unknown; symbol?: unknown; labels?: unknown };
+  quoteToken?: { address?: unknown; name?: unknown; symbol?: unknown; labels?: unknown };
   priceUsd?: unknown;
   volume?: { h24?: unknown };
   liquidity?: { usd?: unknown };
@@ -36,15 +38,34 @@ export function unwrapDexScreenerPairs(payload: unknown): DexScreenerPair[] {
   throw new Error("DexScreener response was not a pair list.");
 }
 
-function tokenSide(token: DexScreenerPair["baseToken"], mints: readonly SolanaAllowlistedMint[]) {
-  const address = asNonEmptyString(token?.address);
-  const listed = findAllowlistedMint(address, mints);
-  if (!listed || !address) return null;
+export function unwrapDexScreenerSearch(payload: unknown): DexScreenerPair[] {
+  if (payload && typeof payload === "object" && "pairs" in payload) {
+    const pairs = (payload as { pairs?: unknown }).pairs;
+    if (pairs == null) return [];
+    if (Array.isArray(pairs)) {
+      return pairs.filter((row): row is DexScreenerPair => typeof row === "object" && row !== null);
+    }
+  }
+  if (Array.isArray(payload)) {
+    return payload.filter((row): row is DexScreenerPair => typeof row === "object" && row !== null);
+  }
+  throw new Error("DexScreener search response was not a pair list.");
+}
+
+function classifiedSide(token: DexScreenerPair["baseToken"]) {
+  const identity = tokenIdentityFromFields({
+    address: token?.address,
+    symbol: token?.symbol,
+    name: token?.name,
+  });
+  if (!identity) return null;
+  const classified = classifyOrNull(identity);
+  if (!classified) return null;
   return {
-    address,
-    listed,
-    symbol: asNonEmptyString(token?.symbol) ?? listed.symbol,
-    name: asNonEmptyString(token?.name) ?? listed.name,
+    address: identity.address,
+    symbol: asNonEmptyString(identity.symbol) ?? identity.address.slice(0, 8),
+    name: asNonEmptyString(identity.name) ?? asNonEmptyString(identity.symbol) ?? identity.address,
+    issuer: classified.issuer,
   };
 }
 
@@ -59,68 +80,98 @@ function median(values: number[]): number | null {
   return (left + right) / 2;
 }
 
+function pairPriceUsd(pair: DexScreenerPair): number | null {
+  return asFiniteNumber(typeof pair.priceUsd === "string" ? Number(pair.priceUsd) : pair.priceUsd);
+}
+
 interface MintAccumulator {
-  listed: SolanaAllowlistedMint;
   symbol: string;
   name: string;
   address: string;
+  issuer: string | null;
   volumes: number[];
   liquidities: number[];
   prices: number[];
   buys: number[];
   sells: number[];
   pairAddresses: Set<string>;
+  pools: AssetPoolMark[];
   dexes: Map<string, { liquidity: number[]; poolCount: number }>;
+  largestPool: { dexId: string; pairAddress: string; liquidityUsd: number } | null;
 }
 
-function emptyAccumulator(side: NonNullable<ReturnType<typeof tokenSide>>): MintAccumulator {
+function emptyAccumulator(side: NonNullable<ReturnType<typeof classifiedSide>>): MintAccumulator {
   return {
-    listed: side.listed,
     symbol: side.symbol,
     name: side.name,
     address: side.address,
+    issuer: side.issuer,
     volumes: [],
     liquidities: [],
     prices: [],
     buys: [],
     sells: [],
     pairAddresses: new Set(),
+    pools: [],
     dexes: new Map(),
+    largestPool: null,
   };
+}
+
+function addPairToBucket(bucket: MintAccumulator, pair: DexScreenerPair) {
+  const pairAddress = asNonEmptyString(pair.pairAddress);
+  if (pairAddress && bucket.pairAddresses.has(pairAddress)) return;
+  if (pairAddress) bucket.pairAddresses.add(pairAddress);
+
+  const volume = asFiniteNumber(pair.volume?.h24);
+  const liquidity = asFiniteNumber(pair.liquidity?.usd);
+  const price = pairPriceUsd(pair);
+  const buys = asFiniteNumber(pair.txns?.h24?.buys);
+  const sells = asFiniteNumber(pair.txns?.h24?.sells);
+  const dexId = asNonEmptyString(pair.dexId) ?? "unknown";
+
+  if (volume !== null) bucket.volumes.push(volume);
+  if (liquidity !== null) bucket.liquidities.push(liquidity);
+  if (price !== null) bucket.prices.push(price);
+  if (buys !== null) bucket.buys.push(buys);
+  if (sells !== null) bucket.sells.push(sells);
+
+  bucket.pools.push({
+    pairAddress: pairAddress ?? "",
+    dexId,
+    volume24hUsd: volume,
+    liquidityUsd: liquidity,
+    priceUsd: price,
+  });
+
+  const dex = bucket.dexes.get(dexId) ?? { liquidity: [], poolCount: 0 };
+  if (liquidity !== null) dex.liquidity.push(liquidity);
+  dex.poolCount += 1;
+  bucket.dexes.set(dexId, dex);
+
+  if (liquidity !== null && (bucket.largestPool === null || liquidity > bucket.largestPool.liquidityUsd)) {
+    bucket.largestPool = { dexId, pairAddress: pairAddress ?? "", liquidityUsd: liquidity };
+  }
 }
 
 export function mapDexScreenerPairsToSolanaAssets(
   pairs: readonly DexScreenerPair[],
-  mints: readonly SolanaAllowlistedMint[],
 ): { assets: AssetSummary[]; details: AssetDetail[] } {
   const byMint = new Map<string, MintAccumulator>();
 
   for (const pair of pairs) {
     if (asNonEmptyString(pair.chainId) !== SOLANA_CHAIN_ID) continue;
-    const side = tokenSide(pair.baseToken, mints) ?? tokenSide(pair.quoteToken, mints);
-    if (!side) continue;
+    const sides = [classifiedSide(pair.baseToken), classifiedSide(pair.quoteToken)].filter(
+      (side): side is NonNullable<ReturnType<typeof classifiedSide>> => side !== null,
+    );
+    if (sides.length === 0) continue;
 
-    const bucket = byMint.get(side.address) ?? emptyAccumulator(side);
-    const volume = asFiniteNumber(pair.volume?.h24);
-    const liquidity = asFiniteNumber(pair.liquidity?.usd);
-    const price = asFiniteNumber(typeof pair.priceUsd === "string" ? Number(pair.priceUsd) : pair.priceUsd);
-    const buys = asFiniteNumber(pair.txns?.h24?.buys);
-    const sells = asFiniteNumber(pair.txns?.h24?.sells);
-    if (volume !== null) bucket.volumes.push(volume);
-    if (liquidity !== null) bucket.liquidities.push(liquidity);
-    if (price !== null) bucket.prices.push(price);
-    if (buys !== null) bucket.buys.push(buys);
-    if (sells !== null) bucket.sells.push(sells);
-    const pairAddress = asNonEmptyString(pair.pairAddress);
-    if (pairAddress) bucket.pairAddresses.add(pairAddress);
-    const dexId = asNonEmptyString(pair.dexId);
-    if (dexId) {
-      const dex = bucket.dexes.get(dexId) ?? { liquidity: [], poolCount: 0 };
-      if (liquidity !== null) dex.liquidity.push(liquidity);
-      dex.poolCount += 1;
-      bucket.dexes.set(dexId, dex);
+    for (const side of sides) {
+      const bucket = byMint.get(side.address) ?? emptyAccumulator(side);
+      if (!bucket.issuer && side.issuer) bucket.issuer = side.issuer;
+      addPairToBucket(bucket, pair);
+      byMint.set(side.address, bucket);
     }
-    byMint.set(side.address, bucket);
   }
 
   const details: AssetDetail[] = [];
@@ -130,7 +181,11 @@ export function mapDexScreenerPairsToSolanaAssets(
       bucket.liquidities.length > 0 ? bucket.liquidities.reduce((sum, value) => sum + value, 0) : null;
     const volume24hUsd = bucket.volumes.length > 0 ? bucket.volumes.reduce((sum, value) => sum + value, 0) : null;
     const dexMedianUsd = median(bucket.prices);
-    const largestLiquidity = bucket.liquidities.length > 0 ? Math.max(...bucket.liquidities) : null;
+    const pools = [...bucket.pools].sort((a, b) => {
+      const volume = compareNullableDesc(a.volume24hUsd, b.volume24hUsd);
+      if (volume !== 0) return volume;
+      return compareNullableDesc(a.liquidityUsd, b.liquidityUsd);
+    });
     const dexes: DexSlice[] = [...bucket.dexes.entries()]
       .map(([dexId, dex]) => {
         const dexLiquidity = dex.liquidity.length > 0 ? dex.liquidity.reduce((sum, value) => sum + value, 0) : null;
@@ -149,16 +204,18 @@ export function mapDexScreenerPairsToSolanaAssets(
     const summary: AssetSummary = {
       chainId: SOLANA_CHAIN_ID,
       sourceId: "solana",
-      sourceLabel: "DexScreener (xStocks allowlist)",
+      sourceLabel: SOLANA_SOURCE_LABEL,
       symbol: bucket.symbol,
       name: bucket.name,
       contractAddress: bucket.address,
+      issuer: bucket.issuer,
       logoUrl: null,
       volume24hUsd,
       displayedLiquidityUsd,
       usdGLiquidityUsd: null,
-      poolCount: bucket.pairAddresses.size || bucket.volumes.length || bucket.liquidities.length,
+      poolCount: bucket.pairAddresses.size || bucket.pools.length,
       dexCount: bucket.dexes.size,
+      pools,
       robinhoodReferencePriceUsd: null,
       dexMedianPriceUsd: dexMedianUsd,
       premiumDiscountPct: null,
@@ -173,14 +230,14 @@ export function mapDexScreenerPairsToSolanaAssets(
       buys24h: bucket.buys.length > 0 ? bucket.buys.reduce((sum, value) => sum + value, 0) : null,
       sells24h: bucket.sells.length > 0 ? bucket.sells.reduce((sum, value) => sum + value, 0) : null,
       largestPool:
-        largestLiquidity !== null
+        bucket.largestPool !== null
           ? {
-              dexId: dexes[0]?.dexId ?? "reported-pair",
-              pairAddress: [...bucket.pairAddresses][0] ?? "",
-              liquidityUsd: largestLiquidity,
+              dexId: bucket.largestPool.dexId,
+              pairAddress: bucket.largestPool.pairAddress,
+              liquidityUsd: bucket.largestPool.liquidityUsd,
               shareOfDisplayedLiquidityPct:
                 displayedLiquidityUsd && displayedLiquidityUsd > 0
-                  ? (largestLiquidity / displayedLiquidityUsd) * 100
+                  ? (bucket.largestPool.liquidityUsd / displayedLiquidityUsd) * 100
                   : null,
             }
           : null,
@@ -195,7 +252,7 @@ export function mapDexScreenerPairsToSolanaAssets(
         isTradingHalt: null,
         dexMedianUsd,
         dexLiquidityWeightedUsd: null,
-        dexLargestPoolUsd: largestLiquidity !== null && dexMedianUsd !== null ? dexMedianUsd : null,
+        dexLargestPoolUsd: bucket.largestPool !== null && dexMedianUsd !== null ? dexMedianUsd : null,
         premiumDiscountPct: null,
         priceDispersionPct: null,
         priceCoverageComplete: dexMedianUsd !== null,
@@ -226,16 +283,15 @@ export function solanaChainMeta(): Omit<
     shortName: "SOL",
     nativeChainId: "solana",
     sourceId: "solana",
-    sourceLabel: "DexScreener (xStocks allowlist)",
+    sourceLabel: SOLANA_SOURCE_LABEL,
     completenessPct: null,
     coverageNote:
-      "Curated Backed xStock mints on Solana. Volume is the sum of DexScreener pair volume.h24 for returned pairs. Missing pair metrics stay missing.",
+      "Tokenized public equities discovered from DexScreener search, then classified fail-closed. Volume is the sum of pair volume.h24 across every Solana pool for that mint. Search is capped; this is not a full Solana indexer. Missing pair metrics stay missing.",
   };
 }
 
 export function buildSolanaSnapshot(input: {
   pairs: readonly DexScreenerPair[];
-  mints: readonly SolanaAllowlistedMint[];
   fetchedAt: string;
 }): {
   chain: ChainVolume;
@@ -243,14 +299,14 @@ export function buildSolanaSnapshot(input: {
   details: AssetDetail[];
   provenance: DataProvenance;
 } {
-  const { assets, details } = mapDexScreenerPairsToSolanaAssets(input.pairs, input.mints);
+  const { assets, details } = mapDexScreenerPairsToSolanaAssets(input.pairs);
   return {
     chain: rollupChainFromAssets(solanaChainMeta(), assets),
     assets,
     details,
     provenance: {
       sourceId: "solana",
-      sourceLabel: "DexScreener (xStocks allowlist)",
+      sourceLabel: SOLANA_SOURCE_LABEL,
       fetchedAt: input.fetchedAt,
       generatedAt: input.fetchedAt,
       refreshStartedAt: input.fetchedAt,

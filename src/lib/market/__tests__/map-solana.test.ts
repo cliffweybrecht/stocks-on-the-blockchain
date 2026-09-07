@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { mapDexScreenerPairsToSolanaAssets, unwrapDexScreenerPairs } from "../map-solana";
-import { SOLANA_XSTOCK_MINTS } from "../solana-allowlist";
+import { mapDexScreenerPairsToSolanaAssets, unwrapDexScreenerPairs, unwrapDexScreenerSearch } from "../map-solana";
+import { sortByVolumeThenLiquidity } from "../aggregate";
 
 const tslaMint = "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB";
 const aaplMint = "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp";
+const otherTeslaMint = "OtherTeslaMint111111111111111111111111111";
 
 const fixturePairs = [
   {
@@ -68,17 +69,30 @@ describe("unwrapDexScreenerPairs", () => {
   });
 });
 
+describe("unwrapDexScreenerSearch", () => {
+  it("treats a search envelope with null pairs as empty", () => {
+    expect(unwrapDexScreenerSearch({ schemaVersion: "1.0.0", pairs: null })).toEqual([]);
+  });
+
+  it("fails closed on an unknown search payload", () => {
+    expect(() => unwrapDexScreenerSearch({ data: [] })).toThrow(/search response/);
+  });
+});
+
 describe("mapDexScreenerPairsToSolanaAssets", () => {
-  it("aggregates allowlisted Solana pairs and ignores everything else", () => {
-    const { assets, details } = mapDexScreenerPairsToSolanaAssets(fixturePairs, SOLANA_XSTOCK_MINTS);
+  it("aggregates every Solana pool under the mint and ignores non-equities", () => {
+    const { assets, details } = mapDexScreenerPairsToSolanaAssets(fixturePairs);
     expect(assets.map((asset) => asset.symbol)).toEqual(["TSLAx", "AAPLx"]);
     const tsla = assets[0];
     expect(tsla?.volume24hUsd).toBeCloseTo(300_596.11);
     expect(tsla?.displayedLiquidityUsd).toBeCloseTo(2_077_739.88);
     expect(tsla?.poolCount).toBe(2);
     expect(tsla?.dexCount).toBe(2);
+    expect(tsla?.issuer).toBe("Backed / xStocks");
+    expect(tsla?.pools).toHaveLength(2);
+    expect(tsla?.pools.map((pool) => pool.pairAddress)).toEqual(["pair-tsla-usdc", "pair-tsla-sol"]);
+    expect(tsla?.pools[0]?.volume24hUsd).toBeCloseTo(290_596.11);
     expect(tsla?.robinhoodReferencePriceUsd).toBeNull();
-    expect(tsla?.premiumDiscountPct).toBeNull();
     expect(tsla?.sourceId).toBe("solana");
 
     const aapl = assets[1];
@@ -87,13 +101,71 @@ describe("mapDexScreenerPairsToSolanaAssets", () => {
 
     expect(details[0]?.buys24h).toBe(1287);
     expect(details[0]?.dexes.map((dex) => dex.dexId)).toEqual(["raydium", "orca"]);
+    expect(details[0]?.largestPool?.pairAddress).toBe("pair-tsla-usdc");
   });
 
-  it("returns no assets when no allowlisted mint appears", () => {
-    const { assets } = mapDexScreenerPairsToSolanaAssets(
-      [{ chainId: "solana", volume: { h24: 1 }, baseToken: { address: "nope", symbol: "NOPE" } }],
-      SOLANA_XSTOCK_MINTS,
-    );
+  it("does not treat one DexScreener pair as one stock and deduplicates the same pool", () => {
+    const { assets } = mapDexScreenerPairsToSolanaAssets([
+      fixturePairs[0]!,
+      fixturePairs[0]!,
+      fixturePairs[1]!,
+    ]);
+    expect(assets).toHaveLength(1);
+    expect(assets[0]?.poolCount).toBe(2);
+    expect(assets[0]?.volume24hUsd).toBeCloseTo(300_596.11);
+  });
+
+  it("keeps different mints for the same ticker as separate stocks", () => {
+    const { assets } = mapDexScreenerPairsToSolanaAssets([
+      fixturePairs[0]!,
+      {
+        chainId: "solana",
+        dexId: "meteora",
+        pairAddress: "pair-other-tesla",
+        baseToken: { address: otherTeslaMint, name: "Tesla Tokenized Stock", symbol: "TSLA" },
+        quoteToken: { address: "usdc", name: "USDC", symbol: "USDC" },
+        volume: { h24: 50_000 },
+        liquidity: { usd: 12_000 },
+      },
+    ]);
+    expect(assets).toHaveLength(2);
+    expect(assets.map((asset) => asset.contractAddress).sort()).toEqual([otherTeslaMint, tslaMint].sort());
+    expect(assets.find((asset) => asset.contractAddress === tslaMint)?.volume24hUsd).toBeCloseTo(290_596.11);
+    expect(assets.find((asset) => asset.contractAddress === otherTeslaMint)?.volume24hUsd).toBe(50_000);
+  });
+
+  it("admits an equity mint that is not on the historical allowlist", () => {
+    const { assets } = mapDexScreenerPairsToSolanaAssets([
+      {
+        chainId: "solana",
+        dexId: "raydium",
+        pairAddress: "pair-hood",
+        baseToken: {
+          address: "NotAllowlisted111111111111111111111111111",
+          name: "Robinhood xStock",
+          symbol: "HOODx",
+        },
+        volume: { h24: 80 },
+        liquidity: { usd: 10 },
+      },
+    ]);
+    expect(assets).toHaveLength(1);
+    expect(assets[0]?.symbol).toBe("HOODx");
+  });
+
+  it("returns no assets when nothing classifies as a tokenized equity", () => {
+    const { assets } = mapDexScreenerPairsToSolanaAssets([
+      { chainId: "solana", volume: { h24: 1 }, baseToken: { address: "nope", symbol: "NOPE", name: "Nope" } },
+    ]);
     expect(assets).toEqual([]);
+  });
+
+  it("ranks null volume last and does not coerce missing volume to zero", () => {
+    const ranked = sortByVolumeThenLiquidity([
+      { symbol: "MSFTx", volume24hUsd: null, displayedLiquidityUsd: 9 },
+      { symbol: "AAPLx", volume24hUsd: 0, displayedLiquidityUsd: 1 },
+      { symbol: "TSLAx", volume24hUsd: 10, displayedLiquidityUsd: 1 },
+    ]);
+    expect(ranked.map((row) => row.symbol)).toEqual(["TSLAx", "AAPLx", "MSFTx"]);
   });
 });

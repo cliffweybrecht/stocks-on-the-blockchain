@@ -1,8 +1,8 @@
 /**
- * Curated Backed xStock mints on Solana. Addresses were resolved from
- * DexScreener pairs whose token name includes "xStock" and whose mint
- * uses Backed's `Xs…` prefix. This is an allowlist, not discovery —
- * unknown Solana tokens are never promoted into the desk.
+ * Historical Backed xStock mint fixtures for tests only.
+ *
+ * Production admission is DexScreener discovery + the fail-closed classifier.
+ * Membership here does not admit a token, and absence does not exclude one.
  */
 export interface SolanaAllowlistedMint {
   symbol: string;
@@ -35,8 +35,4 @@ export function findAllowlistedMint(
   if (!address) return null;
   const needle = mintKey(address);
   return mints.find((entry) => entry.mint === needle) ?? null;
-}
-
-export function solanaTokensPath(mints: readonly SolanaAllowlistedMint[] = SOLANA_XSTOCK_MINTS): string {
-  return `/tokens/v1/solana/${mints.map((entry) => entry.mint).join(",")}`;
 }

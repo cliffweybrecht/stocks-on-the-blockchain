@@ -46,6 +46,14 @@ export interface ChainVolume {
   coverageNote: string;
 }
 
+export interface AssetPoolMark {
+  pairAddress: string;
+  dexId: string;
+  volume24hUsd: number | null;
+  liquidityUsd: number | null;
+  priceUsd: number | null;
+}
+
 export interface AssetSummary {
   chainId: string;
   sourceId: SourceKind;
@@ -53,12 +61,14 @@ export interface AssetSummary {
   symbol: string;
   name: string;
   contractAddress: string;
+  issuer: string | null;
   logoUrl: string | null;
   volume24hUsd: number | null;
   displayedLiquidityUsd: number | null;
   usdGLiquidityUsd: number | null;
   poolCount: number;
   dexCount: number;
+  pools: readonly AssetPoolMark[];
   robinhoodReferencePriceUsd: number | null;
   dexMedianPriceUsd: number | null;
   premiumDiscountPct: number | null;
