@@ -8,16 +8,15 @@ import { CoverageBadge } from "@/components/coverage-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { useSolanaFavorites } from "@/components/use-solana-favorites";
 import { assetRouteKey } from "@/lib/market/identity";
-import { rankSearchHits } from "@/lib/market/asset-search";
+import { rankSearchHits, type SearchableAsset } from "@/lib/market/asset-search";
 import { formatUsdCompact } from "@/lib/market/format";
-import type { AssetSummary } from "@/lib/market/types";
 
 export function SolanaJumpSearch({
   chainId,
   assets,
 }: {
   chainId: string;
-  assets: readonly AssetSummary[];
+  assets: readonly SearchableAsset[];
 }) {
   const router = useRouter();
   const dialogId = useId();
@@ -47,7 +46,7 @@ export function SolanaJumpSearch({
   }, []);
 
   const go = useCallback(
-    (asset: AssetSummary) => {
+    (asset: SearchableAsset) => {
       router.push(`/chains/${chainId}/assets/${encodeURIComponent(assetRouteKey(asset, assets))}`);
       close();
     },
@@ -91,6 +90,7 @@ export function SolanaJumpSearch({
     <>
       <button
         type="button"
+        data-testid="solana-jump-open"
         className={`${buttonVariants({ variant: "outline", size: "sm" })} gap-2`}
         onClick={openDialog}
       >

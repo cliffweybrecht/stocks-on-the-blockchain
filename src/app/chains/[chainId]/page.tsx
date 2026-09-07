@@ -10,6 +10,7 @@ import { TrustBanner } from "@/components/trust-banner";
 import { formatCount, formatUsdCompact } from "@/lib/market/format";
 import { parsePinnedFilter } from "@/lib/desk/solana-chain-href";
 import { parseAssetSortKey, sortAssets } from "@/lib/market/aggregate";
+import { toJumpAsset } from "@/lib/market/asset-search";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { SOLANA_CHAIN_ID } from "@/lib/market/types";
 import { assetMatchesCoverageFilter, parseCoverageFilter } from "@/lib/market/volume-coverage";
@@ -63,7 +64,11 @@ export default async function ChainPage({
     sortKey,
   );
   const hydratingCount = laneAssets.filter((asset) => asset.volumeCoverage === "hydrate_incomplete").length;
-  const jumpAssets = isSolana ? [...assets, ...etfAssets] : [];
+  const jumpAssets = isSolana ? [...assets, ...etfAssets].map(toJumpAsset) : [];
+  const catalogKeys = laneAssets.map((asset) => ({
+    symbol: asset.symbol,
+    contractAddress: asset.contractAddress,
+  }));
 
   return (
     <PageShell
@@ -123,7 +128,7 @@ export default async function ChainPage({
         ) : (
           <AssetTable
             assets={visibleAssets}
-            catalogAssets={laneAssets}
+            catalogAssets={catalogKeys}
             totalInLane={laneAssets.length}
             equityCount={assets.length}
             etfCount={etfAssets.length}

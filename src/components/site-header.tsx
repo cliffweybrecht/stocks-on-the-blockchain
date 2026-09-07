@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { SolanaJumpSearch } from "@/components/solana-jump-search";
 import { Badge } from "@/components/ui/badge";
-import type { AssetSummary, DataProvenance } from "@/lib/market/types";
+import type { SearchableAsset } from "@/lib/market/asset-search";
+import type { DataProvenance } from "@/lib/market/types";
 
 export function SiteHeader({
   provenance,
   solanaJump,
 }: {
   provenance?: DataProvenance;
-  solanaJump?: { chainId: string; assets: readonly AssetSummary[] };
+  solanaJump?: { chainId: string; assets: readonly SearchableAsset[] };
 }) {
   return (
     <header className="sticky top-0 z-30 border-b border-border/70 bg-background/80 backdrop-blur-md">

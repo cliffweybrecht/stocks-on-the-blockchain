@@ -19,7 +19,8 @@ import {
 } from "@/components/ui/table";
 import { formatCount, formatPct, formatPrice, formatRelativeTime, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
 import { createMarketDataSource } from "@/lib/market/factory";
-import { SOLANA_CHAIN_ID, type AssetSummary } from "@/lib/market/types";
+import { toJumpAsset } from "@/lib/market/asset-search";
+import { SOLANA_CHAIN_ID } from "@/lib/market/types";
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +64,9 @@ export default async function AssetPage({
   const halt = asset.price.isTradingHalt;
   const isSolana = chain.id === SOLANA_CHAIN_ID;
   const catalog = chainSettled.status === "fulfilled" ? chainSettled.value : null;
-  const jumpAssets: AssetSummary[] = catalog ? [...catalog.assets, ...(catalog.etfAssets ?? [])] : [];
+  const jumpAssets = catalog
+    ? [...catalog.assets, ...(catalog.etfAssets ?? [])].map(toJumpAsset)
+    : [];
 
     return (
       <PageShell

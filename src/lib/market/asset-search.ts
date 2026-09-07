@@ -10,6 +10,18 @@ export interface SearchableAsset {
   volume24hUsd?: number | null;
 }
 
+export function toJumpAsset(asset: SearchableAsset): SearchableAsset {
+  return {
+    symbol: asset.symbol,
+    name: asset.name,
+    issuer: asset.issuer,
+    contractAddress: asset.contractAddress,
+    instrumentKind: asset.instrumentKind,
+    volumeCoverage: asset.volumeCoverage,
+    volume24hUsd: asset.volume24hUsd ?? null,
+  };
+}
+
 export function normalizeSearchNeedle(query: string): string {
   return query.trim().toLowerCase();
 }

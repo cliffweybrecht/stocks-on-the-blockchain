@@ -87,7 +87,7 @@ export function AssetTable({
   enableFavorites = false,
 }: {
   assets: AssetSummary[];
-  catalogAssets?: AssetSummary[];
+  catalogAssets?: Array<Pick<AssetSummary, "symbol" | "contractAddress">>;
   chainId: string;
   totalInLane: number;
   equityCount: number;

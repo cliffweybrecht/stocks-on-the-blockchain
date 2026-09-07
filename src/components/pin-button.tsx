@@ -18,6 +18,7 @@ export function PinButton({
       className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
       aria-pressed={pinned}
       aria-label={pinned ? `Unpin ${label}` : `Pin ${label}`}
+      data-testid={`solana-pin-${label}`}
       title={pinned ? "Unpin from this browser" : "Pin in this browser"}
       onClick={(event) => {
         event.preventDefault();

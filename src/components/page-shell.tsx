@@ -1,6 +1,7 @@
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import type { AssetSummary, DataProvenance } from "@/lib/market/types";
+import type { SearchableAsset } from "@/lib/market/asset-search";
+import type { DataProvenance } from "@/lib/market/types";
 
 export function PageShell({
   children,
@@ -9,7 +10,7 @@ export function PageShell({
 }: {
   children: React.ReactNode;
   provenance?: DataProvenance;
-  solanaJump?: { chainId: string; assets: readonly AssetSummary[] };
+  solanaJump?: { chainId: string; assets: readonly SearchableAsset[] };
 }) {
   return (
     <div className="flex min-h-full flex-col">
