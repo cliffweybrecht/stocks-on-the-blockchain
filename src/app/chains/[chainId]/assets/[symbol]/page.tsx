@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { CopyAddress } from "@/components/copy-address";
+import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { Metric } from "@/components/metric";
 import { PageShell } from "@/components/page-shell";
@@ -40,7 +40,16 @@ export default async function AssetPage({
     );
   }
 
-  if (!result) notFound();
+  if (!result) {
+    return (
+      <PageShell>
+        <EmptyState
+          title="That page is not in this desk"
+          detail="No stock with that symbol is on this chain snapshot. Go back to the chain list and pick a reported name."
+        />
+      </PageShell>
+    );
+  }
 
   const { chain, asset, provenance } = result;
   const halt = asset.price.isTradingHalt;

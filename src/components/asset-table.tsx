@@ -44,7 +44,7 @@ export function AssetTable({ assets, chainId }: { assets: AssetSummary[]; chainI
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Input
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          onValueChange={setQuery}
           placeholder="Filter by symbol, name, or contract"
           aria-label="Filter stocks"
           className="max-w-md"
@@ -71,7 +71,7 @@ export function AssetTable({ assets, chainId }: { assets: AssetSummary[]; chainI
         </div>
       </div>
 
-      <div className="space-y-3 md:hidden">
+      <div className="grid gap-3 lg:hidden">
         {rows.map((asset) => (
           <Link
             key={asset.symbol}
@@ -93,7 +93,7 @@ export function AssetTable({ assets, chainId }: { assets: AssetSummary[]; chainI
         ))}
       </div>
 
-      <div className="hidden rounded-xl border border-border bg-card md:block">
+      <div className="hidden rounded-xl border border-border bg-card lg:block">
         <Table>
           <TableHeader>
             <TableRow>

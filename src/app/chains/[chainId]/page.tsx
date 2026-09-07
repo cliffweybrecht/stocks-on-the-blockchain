@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { AssetTable } from "@/components/asset-table";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
@@ -32,7 +31,16 @@ export default async function ChainPage({
     );
   }
 
-  if (!result) notFound();
+  if (!result) {
+    return (
+      <PageShell>
+        <EmptyState
+          title="That page is not in this desk"
+          detail="No chain with that id is in the current snapshot. Use the chain list to move from volume → stocks → a single asset."
+        />
+      </PageShell>
+    );
+  }
 
   const { chain, assets, provenance } = result;
 
