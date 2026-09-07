@@ -15,10 +15,12 @@ import { assetRouteKey } from "@/lib/market/identity";
 import { formatAddress, formatPct, formatPrice, formatUsdCompact } from "@/lib/market/format";
 import { compareNullableDesc } from "@/lib/market/numbers";
 import type { AssetSummary, InstrumentKind, VolumeCoverage } from "@/lib/market/types";
-import { volumeCoverageLabel } from "@/lib/market/volume-coverage";
+import {
+  type CoverageFilter,
+  volumeCoverageLabel,
+} from "@/lib/market/volume-coverage";
 
 type SortKey = "volume24hUsd" | "displayedLiquidityUsd" | "poolCount" | "premiumDiscountPct";
-type CoverageFilter = "all" | "with-volume" | "no-pools" | "with-pools";
 
 function coverageVariant(coverage: VolumeCoverage): "default" | "secondary" | "outline" | "destructive" {
   switch (coverage) {
@@ -35,38 +37,53 @@ function coverageVariant(coverage: VolumeCoverage): "default" | "secondary" | "o
   }
 }
 
+function chipClass(active: boolean): string {
+  return `rounded-full border px-3 py-1 text-xs ${
+    active ? "border-primary bg-primary/15 text-primary" : "border-border text-muted-foreground"
+  }`;
+}
+
+function chainHref(chainId: string, lane: InstrumentKind, coverage: CoverageFilter): string {
+  const params = new URLSearchParams();
+  if (lane === "etf") params.set("lane", "etf");
+  if (coverage !== "all") params.set("coverage", coverage);
+  const query = params.toString();
+  return query ? `/chains/${chainId}?${query}` : `/chains/${chainId}`;
+}
+
 export function AssetTable({
   assets,
   chainId,
-  etfAssets = [],
+  totalInLane,
+  equityCount,
+  etfCount = 0,
+  lane = "equity",
+  coverageFilter = "all",
   showRobinhoodMarks = true,
 }: {
   assets: AssetSummary[];
   chainId: string;
-  etfAssets?: AssetSummary[];
+  totalInLane: number;
+  equityCount: number;
+  etfCount?: number;
+  lane?: InstrumentKind;
+  coverageFilter?: CoverageFilter;
   showRobinhoodMarks?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("volume24hUsd");
-  const [coverageFilter, setCoverageFilter] = useState<CoverageFilter>("all");
-  const [lane, setLane] = useState<InstrumentKind>("equity");
-
-  const source = lane === "etf" && etfAssets.length > 0 ? etfAssets : assets;
 
   const rows = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    const filtered = source.filter((asset) => {
-      if (coverageFilter === "with-volume" && asset.volume24hUsd === null) return false;
-      if (coverageFilter === "no-pools" && asset.poolCount > 0) return false;
-      if (coverageFilter === "with-pools" && asset.poolCount === 0) return false;
-      if (!needle) return true;
-      return (
-        asset.symbol.toLowerCase().includes(needle) ||
-        asset.name.toLowerCase().includes(needle) ||
-        asset.contractAddress.toLowerCase().includes(needle) ||
-        (asset.issuer ?? "").toLowerCase().includes(needle)
-      );
-    });
+    const filtered = needle
+      ? assets.filter(
+          (asset) =>
+            asset.symbol.toLowerCase().includes(needle) ||
+            asset.name.toLowerCase().includes(needle) ||
+            asset.contractAddress.toLowerCase().includes(needle) ||
+            (asset.issuer ?? "").toLowerCase().includes(needle),
+        )
+      : assets;
 
     return [...filtered].sort((a, b) => {
       const left = sortKey === "poolCount" ? a.poolCount : a[sortKey];
@@ -78,7 +95,7 @@ export function AssetTable({
       if (compared !== 0) return compared;
       return a.symbol.localeCompare(b.symbol);
     });
-  }, [source, query, sortKey, coverageFilter]);
+  }, [assets, query, sortKey]);
 
   const sortButtons = (
     [
@@ -91,26 +108,14 @@ export function AssetTable({
 
   return (
     <div className="space-y-3">
-      {etfAssets.length > 0 ? (
+      {etfCount > 0 ? (
         <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setLane("equity")}
-            className={`rounded-full border px-3 py-1 text-xs ${
-              lane === "equity" ? "border-primary bg-primary/15 text-primary" : "border-border text-muted-foreground"
-            }`}
-          >
-            Equities ({assets.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setLane("etf")}
-            className={`rounded-full border px-3 py-1 text-xs ${
-              lane === "etf" ? "border-primary bg-primary/15 text-primary" : "border-border text-muted-foreground"
-            }`}
-          >
-            ETF / index ({etfAssets.length})
-          </button>
+          <Link href={chainHref(chainId, "equity", coverageFilter)} className={chipClass(lane === "equity")}>
+            Equities ({equityCount})
+          </Link>
+          <Link href={chainHref(chainId, "etf", coverageFilter)} className={chipClass(lane === "etf")}>
+            ETF / index ({etfCount})
+          </Link>
         </div>
       ) : null}
       {lane === "etf" ? (
@@ -151,20 +156,17 @@ export function AssetTable({
             ["no-pools", "No pools yet"],
           ] as const
         ).map(([key, label]) => (
-          <button
+          <Link
             key={key}
-            type="button"
-            onClick={() => setCoverageFilter(key)}
-            className={`rounded-full border px-3 py-1 ${
-              coverageFilter === key ? "border-primary bg-primary/15 text-primary" : "border-border text-muted-foreground"
-            }`}
+            href={chainHref(chainId, lane, key)}
+            className={chipClass(coverageFilter === key)}
           >
             {label}
-          </button>
+          </Link>
         ))}
       </div>
       <p className="text-xs text-muted-foreground" aria-live="polite">
-        Showing {rows.length} of {source.length}
+        Showing {rows.length} of {totalInLane}
         {coverageFilter !== "all" ? ` · ${coverageFilter.replace("-", " ")}` : ""}
       </p>
 
@@ -172,7 +174,7 @@ export function AssetTable({
         {rows.map((asset) => (
           <Link
             key={asset.contractAddress}
-            href={`/chains/${chainId}/assets/${encodeURIComponent(assetRouteKey(asset, source))}`}
+            href={`/chains/${chainId}/assets/${encodeURIComponent(assetRouteKey(asset, assets))}`}
             className="block rounded-xl border border-border bg-card px-4 py-3"
           >
             <div className="flex items-start justify-between gap-3">
@@ -230,7 +232,7 @@ export function AssetTable({
               <TableRow key={asset.contractAddress}>
                 <TableCell>
                   <Link
-                    href={`/chains/${chainId}/assets/${encodeURIComponent(assetRouteKey(asset, source))}`}
+                    href={`/chains/${chainId}/assets/${encodeURIComponent(assetRouteKey(asset, assets))}`}
                     className="font-medium text-primary hover:underline"
                   >
                     {asset.symbol}
@@ -279,7 +281,7 @@ export function AssetTable({
 
       {rows.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-          {source.length === 0
+          {totalInLane === 0
             ? lane === "etf"
               ? "No verifiable Solana ETF/index products in this snapshot."
               : "No verifiable tokenized equities in this snapshot. Discovery is fail-closed and is not a full Solana index."

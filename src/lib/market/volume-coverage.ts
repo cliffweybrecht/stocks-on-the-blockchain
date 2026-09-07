@@ -1,5 +1,23 @@
 import type { InstrumentKind, VolumeAggregation, VolumeCoverage } from "./types";
 
+export type CoverageFilter = "all" | "with-volume" | "no-pools" | "with-pools";
+
+export function parseCoverageFilter(value: string | string[] | undefined): CoverageFilter {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (raw === "with-volume" || raw === "no-pools" || raw === "with-pools") return raw;
+  return "all";
+}
+
+export function assetMatchesCoverageFilter(
+  asset: { volume24hUsd: number | null; poolCount: number },
+  filter: CoverageFilter,
+): boolean {
+  if (filter === "with-volume") return asset.volume24hUsd !== null;
+  if (filter === "no-pools") return asset.poolCount === 0;
+  if (filter === "with-pools") return asset.poolCount > 0;
+  return true;
+}
+
 export function inferVolumeCoverage(input: {
   volume24hUsd: number | null;
   poolCount: number;

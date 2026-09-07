@@ -141,7 +141,7 @@ function addPairToBucket(bucket: MintAccumulator, pair: DexScreenerPair) {
 
   if (volume !== null) bucket.volumes.push(volume);
   if (liquidity !== null) bucket.liquidities.push(liquidity);
-  if (price !== null) bucket.prices.push(price);
+  if (price !== null && price > 0) bucket.prices.push(price);
   if (buys !== null) bucket.buys.push(buys);
   if (sells !== null) bucket.sells.push(sells);
 

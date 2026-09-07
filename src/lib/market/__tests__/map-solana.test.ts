@@ -111,6 +111,25 @@ describe("mapDexScreenerPairsToSolanaAssets", () => {
     expect(details[0]?.largestPool?.pairAddress).toBe("pair-tsla-usdc");
   });
 
+  it("ignores non-positive DexScreener prices when computing the DEX median", () => {
+    const { assets } = mapDexScreenerPairsToSolanaAssets([
+      fixturePairs[0]!,
+      {
+        chainId: "solana",
+        dexId: "meteora",
+        pairAddress: "pair-tsla-zero-price",
+        baseToken: { address: tslaMint, name: "Tesla xStock", symbol: "TSLAx" },
+        quoteToken: { address: "usdc", name: "USDC", symbol: "USDC" },
+        priceUsd: "0",
+        volume: { h24: 1 },
+        liquidity: { usd: 1 },
+      },
+    ]);
+    expect(assets).toHaveLength(1);
+    expect(assets[0]?.dexMedianPriceUsd).toBeCloseTo(355.64);
+    expect(assets[0]?.pools).toHaveLength(2);
+  });
+
   it("does not treat one DexScreener pair as one stock and deduplicates the same pool", () => {
     const { assets } = mapDexScreenerPairsToSolanaAssets([
       fixturePairs[0]!,

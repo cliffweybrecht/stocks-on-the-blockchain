@@ -10,15 +10,19 @@ import { TrustBanner } from "@/components/trust-banner";
 import { formatCount, formatUsdCompact } from "@/lib/market/format";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { SOLANA_CHAIN_ID } from "@/lib/market/types";
+import { assetMatchesCoverageFilter, parseCoverageFilter } from "@/lib/market/volume-coverage";
 
 export const dynamic = "force-dynamic";
 
 export default async function ChainPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ chainId: string }>;
+  searchParams: Promise<{ lane?: string; coverage?: string }>;
 }) {
   const { chainId } = await params;
+  const query = await searchParams;
   const source = createMarketDataSource();
 
   let result;
@@ -46,6 +50,10 @@ export default async function ChainPage({
 
   const { chain, assets, etfAssets = [], provenance } = result;
   const isSolana = chain.id === SOLANA_CHAIN_ID;
+  const lane = query.lane === "etf" && etfAssets.length > 0 ? "etf" : "equity";
+  const coverageFilter = parseCoverageFilter(query.coverage);
+  const laneAssets = lane === "etf" ? etfAssets : assets;
+  const visibleAssets = laneAssets.filter((asset) => assetMatchesCoverageFilter(asset, coverageFilter));
 
   return (
     <PageShell provenance={provenance}>
@@ -94,8 +102,12 @@ export default async function ChainPage({
           />
         ) : (
           <AssetTable
-            assets={assets}
-            etfAssets={etfAssets}
+            assets={visibleAssets}
+            totalInLane={laneAssets.length}
+            equityCount={assets.length}
+            etfCount={etfAssets.length}
+            lane={lane}
+            coverageFilter={coverageFilter}
             chainId={chain.id}
             showRobinhoodMarks={!isSolana}
           />
