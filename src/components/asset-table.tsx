@@ -55,6 +55,12 @@ function emptyCopy(input: {
   if (input.query.trim()) {
     return "No classified names match that search. Try symbol, issuer, or the full mint. Null volume is not hidden by search.";
   }
+  if (input.pinnedOnly && input.coverageFilter === "hydrating") {
+    return "None of your pinned names are still hydrating. Turn off Pinned to see every unfinished DexScreener lookup, or wait for a snapshot that still has hydrating rows.";
+  }
+  if (input.pinnedOnly && input.coverageFilter === "no-pools") {
+    return "None of your pinned names finished DexScreener lookup empty. Confirmed no pools is not still hydrating, and it is not zero volume.";
+  }
   if (input.pinnedOnly) {
     return "No pinned Solana names in this view. Pin a row with the star, or switch coverage to All — pins are mint-specific, not ticker-merged.";
   }
