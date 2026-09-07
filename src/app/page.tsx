@@ -46,15 +46,7 @@ export default async function HomePage() {
             </p>
           </div>
           {chains.some((chain) => chain.id === SOLANA_CHAIN_ID) ? (
-            <>
-              <SolanaCoverageBanner chain={chains.find((chain) => chain.id === SOLANA_CHAIN_ID)!} />
-              <p className="text-xs text-muted-foreground">
-                On the Solana desk, press{" "}
-                <kbd className="rounded border border-border px-1 font-mono">/</kbd> or{" "}
-                <kbd className="rounded border border-border px-1 font-mono">⌘K</kbd> to jump by symbol, name,
-                issuer, or mint. Pin two or more names to compare them. Export CSV from the chain page.
-              </p>
-            </>
+            <SolanaCoverageBanner chain={chains.find((chain) => chain.id === SOLANA_CHAIN_ID)!} />
           ) : null}
           {chains.length === 0 ? (
             <EmptyState

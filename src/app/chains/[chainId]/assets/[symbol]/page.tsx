@@ -118,8 +118,8 @@ export default async function AssetPage({
             </div>
           </div>
 
-          <TrustBanner />
-          <ProvenanceBar provenance={provenance} />
+          {isSolana ? null : <TrustBanner />}
+          <ProvenanceBar provenance={provenance} compact={isSolana} />
 
           {!isSolana ? (
             <section className="space-y-3">
