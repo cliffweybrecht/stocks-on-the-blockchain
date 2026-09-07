@@ -24,6 +24,7 @@ export function ChainVolumeCard({
             <CardDescription>
               {chain.shortName}
               {chain.nativeChainId ? ` · chain ${chain.nativeChainId}` : ""}
+              {` · ${chain.sourceLabel}`}
             </CardDescription>
           </div>
           <div className="text-right">

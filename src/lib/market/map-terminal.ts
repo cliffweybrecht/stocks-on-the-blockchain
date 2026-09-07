@@ -147,6 +147,8 @@ export function mapTerminalRowToAsset(row: TerminalMarketRow): AssetSummary | nu
 
   return {
     chainId: ROBINHOOD_CHAIN_ID,
+    sourceId: "terminal",
+    sourceLabel: "Robinhood Liquidity Terminal",
     symbol,
     name: asNonEmptyString(row.asset?.name) ?? symbol,
     contractAddress,
@@ -368,6 +370,7 @@ export function mapTerminalSnapshot(input: {
       cacheStatus: input.cacheStatus,
       cacheAgeMs: input.cacheAgeMs,
       notes: input.notes,
+      sourceFailures: [],
     },
   };
 }

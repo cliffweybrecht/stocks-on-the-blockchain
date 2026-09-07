@@ -31,13 +31,20 @@ function chainShell(
     name,
     shortName,
     nativeChainId,
+    sourceId: "mock",
+    sourceLabel: "Seed market adapter",
     completenessPct: 100,
     coverageNote,
   };
 }
 
-function stock(partial: Omit<AssetDetail, "detailEnriched">): AssetDetail {
-  return { ...partial, detailEnriched: true };
+function stock(partial: Omit<AssetDetail, "detailEnriched" | "sourceId" | "sourceLabel">): AssetDetail {
+  return {
+    ...partial,
+    sourceId: "mock",
+    sourceLabel: "Seed market adapter",
+    detailEnriched: true,
+  };
 }
 
 const robinhoodAssets: AssetDetail[] = [
@@ -752,19 +759,26 @@ export const MOCK_DETAILS: Record<string, AssetDetail[]> = {
 
 function toSummaries(details: AssetDetail[]): AssetSummary[] {
   return sortByVolumeThenLiquidity(
-    details.map(
-      ({
-        buys24h: _b,
-        sells24h: _s,
-        largestPool: _l,
-        concentration: _c,
-        dexes: _d,
-        quoteAssets: _q,
-        price: _p,
-        detailEnriched: _e,
-        ...summary
-      }) => summary,
-    ),
+    details.map((detail) => ({
+      chainId: detail.chainId,
+      sourceId: detail.sourceId,
+      sourceLabel: detail.sourceLabel,
+      symbol: detail.symbol,
+      name: detail.name,
+      contractAddress: detail.contractAddress,
+      logoUrl: detail.logoUrl,
+      volume24hUsd: detail.volume24hUsd,
+      displayedLiquidityUsd: detail.displayedLiquidityUsd,
+      usdGLiquidityUsd: detail.usdGLiquidityUsd,
+      poolCount: detail.poolCount,
+      dexCount: detail.dexCount,
+      robinhoodReferencePriceUsd: detail.robinhoodReferencePriceUsd,
+      dexMedianPriceUsd: detail.dexMedianPriceUsd,
+      premiumDiscountPct: detail.premiumDiscountPct,
+      top3ConcentrationPct: detail.top3ConcentrationPct,
+      liquidityCoverageComplete: detail.liquidityCoverageComplete,
+      volume24hCoverageComplete: detail.volume24hCoverageComplete,
+    })),
   );
 }
 
@@ -822,5 +836,6 @@ export function mockProvenance(fetchedAt = new Date().toISOString()): DataProven
     cacheStatus: "fresh",
     cacheAgeMs: 0,
     notes: [MOCK_SOURCE_NOTE],
+    sourceFailures: [],
   };
 }

@@ -10,45 +10,11 @@ import { maxNullable } from "@/lib/market/numbers";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  try {
-    const source = createMarketDataSource();
-    const { chains, provenance } = await source.listChains();
-    const maxVolume = maxNullable(chains.map((chain) => chain.volume24hUsd));
+  const source = createMarketDataSource();
 
-    return (
-      <PageShell provenance={provenance}>
-        <div className="space-y-5">
-          <TrustBanner />
-          <ProvenanceBar provenance={provenance} />
-          <section className="space-y-3">
-            <div>
-              <h2 className="font-heading text-lg font-medium">Chain volume</h2>
-              <p className="text-sm text-muted-foreground">
-                Ranked by observed 24h volume when the source reports it. Liquidity is secondary
-                and is displayed, not executable.
-              </p>
-            </div>
-            {chains.length === 0 ? (
-              <EmptyState
-                title="No chains reported"
-                detail="The configured market source returned zero chains. In live mode this usually means Terminal returned an empty snapshot."
-              />
-            ) : (
-              <div className="grid gap-4">
-                {chains.map((chain, index) => (
-                  <ChainVolumeCard
-                    key={chain.id}
-                    chain={chain}
-                    rank={index + 1}
-                    maxVolume={maxVolume}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
-      </PageShell>
-    );
+  let loaded;
+  try {
+    loaded = await source.listChains();
   } catch (error) {
     const detail =
       error instanceof Error
@@ -60,4 +26,42 @@ export default async function HomePage() {
       </PageShell>
     );
   }
+
+  const { chains, provenance } = loaded;
+  const maxVolume = maxNullable(chains.map((chain) => chain.volume24hUsd));
+
+  return (
+    <PageShell provenance={provenance}>
+      <div className="space-y-5">
+        <TrustBanner />
+        <ProvenanceBar provenance={provenance} />
+        <section className="space-y-3">
+          <div>
+            <h2 className="font-heading text-lg font-medium">Chain volume</h2>
+            <p className="text-sm text-muted-foreground">
+              Ranked by observed 24h volume when the source reports it. Liquidity is secondary
+              and is displayed, not executable.
+            </p>
+          </div>
+          {chains.length === 0 ? (
+            <EmptyState
+              title="No chains reported"
+              detail="The configured market sources returned zero chains. A live adapter that failed is listed in provenance rather than filled with invented volume."
+            />
+          ) : (
+            <div className="grid gap-4">
+              {chains.map((chain, index) => (
+                <ChainVolumeCard
+                  key={chain.id}
+                  chain={chain}
+                  rank={index + 1}
+                  maxVolume={maxVolume}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+    </PageShell>
+  );
 }

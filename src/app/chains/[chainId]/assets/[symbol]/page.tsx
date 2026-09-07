@@ -76,7 +76,13 @@ export default async function AssetPage({
               <p className="mt-1 text-muted-foreground">{asset.name}</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Badge variant="outline">{provenance.sourceId === "mock" ? "Demo row" : "Terminal row"}</Badge>
+              <Badge variant="outline">
+                {asset.sourceId === "mock"
+                  ? "Demo row"
+                  : asset.sourceId === "solana"
+                    ? "DexScreener row"
+                    : "Terminal row"}
+              </Badge>
               {asset.detailEnriched ? <Badge variant="secondary">Enriched detail</Badge> : null}
               {halt ? <Badge variant="destructive">Trading halt reported</Badge> : null}
             </div>

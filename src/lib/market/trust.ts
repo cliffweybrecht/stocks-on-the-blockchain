@@ -13,5 +13,11 @@ export const MOCK_SOURCE_NOTE =
 export const TERMINAL_SOURCE_NOTE =
   "Live Terminal is a single-chain read-only HTTP source (Robinhood Chain). Other chains appear only when additional adapters are configured.";
 
+export const SOLANA_SOURCE_NOTE =
+  "Solana volume is DexScreener pair data for a curated Backed xStock mint allowlist. This is not a full Solana indexer and is not executable liquidity.";
+
+export const COMPOSITE_SOURCE_NOTE =
+  "The home list merges independently fetched adapters. A failed adapter is omitted or marked unavailable; other adapters are not invented to fill the gap.";
+
 export const INTERPRETIVE_LABEL = "Interpretive";
 export const FACT_LABEL = "Reported";

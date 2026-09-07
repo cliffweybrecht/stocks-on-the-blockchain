@@ -24,6 +24,15 @@ export function ProvenanceBar({ provenance }: { provenance: DataProvenance }) {
           ))}
         </ul>
       ) : null}
+      {provenance.sourceFailures.length > 0 ? (
+        <ul className="mt-2 space-y-1 text-xs text-destructive">
+          {provenance.sourceFailures.map((failure) => (
+            <li key={`${failure.sourceId}:${failure.message}`}>
+              {failure.sourceLabel} unavailable: {failure.message}
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </section>
   );
 }
