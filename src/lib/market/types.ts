@@ -50,6 +50,7 @@ export interface ChainVolume {
   assetsWithVolume: number;
   assetsWithPools: number;
   assetsStillHydrating: number;
+  assetsWithNoIndexedPools: number;
   reportedPoolCount: number;
   peakDexCount: number;
   etfCount: number;

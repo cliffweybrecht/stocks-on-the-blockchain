@@ -89,4 +89,14 @@ describe("discovery filters", () => {
       "other",
     ]);
   });
+
+  it("skips mints already confirmed empty on DexScreener", () => {
+    expect(
+      prioritizeMintsForHydrate(
+        ["registry-only", "search-seen", "empty"],
+        new Set(["search-seen"]),
+        new Set(["empty"]),
+      ),
+    ).toEqual(["search-seen", "registry-only"]);
+  });
 });

@@ -63,14 +63,43 @@ export function volumeCoverageNote(
         ? `DexScreener reported 24h volume on the primary indexed pair (${input.poolCount} pool${input.poolCount === 1 ? "" : "s"} in this snapshot). Open the chain page for every-pool aggregation.`
         : `Aggregate 24h volume is the sum of DexScreener pair volume.h24 across ${input.poolCount} Solana pool${input.poolCount === 1 ? "" : "s"}. A reported 0 is a real zero.`;
     case "no_indexed_pools":
-      return "DexScreener has no indexed Solana pools for this mint. Volume is unknown, not zero.";
+      return "DexScreener lookup finished and found no indexed Solana pools for this mint. Volume is unknown, not zero — not the same as still hydrating.";
     case "pools_without_volume":
       return "DexScreener indexed pool(s) for this mint but did not report 24h volume on any of them. Volume is unknown, not zero.";
     case "hydrate_failed":
       return "DexScreener pool fetch failed for this mint. Volume is unknown, not zero.";
     case "hydrate_incomplete":
-      return "DexScreener hydrate did not finish before the snapshot budget. Volume is unknown, not zero — still loading / source slow.";
+      return "DexScreener hydrate did not finish before the snapshot budget. Volume is unknown, not zero — still loading. Reload to pick up background enrichment.";
   }
+}
+
+export function solanaHydrateProgress(chain: {
+  assetCount: number;
+  assetsWithVolume: number;
+  assetsWithPools: number;
+  assetsStillHydrating: number;
+  assetsWithNoIndexedPools: number;
+}): {
+  classified: number;
+  checked: number;
+  stillHydrating: number;
+  confirmedNoPools: number;
+  withVolume: number;
+  withPools: number;
+  checkedPct: number;
+} {
+  const classified = chain.assetCount;
+  const stillHydrating = chain.assetsStillHydrating;
+  const checked = Math.max(0, classified - stillHydrating);
+  return {
+    classified,
+    checked,
+    stillHydrating,
+    confirmedNoPools: chain.assetsWithNoIndexedPools,
+    withVolume: chain.assetsWithVolume,
+    withPools: chain.assetsWithPools,
+    checkedPct: classified > 0 ? Math.round((checked / classified) * 100) : 100,
+  };
 }
 
 export function defaultInstrumentFields(input: {

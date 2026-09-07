@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCount, formatUsdCompact, volumeShare } from "@/lib/market/format";
-import type { ChainVolume } from "@/lib/market/types";
+import { SOLANA_CHAIN_ID, type ChainVolume } from "@/lib/market/types";
+import { solanaHydrateProgress } from "@/lib/market/volume-coverage";
 
 export function ChainVolumeCard({
   chain,
@@ -13,6 +14,8 @@ export function ChainVolumeCard({
   maxVolume: number | null;
 }) {
   const share = volumeShare(chain.volume24hUsd, maxVolume);
+  const isSolana = chain.id === SOLANA_CHAIN_ID;
+  const progress = isSolana ? solanaHydrateProgress(chain) : null;
 
   return (
     <Link href={`/chains/${chain.id}`} className="block rounded-xl focus-visible:ring-2 focus-visible:ring-ring">
@@ -54,11 +57,17 @@ export function ChainVolumeCard({
               <dd className="num mt-0.5">{formatCount(chain.assetsWithPools)}</dd>
             </div>
           </dl>
-          {chain.assetsStillHydrating > 0 ? (
-            <p className="text-xs text-muted-foreground">
-              {formatCount(chain.assetsStillHydrating)} classified mint(s) still hydrating DexScreener volume. Counts
-              are so far, not final. Null volume is unknown, not zero.
-            </p>
+          {progress ? (
+            <div className="space-y-1">
+              <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                <div className="h-full rounded-full bg-primary" style={{ width: `${progress.checkedPct}%` }} />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {progress.stillHydrating > 0
+                  ? `${formatCount(progress.stillHydrating)} still hydrating DexScreener · ${formatCount(progress.checked)} / ${formatCount(progress.classified)} looked up. Reload to see with-volume rise. Null is unknown, not zero.`
+                  : `${formatCount(progress.confirmedNoPools)} confirmed no DexScreener pools (index ceiling, not zero volume).`}
+              </p>
+            </div>
           ) : null}
           {chain.etfCount > 0 ? (
             <p className="text-xs text-muted-foreground">

@@ -26,8 +26,21 @@ export const DEFAULT_SOLANA_DISCOVERY_QUERIES = [
   "Amazon xStock",
   "Alphabet xStock",
   "Robinhood xStock",
+  "Palantir xStock",
+  "Intel xStock",
+  "Netflix xStock",
+  "Coinbase xStock",
+  "MicroStrategy xStock",
+  "McDonald xStock",
+  "Berkshire xStock",
+  "Micron xStock",
+  "Broadcom xStock",
+  "Oracle xStock",
+  "Visa xStock",
   "Tesla (Ondo Tokenized)",
   "NVIDIA (Ondo Tokenized)",
+  "Apple (Ondo Tokenized)",
+  "Micron (Ondo Tokenized)",
 ] as const;
 
 export const DEXSCREENER_TOKEN_BATCH_SIZE = 30;
@@ -124,13 +137,18 @@ export function mintsInPairs(
 /**
  * Hydrate DexScreener-known mints before blind registry names so a short budget
  * still returns volume-bearing stocks instead of 0/0 after classify.
+ * `skip` is for mints already confirmed empty — they are not re-queued.
  */
-export function prioritizeMintsForHydrate(mints: readonly string[], priorityMints: ReadonlySet<string>): string[] {
+export function prioritizeMintsForHydrate(
+  mints: readonly string[],
+  priorityMints: ReadonlySet<string>,
+  skip: ReadonlySet<string> = new Set(),
+): string[] {
   const wanted = new Set(mints);
   const seen = new Set<string>();
   const ordered: string[] = [];
   const push = (mint: string) => {
-    if (!wanted.has(mint) || seen.has(mint)) return;
+    if (!wanted.has(mint) || seen.has(mint) || skip.has(mint)) return;
     seen.add(mint);
     ordered.push(mint);
   };

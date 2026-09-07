@@ -302,6 +302,7 @@ export function solanaChainMeta(): Omit<
   | "assetsWithVolume"
   | "assetsWithPools"
   | "assetsStillHydrating"
+  | "assetsWithNoIndexedPools"
   | "reportedPoolCount"
   | "peakDexCount"
 > {
@@ -316,7 +317,7 @@ export function solanaChainMeta(): Omit<
     etfCount: 0,
     volumeAggregation: "all-pools",
     coverageNote:
-      "Tokenized public equities discovered from the live xStocks public registry, the public Ondo GM mint list, and DexScreener search, then classified fail-closed. Volume is the sum of pair volume.h24 across every Solana pool for that mint. Coverage is as discoverable from those live sources + the classifier, not a full Solana indexer. Missing pair metrics stay missing — a dash is not zero. ETF/index products are catalogued separately and are not mixed into equity ranking.",
+      "Tokenized public equities discovered from the live xStocks public registry, the public Ondo GM mint list, DexScreener search, and public GeckoTerminal search, then classified fail-closed. Volume is the sum of DexScreener pair volume.h24 across every Solana pool for that mint. Coverage is as discoverable from those live sources + the classifier, not a full Solana indexer. Most classified mints have no DexScreener pools — that is an index ceiling, not zero volume. Missing pair metrics stay missing — a dash is not zero. ETF/index products are catalogued separately and are not mixed into equity ranking.",
   };
 }
 
@@ -461,9 +462,11 @@ export function buildSolanaSnapshot(input: {
   const classified = equities.assets.length;
   const withVolume = equities.assets.filter((asset) => asset.volume24hUsd !== null).length;
   const withPools = equities.assets.filter((asset) => asset.poolCount > 0).length;
+  const stillHydrating = equities.assets.filter((asset) => asset.volumeCoverage === "hydrate_incomplete").length;
+  const noIndexedPools = equities.assets.filter((asset) => asset.volumeCoverage === "no_indexed_pools").length;
   const meta = solanaChainMeta();
   const coverageNote =
-    `${meta.coverageNote} This snapshot: ${classified} classified equities, ${withVolume} with reported DexScreener volume, ${withPools} with indexed pools. ` +
+    `${meta.coverageNote} This snapshot: ${classified} classified equities, ${withVolume} with reported DexScreener volume, ${withPools} with indexed pools, ${stillHydrating} still hydrating, ${noIndexedPools} confirmed with no DexScreener pools. ` +
     (aggregation === "primary-pair"
       ? "Home rollup uses DexScreener primary-pair volume per mint; the chain page aggregates every Solana pool."
       : "Chain ranking uses aggregate volume across every returned Solana pool for that mint.") +

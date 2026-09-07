@@ -16,7 +16,7 @@ export const TERMINAL_SOURCE_NOTE =
 export const SOLANA_SOURCE_LABEL = "DexScreener (Solana tokenized stocks)";
 
 export const SOLANA_SOURCE_NOTE =
-  "Solana volume is DexScreener pair data for tokenized public equities discovered from the live xStocks public registry, the public Ondo GM mint list, and DexScreener search, then classified fail-closed and aggregated by mint across Solana pools. Coverage is as discoverable from those live sources + the classifier, not a full chain index, and is not executable liquidity. Null volume means unknown (no indexed pools, fetch failure, or hydrate still running) — it is never coerced to zero. ETF/index products are catalogued separately and are not mixed into equity ranking. Ondo's keyed Stocks API is not used.";
+  "Solana volume is DexScreener pair data for tokenized public equities discovered from the live xStocks public registry, the public Ondo GM mint list, DexScreener search, and public GeckoTerminal search, then classified fail-closed and aggregated by mint across Solana pools. Coverage is as discoverable from those live sources + the classifier, not a full chain index. Most classified mints have no DexScreener-indexed pools (confirmed after lookup) — that is unknown volume, not zero. Null volume is never coerced to zero. ETF/index products are catalogued separately and are not mixed into equity ranking. Keyed issuer APIs (Ondo Stocks, Jupiter tokens/v2 stocks tag, tokens.xyz) are not used.";
 
 export const COMPOSITE_SOURCE_NOTE =
   "The home list merges independently fetched adapters. A failed adapter is omitted or marked unavailable; other adapters are not invented to fill the gap.";

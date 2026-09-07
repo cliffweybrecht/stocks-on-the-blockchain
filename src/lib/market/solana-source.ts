@@ -16,6 +16,13 @@ import {
   solanaTokensBatchPath,
   type DiscoveredEquityMint,
 } from "./solana-discover";
+import {
+  DEFAULT_GECKOTERMINAL_BASE_URL,
+  DEFAULT_GECKOTERMINAL_QUERIES,
+  geckoTerminalSearchPath,
+  parseGeckoTerminalSearch,
+} from "./solana-geckoterminal";
+import { SolanaHydrateMemory } from "./solana-hydrate-memory";
 import { fetchJsonOrText, type FetchLike } from "./solana-http";
 import { DEFAULT_ONDO_REGISTRY_URL, parseOndoGmConstants } from "./solana-ondo";
 import {
@@ -42,8 +49,12 @@ export const SOLANA_DEFAULTS = {
   requestGapMs: 50,
   maxConcurrent: 6,
   /** DexScreener hydrate budget after discovery. Search pairs are seeded even if this is 0. */
-  homeBudgetMs: 20_000,
-  fullBudgetMs: 45_000,
+  homeBudgetMs: 25_000,
+  fullBudgetMs: 60_000,
+  /** Background DexScreener hydrate after the first snapshot is returned. */
+  enrichBudgetMs: 180_000,
+  /** Skip re-previewing mints confirmed to have zero DexScreener pools. */
+  emptyCacheMs: 30 * 60_000,
 } as const;
 
 const DEFAULT_BASE_URL = "https://api.dexscreener.com";
@@ -79,6 +90,10 @@ export interface SolanaMarketDataSourceOptions {
   registryBaseUrl?: string;
   enableOndoRegistry?: boolean;
   ondoRegistryUrl?: string;
+  enableGeckoTerminal?: boolean;
+  geckoTerminalBaseUrl?: string;
+  enrichBudgetMs?: number;
+  emptyCacheMs?: number;
   retries?: number;
   backgroundEnrichment?: boolean;
   fetchImpl?: FetchLike;
@@ -91,8 +106,11 @@ export class SolanaMarketDataSource implements MarketDataSource {
   private inflight: Promise<CachedSnapshot> | null = null;
   private inflightMode: SnapshotMode | null = null;
   private backgroundWork: Promise<void> | null = null;
+  private readonly memory: SolanaHydrateMemory;
 
-  constructor(private readonly options: SolanaMarketDataSourceOptions = {}) {}
+  constructor(private readonly options: SolanaMarketDataSourceOptions = {}) {
+    this.memory = new SolanaHydrateMemory(options.emptyCacheMs ?? SOLANA_DEFAULTS.emptyCacheMs);
+  }
 
   private get baseUrl() {
     return (this.options.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
@@ -130,6 +148,14 @@ export class SolanaMarketDataSource implements MarketDataSource {
     return this.options.ondoRegistryUrl ?? DEFAULT_ONDO_REGISTRY_URL;
   }
 
+  private get geckoEnabled() {
+    return this.options.enableGeckoTerminal !== false;
+  }
+
+  private get geckoTerminalBaseUrl() {
+    return (this.options.geckoTerminalBaseUrl ?? DEFAULT_GECKOTERMINAL_BASE_URL).replace(/\/+$/, "");
+  }
+
   private get fetchImpl() {
     return this.options.fetchImpl ?? fetch;
   }
@@ -148,6 +174,10 @@ export class SolanaMarketDataSource implements MarketDataSource {
 
   private get fullBudgetMs() {
     return this.options.fullBudgetMs ?? SOLANA_DEFAULTS.fullBudgetMs;
+  }
+
+  private get enrichBudgetMs() {
+    return this.options.enrichBudgetMs ?? SOLANA_DEFAULTS.enrichBudgetMs;
   }
 
   private get backgroundEnrichment() {
@@ -228,6 +258,36 @@ export class SolanaMarketDataSource implements MarketDataSource {
   private async loadOndoIdentities(): Promise<TokenIdentity[]> {
     const payload = await this.fetchSource(this.ondoRegistryUrl, "Ondo GM list");
     return parseOndoGmConstants(payload);
+  }
+
+  private async loadGeckoTerminalIdentities(): Promise<TokenIdentity[]> {
+    const identities: TokenIdentity[] = [];
+    const gate = this.gate();
+    for (const query of DEFAULT_GECKOTERMINAL_QUERIES) {
+      const payload = await gate.run(() =>
+        this.fetchSource(`${this.geckoTerminalBaseUrl}${geckoTerminalSearchPath(query)}`, "GeckoTerminal"),
+      );
+      identities.push(...parseGeckoTerminalSearch(payload));
+    }
+    return identities;
+  }
+
+  private rememberHydrateOutcome(
+    requested: readonly string[],
+    pairRows: readonly DexScreenerPair[],
+    failed: ReadonlySet<string>,
+    incomplete: ReadonlySet<string>,
+  ): void {
+    const found = mintsInPairs(pairRows, new Set(requested));
+    this.memory.rememberOutcome(requested, found, failed, incomplete);
+  }
+
+  private hydrateSkipSet(mints: readonly string[], now = Date.now()): Set<string> {
+    const skip = new Set<string>();
+    for (const mint of mints) {
+      if (this.memory.isConfirmedEmpty(mint, now)) skip.add(mint);
+    }
+    return skip;
   }
 
   private async hydratePreviewPairs(mints: readonly string[], deadline: number) {
@@ -392,7 +452,22 @@ export class SolanaMarketDataSource implements MarketDataSource {
         )
       : Promise.resolve({ identities: [] as TokenIdentity[], error: null as Error | null });
 
-    const [searchResult, registryResult, ondoResult] = await Promise.all([searchTask, registryTask, ondoTask]);
+    const geckoTask = this.geckoEnabled
+      ? this.loadGeckoTerminalIdentities().then(
+          (identities) => ({ identities, error: null as Error | null }),
+          (error: unknown) => ({
+            identities: [] as TokenIdentity[],
+            error: error instanceof Error ? error : new Error("GeckoTerminal search failed."),
+          }),
+        )
+      : Promise.resolve({ identities: [] as TokenIdentity[], error: null as Error | null });
+
+    const [searchResult, registryResult, ondoResult, geckoResult] = await Promise.all([
+      searchTask,
+      registryTask,
+      ondoTask,
+      geckoTask,
+    ]);
     if (registryResult.error) {
       extraNotes.push(
         `xStocks public registry unavailable: ${registryResult.error.message}. Discovery continued from DexScreener search${this.ondoEnabled ? " and the public Ondo mint list" : ""}.`,
@@ -403,6 +478,11 @@ export class SolanaMarketDataSource implements MarketDataSource {
         `Ondo public GM mint list unavailable: ${ondoResult.error.message}. Official Ondo Stocks API was not used (requires a key). Discovery continued from other live sources.`,
       );
     }
+    if (geckoResult.error) {
+      extraNotes.push(
+        `GeckoTerminal public search unavailable: ${geckoResult.error.message}. DexScreener remains the volume source. Discovery continued from other live sources.`,
+      );
+    }
     if (searchResult.failedQueries > 0 && searchResult.failedQueries < this.discoveryQueries.length) {
       extraNotes.push(
         `${searchResult.failedQueries} DexScreener search probe(s) failed; remaining probes and registries were still used.`,
@@ -410,40 +490,59 @@ export class SolanaMarketDataSource implements MarketDataSource {
     }
 
     const selected = selectInstrumentMints(
-      mergeTokenIdentities([searchResult.identities, registryResult.identities, ondoResult.identities]),
+      mergeTokenIdentities([
+        searchResult.identities,
+        registryResult.identities,
+        ondoResult.identities,
+        geckoResult.identities,
+      ]),
     );
     const discovered = selected.equities;
     const discoveredEtfs = selected.etfs;
     if (discovered.length === 0 && discoveredEtfs.length === 0) {
-      if (searchResult.error && (!this.registryEnabled || registryResult.error) && (!this.ondoEnabled || ondoResult.error)) {
+      if (
+        searchResult.error &&
+        (!this.registryEnabled || registryResult.error) &&
+        (!this.ondoEnabled || ondoResult.error) &&
+        (!this.geckoEnabled || geckoResult.error)
+      ) {
         throw new Error(
-          [searchResult.error.message, registryResult.error?.message, ondoResult.error?.message].filter(Boolean).join(" · "),
+          [searchResult.error.message, registryResult.error?.message, ondoResult.error?.message, geckoResult.error?.message]
+            .filter(Boolean)
+            .join(" · "),
         );
       }
       throw new Error(
-        "No verifiable Solana tokenized stocks from live discovery + classifier. Coverage is as discoverable from DexScreener search, the xStocks public registry, the public Ondo GM mint list, and the classifier — not a full chain index. Ondo's keyed API is not used.",
+        "No verifiable Solana tokenized stocks from live discovery + classifier. Coverage is as discoverable from DexScreener search, the xStocks public registry, the public Ondo GM mint list, public GeckoTerminal search, and the classifier — not a full chain index. Keyed issuer APIs are not used.",
       );
     }
 
     const allDiscovered = [...discovered, ...discoveredEtfs];
     const classifiedMints = new Set(allDiscovered.map((row) => row.mint));
-    const searchMints = new Set(searchResult.identities.map((token) => token.address).filter((mint) => classifiedMints.has(mint)));
+    const searchMints = new Set(
+      searchResult.identities.map((token) => token.address).filter((mint) => classifiedMints.has(mint)),
+    );
+    const geckoMints = new Set(
+      geckoResult.identities.map((token) => token.address).filter((mint) => classifiedMints.has(mint)),
+    );
+    const priorityMints = new Set([...searchMints, ...geckoMints, ...this.memory.pooledMints()]);
     const seedPairs = pairsTouchingMints(searchResult.pairs, classifiedMints);
     const seededMints = mintsInPairs(seedPairs, classifiedMints);
+    this.memory.markPooled(seededMints);
 
-    const remainingPreview = prioritizeMintsForHydrate(
-      allDiscovered.map((row) => row.mint).filter((mint) => !seededMints.has(mint)),
-      searchMints,
-    );
+    const unclassifiedRemaining = allDiscovered.map((row) => row.mint).filter((mint) => !seededMints.has(mint));
+    const skipEmpty = this.hydrateSkipSet(unclassifiedRemaining);
+    const remainingPreview = prioritizeMintsForHydrate(unclassifiedRemaining, priorityMints, skipEmpty);
 
     const hydrateDeadline = Date.now() + (mode === "light" ? this.homeBudgetMs : this.fullBudgetMs);
     const preview = await this.hydratePreviewPairs(remainingPreview, hydrateDeadline);
+    this.rememberHydrateOutcome(remainingPreview, preview.pairRows, preview.failedMints, preview.incompleteMints);
     const pairRows = [...seedPairs, ...preview.pairRows];
     const failedMints = new Set(preview.failedMints);
     const pendingPreview = [...preview.incompleteMints];
 
     extraNotes.push(
-      `Classified ${discovered.length} public equities and ${discoveredEtfs.length} ETF/index products. ${seededMints.size} mint(s) seeded from DexScreener search. ${preview.failedMints.size} mint batch(es) failed DexScreener preview; ${pendingPreview.length} did not finish before the snapshot budget.`,
+      `Classified ${discovered.length} public equities and ${discoveredEtfs.length} ETF/index products. ${seededMints.size} mint(s) seeded from DexScreener search. ${skipEmpty.size} mint(s) skipped as recently confirmed empty on DexScreener. ${preview.failedMints.size} mint batch(es) failed DexScreener preview; ${pendingPreview.length} did not finish before the snapshot budget.`,
     );
 
     const aggregation: VolumeAggregation = mode === "light" ? "primary-pair" : "all-pools";
@@ -452,19 +551,23 @@ export class SolanaMarketDataSource implements MarketDataSource {
 
     if (mode === "full") {
       const knownPairMints = mintsInPairs(pairRows, classifiedMints);
+      this.memory.markPooled(knownPairMints);
       const activeMints = prioritizeMintsForHydrate(
         [...knownPairMints].filter((mint) => !failedMints.has(mint) && !preview.incompleteMints.has(mint)),
-        searchMints,
+        priorityMints,
       );
       if (activeMints.length > 0) {
         const full = await this.hydrateFullPools(activeMints, hydrateDeadline);
         finalPairs = full.pairRows.length > 0 ? full.pairRows : pairRows;
         if (full.pairRows.length > 0) {
           const fullMints = mintsInPairs(full.pairRows, classifiedMints);
-          finalPairs = [...pairRows.filter((pair) => {
-            const touched = mintsInPairs([pair], classifiedMints);
-            return [...touched].every((mint) => !fullMints.has(mint));
-          }), ...full.pairRows];
+          finalPairs = [
+            ...pairRows.filter((pair) => {
+              const touched = mintsInPairs([pair], classifiedMints);
+              return [...touched].every((mint) => !fullMints.has(mint));
+            }),
+            ...full.pairRows,
+          ];
         }
         full.failedMints.forEach((mint) => failedMints.add(mint));
         pendingFull.push(...full.incompleteMints);
@@ -476,7 +579,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
       }
     } else {
       extraNotes.push(
-        "Home snapshot uses DexScreener search pairs plus a time-boxed primary-pair hydrate. Open Solana for every-pool aggregation. Remaining mints keep hydrating in the background.",
+        "Home snapshot uses DexScreener search pairs plus a time-boxed primary-pair hydrate. Open Solana for every-pool aggregation. Remaining mints keep hydrating in the background. Confirmed-empty mints are not re-fetched until the empty-cache TTL.",
       );
     }
 
@@ -507,60 +610,88 @@ export class SolanaMarketDataSource implements MarketDataSource {
   }
 
   private async enrichInBackground(mode: VolumeAggregation): Promise<void> {
-    const snapshot = this.cache;
-    if (!snapshot) return;
-    const classifiedMints = new Set([...snapshot.discovered, ...snapshot.discoveredEtfs].map((row) => row.mint));
-    const knownMints = mintsInPairs(snapshot.pairRows, classifiedMints);
-    const deadline = Date.now() + this.fullBudgetMs;
+    const deadline = Date.now() + this.enrichBudgetMs;
+    let passes = 0;
 
-    let pairRows = snapshot.pairRows;
-    const failedMints = new Set(snapshot.failedMints);
-    let pendingPreview = snapshot.pendingPreviewMints;
-    let pendingFull = snapshot.pendingFullMints;
+    while (passes < 12 && Date.now() < deadline) {
+      const snapshot = this.cache;
+      if (!snapshot) return;
+      const classifiedMints = new Set([...snapshot.discovered, ...snapshot.discoveredEtfs].map((row) => row.mint));
+      const knownMints = new Set([
+        ...mintsInPairs(snapshot.pairRows, classifiedMints),
+        ...this.memory.pooledMints(),
+      ]);
 
-    if (pendingPreview.length > 0) {
-      const ordered = prioritizeMintsForHydrate(pendingPreview, knownMints);
-      const preview = await this.hydratePreviewPairs(ordered, deadline);
-      pairRows = [...pairRows, ...preview.pairRows];
-      preview.failedMints.forEach((mint) => failedMints.add(mint));
-      pendingPreview = [...preview.incompleteMints];
-      const newlyKnown = mintsInPairs(preview.pairRows, classifiedMints);
-      if (mode === "all-pools") {
-        pendingFull = prioritizeMintsForHydrate([...new Set([...pendingFull, ...newlyKnown])], newlyKnown);
+      let pairRows = snapshot.pairRows;
+      const failedMints = new Set(snapshot.failedMints);
+      const skipEmpty = this.hydrateSkipSet(snapshot.pendingPreviewMints);
+      let pendingPreview = prioritizeMintsForHydrate(snapshot.pendingPreviewMints, knownMints, skipEmpty);
+      let pendingFull = snapshot.pendingFullMints.filter((mint) => !this.memory.isConfirmedEmpty(mint));
+      const startedPending = pendingPreview.length + pendingFull.length;
+      if (startedPending === 0) {
+        if (snapshot.pendingPreviewMints.length > 0 || snapshot.pendingFullMints.length > 0) {
+          const next = this.rebuildSnapshot({
+            aggregation: snapshot.aggregation,
+            discovered: snapshot.discovered,
+            discoveredEtfs: snapshot.discoveredEtfs,
+            extraNotes: snapshot.extraNotes.filter((note) => !/still hydrating DexScreener volume/.test(note)),
+            pairRows: snapshot.pairRows,
+            pendingPreviewMints: [],
+            pendingFullMints: [],
+            failedMints: snapshot.failedMints,
+            createdAt: snapshot.createdAt,
+            refreshDurationMs: snapshot.mapped.provenance.refreshDurationMs ?? 0,
+          });
+          this.cache = this.preferRicherCache(next);
+        }
+        return;
       }
-    }
 
-    if (mode === "all-pools" && pendingFull.length > 0) {
-      const full = await this.hydrateFullPools(pendingFull, deadline);
-      if (full.pairRows.length > 0) {
-        const fullMints = mintsInPairs(full.pairRows, classifiedMints);
-        pairRows = [
-          ...pairRows.filter((pair) => {
-            const touched = mintsInPairs([pair], classifiedMints);
-            return [...touched].every((mint) => !fullMints.has(mint));
-          }),
-          ...full.pairRows,
-        ];
+      if (pendingPreview.length > 0) {
+        const preview = await this.hydratePreviewPairs(pendingPreview, deadline);
+        this.rememberHydrateOutcome(pendingPreview, preview.pairRows, preview.failedMints, preview.incompleteMints);
+        pairRows = [...pairRows, ...preview.pairRows];
+        preview.failedMints.forEach((mint) => failedMints.add(mint));
+        pendingPreview = [...preview.incompleteMints];
+        const newlyKnown = mintsInPairs(preview.pairRows, classifiedMints);
+        this.memory.markPooled(newlyKnown);
+        if (mode === "all-pools") {
+          pendingFull = prioritizeMintsForHydrate([...new Set([...pendingFull, ...newlyKnown])], newlyKnown);
+        }
       }
-      full.failedMints.forEach((mint) => failedMints.add(mint));
-      pendingFull = [...full.incompleteMints];
-    }
 
-    const next = this.rebuildSnapshot({
-      aggregation: snapshot.aggregation,
-      discovered: snapshot.discovered,
-      discoveredEtfs: snapshot.discoveredEtfs,
-      extraNotes: snapshot.extraNotes.filter((note) => !/still hydrating DexScreener volume/.test(note)),
-      pairRows,
-      pendingPreviewMints: pendingPreview,
-      pendingFullMints: pendingFull,
-      failedMints: [...failedMints],
-      createdAt: snapshot.createdAt,
-      refreshDurationMs: snapshot.mapped.provenance.refreshDurationMs ?? 0,
-    });
-    this.cache = this.preferRicherCache(next);
-    if ((this.cache.pendingPreviewMints.length > 0 || this.cache.pendingFullMints.length > 0) && Date.now() < deadline) {
-      // Budget remaining but nothing progressed — stop to avoid a tight loop.
+      if (mode === "all-pools" && pendingFull.length > 0 && Date.now() < deadline) {
+        const full = await this.hydrateFullPools(pendingFull, deadline);
+        if (full.pairRows.length > 0) {
+          const fullMints = mintsInPairs(full.pairRows, classifiedMints);
+          pairRows = [
+            ...pairRows.filter((pair) => {
+              const touched = mintsInPairs([pair], classifiedMints);
+              return [...touched].every((mint) => !fullMints.has(mint));
+            }),
+            ...full.pairRows,
+          ];
+        }
+        full.failedMints.forEach((mint) => failedMints.add(mint));
+        pendingFull = [...full.incompleteMints];
+      }
+
+      const next = this.rebuildSnapshot({
+        aggregation: snapshot.aggregation,
+        discovered: snapshot.discovered,
+        discoveredEtfs: snapshot.discoveredEtfs,
+        extraNotes: snapshot.extraNotes.filter((note) => !/still hydrating DexScreener volume/.test(note)),
+        pairRows,
+        pendingPreviewMints: pendingPreview,
+        pendingFullMints: pendingFull,
+        failedMints: [...failedMints],
+        createdAt: snapshot.createdAt,
+        refreshDurationMs: snapshot.mapped.provenance.refreshDurationMs ?? 0,
+      });
+      this.cache = this.preferRicherCache(next);
+      const remaining = this.cache.pendingPreviewMints.length + this.cache.pendingFullMints.length;
+      if (remaining === 0 || remaining >= startedPending) break;
+      passes += 1;
     }
   }
 
