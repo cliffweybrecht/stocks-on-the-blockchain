@@ -52,7 +52,7 @@ export default async function HomePage() {
                 On the Solana desk, press{" "}
                 <kbd className="rounded border border-border px-1 font-mono">/</kbd> or{" "}
                 <kbd className="rounded border border-border px-1 font-mono">⌘K</kbd> to jump by symbol, name,
-                issuer, or mint. Pin rows with the star — pins stay in this browser and are mint-specific.
+                issuer, or mint. Pin two or more names to compare them. Export CSV from the chain page.
               </p>
             </>
           ) : null}

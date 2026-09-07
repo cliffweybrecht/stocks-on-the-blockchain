@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatCount, formatPct, formatPrice, formatRelativeTime, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
+import { poolAggregateTotals, sortPoolsByVolume } from "@/lib/desk/pool-sort";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { toJumpAsset } from "@/lib/market/asset-search";
 import { SOLANA_CHAIN_ID } from "@/lib/market/types";
@@ -63,6 +64,8 @@ export default async function AssetPage({
   const { chain, asset, provenance } = result;
   const halt = asset.price.isTradingHalt;
   const isSolana = chain.id === SOLANA_CHAIN_ID;
+  const rankedPools = sortPoolsByVolume(asset.pools);
+  const poolTotals = poolAggregateTotals(rankedPools);
   const catalog = chainSettled.status === "fulfilled" ? chainSettled.value : null;
   const jumpAssets = catalog
     ? [...catalog.assets, ...(catalog.etfAssets ?? [])].map(toJumpAsset)
@@ -87,14 +90,20 @@ export default async function AssetPage({
           </nav>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
+            <div className="min-w-0 space-y-2">
               <p className="text-xs tracking-[0.18em] text-primary uppercase">{chain.name}</p>
-              <div className="mt-1 flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h2 className="font-heading text-3xl font-semibold tracking-tight">{asset.symbol}</h2>
                 {isSolana ? <AssetPin mint={asset.contractAddress} label={asset.symbol} /> : null}
+                <CoverageBadge coverage={asset.volumeCoverage} />
               </div>
-              <p className="mt-1 text-muted-foreground">{asset.name}</p>
-              {asset.issuer ? <p className="mt-1 text-sm text-muted-foreground">Issuer · {asset.issuer}</p> : null}
+              <p className="text-muted-foreground">{asset.name}</p>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                {asset.issuer ? <span>Issuer · {asset.issuer}</span> : null}
+                {asset.instrumentKind === "etf" ? <span>ETF / index</span> : null}
+              </div>
+              {isSolana ? <CopyAddress address={asset.contractAddress} compact /> : null}
+              {asset.coverageNote ? <p className="max-w-2xl text-sm text-muted-foreground">{asset.coverageNote}</p> : null}
             </div>
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline">
@@ -104,8 +113,6 @@ export default async function AssetPage({
                     ? "DexScreener row"
                     : "Terminal row"}
               </Badge>
-              {asset.instrumentKind === "etf" ? <Badge variant="secondary">ETF / index</Badge> : null}
-              <CoverageBadge coverage={asset.volumeCoverage} />
               {asset.detailEnriched ? <Badge variant="secondary">Enriched detail</Badge> : null}
               {halt ? <Badge variant="destructive">Trading halt reported</Badge> : null}
             </div>
@@ -114,92 +121,122 @@ export default async function AssetPage({
           <TrustBanner />
           <ProvenanceBar provenance={provenance} />
 
-          <section className="space-y-3">
-            <h3 className="font-heading text-lg font-medium">Identity</h3>
-            <CopyAddress address={asset.contractAddress} />
-            {asset.issuer ? <p className="text-sm text-muted-foreground">Issuer · {asset.issuer}</p> : null}
-            {asset.coverageNote ? <p className="text-sm text-muted-foreground">{asset.coverageNote}</p> : null}
-          </section>
+          {!isSolana ? (
+            <section className="space-y-3">
+              <h3 className="font-heading text-lg font-medium">Identity</h3>
+              <CopyAddress address={asset.contractAddress} />
+            </section>
+          ) : null}
 
           <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Metric label="24h volume" value={formatUsdCompact(asset.volume24hUsd)} hint="observedVolume24h" />
+            <Metric
+              label="24h volume"
+              value={formatUsdCompact(asset.volume24hUsd)}
+              hint={isSolana ? "Sum of DexScreener pair volume.h24 for this mint" : "observedVolume24h"}
+            />
             <Metric
               label="Displayed liquidity"
               value={formatUsdCompact(asset.displayedLiquidityUsd)}
-              hint="Not executable size"
+              hint="Provider-reported, not executable"
             />
-            <Metric label="USDG displayed liq" value={formatUsdCompact(asset.usdGLiquidityUsd)} />
             <Metric
               label="Pools / DEXes"
               value={`${formatCount(asset.poolCount)} / ${formatCount(asset.dexCount)}`}
+              hint={isSolana ? `${formatCount(poolTotals.poolCount)} pairs in this snapshot` : undefined}
             />
+            <Metric label="DEX median" value={formatPrice(asset.price.dexMedianUsd)} hint="Median of usable pool prices" />
           </section>
 
-          <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Metric
-              label="Robinhood mark"
-              value={formatPrice(asset.price.robinhoodReferenceUsd)}
-              hint={
-                asset.price.robinhoodGeneratedAt
-                  ? `Quoted ${formatRelativeTime(asset.price.robinhoodGeneratedAt)}`
-                  : "Absent unless Terminal provided a reference"
-              }
-            />
-            <Metric
-              label="DEX median"
-              value={formatPrice(asset.price.dexMedianUsd)}
-              hint="Median of usable pool prices"
-            />
-            <Metric
-              label="RH vs DEX"
-              value={formatPct(asset.price.premiumDiscountPct)}
-              hint="(DEX median − RH) / RH"
-              trust="interpretive"
-            />
-            <Metric
-              label="Price dispersion"
-              value={formatPct(asset.price.priceDispersionPct)}
-              hint="DEX pool range, not a forecast"
-              trust="interpretive"
-            />
-          </section>
+          {isSolana ? (
+            <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <Metric label="24h buys" value={formatCount(asset.buys24h)} />
+              <Metric label="24h sells" value={formatCount(asset.sells24h)} />
+              <Metric
+                label="Top-3 concentration"
+                value={formatPct(asset.concentration.top3Pct)}
+                hint="Share of displayed liquidity"
+              />
+              <Metric
+                label="Largest pool"
+                value={
+                  asset.largestPool
+                    ? `${asset.largestPool.dexId} · ${formatUsdCompact(asset.largestPool.liquidityUsd)}`
+                    : "—"
+                }
+              />
+            </section>
+          ) : (
+            <>
+              <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Metric
+                  label="Robinhood mark"
+                  value={formatPrice(asset.price.robinhoodReferenceUsd)}
+                  hint={
+                    asset.price.robinhoodGeneratedAt
+                      ? `Quoted ${formatRelativeTime(asset.price.robinhoodGeneratedAt)}`
+                      : "Absent unless Terminal provided a reference"
+                  }
+                />
+                <Metric
+                  label="RH vs DEX"
+                  value={formatPct(asset.price.premiumDiscountPct)}
+                  hint="(DEX median − RH) / RH"
+                  trust="interpretive"
+                />
+                <Metric
+                  label="Price dispersion"
+                  value={formatPct(asset.price.priceDispersionPct)}
+                  hint="DEX pool range, not a forecast"
+                  trust="interpretive"
+                />
+                <Metric label="DEX liq-weighted" value={formatPrice(asset.price.dexLiquidityWeightedUsd)} />
+              </section>
+              <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Metric label="RH bid" value={formatPrice(asset.price.robinhoodBidUsd)} />
+                <Metric label="RH ask" value={formatPrice(asset.price.robinhoodAskUsd)} />
+                <Metric label="Largest-pool price" value={formatPrice(asset.price.dexLargestPoolUsd)} />
+                <Metric
+                  label="Largest pool"
+                  value={
+                    asset.largestPool
+                      ? `${asset.largestPool.dexId} · ${formatUsdCompact(asset.largestPool.liquidityUsd)}`
+                      : "—"
+                  }
+                />
+              </section>
+              <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Metric label="24h buys" value={formatCount(asset.buys24h)} />
+                <Metric label="24h sells" value={formatCount(asset.sells24h)} />
+                <Metric
+                  label="Top-3 concentration"
+                  value={formatPct(asset.concentration.top3Pct)}
+                  hint="Share of displayed liquidity"
+                />
+                <Metric label="USDG displayed liq" value={formatUsdCompact(asset.usdGLiquidityUsd)} />
+              </section>
+            </>
+          )}
 
-          <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Metric label="RH bid" value={formatPrice(asset.price.robinhoodBidUsd)} />
-            <Metric label="RH ask" value={formatPrice(asset.price.robinhoodAskUsd)} />
-            <Metric label="DEX liq-weighted" value={formatPrice(asset.price.dexLiquidityWeightedUsd)} />
-            <Metric label="Largest-pool price" value={formatPrice(asset.price.dexLargestPoolUsd)} />
-          </section>
-
-          <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Metric label="24h buys" value={formatCount(asset.buys24h)} />
-            <Metric label="24h sells" value={formatCount(asset.sells24h)} />
-            <Metric
-              label="Top-3 concentration"
-              value={formatPct(asset.concentration.top3Pct)}
-              hint="Share of displayed liquidity"
-            />
-            <Metric
-              label="Largest pool"
-              value={
-                asset.largestPool
-                  ? `${asset.largestPool.dexId} · ${formatUsdCompact(asset.largestPool.liquidityUsd)}`
-                  : "—"
-              }
-            />
-          </section>
-
-          {asset.pools.length > 0 ? (
+          {rankedPools.length > 0 ? (
             <section className="space-y-2">
-              <h3 className="font-heading text-lg font-medium">Solana pools</h3>
-              <p className="text-sm text-muted-foreground">
-                Individual DexScreener pairs for this mint. 24h volume on the stock row is the sum of
-                these pool volumes. One pair is never treated as one stock.
-              </p>
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h3 className="font-heading text-lg font-medium">Solana pools</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Ranked by pair 24h volume (nulls last). Stock volume is the sum of these rows. A pair is never
+                    one stock.
+                  </p>
+                </div>
+                <p className="num text-sm text-muted-foreground">
+                  Aggregate {formatUsdCompact(poolTotals.volume24hUsd)} vol · {formatUsdCompact(poolTotals.liquidityUsd)}{" "}
+                  liq · {formatCount(poolTotals.poolCount)} pairs
+                </p>
+              </div>
               <div className="rounded-xl border border-border bg-card">
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-10 text-right">#</TableHead>
                       <TableHead>DEX</TableHead>
                       <TableHead>Pair</TableHead>
                       <TableHead className="text-right">24h volume</TableHead>
@@ -208,8 +245,9 @@ export default async function AssetPage({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {asset.pools.map((pool, index) => (
+                    {rankedPools.map((pool, index) => (
                       <TableRow key={pool.pairAddress || `${pool.dexId}-${index}`}>
+                        <TableCell className="num text-right text-muted-foreground">{index + 1}</TableCell>
                         <TableCell>{pool.dexId}</TableCell>
                         <TableCell className="num max-w-[9rem] truncate text-xs sm:max-w-none">{pool.pairAddress || "—"}</TableCell>
                         <TableCell className="num text-right">{formatUsdFull(pool.volume24hUsd)}</TableCell>
@@ -217,6 +255,12 @@ export default async function AssetPage({
                         <TableCell className="num text-right">{formatPrice(pool.priceUsd)}</TableCell>
                       </TableRow>
                     ))}
+                    <TableRow className="bg-muted/30 font-medium hover:bg-muted/30">
+                      <TableCell colSpan={3}>Aggregate</TableCell>
+                      <TableCell className="num text-right">{formatUsdFull(poolTotals.volume24hUsd)}</TableCell>
+                      <TableCell className="num text-right">{formatUsdFull(poolTotals.liquidityUsd)}</TableCell>
+                      <TableCell className="num text-right text-muted-foreground">{formatCount(poolTotals.poolCount)}</TableCell>
+                    </TableRow>
                   </TableBody>
                 </Table>
               </div>

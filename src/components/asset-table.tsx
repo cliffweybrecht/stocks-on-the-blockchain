@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { CoverageBadge } from "@/components/coverage-badge";
+import { DeskCsvButton } from "@/components/desk-csv-button";
 import { PinButton } from "@/components/pin-button";
+import { PinCompareStrip } from "@/components/pin-compare-strip";
 import {
   Table,
   TableBody,
@@ -19,6 +21,7 @@ import { solanaChainHref } from "@/lib/desk/solana-chain-href";
 import { assetRouteKey } from "@/lib/market/identity";
 import { formatAddress, formatPct, formatPrice, formatUsdCompact } from "@/lib/market/format";
 import type { AssetSummary, InstrumentKind } from "@/lib/market/types";
+import { PIN_COMPARE_MAX, selectPinnedCompareRows, shouldShowPinCompare } from "@/lib/desk/pin-compare";
 import { type CoverageFilter } from "@/lib/market/volume-coverage";
 
 const SORT_LABELS: Record<AssetSortKey, string> = {
@@ -93,7 +96,20 @@ export function AssetTable({
   enableFavorites = false,
 }: {
   assets: AssetSummary[];
-  catalogAssets?: Array<Pick<AssetSummary, "symbol" | "contractAddress">>;
+  catalogAssets?: Array<
+    Pick<
+      AssetSummary,
+      | "symbol"
+      | "name"
+      | "issuer"
+      | "contractAddress"
+      | "volume24hUsd"
+      | "displayedLiquidityUsd"
+      | "poolCount"
+      | "volumeCoverage"
+      | "instrumentKind"
+    >
+  >;
   chainId: string;
   totalInLane: number;
   equityCount: number;
@@ -138,6 +154,11 @@ export function AssetTable({
     return [...pins, ...rest];
   }, [assets, enableFavorites, favorites.favoriteSet, pinnedOnly, query, sortKey]);
 
+  const compareRows = useMemo(() => {
+    if (!enableFavorites) return [];
+    return selectPinnedCompareRows(catalog, favorites.favoriteMints, PIN_COMPARE_MAX);
+  }, [catalog, enableFavorites, favorites.favoriteMints]);
+  const compareHidden = Math.max(0, favorites.favoriteMints.length - compareRows.length);
   const hydratingVisible = rows.filter((asset) => asset.volumeCoverage === "hydrate_incomplete").length;
   const sortColumns = (
     [
@@ -182,14 +203,27 @@ export function AssetTable({
           aria-label="Filter stocks in this list"
           className="h-8 w-full max-w-md rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
         />
-        <div className="flex flex-wrap gap-2 text-xs lg:hidden">
-          {sortColumns.map(([key, label]) => (
-            <Link key={key} href={hrefFor({ sortKey: key })} scroll={false} className={chipClass(sortKey === key)}>
-              {label}
-            </Link>
-          ))}
+        <div className="flex flex-wrap items-center gap-2">
+          {enableFavorites ? (
+            <DeskCsvButton rows={rows} lane={lane} coverage={coverageFilter} sortKey={sortKey} />
+          ) : null}
+          <div className="flex flex-wrap gap-2 text-xs lg:hidden">
+            {sortColumns.map(([key, label]) => (
+              <Link key={key} href={hrefFor({ sortKey: key })} scroll={false} className={chipClass(sortKey === key)}>
+                {label}
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
+      {enableFavorites && shouldShowPinCompare(compareRows) ? (
+        <PinCompareStrip
+          chainId={chainId}
+          rows={compareRows}
+          catalog={catalog}
+          hiddenCount={compareHidden}
+        />
+      ) : null}
       <div className="flex flex-wrap gap-2 text-xs">
         {coverageChips.map(([key, label]) => (
           <Link key={key} href={hrefFor({ coverage: key })} scroll={false} className={chipClass(coverageFilter === key)}>
