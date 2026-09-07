@@ -3,7 +3,7 @@ import { DEFAULT_SOLANA_DISCOVERY_QUERIES } from "../solana-discover";
 import { SolanaMarketDataSource } from "../solana-source";
 
 const tslaMint = "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB";
-const hoodMint = "NotAllowlisted111111111111111111111111111";
+const hoodMint = "XsNotAllowlisted1111111111111111111111111";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -132,5 +132,6 @@ describe("SolanaMarketDataSource", () => {
   it("uses the default discovery query set", () => {
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("xStock");
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("tokenized stock");
+    expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("Tesla xStock");
   });
 });

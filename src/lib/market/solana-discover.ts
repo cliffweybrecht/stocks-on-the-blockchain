@@ -15,8 +15,10 @@ export const DEFAULT_SOLANA_DISCOVERY_QUERIES = [
   "tokenized equity",
   "tokenised stock",
   "backed xstock",
-  "prestocks",
-  "dinari stock",
+  "Tesla xStock",
+  "Meta xStock",
+  "Circle xStock",
+  "NVIDIA xStock",
 ] as const;
 
 export function solanaSearchPath(query: string): string {

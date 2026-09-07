@@ -7,7 +7,7 @@ describe("discovery filters", () => {
       {
         chainId: "solana",
         baseToken: {
-          address: "HoodMint111111111111111111111111111111111",
+          address: "XsHoodMint111111111111111111111111111111",
           name: "Robinhood xStock",
           symbol: "HOODx",
         },
@@ -36,30 +36,32 @@ describe("discovery filters", () => {
   it("does not require the historical xStock allowlist for admission", () => {
     const selected = selectEquityMints([
       {
-        address: "NotOnTheOldAllowlist111111111111111111111",
+        address: "XsNotOnTheOldAllowlist1111111111111111111",
         symbol: "NFLXx",
         name: "Netflix xStock",
       },
     ]);
     expect(selected).toHaveLength(1);
-    expect(selected[0]?.mint).toBe("NotOnTheOldAllowlist111111111111111111111");
+    expect(selected[0]?.mint).toBe("XsNotOnTheOldAllowlist1111111111111111111");
   });
 
   it("deduplicates the same mint seen on multiple search pairs", () => {
     const tokens = collectSolanaCandidateTokens([
       {
         chainId: "solana",
-        baseToken: { address: "MintA", name: "Tesla", symbol: "TSLAx" },
+        baseToken: { address: "XsMintA111111111111111111111111111111111", name: "Tesla", symbol: "TSLAx" },
         quoteToken: { address: "usdc", symbol: "USDC" },
       },
       {
         chainId: "solana",
-        baseToken: { address: "MintA", name: "Tesla xStock", symbol: "TSLAx" },
+        baseToken: { address: "XsMintA111111111111111111111111111111111", name: "Tesla xStock", symbol: "TSLAx" },
         quoteToken: { address: "sol", symbol: "SOL" },
       },
     ]);
     expect(tokens).toHaveLength(3);
-    expect(tokens.find((token) => token.address === "MintA")?.name).toBe("Tesla xStock");
+    expect(tokens.find((token) => token.address === "XsMintA111111111111111111111111111111111")?.name).toBe(
+      "Tesla xStock",
+    );
     expect(selectEquityMints(tokens)).toHaveLength(1);
   });
 });

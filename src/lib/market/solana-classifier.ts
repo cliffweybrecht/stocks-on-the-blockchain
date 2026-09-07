@@ -77,6 +77,8 @@ const ETF_INDEX_SYMBOLS = new Set([
   "VTIX",
 ]);
 
+const GENERIC_CATEGORY_SYMBOLS = new Set(["EQUITY", "RWA", "STOCK", "STOCKS", "XSTOCK", "XSTOCKS"]);
+
 const EQUITY_LABELS = new Set([
   "equity",
   "rwa-equity",
@@ -89,9 +91,8 @@ const EQUITY_LABELS = new Set([
 
 const ETF_LABELS = new Set(["etf", "equity-etf", "index", "index-fund"]);
 
-const ISSUER_PATTERNS: readonly { re: RegExp; issuer: string }[] = [
+const ISSUER_NAME_PATTERNS: readonly { re: RegExp; issuer: string }[] = [
   { re: /\bxstocks?\b/i, issuer: "Backed / xStocks" },
-  { re: /\bprestocks?\b/i, issuer: "PreStocks" },
   { re: /\bdinari\b/i, issuer: "Dinari" },
   { re: /\bdshares?\b/i, issuer: "dShares" },
   { re: /\bbacked(?:\s+finance)?\b/i, issuer: "Backed" },
@@ -105,7 +106,15 @@ const COMMODITY_NAME = /\b(?:gold|silver|crude\s+oil|precious\s+metal|commodity|
 const CRYPTO_NAME =
   /\b(?:usd\s*coin|tether|wrapped\s+sol|wrapped\s+bitcoin|wrapped\s+ether|memecoin|meme\s+coin|stablecoin)\b/i;
 
-const TOKENIZED_EQUITY_PHRASE = /tokeni[sz]ed(?:\s+public)?\s+(?:stock|equity|share|shares)\b/i;
+const NON_PUBLIC_EQUITY_NAME =
+  /\b(?:prestocks?|pre-?ipo|pre\s+ipo|real\s+estate|treasury|t-?bills?|money\s+market|private\s+credit|spacex|xai|openai|anthropic|stripe)\b/i;
+
+const GENERIC_CATEGORY_NAME =
+  /^(?:the\s+)?(?:xstocks?|tokeni[sz]ed(?:\s+public)?\s+(?:stocks?|equit(?:y|ies)|shares?))$/i;
+
+const COMPANY_XSTOCK_NAME = /\S.+\bxstocks?\b/i;
+
+const TOKENIZED_EQUITY_PHRASE = /\btokeni[sz]ed(?:\s+public)?\s+(?:stock|equity|share|shares)\b/i;
 
 function normalizeSymbol(symbol: string | null | undefined): string | null {
   const raw = asNonEmptyString(symbol);
@@ -135,9 +144,12 @@ export function tokenIdentityFromFields(input: {
 }
 
 export function inferIssuer(name: string | null, symbol: string | null, address: string): string | null {
-  const haystack = `${name ?? ""} ${symbol ?? ""}`;
-  for (const pattern of ISSUER_PATTERNS) {
-    if (pattern.re.test(haystack)) return pattern.issuer;
+  if (name) {
+    for (const pattern of ISSUER_NAME_PATTERNS) {
+      if (pattern.re.test(name) && !GENERIC_CATEGORY_NAME.test(name.trim())) {
+        return pattern.issuer;
+      }
+    }
   }
   if (/^Xs/.test(address) && /^[A-Z]{1,5}X$/i.test(symbol ?? "")) {
     return "Backed / xStocks";
@@ -151,6 +163,11 @@ function tickerLike(symbol: string | null): boolean {
 
 function backedTickerSymbol(symbol: string | null): boolean {
   return Boolean(symbol && /^[A-Z]{1,5}X$/.test(symbol));
+}
+
+function isGenericCategory(name: string | null, symbol: string | null): boolean {
+  if (symbol && GENERIC_CATEGORY_SYMBOLS.has(symbol)) return true;
+  return Boolean(name && GENERIC_CATEGORY_NAME.test(name));
 }
 
 export function classifyTokenizedEquity(token: TokenIdentity): TokenClassification {
@@ -179,6 +196,12 @@ export function classifyTokenizedEquity(token: TokenIdentity): TokenClassificati
   if (name && COMMODITY_NAME.test(name)) {
     return { kind: "reject", reason: "commodity name" };
   }
+  if (name && NON_PUBLIC_EQUITY_NAME.test(name)) {
+    return { kind: "reject", reason: "not a public equity" };
+  }
+  if (isGenericCategory(name, symbol)) {
+    return { kind: "reject", reason: "generic category token" };
+  }
 
   if (symbol && ETF_INDEX_SYMBOLS.has(symbol)) {
     return { kind: "reject", reason: "ETF or index symbol" };
@@ -192,31 +215,40 @@ export function classifyTokenizedEquity(token: TokenIdentity): TokenClassificati
 
   const issuer = inferIssuer(name, token.symbol ?? null, address);
 
-  if (name && /\bxstocks?\b/i.test(name)) {
+  if (name && COMPANY_XSTOCK_NAME.test(name)) {
+    if (!/^Xs/.test(address)) {
+      return { kind: "reject", reason: "xStock branding without Backed mint convention" };
+    }
     return { kind: "equity", issuer: issuer ?? "Backed / xStocks", reason: "xStock name" };
   }
 
-  if (name && TOKENIZED_EQUITY_PHRASE.test(name)) {
+  if (name && TOKENIZED_EQUITY_PHRASE.test(name) && !GENERIC_CATEGORY_NAME.test(name) && tickerLike(symbol)) {
     return { kind: "equity", issuer, reason: "tokenized equity phrase" };
   }
 
-  if (labels.some((label) => EQUITY_LABELS.has(label))) {
+  if (labels.some((label) => EQUITY_LABELS.has(label)) && (tickerLike(symbol) || backedTickerSymbol(symbol))) {
     return { kind: "equity", issuer, reason: "explicit equity label" };
   }
 
-  if (issuer && (tickerLike(symbol) || backedTickerSymbol(symbol) || (name && /\b(?:stock|equity|share)/i.test(name)))) {
+  if (issuer && issuer !== "Backed / xStocks" && (tickerLike(symbol) || backedTickerSymbol(symbol))) {
     return { kind: "equity", issuer, reason: "known issuer with equity signal" };
   }
 
-  if (backedTickerSymbol(symbol) && name && /\b(?:stock|equity|share)/i.test(name)) {
-    return { kind: "equity", issuer, reason: "tickerx symbol with equity name" };
+  if (backedTickerSymbol(symbol) && name && /\b(?:stock|equity|share)s?\b/i.test(name) && /^Xs/.test(address)) {
+    return { kind: "equity", issuer: issuer ?? "Backed / xStocks", reason: "tickerx symbol with equity name" };
   }
 
   if (backedTickerSymbol(symbol) && /^Xs/.test(address)) {
     return { kind: "equity", issuer: issuer ?? "Backed / xStocks", reason: "Backed mint convention plus tickerx" };
   }
 
-  if (name && /tokeni[sz]ed/i.test(name) && tickerLike(symbol)) {
+  if (
+    name &&
+    /\btokeni[sz]ed\b/i.test(name) &&
+    /\b(?:stock|equity|shares?)\b/i.test(name) &&
+    tickerLike(symbol) &&
+    !GENERIC_CATEGORY_NAME.test(name)
+  ) {
     return { kind: "equity", issuer, reason: "tokenized plus ticker symbol" };
   }
 

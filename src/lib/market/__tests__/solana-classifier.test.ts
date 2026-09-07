@@ -4,7 +4,7 @@ import { classifyTokenizedEquity } from "../solana-classifier";
 describe("classifyTokenizedEquity", () => {
   it("admits Backed xStock names without consulting an allowlist", () => {
     const result = classifyTokenizedEquity({
-      address: "SomeOtherMint11111111111111111111111111111",
+      address: "XsNotOnTheOldAllowlist1111111111111111111",
       symbol: "HOODx",
       name: "Robinhood xStock",
     });
@@ -100,5 +100,57 @@ describe("classifyTokenizedEquity", () => {
   it("fails closed on malformed identity", () => {
     expect(classifyTokenizedEquity({ address: "", symbol: "TSLAx", name: "Tesla xStock" }).kind).toBe("reject");
     expect(classifyTokenizedEquity({ address: "mint", symbol: null, name: null }).kind).toBe("reject");
+  });
+
+  it("rejects generic category tokens, copycat xStock brands, and non-public RWAs", () => {
+    expect(
+      classifyTokenizedEquity({
+        address: "5hBscPYy5Wmbet3paPKhB9WuPoq8FtUaBxJi6Ei6pump",
+        symbol: "xStocks",
+        name: "xStocks",
+      }).kind,
+    ).toBe("reject");
+    expect(
+      classifyTokenizedEquity({
+        address: "GK517BU3J8fHvq54wQPjGnjaVrAu6e1KZfAk1UHDpump",
+        symbol: "EQUITY",
+        name: "Tokenized Equity",
+      }).kind,
+    ).toBe("reject");
+    expect(
+      classifyTokenizedEquity({
+        address: "Fr4VPMoAgCPyEtzFAficBggbBz4SnjAbbh5oRXpiYKBR",
+        symbol: "AMZNX",
+        name: "Amazon tokenized (xStock)",
+      }).kind,
+    ).toBe("reject");
+    expect(
+      classifyTokenizedEquity({
+        address: "PreANxuXjsy2pvisWWMNB6YaJNzr7681wJJr2rHsfTh",
+        symbol: "SPACEX",
+        name: "SpaceX PreStocks",
+      }).kind,
+    ).toBe("reject");
+    expect(
+      classifyTokenizedEquity({
+        address: "TTRXx2ypNmtMALQpk9CEy3eCr7sq47tJohvfEtKVVZJ",
+        symbol: "TTR",
+        name: "Trump Tokenized Real Estate",
+      }).kind,
+    ).toBe("reject");
+    expect(
+      classifyTokenizedEquity({
+        address: "7GetcwtjHasEtG8NoDsgguh9jhV7w3q12yamUWnqMuLQ",
+        symbol: "STRC",
+        name: "SaylorTokenizedRocketCum",
+      }).kind,
+    ).toBe("reject");
+    expect(
+      classifyTokenizedEquity({
+        address: "Xs3oZwbHvqis4NYcf4YKWmEia2eC84wSiVrcYcTqpH8",
+        symbol: "SPCXx",
+        name: "SpaceX xStock",
+      }).kind,
+    ).toBe("reject");
   });
 });

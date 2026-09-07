@@ -89,14 +89,14 @@ Each chain and asset carries `sourceId` / `sourceLabel`. Composite provenance al
 
 ### Solana discovery + classifier
 
-Search queries (probes, not an admission list): `xStock`, `xStocks`, `tokenized stock`, `tokenized equity`, `tokenised stock`, `backed xstock`, `prestocks`, `dinari stock`.
+Search queries (probes, not an admission list): `xStock`, `xStocks`, `tokenized stock`, `tokenized equity`, `tokenised stock`, `backed xstock`, plus a few single-name probes such as `Tesla xStock` / `NVIDIA xStock` because DexScreener search is capped.
 
 **Admitted** only with a verifiable equity signal, for example:
 
 - Name contains `xStock`
 - Phrase like `tokenized stock` / `tokenized equity`
 - Explicit equity/stock labels from the source
-- Known issuer keyword (Backed / xStocks, PreStocks, Dinari, dShares) plus a ticker-like symbol
+- Known public-equity issuer keyword (Dinari, dShares, Backed) plus a ticker-like symbol
 - Backed mint convention (`Xs…` + `TSLAx`-style symbol)
 
 **Excluded** (fail closed):
@@ -104,7 +104,8 @@ Search queries (probes, not an admission list): `xStock`, `xStocks`, `tokenized 
 - Ordinary crypto and wrapped natives (SOL, BONK, JUP, …)
 - Stablecoins (USDC, USDT, …)
 - Commodities (gold, oil, PAXG, …)
-- Unrelated RWAs and unverifiable tickers (a token named `Tesla` is not enough)
+- Unrelated RWAs, pre-IPO / PreStocks, private-company names (SpaceX, xAI, OpenAI, …), generic “xStocks” / “Tokenized Equity” baskets, and unverifiable tickers (a token named `Tesla` is not enough)
+- Copycat `xStock` names whose mint does not use Backed’s `Xs…` convention
 - ETFs and index products (`SPYx`, `QQQx`, “S&P 500”, “Nasdaq xStock”, …) unless a future category explicitly supports them
 
 Volume = sum of returned pair `volume.h24` for that mint across every Solana pool. A DexScreener pair is never treated as one stock. Duplicate `pairAddress` values are dropped. Null/unknown volume stays null and ranks last; a reported `0` is a real zero.

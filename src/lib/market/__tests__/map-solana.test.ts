@@ -141,7 +141,7 @@ describe("mapDexScreenerPairsToSolanaAssets", () => {
         dexId: "raydium",
         pairAddress: "pair-hood",
         baseToken: {
-          address: "NotAllowlisted111111111111111111111111111",
+          address: "XsNotAllowlisted1111111111111111111111111",
           name: "Robinhood xStock",
           symbol: "HOODx",
         },
