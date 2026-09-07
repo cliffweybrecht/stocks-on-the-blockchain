@@ -1,10 +1,14 @@
 import { asNonEmptyString } from "./numbers";
 
+export type UnderlyingInstrumentType = "equity" | "etf";
+
 export interface TokenIdentity {
   address: string;
   symbol?: string | null;
   name?: string | null;
   labels?: readonly string[] | null;
+  /** Live issuer instrument class when a registry provides it. Not a mint allowlist. */
+  underlyingInstrumentType?: UnderlyingInstrumentType | null;
 }
 
 export interface EquityClassification {
@@ -61,16 +65,52 @@ const CRYPTO_STABLE_SYMBOLS = new Set([
 const COMMODITY_SYMBOLS = new Set(["GOLD", "OIL", "PAXG", "SILVER", "XAG", "XAU", "XAUT"]);
 
 const ETF_INDEX_SYMBOLS = new Set([
+  "BITX",
+  "BITXX",
   "DIA",
   "DIAX",
+  "EEM",
+  "EEMX",
   "IVV",
   "IVVX",
   "IWM",
   "IWMX",
+  "JPST",
+  "JPSTX",
+  "PSQ",
+  "PSQX",
+  "QLD",
+  "QLDX",
   "QQQ",
   "QQQX",
+  "SGOV",
+  "SGOVX",
+  "SLV",
+  "SLVX",
+  "SOXL",
+  "SOXLX",
+  "SOXS",
+  "SOXSX",
+  "SPXL",
+  "SPXLX",
   "SPY",
   "SPYX",
+  "SQQQ",
+  "SQQQX",
+  "TBLL",
+  "TBLLX",
+  "TNA",
+  "TNAX",
+  "TQQQ",
+  "TQQQX",
+  "TLT",
+  "TLTX",
+  "TZA",
+  "TZAX",
+  "UPRO",
+  "UPROX",
+  "UVXY",
+  "UVXYX",
   "VOO",
   "VOOX",
   "VTI",
@@ -99,15 +139,18 @@ const ISSUER_NAME_PATTERNS: readonly { re: RegExp; issuer: string }[] = [
 ];
 
 const ETF_NAME =
-  /\b(?:etf|s&p(?:\s*500)?|sp500|sp\s*500|nasdaq(?:-?100)?|dow\s*jones|russell(?:\s*2000)?|index\s+fund|ishares|spdr|spyder)\b/i;
+  /\b(?:etf|s&p(?:\s*500)?|sp500|sp\s*500|nasdaq-?100|nasdaq\s+xstocks?|dow\s*jones|russell(?:\s*2000)?|index|ishares|spdr|spyder|vanguard|vaneck|direxion|global\s+x|roundhill|proshares|volatility\s+shares|2x\s+long|3x\s+(?:long|short)|leveraged|ultra-?short|ultra-?pro|silver trust|gold miners|bitcoin strategy)\b/i;
 
-const COMMODITY_NAME = /\b(?:gold|silver|crude\s+oil|precious\s+metal|commodity|commodities|pax\s*gold)\b/i;
+const COMMODITY_PRODUCT_NAME =
+  /^(?:tokeni[sz]ed\s+)?(?:gold|silver|crude\s+oil|precious\s+metal|pax\s*gold)(?:\s+xstocks?)?$/i;
 
 const CRYPTO_NAME =
   /\b(?:usd\s*coin|tether|wrapped\s+sol|wrapped\s+bitcoin|wrapped\s+ether|memecoin|meme\s+coin|stablecoin)\b/i;
 
-const NON_PUBLIC_EQUITY_NAME =
-  /\b(?:prestocks?|pre-?ipo|pre\s+ipo|real\s+estate|treasury|t-?bills?|money\s+market|private\s+credit|spacex|xai|openai|anthropic|stripe)\b/i;
+const PRIVATE_OR_PREIPO_NAME =
+  /\b(?:prestocks?|pre-?ipo|pre\s+ipo|spacex|xai|openai|anthropic|stripe|shein)\b/i;
+
+const TOKENIZED_REAL_ESTATE_RWA = /tokeni[sz]ed\s+real\s+estate/i;
 
 const GENERIC_CATEGORY_NAME =
   /^(?:the\s+)?(?:xstocks?|tokeni[sz]ed(?:\s+public)?\s+(?:stocks?|equit(?:y|ies)|shares?))$/i;
@@ -127,11 +170,19 @@ function readLabels(labels: TokenIdentity["labels"]): string[] {
   return labels.map((label) => label.trim().toLowerCase()).filter((label) => label.length > 0);
 }
 
+export function parseUnderlyingInstrumentType(value: unknown): UnderlyingInstrumentType | null {
+  const raw = asNonEmptyString(value)?.toLowerCase();
+  if (raw === "equity") return "equity";
+  if (raw === "etf") return "etf";
+  return null;
+}
+
 export function tokenIdentityFromFields(input: {
   address?: unknown;
   symbol?: unknown;
   name?: unknown;
   labels?: readonly string[] | null;
+  underlyingInstrumentType?: unknown;
 }): TokenIdentity | null {
   const address = asNonEmptyString(input.address);
   if (!address) return null;
@@ -140,6 +191,7 @@ export function tokenIdentityFromFields(input: {
     symbol: asNonEmptyString(input.symbol),
     name: asNonEmptyString(input.name),
     labels: input.labels ?? [],
+    underlyingInstrumentType: parseUnderlyingInstrumentType(input.underlyingInstrumentType),
   };
 }
 
@@ -193,11 +245,14 @@ export function classifyTokenizedEquity(token: TokenIdentity): TokenClassificati
   if (name && CRYPTO_NAME.test(name)) {
     return { kind: "reject", reason: "crypto or stablecoin name" };
   }
-  if (name && COMMODITY_NAME.test(name)) {
-    return { kind: "reject", reason: "commodity name" };
+  if (name && COMMODITY_PRODUCT_NAME.test(name)) {
+    return { kind: "reject", reason: "commodity product" };
   }
-  if (name && NON_PUBLIC_EQUITY_NAME.test(name)) {
+  if (name && PRIVATE_OR_PREIPO_NAME.test(name)) {
     return { kind: "reject", reason: "not a public equity" };
+  }
+  if (name && TOKENIZED_REAL_ESTATE_RWA.test(name)) {
+    return { kind: "reject", reason: "real-estate RWA" };
   }
   if (isGenericCategory(name, symbol)) {
     return { kind: "reject", reason: "generic category token" };
@@ -211,6 +266,9 @@ export function classifyTokenizedEquity(token: TokenIdentity): TokenClassificati
   }
   if (labels.some((label) => ETF_LABELS.has(label))) {
     return { kind: "reject", reason: "ETF or index label" };
+  }
+  if (token.underlyingInstrumentType === "etf") {
+    return { kind: "reject", reason: "issuer-classified ETF" };
   }
 
   const issuer = inferIssuer(name, token.symbol ?? null, address);
@@ -250,6 +308,14 @@ export function classifyTokenizedEquity(token: TokenIdentity): TokenClassificati
     !GENERIC_CATEGORY_NAME.test(name)
   ) {
     return { kind: "equity", issuer, reason: "tokenized plus ticker symbol" };
+  }
+
+  if (
+    token.underlyingInstrumentType === "equity" &&
+    (tickerLike(symbol) || backedTickerSymbol(symbol)) &&
+    !isGenericCategory(name, symbol)
+  ) {
+    return { kind: "equity", issuer, reason: "issuer-classified public equity" };
   }
 
   return { kind: "reject", reason: "no verifiable tokenized-equity signal" };

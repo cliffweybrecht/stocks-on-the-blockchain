@@ -34,25 +34,33 @@ Calls `GET {TERMINAL_BASE_URL}/api/market/liquidity` and maps rows to **one hone
 SOLANA_MARKET_ENABLED=true npm run dev -- --port 43147
 ```
 
-Uses DexScreener’s public API (no API key). The Solana adapter is a pipeline, not a mint allowlist:
+Uses DexScreener’s public API (no API key) plus the public **xStocks / Backed** asset registry. The Solana adapter is a pipeline, not a mint allowlist:
 
-1. **Discover** candidates with `GET /latest/dex/search?q=…` (several category/issuer queries)
+1. **Discover** candidates from:
+   - live `GET https://api.xstocks.fi/api/v2/public/assets?network=Solana` (paginated; not an admission list)
+   - DexScreener `GET /latest/dex/search?q=…` (category/issuer probes; search is capped)
 2. **Classify** each Solana mint fail-closed as a tokenized public equity
-3. **Hydrate** every pool for an admitted mint with `GET /token-pairs/v1/solana/{mint}`
-4. **Aggregate** those pools into one stock row keyed by mint
+3. **Hydrate** pools in two DexScreener steps:
+   - `GET /tokens/v1/solana/{mints}` in batches of 30 to see which discovered mints have any DEX market
+   - `GET /token-pairs/v1/solana/{mint}` for each active mint so **every Solana pool** is included (the batch endpoint only returns one primary pair)
+4. **Aggregate** those pools into one stock row keyed by mint. Classified mints with no DexScreener pools still appear, with null volume (ranked last)
 
 The historical Backed xStock mint list in `src/lib/market/solana-allowlist.ts` is a **test fixture only**. It is not a production admission gate.
 
-Coverage is **as discoverable from DexScreener search + the classifier**, not a full Solana index. Search results are noisy and capped. If discovery or classification yields zero verifiable stocks, or DexScreener errors, the adapter **fails closed** — no invented volume.
+Coverage is **as discoverable from the live xStocks registry + DexScreener search + the classifier**, not a full Solana index. Search results are noisy and capped (~30 pairs per query, no page cursor); the registry is the main way to see beyond that window. Most registry names have **no DexScreener pools** and therefore appear with null volume (ranked last). The registry schema includes `underlying.type` (`Equity` vs `ETF`); live payloads often leave that field null, so name/symbol rules remain the working ETF/commodity filter, and the type is used when present. Ondo and other issuers are included only if they appear in those live sources and pass the classifier (their keyed/private APIs are not used). If discovery or classification yields zero verifiable stocks, or DexScreener hydrate errors, the adapter **fails closed** — no invented volume. If the xStocks registry is down, discovery continues from DexScreener search alone.
 
-Override the API host only if you have a proxy:
+Override hosts only if you have a proxy:
 
 ```bash
 SOLANA_MARKET_ENABLED=true
 SOLANA_DEXSCREENER_BASE_URL=https://api.dexscreener.com
 SOLANA_TIMEOUT_MS=15000
 SOLANA_REQUEST_GAP_MS=200
+SOLANA_XSTOCKS_REGISTRY_URL=https://api.xstocks.fi/api/v2
+SOLANA_XSTOCKS_REGISTRY_ENABLED=true
 ```
+
+Set `SOLANA_XSTOCKS_REGISTRY_ENABLED=false` to disable the live registry and use DexScreener search only.
 
 ### Terminal + Solana together
 
@@ -89,7 +97,7 @@ Each chain and asset carries `sourceId` / `sourceLabel`. Composite provenance al
 
 ### Solana discovery + classifier
 
-Search queries (probes, not an admission list): `xStock`, `xStocks`, `tokenized stock`, `tokenized equity`, `tokenised stock`, `backed xstock`, plus a few single-name probes such as `Tesla xStock` / `NVIDIA xStock` because DexScreener search is capped.
+Search queries (probes, not an admission list): `xStock`, `xStocks`, `tokenized stock`, `tokenized equity`, `tokenized share`, `tokenised stock`, `backed xstock`, plus single-name probes such as `Tesla xStock` / `Apple xStock` / `Microsoft xStock` / `Robinhood xStock` because DexScreener search is capped and has no pagination. The **xStocks public registry** is the primary way to discover the broader Backed universe (`GET /public/assets?network=Solana`, paginated). Registry `underlying.type` (`Equity` vs `ETF`) is a classifier signal from the issuer, not a mint allowlist. Search remains a fallback and a path for any non-Backed names DexScreener happens to return.
 
 **Admitted** only with a verifiable equity signal, for example:
 
@@ -98,6 +106,7 @@ Search queries (probes, not an admission list): `xStock`, `xStocks`, `tokenized 
 - Explicit equity/stock labels from the source
 - Known public-equity issuer keyword (Dinari, dShares, Backed) plus a ticker-like symbol
 - Backed mint convention (`Xs…` + `TSLAx`-style symbol)
+- Live issuer instrument type `Equity` plus a ticker-like symbol, after the reject rules still pass
 
 **Excluded** (fail closed):
 
@@ -106,7 +115,10 @@ Search queries (probes, not an admission list): `xStock`, `xStocks`, `tokenized 
 - Commodities (gold, oil, PAXG, …)
 - Unrelated RWAs, pre-IPO / PreStocks, private-company names (SpaceX, xAI, OpenAI, …), generic “xStocks” / “Tokenized Equity” baskets, and unverifiable tickers (a token named `Tesla` is not enough)
 - Copycat `xStock` names whose mint does not use Backed’s `Xs…` convention
-- ETFs and index products (`SPYx`, `QQQx`, “S&P 500”, “Nasdaq xStock”, …) unless a future category explicitly supports them
+- ETFs and index products (`SPYx`, `QQQx`, `TQQQx`, iShares/Vanguard/VanEck wrappers, leveraged 2x/3x, ultra-short income funds, “Gold xStock”, …) unless a future category explicitly supports them
+- Private-company names even when they use xStock branding (SpaceX, SHEIN, xAI, OpenAI, …)
+
+Listed operating companies whose names contain “Gold” or “Real Estate” (Royal Gold, Laopu Gold, Wharf Real Estate, Nasdaq Inc.) can be admitted when they are verifiable xStocks. A token that *is* gold/silver as the product (`Gold xStock`) is still excluded.
 
 Volume = sum of returned pair `volume.h24` for that mint across every Solana pool. A DexScreener pair is never treated as one stock. Duplicate `pairAddress` values are dropped. Null/unknown volume stays null and ranks last; a reported `0` is a real zero.
 

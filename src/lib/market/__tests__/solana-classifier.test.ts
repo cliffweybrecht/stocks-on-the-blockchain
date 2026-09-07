@@ -153,4 +153,135 @@ describe("classifyTokenizedEquity", () => {
       }).kind,
     ).toBe("reject");
   });
+
+  it("admits listed-company xStocks that previous rules false-negatived", () => {
+    expect(
+      classifyTokenizedEquity({
+        address: "XsNasdaqInc11111111111111111111111111111",
+        symbol: "NDAQx",
+        name: "Nasdaq Inc. xStock",
+      }).kind,
+    ).toBe("equity");
+    expect(
+      classifyTokenizedEquity({
+        address: "XsRoyalGold11111111111111111111111111111",
+        symbol: "RGLDx",
+        name: "Royal Gold xStock",
+      }).kind,
+    ).toBe("equity");
+    expect(
+      classifyTokenizedEquity({
+        address: "XsLaopuGold11111111111111111111111111111",
+        symbol: "LAOPGx",
+        name: "Laopu Gold xStock",
+      }).kind,
+    ).toBe("equity");
+    expect(
+      classifyTokenizedEquity({
+        address: "XsWharfRE1111111111111111111111111111111",
+        symbol: "WHRFRx",
+        name: "Wharf Real Estate Investment xStock",
+      }).kind,
+    ).toBe("equity");
+    expect(
+      classifyTokenizedEquity({
+        address: "XsGoldman1111111111111111111111111111111",
+        symbol: "GSx",
+        name: "Goldman Sachs xStock",
+      }).kind,
+    ).toBe("equity");
+    expect(
+      classifyTokenizedEquity({
+        address: "XsGeneralDynamics11111111111111111111111",
+        symbol: "GDx",
+        name: "General Dynamics xStock",
+      }).kind,
+    ).toBe("equity");
+  });
+
+  it("uses live issuer instrument type as a signal, not a mint allowlist", () => {
+    expect(
+      classifyTokenizedEquity({
+        address: "OtherIssuerApple111111111111111111111111",
+        symbol: "AAPL",
+        name: "Apple",
+        underlyingInstrumentType: "equity",
+      }),
+    ).toMatchObject({ kind: "equity", reason: "issuer-classified public equity" });
+    expect(
+      classifyTokenizedEquity({
+        address: "OtherIssuerApple111111111111111111111111",
+        symbol: "AAPL",
+        name: "Apple",
+      }).kind,
+    ).toBe("reject");
+    expect(
+      classifyTokenizedEquity({
+        address: "XsIssuerEtf11111111111111111111111111111",
+        symbol: "EWYx",
+        name: "Korea Basket xStock",
+        underlyingInstrumentType: "etf",
+      }).kind,
+    ).toBe("reject");
+    expect(
+      classifyTokenizedEquity({
+        address: "XsSheinStillPrivate111111111111111111111",
+        symbol: "SHEINx",
+        name: "SHEIN xStock",
+        underlyingInstrumentType: "equity",
+      }).kind,
+    ).toBe("reject");
+  });
+
+  it("still rejects commodity products, ETF wrappers, and private-company xStocks", () => {
+    expect(
+      classifyTokenizedEquity({
+        address: "XsGoldProduct111111111111111111111111111",
+        symbol: "GLDx",
+        name: "Gold xStock",
+      }).kind,
+    ).toBe("reject");
+    expect(
+      classifyTokenizedEquity({
+        address: "XsVanEckGoldMiners1111111111111111111111",
+        symbol: "GDXx",
+        name: "VanEck Gold Miners xStock",
+      }).kind,
+    ).toBe("reject");
+    expect(
+      classifyTokenizedEquity({
+        address: "XsISharesKorea11111111111111111111111111",
+        symbol: "EWYx",
+        name: "iShares MSCI South Korea xStock",
+      }).kind,
+    ).toBe("reject");
+    expect(
+      classifyTokenizedEquity({
+        address: "XsShein111111111111111111111111111111111",
+        symbol: "SHEINx",
+        name: "SHEIN xStock",
+      }).kind,
+    ).toBe("reject");
+    expect(
+      classifyTokenizedEquity({
+        address: "Xs2xLong11111111111111111111111111111111",
+        symbol: "MUUx",
+        name: "Micron 2x Long ETF xStock",
+      }).kind,
+    ).toBe("reject");
+    expect(
+      classifyTokenizedEquity({
+        address: "XsTqqq1111111111111111111111111111111111",
+        symbol: "TQQQx",
+        name: "TQQQ xStock",
+      }).kind,
+    ).toBe("reject");
+    expect(
+      classifyTokenizedEquity({
+        address: "XsJpst1111111111111111111111111111111111",
+        symbol: "JPSTx",
+        name: "JPMorgan Ultra-Short Income xStock",
+      }).kind,
+    ).toBe("reject");
+  });
 });

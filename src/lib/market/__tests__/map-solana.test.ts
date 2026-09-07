@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { mapDexScreenerPairsToSolanaAssets, unwrapDexScreenerPairs, unwrapDexScreenerSearch } from "../map-solana";
+import {
+  mapDexScreenerPairsToSolanaAssets,
+  mergeUnpairedSolanaAssets,
+  unwrapDexScreenerPairs,
+  unwrapDexScreenerSearch,
+} from "../map-solana";
 import { sortByVolumeThenLiquidity } from "../aggregate";
 
 const tslaMint = "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB";
@@ -167,5 +172,30 @@ describe("mapDexScreenerPairsToSolanaAssets", () => {
       { symbol: "TSLAx", volume24hUsd: 10, displayedLiquidityUsd: 1 },
     ]);
     expect(ranked.map((row) => row.symbol)).toEqual(["TSLAx", "AAPLx", "MSFTx"]);
+  });
+
+  it("keeps classified registry mints with no DexScreener pools as null-volume rows", () => {
+    const mapped = mapDexScreenerPairsToSolanaAssets([fixturePairs[0]!]);
+    const merged = mergeUnpairedSolanaAssets(mapped, [
+      {
+        mint: tslaMint,
+        symbol: "TSLAx",
+        name: "Tesla xStock",
+        issuer: "Backed / xStocks",
+        reason: "xStock name",
+      },
+      {
+        mint: "XsUnpairedNflx11111111111111111111111111",
+        symbol: "NFLXx",
+        name: "Netflix xStock",
+        issuer: "Backed / xStocks",
+        reason: "xStock name",
+      },
+    ]);
+    expect(merged.assets.map((asset) => asset.symbol)).toEqual(["TSLAx", "NFLXx"]);
+    const nflx = merged.assets.find((asset) => asset.symbol === "NFLXx");
+    expect(nflx?.volume24hUsd).toBeNull();
+    expect(nflx?.poolCount).toBe(0);
+    expect(nflx?.contractAddress).toBe("XsUnpairedNflx11111111111111111111111111");
   });
 });

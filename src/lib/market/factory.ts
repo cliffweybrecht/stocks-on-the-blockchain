@@ -32,6 +32,8 @@ export function createLiveAdapters(env: MarketEnv = process.env): MarketDataSour
         baseUrl: getSolanaDexScreenerBaseUrl(env),
         timeoutMs: Number(env.SOLANA_TIMEOUT_MS ?? 15_000),
         requestGapMs: Number(env.SOLANA_REQUEST_GAP_MS ?? 200),
+        enableRegistry: env.SOLANA_XSTOCKS_REGISTRY_ENABLED?.trim().toLowerCase() !== "false",
+        registryBaseUrl: env.SOLANA_XSTOCKS_REGISTRY_URL?.trim() || undefined,
       }),
     );
   }

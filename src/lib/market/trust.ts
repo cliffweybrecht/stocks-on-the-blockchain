@@ -16,7 +16,7 @@ export const TERMINAL_SOURCE_NOTE =
 export const SOLANA_SOURCE_LABEL = "DexScreener (Solana tokenized stocks)";
 
 export const SOLANA_SOURCE_NOTE =
-  "Solana volume is DexScreener pair data for tokenized public equities discovered via search, then classified fail-closed and aggregated by mint across every returned Solana pool. Coverage is as discoverable from DexScreener + the classifier, not a full chain index, and is not executable liquidity.";
+  "Solana volume is DexScreener pair data for tokenized public equities discovered from the live xStocks public registry plus DexScreener search, then classified fail-closed and aggregated by mint across every returned Solana pool. Coverage is as discoverable from those live sources + the classifier, not a full chain index, and is not executable liquidity.";
 
 export const COMPOSITE_SOURCE_NOTE =
   "The home list merges independently fetched adapters. A failed adapter is omitted or marked unavailable; other adapters are not invented to fill the gap.";
