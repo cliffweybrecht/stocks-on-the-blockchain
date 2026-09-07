@@ -8,8 +8,10 @@ import { ProvenanceBar } from "@/components/provenance-bar";
 import { SolanaCoverageBanner } from "@/components/solana-coverage-banner";
 import { TrustBanner } from "@/components/trust-banner";
 import { formatCount, formatUsdCompact } from "@/lib/market/format";
-import { createMarketDataSource } from "@/lib/market/factory";
+import { parsePinnedFilter } from "@/lib/desk/solana-chain-href";
 import { parseAssetSortKey, sortAssets } from "@/lib/market/aggregate";
+import { toJumpAsset } from "@/lib/market/asset-search";
+import { createMarketDataSource } from "@/lib/market/factory";
 import { SOLANA_CHAIN_ID } from "@/lib/market/types";
 import { assetMatchesCoverageFilter, parseCoverageFilter } from "@/lib/market/volume-coverage";
 
@@ -20,7 +22,7 @@ export default async function ChainPage({
   searchParams,
 }: {
   params: Promise<{ chainId: string }>;
-  searchParams: Promise<{ lane?: string; coverage?: string; sort?: string }>;
+  searchParams: Promise<{ lane?: string; coverage?: string; sort?: string; pinned?: string }>;
 }) {
   const { chainId } = await params;
   const query = await searchParams;
@@ -55,14 +57,24 @@ export default async function ChainPage({
   const defaultCoverage = isSolana ? "with-volume" : "all";
   const coverageFilter = parseCoverageFilter(query.coverage, defaultCoverage);
   const sortKey = parseAssetSortKey(query.sort);
+  const pinnedOnly = parsePinnedFilter(query.pinned);
   const laneAssets = lane === "etf" ? etfAssets : assets;
   const visibleAssets = sortAssets(
     laneAssets.filter((asset) => assetMatchesCoverageFilter(asset, coverageFilter)),
     sortKey,
   );
+  const hydratingCount = laneAssets.filter((asset) => asset.volumeCoverage === "hydrate_incomplete").length;
+  const jumpAssets = isSolana ? [...assets, ...etfAssets].map(toJumpAsset) : [];
+  const catalogKeys = laneAssets.map((asset) => ({
+    symbol: asset.symbol,
+    contractAddress: asset.contractAddress,
+  }));
 
   return (
-    <PageShell provenance={provenance}>
+    <PageShell
+      provenance={provenance}
+      solanaJump={jumpAssets.length > 0 ? { chainId, assets: jumpAssets } : undefined}
+    >
       <div className="space-y-5">
         <nav className="text-sm text-muted-foreground">
           <Link href="/" className="hover:text-foreground">
@@ -75,6 +87,13 @@ export default async function ChainPage({
           <h2 className="font-heading text-2xl font-semibold tracking-tight">{chain.name}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{chain.sourceLabel}</p>
           <p className="mt-1 text-sm text-muted-foreground">{chain.coverageNote}</p>
+          {isSolana ? (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Press <kbd className="rounded border border-border px-1 font-mono">/</kbd> or{" "}
+              <kbd className="rounded border border-border px-1 font-mono">⌘K</kbd> to jump by symbol, name,
+              issuer, or mint. Star a row to pin it in this browser.
+            </p>
+          ) : null}
         </div>
         <TrustBanner />
         {isSolana ? <SolanaCoverageBanner chain={chain} /> : null}
@@ -109,15 +128,19 @@ export default async function ChainPage({
         ) : (
           <AssetTable
             assets={visibleAssets}
+            catalogAssets={catalogKeys}
             totalInLane={laneAssets.length}
             equityCount={assets.length}
             etfCount={etfAssets.length}
+            hydratingCount={hydratingCount}
             lane={lane}
             coverageFilter={coverageFilter}
             defaultCoverage={defaultCoverage}
             sortKey={sortKey}
+            pinnedOnly={pinnedOnly}
             chainId={chain.id}
             showRobinhoodMarks={!isSolana}
+            enableFavorites={isSolana}
           />
         )}
       </div>

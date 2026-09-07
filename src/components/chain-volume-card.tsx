@@ -18,7 +18,7 @@ export function ChainVolumeCard({
   const progress = isSolana ? solanaHydrateProgress(chain) : null;
 
   return (
-    <Link href={`/chains/${chain.id}`} className="block rounded-xl focus-visible:ring-2 focus-visible:ring-ring">
+    <Link href={`/chains/${chain.id}`} prefetch className="block rounded-xl focus-visible:ring-2 focus-visible:ring-ring">
       <Card className="transition-colors hover:bg-accent/40">
         <CardHeader className="flex-row items-start justify-between gap-3">
           <div>

@@ -1,10 +1,18 @@
 import Link from "next/link";
+import { SolanaJumpSearch } from "@/components/solana-jump-search";
 import { Badge } from "@/components/ui/badge";
+import type { SearchableAsset } from "@/lib/market/asset-search";
 import type { DataProvenance } from "@/lib/market/types";
 
-export function SiteHeader({ provenance }: { provenance?: DataProvenance }) {
+export function SiteHeader({
+  provenance,
+  solanaJump,
+}: {
+  provenance?: DataProvenance;
+  solanaJump?: { chainId: string; assets: readonly SearchableAsset[] };
+}) {
   return (
-    <header className="border-b border-border/70 bg-background/80 backdrop-blur-md">
+    <header className="sticky top-0 z-30 border-b border-border/70 bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
         <Link href="/" className="group min-w-0">
           <p className="text-[11px] font-medium tracking-[0.22em] text-primary uppercase">
@@ -17,18 +25,23 @@ export function SiteHeader({ provenance }: { provenance?: DataProvenance }) {
             Volume first. Then the chain. Then the stock.
           </p>
         </Link>
-        {provenance ? (
-          <Badge variant="outline" className="w-fit border-primary/30 bg-primary/10 text-primary">
-            {provenance.sourceId === "mock"
-              ? "Seed / demo data"
-              : provenance.sourceId === "solana" ||
-                  (provenance.sourceId === "composite" && provenance.sourceLabel.toLowerCase().includes("solana"))
-                ? "Live Solana"
-                : provenance.sourceId === "composite"
-                  ? "Live sources"
-                  : "Live Terminal"}
-          </Badge>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          {solanaJump && solanaJump.assets.length > 0 ? (
+            <SolanaJumpSearch chainId={solanaJump.chainId} assets={solanaJump.assets} />
+          ) : null}
+          {provenance ? (
+            <Badge variant="outline" className="w-fit border-primary/30 bg-primary/10 text-primary">
+              {provenance.sourceId === "mock"
+                ? "Seed / demo data"
+                : provenance.sourceId === "solana" ||
+                    (provenance.sourceId === "composite" && provenance.sourceLabel.toLowerCase().includes("solana"))
+                  ? "Live Solana"
+                  : provenance.sourceId === "composite"
+                    ? "Live sources"
+                    : "Live Terminal"}
+            </Badge>
+          ) : null}
+        </div>
       </div>
     </header>
   );

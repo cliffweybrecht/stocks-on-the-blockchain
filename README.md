@@ -56,7 +56,7 @@ Process-level snapshot cache (default 5 minutes) is shared across home / chain /
 
 Coverage is **as discoverable from the live xStocks registry + public Ondo GM mint list + DexScreener search + public GeckoTerminal search + the classifier**, not a full Solana index. Search results are noisy and capped (~30 pairs per query, no page cursor).
 
-**DexScreener index ceiling (measured 2026-09-07):** a full `/tokens/v1` pass over **1,169** unique xStocks-registry + Ondo GM Solana mints found **54 with at least one DexScreener pair and 1,115 with none** (0 batch failures). After fail-closed ETF / commodity / private-name filters that is about **48 public equities with DexScreener pools** — matching the live desk. Extra public candidate lists (CoinGecko `coins/list?include_platform=true`, Solflare token-list search) added names DexScreener also does not index. So most “No pools yet” rows are **never listed on DexScreener**, not “hydrate never reached.” The desk still hydrates every *new* mint and re-checks empties after `SOLANA_EMPTY_CACHE_MS`.
+**DexScreener index ceiling (measured 2026-09-07):** a full `/tokens/v1` pass over **1,169** unique xStocks-registry + Ondo GM Solana mints found **54 with at least one DexScreener pair and 1,115 with none** (0 batch failures). After fail-closed ETF / commodity / private-name filters that is about **48 public equities with DexScreener pools** — matching the live desk. Extra public candidate lists (CoinGecko `coins/list?include_platform=true`, Solflare token-list search) added names DexScreener also does not index. So most **Confirmed no pools** rows are **never listed on DexScreener**, not “hydrate never reached.” The desk still hydrates every *new* mint and re-checks empties after `SOLANA_EMPTY_CACHE_MS`.
 
 | Issuer / source | In this desk | Notes |
 | --- | --- | --- |
@@ -166,8 +166,9 @@ Robinhood marks stay null on Solana. Off-Solana pairs are ignored.
 ## Trust labeling
 
 - Persistent disclaimer on every page
-- Solana coverage banner: classified vs with-volume vs with-pools vs confirmed-no-pools, plus still-hydrating progress
-- Solana chain list defaults to **With volume**, ranked by coverage tier then aggregate 24h volume (nulls last). Click column headers to change sort. Rank # is the current filtered view.
+- Solana coverage banner: classified vs with-volume vs still-hydrating vs confirmed-no-pools. Banner tiles deep-link those filters. Rank # is the current filtered view.
+- Solana desk jump (`/` or ⌘K) searches symbol, name, issuer, and mint with collision-safe deep links. Stars pin mints in `localStorage` (`sotb.solana.favoriteMints.v1`); pinned rows float to the top, or filter with `?pinned=1`. TSLAx and TSLAon stay separate.
+- Solana chain list defaults to **With volume**, ranked by coverage tier then aggregate 24h volume (nulls last). Click column headers to change sort. Warm navigations show skeletons instead of an empty table.
 - **Reported** vs **Interpretive** badges on metrics
 - Displayed liquidity is never described as buy capacity
 - No arb, profitability, or “you can trade this on Robinhood” copy

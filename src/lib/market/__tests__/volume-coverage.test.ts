@@ -4,6 +4,7 @@ import {
   inferVolumeCoverage,
   parseCoverageFilter,
   solanaHydrateProgress,
+  volumeCoverageLabel,
 } from "../volume-coverage";
 
 describe("inferVolumeCoverage", () => {
@@ -21,6 +22,7 @@ describe("inferVolumeCoverage", () => {
 describe("coverage filters", () => {
   it("parses known coverage query values and ignores junk", () => {
     expect(parseCoverageFilter("with-volume")).toBe("with-volume");
+    expect(parseCoverageFilter("hydrating")).toBe("hydrating");
     expect(parseCoverageFilter("with-pools")).toBe("with-pools");
     expect(parseCoverageFilter("no-pools")).toBe("no-pools");
     expect(parseCoverageFilter("all")).toBe("all");
@@ -37,6 +39,12 @@ describe("coverage filters", () => {
     const noPools = { volume24hUsd: null, poolCount: 0 };
     const poolsNoVolume = { volume24hUsd: null, poolCount: 2 };
 
+    const hydrating = {
+      volume24hUsd: null,
+      poolCount: 0,
+      volumeCoverage: "hydrate_incomplete" as const,
+    };
+
     expect(assetMatchesCoverageFilter(reported, "with-volume")).toBe(true);
     expect(assetMatchesCoverageFilter(noPools, "with-volume")).toBe(false);
     expect(assetMatchesCoverageFilter(poolsNoVolume, "with-volume")).toBe(false);
@@ -48,6 +56,17 @@ describe("coverage filters", () => {
     expect(assetMatchesCoverageFilter(reported, "no-pools")).toBe(false);
     expect(assetMatchesCoverageFilter(noPools, "no-pools")).toBe(true);
     expect(assetMatchesCoverageFilter(poolsNoVolume, "no-pools")).toBe(false);
+    expect(assetMatchesCoverageFilter(hydrating, "no-pools")).toBe(false);
+    expect(assetMatchesCoverageFilter(hydrating, "hydrating")).toBe(true);
+    expect(assetMatchesCoverageFilter(noPools, "hydrating")).toBe(false);
+  });
+});
+
+describe("volumeCoverageLabel", () => {
+  it("keeps hydrating distinct from confirmed-empty and from reported volume", () => {
+    expect(volumeCoverageLabel("reported")).toBe("With volume");
+    expect(volumeCoverageLabel("hydrate_incomplete")).toBe("Still hydrating");
+    expect(volumeCoverageLabel("no_indexed_pools")).toBe("Confirmed no pools");
   });
 });
 
