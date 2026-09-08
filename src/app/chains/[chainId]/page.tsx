@@ -6,7 +6,7 @@ import { Metric } from "@/components/metric";
 import { PageShell } from "@/components/page-shell";
 import { ProvenanceBar } from "@/components/provenance-bar";
 import { SolanaCoverageBanner } from "@/components/solana-coverage-banner";
-import { VolumeSinceInceptionChart } from "@/components/volume-since-inception-chart";
+import { DailyVolumeChart } from "@/components/daily-volume-chart";
 import { emptyEquityVolumeHistory } from "@/lib/market/volume-history";
 import { formatCount, formatUsdCompact } from "@/lib/market/format";
 import {
@@ -102,7 +102,7 @@ export default async function ChainPage({
             <p className="mt-1 text-sm text-muted-foreground">{chain.coverageNote}</p>
           )}
         </div>
-        {isSolana ? <VolumeSinceInceptionChart history={volumeHistory} /> : null}
+        {isSolana ? <DailyVolumeChart history={volumeHistory} /> : null}
         <ProvenanceBar provenance={provenance} compact />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Metric label="24h volume" value={formatUsdCompact(chain.volume24hUsd)} hint={`Sum of reported 24h volume · ${chain.sourceLabel}`} />

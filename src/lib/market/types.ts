@@ -168,7 +168,6 @@ export interface AssetDetailResult {
 export interface VolumeHistoryPoint {
   t: number;
   volumeUsd: number;
-  cumulativeUsd: number;
 }
 
 export interface EquityVolumeHistoryResult {

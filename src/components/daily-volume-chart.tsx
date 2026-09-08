@@ -33,7 +33,7 @@ function filterRange(points: readonly VolumeHistoryPoint[], range: RangeId): Vol
 function scale(points: readonly VolumeHistoryPoint[]) {
   const minT = points[0]?.t ?? 0;
   const maxT = points[points.length - 1]?.t ?? 1;
-  const maxY = Math.max(...points.map((point) => point.cumulativeUsd), 0);
+  const maxY = Math.max(...points.map((point) => point.volumeUsd), 0);
   const spanT = Math.max(maxT - minT, 1);
   const spanY = maxY > 0 ? maxY : 1;
   return {
@@ -50,13 +50,13 @@ function areaPath(points: readonly VolumeHistoryPoint[], map: ReturnType<typeof 
   const first = points[0];
   const last = points[points.length - 1];
   if (!first || !last) return "";
-  const line = points.map((point) => `${map.x(point.t).toFixed(2)},${map.y(point.cumulativeUsd).toFixed(2)}`).join(" L ");
+  const line = points.map((point) => `${map.x(point.t).toFixed(2)},${map.y(point.volumeUsd).toFixed(2)}`).join(" L ");
   return `M ${map.x(first.t).toFixed(2)},${(PAD.top + INNER_H).toFixed(2)} L ${line} L ${map.x(last.t).toFixed(2)},${(PAD.top + INNER_H).toFixed(2)} Z`;
 }
 
 function linePath(points: readonly VolumeHistoryPoint[], map: ReturnType<typeof scale>): string {
   if (points.length === 0) return "";
-  return `M ${points.map((point) => `${map.x(point.t).toFixed(2)},${map.y(point.cumulativeUsd).toFixed(2)}`).join(" L ")}`;
+  return `M ${points.map((point) => `${map.x(point.t).toFixed(2)},${map.y(point.volumeUsd).toFixed(2)}`).join(" L ")}`;
 }
 
 function nearestPoint(points: readonly VolumeHistoryPoint[], map: ReturnType<typeof scale>, svgX: number) {
@@ -72,7 +72,7 @@ function nearestPoint(points: readonly VolumeHistoryPoint[], map: ReturnType<typ
   return best ?? null;
 }
 
-export function VolumeSinceInceptionChart({ history }: { history: EquityVolumeHistoryResult }) {
+export function DailyVolumeChart({ history }: { history: EquityVolumeHistoryResult }) {
   const [range, setRange] = useState<RangeId>("all");
   const [hover, setHover] = useState<VolumeHistoryPoint | null>(null);
 
@@ -94,9 +94,12 @@ export function VolumeSinceInceptionChart({ history }: { history: EquityVolumeHi
     <section className="rounded-xl border border-border bg-card/80 px-4 py-4 sm:px-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="font-heading text-lg font-medium tracking-tight">Total Volume Since Inception</h2>
+          <h2 className="font-heading text-lg font-medium tracking-tight">Daily Volume</h2>
           {history.available && latest ? (
-            <p className="num mt-1 text-3xl font-medium text-primary">{formatUsdCompact(latest.cumulativeUsd)}</p>
+            <>
+              <p className="num mt-1 text-3xl font-medium text-primary">{formatUsdCompact(latest.volumeUsd)}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{formatChartDate(latest.t)}</p>
+            </>
           ) : null}
         </div>
         {history.available ? (
@@ -125,7 +128,7 @@ export function VolumeSinceInceptionChart({ history }: { history: EquityVolumeHi
             viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
             className="h-[240px] w-full sm:h-[280px]"
             role="img"
-            aria-label="Cumulative Solana tokenized equity volume"
+            aria-label="Daily Solana tokenized equity volume"
             onMouseLeave={() => setHover(null)}
             onMouseMove={(event) => {
               const rect = event.currentTarget.getBoundingClientRect();
@@ -193,14 +196,14 @@ export function VolumeSinceInceptionChart({ history }: { history: EquityVolumeHi
                   strokeOpacity="0.45"
                   strokeDasharray="3 3"
                 />
-                <circle cx={map.x(hover.t)} cy={map.y(hover.cumulativeUsd)} r="3.5" fill="var(--volume)" />
+                <circle cx={map.x(hover.t)} cy={map.y(hover.volumeUsd)} r="3.5" fill="var(--volume)" />
               </g>
             ) : null}
           </svg>
           {hover ? (
             <div className="pointer-events-none absolute top-2 right-2 rounded-md border border-border bg-background/90 px-2.5 py-1.5 text-xs shadow-sm">
               <p className="text-muted-foreground">{formatChartDate(hover.t)}</p>
-              <p className="num mt-0.5 text-foreground">{formatUsdFull(hover.cumulativeUsd)}</p>
+              <p className="num mt-0.5 text-foreground">{formatUsdFull(hover.volumeUsd)}</p>
             </div>
           ) : null}
         </div>

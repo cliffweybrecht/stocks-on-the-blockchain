@@ -1,9 +1,9 @@
 import { compareNullableDesc } from "./numbers";
 import type { AssetSummary, EquityVolumeHistoryResult, VolumeHistoryPoint } from "./types";
 
-/** Cumulative GeckoTerminal daily USD volume across classified Solana equity pools. */
+/** Per-day GeckoTerminal USD volume across classified Solana equity pools. */
 export const EQUITY_VOLUME_HISTORY_DEFINITION =
-  "Cumulative GeckoTerminal daily USD volume across classified Solana public-equity pools, from each pool's first indexed candle. Not issuance-genesis. ETF lane excluded.";
+  "Per-day GeckoTerminal USD volume across classified Solana public-equity pools (same-day candles summed). Days without a returned candle are omitted, not filled. ETF lane excluded.";
 
 export const EQUITY_VOLUME_HISTORY_SOURCE_LABEL = "GeckoTerminal pool OHLCV (USD)";
 
@@ -110,10 +110,10 @@ export function parseGeckoTerminalOhlcv(payload: unknown): OhlcvCandle[] {
 }
 
 /**
- * Sum same-day pool volumes, then walk the observed days in order.
- * Days with no returned candle are omitted — we do not fill gaps.
+ * Sum same-day pool volumes. Days with no returned candle are omitted —
+ * we do not invent zeros. A source-reported 0 is kept.
  */
-export function aggregateCumulativeVolume(
+export function aggregateDailyVolume(
   seriesByPool: readonly { pairAddress: string; candles: readonly OhlcvCandle[] }[],
 ): VolumeHistoryPoint[] {
   const byDay = new Map<number, number>();
@@ -127,16 +127,9 @@ export function aggregateCumulativeVolume(
     }
   }
 
-  const days = [...byDay.keys()].sort((a, b) => a - b);
-  let cumulativeUsd = 0;
-  const points: VolumeHistoryPoint[] = [];
-  for (const t of days) {
-    const volumeUsd = byDay.get(t);
-    if (volumeUsd === undefined) continue;
-    cumulativeUsd += volumeUsd;
-    points.push({ t, volumeUsd, cumulativeUsd });
-  }
-  return points;
+  return [...byDay.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([t, volumeUsd]) => ({ t, volumeUsd }));
 }
 
 export function buildEquityVolumeHistory(input: {
@@ -149,7 +142,7 @@ export function buildEquityVolumeHistory(input: {
 }): EquityVolumeHistoryResult {
   const generatedAt = input.generatedAt ?? new Date().toISOString();
   const usable = input.seriesByPool.filter((row) => row.candles.length > 0);
-  const points = aggregateCumulativeVolume(usable);
+  const points = aggregateDailyVolume(usable);
   if (points.length === 0) {
     return emptyEquityVolumeHistory(
       input.emptyReason ??

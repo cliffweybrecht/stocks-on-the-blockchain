@@ -533,7 +533,7 @@ describe("SolanaMarketDataSource", () => {
     expect(hood?.volumeCoverage).toBe("reported");
   });
 
-  it("builds a cumulative equity volume series from GeckoTerminal daily OHLCV and skips ETFs", async () => {
+  it("builds a daily equity volume series from GeckoTerminal OHLCV and skips ETFs", async () => {
     const urls: string[] = [];
     const source = testSource({
       requestGapMs: 0,
@@ -582,13 +582,14 @@ describe("SolanaMarketDataSource", () => {
     const history = await source.getEquityVolumeHistory();
     expect(history.available).toBe(true);
     expect(history.points).toEqual([
-      { t: 1_700_000_000, volumeUsd: 10, cumulativeUsd: 10 },
-      { t: 1_700_086_400, volumeUsd: 40, cumulativeUsd: 50 },
+      { t: 1_700_000_000, volumeUsd: 10 },
+      { t: 1_700_086_400, volumeUsd: 40 },
     ]);
     expect(history.mintCount).toBe(1);
     expect(history.poolCount).toBe(1);
     expect(urls.some((url) => url.includes("/ohlcv/day") && url.includes("pair-spy"))).toBe(false);
-    expect(history.definition).toMatch(/Not issuance-genesis/);
+    expect(history.definition).toMatch(/Per-day GeckoTerminal USD volume/);
+    expect(history.definition).toMatch(/omitted, not filled/);
     expect(history.definition).toMatch(/fetched highest-volume/);
   });
 
