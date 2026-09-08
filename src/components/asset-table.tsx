@@ -231,7 +231,7 @@ export function AssetTable({
           {enableFavorites ? (
             <DeskCsvButton rows={rows} lane={lane} coverage={coverageFilter} sortKey={sortKey} />
           ) : null}
-          <div className="flex flex-wrap gap-2 text-xs lg:hidden">
+          <div className="flex flex-wrap gap-2 text-xs">
             {sortColumns.map(([key, label]) => (
               <Link key={key} href={hrefFor({ sortKey: key })} scroll={false} className={chipClass(sortKey === key)}>
                 {label}
@@ -349,18 +349,21 @@ export function AssetTable({
       ) : null}
 
       {rows.length > 0 ? (
-      <div className="hidden rounded-xl border border-border bg-card lg:block">
-        <Table containerClassName="max-h-[min(70vh,42rem)] overflow-auto">
+      <div className="hidden overflow-x-hidden rounded-xl border border-border bg-card lg:block">
+        <Table
+          className="table-fixed"
+          containerClassName="max-h-[min(70vh,42rem)] overflow-x-hidden overflow-y-auto"
+        >
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="sticky top-0 z-20 w-12 bg-card text-right">#</TableHead>
+              <TableHead className="sticky top-0 z-20 w-10 bg-card text-right">#</TableHead>
               {enableFavorites ? <TableHead className="sticky top-0 z-20 w-10 bg-card" /> : null}
-              <TableHead className="sticky top-0 z-20 bg-card">Stock</TableHead>
-              <TableHead className="sticky top-0 z-20 bg-card">Issuer</TableHead>
-              <TableHead className="sticky top-0 z-20 bg-card">Mint</TableHead>
-              <TableHead className="sticky top-0 z-20 bg-card">Coverage</TableHead>
+              <TableHead className="sticky top-0 z-20 w-[22%] min-w-0 bg-card">Stock</TableHead>
+              <TableHead className="sticky top-0 z-20 w-[14%] min-w-0 bg-card">Issuer</TableHead>
+              <TableHead className="sticky top-0 z-20 w-24 bg-card">Mint</TableHead>
+              <TableHead className="sticky top-0 z-20 w-[18%] min-w-0 bg-card">Coverage</TableHead>
               <TableHead
-                className="sticky top-0 z-20 bg-card text-right"
+                className="sticky top-0 z-20 w-[10%] whitespace-normal bg-card text-right"
                 aria-sort={sortKey === "volume24hUsd" ? "descending" : "none"}
               >
                 <Link href={hrefFor({ sortKey: "volume24hUsd" })} className={sortHeadClass(sortKey === "volume24hUsd")}>
@@ -368,7 +371,7 @@ export function AssetTable({
                 </Link>
               </TableHead>
               <TableHead
-                className="sticky top-0 z-20 bg-card text-right"
+                className="sticky top-0 z-20 w-[10%] whitespace-normal bg-card text-right"
                 aria-sort={sortKey === "displayedLiquidityUsd" ? "descending" : "none"}
               >
                 <Link
@@ -380,10 +383,10 @@ export function AssetTable({
               </TableHead>
               {showRobinhoodMarks ? (
                 <>
-                  <TableHead className="sticky top-0 z-20 bg-card text-right">RH mark</TableHead>
-                  <TableHead className="sticky top-0 z-20 bg-card text-right">DEX median</TableHead>
+                  <TableHead className="sticky top-0 z-20 w-[9%] whitespace-normal bg-card text-right">RH mark</TableHead>
+                  <TableHead className="sticky top-0 z-20 w-[9%] whitespace-normal bg-card text-right">DEX median</TableHead>
                   <TableHead
-                    className="sticky top-0 z-20 bg-card text-right"
+                    className="sticky top-0 z-20 w-[9%] whitespace-normal bg-card text-right"
                     aria-sort={sortKey === "premiumDiscountPct" ? "descending" : "none"}
                   >
                     <Link
@@ -395,16 +398,10 @@ export function AssetTable({
                   </TableHead>
                 </>
               ) : (
-                <TableHead className="sticky top-0 z-20 bg-card text-right">DEX median</TableHead>
+                <TableHead className="sticky top-0 z-20 w-[10%] whitespace-normal bg-card text-right">
+                  DEX median
+                </TableHead>
               )}
-              <TableHead
-                className="sticky top-0 z-20 bg-card text-right"
-                aria-sort={sortKey === "poolCount" ? "descending" : "none"}
-              >
-                <Link href={hrefFor({ sortKey: "poolCount" })} className={sortHeadClass(sortKey === "poolCount")}>
-                  Pools / DEXes{sortKey === "poolCount" ? " ↓" : ""}
-                </Link>
-              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -420,7 +417,7 @@ export function AssetTable({
                     />
                   </TableCell>
                 ) : null}
-                <TableCell>
+                <TableCell className="min-w-0 whitespace-normal">
                   <Link
                     href={`/chains/${chainId}/assets/${encodeURIComponent(assetRouteKey(asset, catalog))}`}
                     prefetch
@@ -428,12 +425,20 @@ export function AssetTable({
                   >
                     {asset.symbol}
                   </Link>
-                  <div className="text-xs text-muted-foreground">{asset.name}</div>
+                  <div className="truncate text-xs text-muted-foreground">{asset.name}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {asset.poolCount} {asset.poolCount === 1 ? "pool" : "pools"}
+                  </div>
                 </TableCell>
-                <TableCell className="text-xs text-muted-foreground">{asset.issuer ?? "—"}</TableCell>
-                <TableCell className="num text-xs">{formatAddress(asset.contractAddress)}</TableCell>
-                <TableCell>
-                  <CoverageBadge coverage={asset.volumeCoverage} />
+                <TableCell className="min-w-0 truncate text-xs text-muted-foreground" title={asset.issuer ?? undefined}>
+                  {asset.issuer ?? "—"}
+                </TableCell>
+                <TableCell className="num truncate text-xs">{formatAddress(asset.contractAddress)}</TableCell>
+                <TableCell className="min-w-0 whitespace-normal">
+                  <CoverageBadge
+                    coverage={asset.volumeCoverage}
+                    className="h-auto max-w-full whitespace-normal"
+                  />
                 </TableCell>
                 <TableCell className="num text-right">{formatUsdCompact(asset.volume24hUsd)}</TableCell>
                 <TableCell className="num text-right">{formatUsdCompact(asset.displayedLiquidityUsd)}</TableCell>
@@ -448,20 +453,6 @@ export function AssetTable({
                 ) : (
                   <TableCell className="num text-right">{formatPrice(asset.dexMedianPriceUsd)}</TableCell>
                 )}
-                <TableCell className="num text-right">
-                  <div>
-                    {asset.poolCount} / {asset.dexCount}
-                  </div>
-                  {asset.pools.length > 0 ? (
-                    <div className="text-xs text-muted-foreground">
-                      {asset.pools
-                        .slice(0, 2)
-                        .map((pool) => `${pool.dexId} ${formatUsdCompact(pool.volume24hUsd)}`)
-                        .join(" · ")}
-                      {asset.pools.length > 2 ? ` · +${asset.pools.length - 2}` : ""}
-                    </div>
-                  ) : null}
-                </TableCell>
               </TableRow>
             ))}
           </TableBody>
