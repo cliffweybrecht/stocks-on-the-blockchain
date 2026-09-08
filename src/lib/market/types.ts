@@ -165,9 +165,12 @@ export interface AssetDetailResult {
   provenance: DataProvenance;
 }
 
+export type VolumeHistoryPointKind = "calendar_day" | "rolling_24h";
+
 export interface VolumeHistoryPoint {
   t: number;
   volumeUsd: number;
+  kind?: VolumeHistoryPointKind;
 }
 
 export interface EquityVolumeHistoryResult {
@@ -178,6 +181,7 @@ export interface EquityVolumeHistoryResult {
   poolCount: number;
   poolCountAttempted: number;
   mintCount: number;
+  volume24hUsd: number | null;
   firstObservableAt: string | null;
   lastObservableAt: string | null;
   generatedAt: string;

@@ -47,7 +47,7 @@ import {
   collectEquityVolumeTargets,
   emptyEquityVolumeHistory,
   parseGeckoTerminalOhlcv,
-  rankEquityVolumeTargets,
+  selectEquityVolumeFetchTargets,
 } from "./volume-history";
 import type { TokenIdentity } from "./solana-classifier";
 
@@ -65,10 +65,10 @@ export const SOLANA_DEFAULTS = {
   /** Skip re-previewing mints confirmed to have zero DexScreener pools. */
   emptyCacheMs: 30 * 60_000,
   /** GeckoTerminal daily OHLCV budget after the Solana snapshot is available. */
-  volumeHistoryBudgetMs: 15_000,
+  volumeHistoryBudgetMs: 45_000,
   volumeHistoryCacheMs: 30 * 60_000,
   /** Highest-volume classified equity pools to ask GeckoTerminal for. */
-  volumeHistoryMaxPools: 24,
+  volumeHistoryMaxPools: 64,
 } as const;
 
 const DEFAULT_BASE_URL = "https://api.dexscreener.com";
@@ -836,16 +836,19 @@ export class SolanaMarketDataSource implements MarketDataSource {
     }
 
     let assets;
+    let volume24hUsd: number | null = null;
     try {
-      const snapshot = await this.loadCached("light");
+      const mode = this.cache?.aggregation === "all-pools" ? "full" : "light";
+      const snapshot = await this.loadCached(mode);
       assets = snapshot.mapped.assets;
+      volume24hUsd = snapshot.mapped.chain.volume24hUsd;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Solana snapshot failed.";
       return emptyEquityVolumeHistory(message);
     }
 
     const allTargets = collectEquityVolumeTargets(assets);
-    const targets = rankEquityVolumeTargets(allTargets, this.volumeHistoryMaxPools);
+    const targets = selectEquityVolumeFetchTargets(allTargets, this.volumeHistoryMaxPools);
     const mintCount = new Set(allTargets.map((target) => target.mint)).size;
     if (targets.length === 0) {
       return emptyEquityVolumeHistory(
@@ -880,6 +883,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
       attemptedPoolCount: targets.length,
       universePoolCount: allTargets.length,
       mintCount,
+      volume24hUsd,
     });
   }
 }

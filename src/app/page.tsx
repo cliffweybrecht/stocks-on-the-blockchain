@@ -47,11 +47,12 @@ export default async function HomePage() {
 
   const { chains, provenance, history } = loaded;
   const maxVolume = maxNullable(chains.map((chain) => chain.volume24hUsd));
+  const solanaChain = chains.find((chain) => chain.id === SOLANA_CHAIN_ID);
 
   return (
     <PageShell provenance={provenance}>
       <div className="space-y-5">
-        <DailyVolumeChart history={history} />
+        <DailyVolumeChart history={history} deskVolume24hUsd={solanaChain?.volume24hUsd ?? null} />
         <ProvenanceBar provenance={provenance} compact />
         <section className="space-y-3">
           <div>
@@ -61,9 +62,7 @@ export default async function HomePage() {
               and is displayed, not executable. Missing volume stays a dash, never a zero.
             </p>
           </div>
-          {chains.some((chain) => chain.id === SOLANA_CHAIN_ID) ? (
-            <SolanaCoverageBanner chain={chains.find((chain) => chain.id === SOLANA_CHAIN_ID)!} />
-          ) : null}
+          {solanaChain ? <SolanaCoverageBanner chain={solanaChain} /> : null}
           {chains.length === 0 ? (
             <EmptyState
               title="No chains reported"

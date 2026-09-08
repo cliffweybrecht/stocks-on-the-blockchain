@@ -1,11 +1,13 @@
 import { compareNullableDesc } from "./numbers";
 import type { AssetSummary, EquityVolumeHistoryResult, VolumeHistoryPoint } from "./types";
 
-/** Per-day GeckoTerminal USD volume across classified Solana equity pools. */
-export const EQUITY_VOLUME_HISTORY_DEFINITION =
-  "Per-day GeckoTerminal USD volume across classified Solana public-equity pools (same-day candles summed). Days without a returned candle are omitted, not filled. ETF lane excluded.";
+export const UTC_DAY_SECONDS = 86_400;
 
-export const EQUITY_VOLUME_HISTORY_SOURCE_LABEL = "GeckoTerminal pool OHLCV (USD)";
+/** Historical days: GeckoTerminal. Latest point / headline: DexScreener 24h when reported. */
+export const EQUITY_VOLUME_HISTORY_DEFINITION =
+  "Historical days are per-day GeckoTerminal USD volume across classified Solana public-equity pools (same-day candles summed). Missing calendar days are plotted as $0 (no candle / no activity), never as invented nonzero volume. The latest point and headline use the same DexScreener 24h equity rollup as the desk (rolling 24h, not a UTC calendar day) when that rollup is reported. ETF lane excluded.";
+
+export const EQUITY_VOLUME_HISTORY_SOURCE_LABEL = "GeckoTerminal pool OHLCV (USD) + DexScreener 24h";
 
 export interface EquityVolumePoolTarget {
   pairAddress: string;
@@ -16,6 +18,11 @@ export interface EquityVolumePoolTarget {
 export interface OhlcvCandle {
   t: number;
   volumeUsd: number;
+}
+
+export function utcDayStart(unixSeconds: number): number {
+  if (!Number.isFinite(unixSeconds) || unixSeconds <= 0) return 0;
+  return Math.floor(unixSeconds / UTC_DAY_SECONDS) * UTC_DAY_SECONDS;
 }
 
 export function emptyEquityVolumeHistory(
@@ -30,6 +37,7 @@ export function emptyEquityVolumeHistory(
     poolCount: 0,
     poolCountAttempted: 0,
     mintCount: 0,
+    volume24hUsd: null,
     firstObservableAt: null,
     lastObservableAt: null,
     generatedAt,
@@ -76,6 +84,15 @@ export function rankEquityVolumeTargets(
   return targets.slice(0, limit);
 }
 
+/** Prefer pools with a reported DexScreener 24h so budget is not spent on unknown volume. */
+export function selectEquityVolumeFetchTargets(
+  targets: readonly EquityVolumePoolTarget[],
+  maxPools: number,
+): EquityVolumePoolTarget[] {
+  const reported = targets.filter((row) => row.volume24hUsd !== null);
+  return rankEquityVolumeTargets(reported.length > 0 ? reported : targets, maxPools);
+}
+
 /**
  * Parse a GeckoTerminal pool OHLCV payload. Fail closed: unknown shapes
  * and non-finite candles are dropped, never invented.
@@ -110,8 +127,8 @@ export function parseGeckoTerminalOhlcv(payload: unknown): OhlcvCandle[] {
 }
 
 /**
- * Sum same-day pool volumes. Days with no returned candle are omitted —
- * we do not invent zeros. A source-reported 0 is kept.
+ * Sum same UTC calendar-day pool volumes. A source-reported 0 is kept.
+ * Does not fill gaps — use fillMissingCalendarDays for a continuous series.
  */
 export function aggregateDailyVolume(
   seriesByPool: readonly { pairAddress: string; candles: readonly OhlcvCandle[] }[],
@@ -122,14 +139,114 @@ export function aggregateDailyVolume(
     for (const candle of series.candles) {
       if (!Number.isFinite(candle.t) || candle.t <= 0) continue;
       if (!Number.isFinite(candle.volumeUsd) || candle.volumeUsd < 0) continue;
-      const day = Math.trunc(candle.t);
+      const day = utcDayStart(candle.t);
+      if (day <= 0) continue;
       byDay.set(day, (byDay.get(day) ?? 0) + candle.volumeUsd);
     }
   }
 
   return [...byDay.entries()]
     .sort((a, b) => a[0] - b[0])
-    .map(([t, volumeUsd]) => ({ t, volumeUsd }));
+    .map(([t, volumeUsd]) => ({ t, volumeUsd, kind: "calendar_day" as const }));
+}
+
+/** Insert $0 for every UTC calendar day from the first observed day through `throughT` (or the last observed day). */
+export function fillMissingCalendarDays(
+  points: readonly VolumeHistoryPoint[],
+  throughT?: number,
+): VolumeHistoryPoint[] {
+  if (points.length === 0) return [];
+  const byDay = new Map<number, VolumeHistoryPoint>();
+  for (const point of points) {
+    const day = utcDayStart(point.t);
+    if (day <= 0) continue;
+    if (!Number.isFinite(point.volumeUsd) || point.volumeUsd < 0) continue;
+    const existing = byDay.get(day);
+    if (!existing) {
+      byDay.set(day, { t: day, volumeUsd: point.volumeUsd, kind: point.kind ?? "calendar_day" });
+      continue;
+    }
+    byDay.set(day, {
+      t: day,
+      volumeUsd: existing.volumeUsd + point.volumeUsd,
+      kind: existing.kind === "rolling_24h" || point.kind === "rolling_24h" ? "rolling_24h" : "calendar_day",
+    });
+  }
+
+  const days = [...byDay.keys()].sort((a, b) => a - b);
+  const start = days[0];
+  const lastObserved = days[days.length - 1];
+  if (start === undefined || lastObserved === undefined) return [];
+  const end =
+    throughT !== undefined && Number.isFinite(throughT) && throughT > 0
+      ? Math.max(lastObserved, utcDayStart(throughT))
+      : lastObserved;
+
+  const filled: VolumeHistoryPoint[] = [];
+  for (let t = start; t <= end; t += UTC_DAY_SECONDS) {
+    filled.push(byDay.get(t) ?? { t, volumeUsd: 0, kind: "calendar_day" });
+  }
+  return filled;
+}
+
+/**
+ * Replace (or append) today's UTC day with the DexScreener equity 24h rollup.
+ * Null / non-finite 24h is left untouched — never coerced to zero.
+ */
+export function alignLatestDayWithDesk24h(
+  points: readonly VolumeHistoryPoint[],
+  volume24hUsd: number | null | undefined,
+  nowT: number,
+): VolumeHistoryPoint[] {
+  if (volume24hUsd === null || volume24hUsd === undefined) return fillMissingCalendarDays(points);
+  if (!Number.isFinite(volume24hUsd) || volume24hUsd < 0) return fillMissingCalendarDays(points);
+  const today = utcDayStart(nowT);
+  if (today <= 0) return fillMissingCalendarDays(points);
+  const filled = fillMissingCalendarDays(points, today);
+  if (filled.length === 0) {
+    return [{ t: today, volumeUsd: volume24hUsd, kind: "rolling_24h" }];
+  }
+  const next = [...filled];
+  const lastIndex = next.length - 1;
+  const last = next[lastIndex];
+  if (last && last.t === today) {
+    next[lastIndex] = { t: today, volumeUsd: volume24hUsd, kind: "rolling_24h" };
+  }
+  return next;
+}
+
+function coverageNote(input: {
+  usable: number;
+  attemptedPoolCount: number;
+  universePoolCount: number;
+  mintCount: number;
+}): string {
+  const fetchedNote =
+    input.usable === input.attemptedPoolCount
+      ? `${input.usable} fetched highest-volume pool${input.usable === 1 ? "" : "s"}`
+      : `${input.usable} of ${input.attemptedPoolCount} fetched highest-volume pools`;
+  const universeNote =
+    input.universePoolCount > input.attemptedPoolCount
+      ? ` (${input.universePoolCount} classified equity pools / ${input.mintCount} mints in this snapshot)`
+      : "";
+  return ` This snapshot: ${fetchedNote}${universeNote}.`;
+}
+
+function historyDefinition(input: {
+  usable: number;
+  attemptedPoolCount: number;
+  universePoolCount: number;
+  mintCount: number;
+  aligned24h: boolean;
+  historyOnly?: boolean;
+}): string {
+  const historical = input.historyOnly
+    ? "No GeckoTerminal daily candles were returned for classified Solana equity pools."
+    : "Historical days are per-day GeckoTerminal USD volume across classified Solana public-equity pools (same-day candles summed). Missing calendar days are plotted as $0 (no candle / no activity), never as invented nonzero volume.";
+  const latest = input.aligned24h
+    ? " The latest point and headline use the same DexScreener 24h equity rollup as the desk (rolling 24h, not a UTC calendar day)."
+    : " The latest point is the last GeckoTerminal UTC calendar day; DexScreener 24h was not reported for this snapshot.";
+  return `${historical}${latest} ETF lane excluded.${coverageNote(input)}`;
 }
 
 export function buildEquityVolumeHistory(input: {
@@ -137,12 +254,26 @@ export function buildEquityVolumeHistory(input: {
   attemptedPoolCount: number;
   mintCount: number;
   universePoolCount?: number;
+  volume24hUsd?: number | null;
+  nowT?: number;
   generatedAt?: string;
   emptyReason?: string;
 }): EquityVolumeHistoryResult {
   const generatedAt = input.generatedAt ?? new Date().toISOString();
+  const nowT = input.nowT ?? Date.parse(generatedAt) / 1000;
   const usable = input.seriesByPool.filter((row) => row.candles.length > 0);
-  const points = aggregateDailyVolume(usable);
+  const observed = aggregateDailyVolume(usable);
+  const volume24hUsd =
+    input.volume24hUsd !== undefined &&
+    input.volume24hUsd !== null &&
+    Number.isFinite(input.volume24hUsd) &&
+    input.volume24hUsd >= 0
+      ? input.volume24hUsd
+      : null;
+  const aligned24h = volume24hUsd !== null;
+  const points = alignLatestDayWithDesk24h(observed, volume24hUsd, nowT);
+  const universe = input.universePoolCount ?? input.attemptedPoolCount;
+
   if (points.length === 0) {
     return emptyEquityVolumeHistory(
       input.emptyReason ??
@@ -153,25 +284,23 @@ export function buildEquityVolumeHistory(input: {
 
   const first = points[0];
   const last = points[points.length - 1];
-  const universe = input.universePoolCount ?? input.attemptedPoolCount;
-  const fetchedNote =
-    usable.length === input.attemptedPoolCount
-      ? `${usable.length} fetched highest-volume pool${usable.length === 1 ? "" : "s"}`
-      : `${usable.length} of ${input.attemptedPoolCount} fetched highest-volume pools`;
-  const universeNote =
-    universe > input.attemptedPoolCount
-      ? ` (${universe} classified equity pools / ${input.mintCount} mints in this snapshot)`
-      : "";
-  const poolNote = ` This snapshot: ${fetchedNote}${universeNote}.`;
 
   return {
     available: true,
     points,
-    definition: `${EQUITY_VOLUME_HISTORY_DEFINITION}${poolNote}`,
+    definition: historyDefinition({
+      usable: usable.length,
+      attemptedPoolCount: input.attemptedPoolCount,
+      universePoolCount: universe,
+      mintCount: input.mintCount,
+      aligned24h,
+      historyOnly: observed.length === 0,
+    }),
     sourceLabel: EQUITY_VOLUME_HISTORY_SOURCE_LABEL,
     poolCount: usable.length,
     poolCountAttempted: input.attemptedPoolCount,
     mintCount: input.mintCount,
+    volume24hUsd,
     firstObservableAt: first ? new Date(first.t * 1000).toISOString() : null,
     lastObservableAt: last ? new Date(last.t * 1000).toISOString() : null,
     generatedAt,

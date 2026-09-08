@@ -102,7 +102,7 @@ export default async function ChainPage({
             <p className="mt-1 text-sm text-muted-foreground">{chain.coverageNote}</p>
           )}
         </div>
-        {isSolana ? <DailyVolumeChart history={volumeHistory} /> : null}
+        {isSolana ? <DailyVolumeChart history={volumeHistory} deskVolume24hUsd={chain.volume24hUsd} /> : null}
         <ProvenanceBar provenance={provenance} compact />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Metric label="24h volume" value={formatUsdCompact(chain.volume24hUsd)} hint={`Sum of reported 24h volume · ${chain.sourceLabel}`} />
