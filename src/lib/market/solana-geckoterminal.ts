@@ -15,6 +15,16 @@ export function geckoTerminalSearchPath(query: string): string {
   return `/search/pools?${params.toString()}`;
 }
 
+/** Daily USD OHLCV for one Solana pool. Volume is the last tuple element. */
+export function geckoTerminalOhlcvPath(poolAddress: string): string {
+  const params = new URLSearchParams({
+    aggregate: "1",
+    limit: "1000",
+    currency: "usd",
+  });
+  return `/networks/solana/pools/${encodeURIComponent(poolAddress)}/ohlcv/day?${params.toString()}`;
+}
+
 function readIncludedTokens(payload: unknown): TokenIdentity[] {
   if (!payload || typeof payload !== "object") return [];
   const included = (payload as { included?: unknown }).included;

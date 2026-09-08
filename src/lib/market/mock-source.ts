@@ -4,8 +4,10 @@ import type {
   AssetDetailResult,
   ChainDetailResult,
   ChainListResult,
+  EquityVolumeHistoryResult,
   MarketDataSource,
 } from "./types";
+import { emptyEquityVolumeHistory } from "./volume-history";
 
 export class MockMarketDataSource implements MarketDataSource {
   readonly id = "mock" as const;
@@ -30,5 +32,11 @@ export class MockMarketDataSource implements MarketDataSource {
     const asset = findAssetByKey(MOCK_DETAILS[chainId] ?? [], symbol);
     if (!chain || !asset) return null;
     return { chain, asset, provenance: mockProvenance() };
+  }
+
+  async getEquityVolumeHistory(): Promise<EquityVolumeHistoryResult> {
+    return emptyEquityVolumeHistory(
+      "Seed adapter does not invent a historical volume series. Enable live Solana to load GeckoTerminal pool OHLCV.",
+    );
   }
 }

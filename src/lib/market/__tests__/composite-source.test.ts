@@ -10,9 +10,11 @@ import type {
   ChainListResult,
   ChainVolume,
   DataProvenance,
+  EquityVolumeHistoryResult,
   MarketDataSource,
   SourceKind,
 } from "../types";
+import { emptyEquityVolumeHistory } from "../volume-history";
 
 function provenance(sourceId: SourceKind, label: string, failures: DataProvenance["sourceFailures"] = []): DataProvenance {
   return {
@@ -62,6 +64,7 @@ class FakeSource implements MarketDataSource {
       list?: () => Promise<ChainListResult>;
       chain?: (chainId: string) => Promise<ChainDetailResult | null>;
       asset?: (chainId: string, symbol: string) => Promise<AssetDetailResult | null>;
+      history?: () => Promise<EquityVolumeHistoryResult>;
     },
   ) {}
 
@@ -75,6 +78,12 @@ class FakeSource implements MarketDataSource {
 
   getAsset(chainId: string, symbol: string) {
     return this.impl.asset ? this.impl.asset(chainId, symbol) : Promise.resolve(null);
+  }
+
+  getEquityVolumeHistory() {
+    return this.impl.history
+      ? this.impl.history()
+      : Promise.resolve(emptyEquityVolumeHistory(`No history on ${this.id}.`));
   }
 }
 
@@ -191,6 +200,27 @@ describe("CompositeMarketDataSource", () => {
     expect((await composite.getChain("solana"))?.chain.sourceId).toBe("solana");
     expect((await composite.getChain("robinhood-chain"))?.chain.sourceId).toBe("terminal");
     expect(await composite.getChain("base")).toBeNull();
+  });
+
+  it("routes equity volume history to the Solana adapter and stays empty without one", async () => {
+    const solana = new FakeSource("solana", "Solana", {
+      history: async () => ({
+        ...emptyEquityVolumeHistory("unused"),
+        available: true,
+        points: [{ t: 1, volumeUsd: 2, cumulativeUsd: 2 }],
+        emptyReason: null,
+      }),
+    });
+    const terminal = new FakeSource("terminal", "Terminal", {});
+    const withSolana = new CompositeMarketDataSource([terminal, solana]);
+    const history = await withSolana.getEquityVolumeHistory();
+    expect(history.available).toBe(true);
+    expect(history.points).toHaveLength(1);
+
+    const terminalOnly = new CompositeMarketDataSource([terminal]);
+    const empty = await terminalOnly.getEquityVolumeHistory();
+    expect(empty.available).toBe(false);
+    expect(empty.points).toEqual([]);
   });
 });
 

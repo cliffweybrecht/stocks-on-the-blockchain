@@ -47,6 +47,9 @@ function buildLiveAdapters(env: MarketEnv): MarketDataSource[] {
         geckoTerminalBaseUrl: env.SOLANA_GECKOTERMINAL_BASE_URL?.trim() || undefined,
         enrichBudgetMs: envNumber(env, "SOLANA_ENRICH_BUDGET_MS", SOLANA_DEFAULTS.enrichBudgetMs),
         emptyCacheMs: envNumber(env, "SOLANA_EMPTY_CACHE_MS", SOLANA_DEFAULTS.emptyCacheMs),
+        volumeHistoryBudgetMs: envNumber(env, "SOLANA_VOLUME_HISTORY_BUDGET_MS", SOLANA_DEFAULTS.volumeHistoryBudgetMs),
+        volumeHistoryCacheMs: envNumber(env, "SOLANA_VOLUME_HISTORY_CACHE_MS", SOLANA_DEFAULTS.volumeHistoryCacheMs),
+        volumeHistoryMaxPools: envNumber(env, "SOLANA_VOLUME_HISTORY_MAX_POOLS", SOLANA_DEFAULTS.volumeHistoryMaxPools),
       }),
     );
   }
@@ -87,6 +90,9 @@ function envFingerprint(env: MarketEnv): string {
     env.SOLANA_ONDO_REGISTRY_URL,
     env.SOLANA_GECKOTERMINAL_ENABLED,
     env.SOLANA_GECKOTERMINAL_BASE_URL,
+    env.SOLANA_VOLUME_HISTORY_BUDGET_MS,
+    env.SOLANA_VOLUME_HISTORY_CACHE_MS,
+    env.SOLANA_VOLUME_HISTORY_MAX_POOLS,
   ].join("|");
 }
 

@@ -6,6 +6,8 @@ Read-only desk for **tokenized / on-chain stocks**. The path is deliberate:
 2. **Top stocks on that chain**
 3. **One asset**: identity, volume, displayed liquidity, RH vs DEX marks, pools, provenance
 
+Home (and the Solana chain page) open with **Total Volume Since Inception** — a dark area chart, no Key Metrics row. See [Volume since inception](#volume-since-inception).
+
 This is not a wallet, trading venue, bot, or executable-liquidity engine. Robinhood vs DEX numbers are observed marks from separate sources. Premium/discount is labeled **interpretive**. Missing values stay missing — a dash is not zero.
 
 ## Run locally
@@ -92,6 +94,9 @@ SOLANA_ONDO_REGISTRY_ENABLED=true
 SOLANA_ONDO_REGISTRY_URL=https://raw.githubusercontent.com/ondoprotocol/gm-solana-simulator/main/constants.rs
 SOLANA_GECKOTERMINAL_ENABLED=true
 SOLANA_GECKOTERMINAL_BASE_URL=https://api.geckoterminal.com/api/v2
+SOLANA_VOLUME_HISTORY_BUDGET_MS=15000
+SOLANA_VOLUME_HISTORY_CACHE_MS=1800000
+SOLANA_VOLUME_HISTORY_MAX_POOLS=24
 ```
 
 Set `SOLANA_XSTOCKS_REGISTRY_ENABLED=false` or `SOLANA_ONDO_REGISTRY_ENABLED=false` to disable those candidate sources.
@@ -163,9 +168,24 @@ Different mints for the same ticker (Tesla xStock vs Tesla Ondo) stay **separate
 
 Robinhood marks stay null on Solana. Off-Solana pairs are ignored.
 
+## Volume since inception
+
+**Total Volume Since Inception** is not TVL and not issuance-genesis.
+
+| | |
+| --- | --- |
+| **Definition** | Cumulative sum of **GeckoTerminal daily USD volume** (`/networks/solana/pools/{pool}/ohlcv/day?currency=usd`) across Solana pools of **classified public equities**, from each pool’s first indexed candle |
+| **Universe** | Same fail-closed classifier as the rest of the desk. **ETF / index lane excluded** |
+| **Why GeckoTerminal** | DexScreener’s public API is snapshot-only (no pair history). Desk-owned 24h snapshot accumulation would only start from first deploy |
+| **Honesty** | Days with no returned candle are omitted, not filled. A 429 / disabled GeckoTerminal / seed adapter yields an **empty chart**, never invented points |
+| **Coverage** | Highest-volume classified equity pools first, capped (`SOLANA_VOLUME_HISTORY_MAX_POOLS`, default 24) so a public ~10 req/min budget can finish. The muted line under the chart states how many snapshot pools have a series |
+
+The seed adapter does **not** draw a demo series.
+
 ## Trust labeling
 
-- Persistent disclaimer in the site footer (Solana chain/asset pages do not repeat the gold trust banner)
+- Persistent disclaimer in the site footer only (no gold trust card; provenance on pages is a thin source · time line)
+- Home / Solana chain: **Total Volume Since Inception** chart (title + series + one definition line). No Key Metrics row
 - Solana coverage is a single muted line; table chips still filter classified / with-volume / still-hydrating / confirmed-no-pools, plus **issuer** (`?issuer=ondo`, case-insensitive, derived from the current lane). Rank # is the current filtered view.
 - Solana desk jump (`/` or ⌘K) searches symbol, name, issuer, and mint with collision-safe deep links. Stars pin mints in `localStorage` (`sotb.solana.favoriteMints.v1`); pinned rows float to the top, or filter with `?pinned=1`. Two or more pins open a compare strip. Export CSV downloads the current filtered+sorted lane (null volume stays blank). TSLAx and TSLAon stay separate.
 - Solana chain list defaults to **With volume**, ranked by coverage tier then aggregate 24h volume (nulls last). Click column headers to change sort. Warm navigations show skeletons instead of an empty table.

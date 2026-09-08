@@ -4,10 +4,11 @@ import { ErrorState } from "@/components/error-state";
 import { PageShell } from "@/components/page-shell";
 import { ProvenanceBar } from "@/components/provenance-bar";
 import { SolanaCoverageBanner } from "@/components/solana-coverage-banner";
-import { TrustBanner } from "@/components/trust-banner";
+import { VolumeSinceInceptionChart } from "@/components/volume-since-inception-chart";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { maxNullable } from "@/lib/market/numbers";
 import { SOLANA_CHAIN_ID } from "@/lib/market/types";
+import { emptyEquityVolumeHistory } from "@/lib/market/volume-history";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,22 @@ export default async function HomePage() {
 
   let loaded;
   try {
-    loaded = await source.listChains();
+    const [chainsSettled, historySettled] = await Promise.allSettled([
+      source.listChains(),
+      source.getEquityVolumeHistory(),
+    ]);
+    if (chainsSettled.status === "rejected") {
+      throw chainsSettled.reason;
+    }
+    const history =
+      historySettled.status === "fulfilled"
+        ? historySettled.value
+        : emptyEquityVolumeHistory(
+            historySettled.reason instanceof Error
+              ? historySettled.reason.message
+              : "Historical volume series is unavailable.",
+          );
+    loaded = { ...chainsSettled.value, history };
   } catch (error) {
     const detail =
       error instanceof Error
@@ -29,14 +45,14 @@ export default async function HomePage() {
     );
   }
 
-  const { chains, provenance } = loaded;
+  const { chains, provenance, history } = loaded;
   const maxVolume = maxNullable(chains.map((chain) => chain.volume24hUsd));
 
   return (
     <PageShell provenance={provenance}>
       <div className="space-y-5">
-        <TrustBanner />
-        <ProvenanceBar provenance={provenance} />
+        <VolumeSinceInceptionChart history={history} />
+        <ProvenanceBar provenance={provenance} compact />
         <section className="space-y-3">
           <div>
             <h2 className="font-heading text-lg font-medium">Chain volume</h2>

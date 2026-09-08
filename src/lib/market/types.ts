@@ -165,12 +165,33 @@ export interface AssetDetailResult {
   provenance: DataProvenance;
 }
 
+export interface VolumeHistoryPoint {
+  t: number;
+  volumeUsd: number;
+  cumulativeUsd: number;
+}
+
+export interface EquityVolumeHistoryResult {
+  available: boolean;
+  points: VolumeHistoryPoint[];
+  definition: string;
+  sourceLabel: string;
+  poolCount: number;
+  poolCountAttempted: number;
+  mintCount: number;
+  firstObservableAt: string | null;
+  lastObservableAt: string | null;
+  generatedAt: string;
+  emptyReason: string | null;
+}
+
 export interface MarketDataSource {
   readonly id: SourceKind;
   readonly label: string;
   listChains(): Promise<ChainListResult>;
   getChain(chainId: string): Promise<ChainDetailResult | null>;
   getAsset(chainId: string, symbol: string): Promise<AssetDetailResult | null>;
+  getEquityVolumeHistory(): Promise<EquityVolumeHistoryResult>;
 }
 
 export const ROBINHOOD_CHAIN_ID = "robinhood-chain";
