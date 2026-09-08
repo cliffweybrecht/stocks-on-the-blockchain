@@ -207,7 +207,7 @@ describe("CompositeMarketDataSource", () => {
       history: async () => ({
         ...emptyEquityVolumeHistory("unused"),
         available: true,
-        points: [{ t: 1, volumeUsd: 2, cumulativeUsd: 2 }],
+        points: [{ t: 1, volumeUsd: 2 }],
         emptyReason: null,
       }),
     });

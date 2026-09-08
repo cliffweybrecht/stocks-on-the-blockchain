@@ -4,7 +4,7 @@ import { ErrorState } from "@/components/error-state";
 import { PageShell } from "@/components/page-shell";
 import { ProvenanceBar } from "@/components/provenance-bar";
 import { SolanaCoverageBanner } from "@/components/solana-coverage-banner";
-import { VolumeSinceInceptionChart } from "@/components/volume-since-inception-chart";
+import { DailyVolumeChart } from "@/components/daily-volume-chart";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { maxNullable } from "@/lib/market/numbers";
 import { SOLANA_CHAIN_ID } from "@/lib/market/types";
@@ -51,7 +51,7 @@ export default async function HomePage() {
   return (
     <PageShell provenance={provenance}>
       <div className="space-y-5">
-        <VolumeSinceInceptionChart history={history} />
+        <DailyVolumeChart history={history} />
         <ProvenanceBar provenance={provenance} compact />
         <section className="space-y-3">
           <div>

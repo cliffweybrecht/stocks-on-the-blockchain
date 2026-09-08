@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { AssetSummary } from "../types";
 import {
-  aggregateCumulativeVolume,
+  aggregateDailyVolume,
   buildEquityVolumeHistory,
   collectEquityVolumeTargets,
   emptyEquityVolumeHistory,
@@ -99,9 +99,9 @@ describe("collectEquityVolumeTargets", () => {
   });
 });
 
-describe("aggregateCumulativeVolume", () => {
+describe("aggregateDailyVolume", () => {
   it("sums observed days across pools and never fills missing days", () => {
-    const points = aggregateCumulativeVolume([
+    const points = aggregateDailyVolume([
       {
         pairAddress: "a",
         candles: [
@@ -115,13 +115,53 @@ describe("aggregateCumulativeVolume", () => {
       },
     ]);
     expect(points).toEqual([
-      { t: 100, volumeUsd: 12, cumulativeUsd: 12 },
-      { t: 300, volumeUsd: 5, cumulativeUsd: 17 },
+      { t: 100, volumeUsd: 12 },
+      { t: 300, volumeUsd: 5 },
+    ]);
+    expect(points.map((point) => point.t)).not.toContain(200);
+  });
+
+  it("is per-day volume, not a running total", () => {
+    const points = aggregateDailyVolume([
+      {
+        pairAddress: "a",
+        candles: [
+          { t: 100, volumeUsd: 10 },
+          { t: 200, volumeUsd: 4 },
+          { t: 300, volumeUsd: 9 },
+        ],
+      },
+    ]);
+    expect(points.map((point) => point.volumeUsd)).toEqual([10, 4, 9]);
+    expect(points[2]?.volumeUsd).not.toBe(23);
+    expect(Object.keys(points[0] ?? {})).toEqual(["t", "volumeUsd"]);
+    const history = buildEquityVolumeHistory({
+      seriesByPool: [{ pairAddress: "a", candles: points.map((point) => ({ t: point.t, volumeUsd: point.volumeUsd })) }],
+      attemptedPoolCount: 1,
+      mintCount: 1,
+    });
+    expect(history.definition).toMatch(/Per-day GeckoTerminal USD volume/);
+    expect(history.definition).not.toMatch(/cumulative|inception/i);
+  });
+
+  it("keeps a source-reported zero and does not invent zeros for gaps", () => {
+    const points = aggregateDailyVolume([
+      {
+        pairAddress: "a",
+        candles: [
+          { t: 100, volumeUsd: 0 },
+          { t: 300, volumeUsd: 4 },
+        ],
+      },
+    ]);
+    expect(points).toEqual([
+      { t: 100, volumeUsd: 0 },
+      { t: 300, volumeUsd: 4 },
     ]);
   });
 
   it("returns an empty series when no pool candles exist", () => {
-    expect(aggregateCumulativeVolume([{ pairAddress: "a", candles: [] }])).toEqual([]);
+    expect(aggregateDailyVolume([{ pairAddress: "a", candles: [] }])).toEqual([]);
     expect(buildEquityVolumeHistory({ seriesByPool: [], attemptedPoolCount: 3, mintCount: 2 }).available).toBe(
       false,
     );
