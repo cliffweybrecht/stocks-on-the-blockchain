@@ -79,6 +79,20 @@ export function pointerToViewBoxX(
   return (ctm.d * x - ctm.c * y) / det;
 }
 
+/** Prefer the SVG CTM; if it is missing, stretch-map through the rendered box. */
+export function pointerToSvgX(
+  clientX: number,
+  clientY: number,
+  ctm: { a: number; b: number; c: number; d: number; e: number; f: number } | null,
+  rect: { left: number; width: number },
+  viewBoxWidth = VOLUME_CHART_WIDTH,
+): number | null {
+  const fromCtm = pointerToViewBoxX(clientX, clientY, ctm);
+  if (fromCtm !== null) return fromCtm;
+  if (!Number.isFinite(rect.width) || rect.width <= 0) return null;
+  return ((clientX - rect.left) / rect.width) * viewBoxWidth;
+}
+
 export function volumeHeadlineCopy(point: VolumeHistoryPoint): { caption: string; isRolling24h: boolean } {
   if (point.kind === "rolling_24h") {
     return { caption: "24h · same DexScreener equity rollup as the desk", isRolling24h: true };

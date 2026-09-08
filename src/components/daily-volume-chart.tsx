@@ -4,7 +4,7 @@ import { useMemo, useState, type PointerEvent } from "react";
 import {
   filterVolumeRange,
   nearestVolumePoint,
-  pointerToViewBoxX,
+  pointerToSvgX,
   scaleVolumePoints,
   volumeHeadlineCopy,
   VOLUME_CHART_HEIGHT,
@@ -74,8 +74,14 @@ export function DailyVolumeChart({
         ? [visible[0].t]
         : [];
 
-  function setHoverFromPointer(event: PointerEvent<SVGSVGElement>) {
-    const svgX = pointerToViewBoxX(event.clientX, event.clientY, event.currentTarget.getScreenCTM());
+  function setHoverFromClient(plot: Element, clientX: number, clientY: number) {
+    const svg = plot.querySelector("svg");
+    const svgX = pointerToSvgX(
+      clientX,
+      clientY,
+      svg?.getScreenCTM?.() ?? null,
+      plot.getBoundingClientRect(),
+    );
     if (svgX === null) return;
     setHover(nearestVolumePoint(visible, map, svgX));
   }
@@ -87,10 +93,17 @@ export function DailyVolumeChart({
           <h2 className="font-heading text-lg font-medium tracking-tight">Daily Volume</h2>
           {available && displayed ? (
             <>
-              <p className="num mt-1 text-3xl font-medium text-primary" aria-live="polite">
+              <p
+                className="num mt-1 text-3xl font-medium text-primary"
+                aria-live="polite"
+                data-volume-headline
+                data-volume-kind={displayed.kind ?? "calendar_day"}
+              >
                 {formatUsdCompact(displayed.volumeUsd)}
               </p>
-              <p className="mt-0.5 text-xs text-muted-foreground">{headline?.caption}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground" data-volume-caption>
+                {headline?.caption}
+              </p>
             </>
           ) : null}
         </div>
@@ -118,16 +131,22 @@ export function DailyVolumeChart({
       </div>
 
       {available && visible.length > 0 ? (
-        <div className="relative mt-3">
+        <div
+          className="relative mt-3 cursor-crosshair"
+          data-volume-plot
+          onPointerLeave={() => setHover(null)}
+          onMouseLeave={() => setHover(null)}
+          onPointerMove={(event: PointerEvent<HTMLDivElement>) =>
+            setHoverFromClient(event.currentTarget, event.clientX, event.clientY)
+          }
+          onMouseMove={(event) => setHoverFromClient(event.currentTarget, event.clientX, event.clientY)}
+        >
           <svg
             viewBox={`0 0 ${VOLUME_CHART_WIDTH} ${VOLUME_CHART_HEIGHT}`}
             preserveAspectRatio="none"
-            className="h-[240px] w-full cursor-crosshair touch-none sm:h-[280px]"
+            className="pointer-events-none h-[240px] w-full touch-none sm:h-[280px]"
             role="img"
             aria-label="Daily Solana tokenized equity volume"
-            onPointerLeave={() => setHover(null)}
-            onPointerMove={setHoverFromPointer}
-            onPointerDown={setHoverFromPointer}
           >
             <defs>
               <linearGradient id="volume-area" x1="0" x2="0" y1="0" y2="1">
@@ -135,14 +154,7 @@ export function DailyVolumeChart({
                 <stop offset="100%" stopColor="var(--volume)" stopOpacity="0.02" />
               </linearGradient>
             </defs>
-            <rect
-              x={0}
-              y={0}
-              width={VOLUME_CHART_WIDTH}
-              height={VOLUME_CHART_HEIGHT}
-              fill="transparent"
-              pointerEvents="all"
-            />
+            <rect x={0} y={0} width={VOLUME_CHART_WIDTH} height={VOLUME_CHART_HEIGHT} fill="transparent" />
             {yTicks.map((tick) => (
               <g key={tick}>
                 <line
@@ -202,8 +214,13 @@ export function DailyVolumeChart({
               </g>
             ) : null}
           </svg>
+          <div
+            aria-hidden="true"
+            data-volume-overlay
+            className="absolute inset-0 z-10 cursor-crosshair"
+          />
           {hover ? (
-            <div className="pointer-events-none absolute top-2 right-2 rounded-md border border-border bg-background/90 px-2.5 py-1.5 text-xs shadow-sm">
+            <div className="pointer-events-none absolute top-2 right-2 z-20 rounded-md border border-border bg-background/90 px-2.5 py-1.5 text-xs shadow-sm">
               <p className="text-muted-foreground">{volumeHeadlineCopy(hover).caption}</p>
               <p className="num mt-0.5 text-foreground">{formatUsdFull(hover.volumeUsd)}</p>
             </div>

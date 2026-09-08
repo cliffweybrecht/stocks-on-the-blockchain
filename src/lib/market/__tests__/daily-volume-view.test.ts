@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   filterVolumeRange,
   nearestVolumePoint,
+  pointerToSvgX,
   pointerToViewBoxX,
   scaleVolumePoints,
   volumeHeadlineCopy,
@@ -54,6 +55,7 @@ describe("pointerToViewBoxX", () => {
 
     expect(pointerToViewBoxX(10, 10, null)).toBeNull();
     expect(pointerToViewBoxX(10, 10, { a: 0, b: 0, c: 0, d: 0, e: 0, f: 0 })).toBeNull();
+    expect(pointerToSvgX(140, 40, null, { left: 40, width: 400 })).toBeCloseTo((100 / 400) * VOLUME_CHART_WIDTH);
   });
 
   it("maps a pointer at the plot left edge onto the first day", () => {
