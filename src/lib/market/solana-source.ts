@@ -19,6 +19,7 @@ import {
 import {
   DEFAULT_GECKOTERMINAL_BASE_URL,
   DEFAULT_GECKOTERMINAL_QUERIES,
+  geckoTerminalOhlcvPath,
   geckoTerminalSearchPath,
   parseGeckoTerminalSearch,
 } from "./solana-geckoterminal";
@@ -37,9 +38,17 @@ import {
   type AssetDetailResult,
   type ChainDetailResult,
   type ChainListResult,
+  type EquityVolumeHistoryResult,
   type MarketDataSource,
   type VolumeAggregation,
 } from "./types";
+import {
+  buildEquityVolumeHistory,
+  collectEquityVolumeTargets,
+  emptyEquityVolumeHistory,
+  parseGeckoTerminalOhlcv,
+  rankEquityVolumeTargets,
+} from "./volume-history";
 import type { TokenIdentity } from "./solana-classifier";
 
 export const SOLANA_DEFAULTS = {
@@ -55,6 +64,11 @@ export const SOLANA_DEFAULTS = {
   enrichBudgetMs: 180_000,
   /** Skip re-previewing mints confirmed to have zero DexScreener pools. */
   emptyCacheMs: 30 * 60_000,
+  /** GeckoTerminal daily OHLCV budget after the Solana snapshot is available. */
+  volumeHistoryBudgetMs: 15_000,
+  volumeHistoryCacheMs: 30 * 60_000,
+  /** Highest-volume classified equity pools to ask GeckoTerminal for. */
+  volumeHistoryMaxPools: 24,
 } as const;
 
 const DEFAULT_BASE_URL = "https://api.dexscreener.com";
@@ -97,6 +111,9 @@ export interface SolanaMarketDataSourceOptions {
   retries?: number;
   backgroundEnrichment?: boolean;
   fetchImpl?: FetchLike;
+  volumeHistoryBudgetMs?: number;
+  volumeHistoryCacheMs?: number;
+  volumeHistoryMaxPools?: number;
 }
 
 export class SolanaMarketDataSource implements MarketDataSource {
@@ -107,6 +124,8 @@ export class SolanaMarketDataSource implements MarketDataSource {
   private inflightMode: SnapshotMode | null = null;
   private backgroundWork: Promise<void> | null = null;
   private readonly memory: SolanaHydrateMemory;
+  private volumeHistoryCache: { result: EquityVolumeHistoryResult; expiresAt: number } | null = null;
+  private volumeHistoryInflight: Promise<EquityVolumeHistoryResult> | null = null;
 
   constructor(private readonly options: SolanaMarketDataSourceOptions = {}) {
     this.memory = new SolanaHydrateMemory(options.emptyCacheMs ?? SOLANA_DEFAULTS.emptyCacheMs);
@@ -182,6 +201,18 @@ export class SolanaMarketDataSource implements MarketDataSource {
 
   private get backgroundEnrichment() {
     return this.options.backgroundEnrichment !== false;
+  }
+
+  private get volumeHistoryBudgetMs() {
+    return this.options.volumeHistoryBudgetMs ?? SOLANA_DEFAULTS.volumeHistoryBudgetMs;
+  }
+
+  private get volumeHistoryCacheMs() {
+    return this.options.volumeHistoryCacheMs ?? SOLANA_DEFAULTS.volumeHistoryCacheMs;
+  }
+
+  private get volumeHistoryMaxPools() {
+    return this.options.volumeHistoryMaxPools ?? SOLANA_DEFAULTS.volumeHistoryMaxPools;
   }
 
   private gate() {
@@ -772,5 +803,82 @@ export class SolanaMarketDataSource implements MarketDataSource {
     const asset = findAssetByKey([...cached.mapped.details, ...cached.mapped.etfDetails], symbol);
     if (!asset) return null;
     return { chain: cached.mapped.chain, asset, provenance: cached.mapped.provenance };
+  }
+
+  async getEquityVolumeHistory(): Promise<EquityVolumeHistoryResult> {
+    const now = Date.now();
+    if (this.volumeHistoryCache && this.volumeHistoryCache.expiresAt > now) {
+      return this.volumeHistoryCache.result;
+    }
+    if (this.volumeHistoryInflight) return this.volumeHistoryInflight;
+
+    this.volumeHistoryInflight = this.buildEquityVolumeHistory()
+      .then((result) => {
+        if (result.available) {
+          this.volumeHistoryCache = {
+            result,
+            expiresAt: Date.now() + this.volumeHistoryCacheMs,
+          };
+        }
+        return result;
+      })
+      .finally(() => {
+        this.volumeHistoryInflight = null;
+      });
+    return this.volumeHistoryInflight;
+  }
+
+  private async buildEquityVolumeHistory(): Promise<EquityVolumeHistoryResult> {
+    if (!this.geckoEnabled) {
+      return emptyEquityVolumeHistory(
+        "GeckoTerminal is disabled, so there is no historical pool volume series to load.",
+      );
+    }
+
+    let assets;
+    try {
+      const snapshot = await this.loadCached("light");
+      assets = snapshot.mapped.assets;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Solana snapshot failed.";
+      return emptyEquityVolumeHistory(message);
+    }
+
+    const allTargets = collectEquityVolumeTargets(assets);
+    const targets = rankEquityVolumeTargets(allTargets, this.volumeHistoryMaxPools);
+    const mintCount = new Set(allTargets.map((target) => target.mint)).size;
+    if (targets.length === 0) {
+      return emptyEquityVolumeHistory(
+        "No classified Solana public-equity pools are in this snapshot, so there is no historical series.",
+      );
+    }
+
+    const deadline = Date.now() + this.volumeHistoryBudgetMs;
+    const gate = createRequestGate({
+      maxConcurrent: Math.min(2, this.maxConcurrent),
+      minGapMs: Math.max(this.requestGapMs, 400),
+    });
+    const seriesByPool = await mapWithConcurrency(targets, Math.min(2, this.maxConcurrent), async (target) => {
+      if (Date.now() >= deadline) {
+        return { pairAddress: target.pairAddress, candles: [] };
+      }
+      try {
+        const payload = await gate.run(() =>
+          this.fetchSource(
+            `${this.geckoTerminalBaseUrl}${geckoTerminalOhlcvPath(target.pairAddress)}`,
+            "GeckoTerminal",
+          ),
+        );
+        return { pairAddress: target.pairAddress, candles: parseGeckoTerminalOhlcv(payload) };
+      } catch {
+        return { pairAddress: target.pairAddress, candles: [] };
+      }
+    });
+
+    return buildEquityVolumeHistory({
+      seriesByPool,
+      attemptedPoolCount: allTargets.length,
+      mintCount,
+    });
   }
 }

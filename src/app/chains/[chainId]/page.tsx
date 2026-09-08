@@ -6,7 +6,8 @@ import { Metric } from "@/components/metric";
 import { PageShell } from "@/components/page-shell";
 import { ProvenanceBar } from "@/components/provenance-bar";
 import { SolanaCoverageBanner } from "@/components/solana-coverage-banner";
-import { TrustBanner } from "@/components/trust-banner";
+import { VolumeSinceInceptionChart } from "@/components/volume-since-inception-chart";
+import { emptyEquityVolumeHistory } from "@/lib/market/volume-history";
 import { formatCount, formatUsdCompact } from "@/lib/market/format";
 import {
   assetMatchesIssuerFilter,
@@ -59,6 +60,9 @@ export default async function ChainPage({
 
   const { chain, assets, etfAssets = [], provenance } = result;
   const isSolana = chain.id === SOLANA_CHAIN_ID;
+  const volumeHistory = isSolana
+    ? await source.getEquityVolumeHistory()
+    : emptyEquityVolumeHistory("This chart is Solana tokenized public equities only.");
   const lane = query.lane === "etf" && etfAssets.length > 0 ? "etf" : "equity";
   const defaultCoverage = isSolana ? "with-volume" : "all";
   const coverageFilter = parseCoverageFilter(query.coverage, defaultCoverage);
@@ -98,8 +102,8 @@ export default async function ChainPage({
             <p className="mt-1 text-sm text-muted-foreground">{chain.coverageNote}</p>
           )}
         </div>
-        {isSolana ? null : <TrustBanner />}
-        <ProvenanceBar provenance={provenance} compact={isSolana} />
+        {isSolana ? <VolumeSinceInceptionChart history={volumeHistory} /> : null}
+        <ProvenanceBar provenance={provenance} compact />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Metric label="24h volume" value={formatUsdCompact(chain.volume24hUsd)} hint={`Sum of reported 24h volume · ${chain.sourceLabel}`} />
           <Metric

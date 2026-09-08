@@ -74,6 +74,25 @@ export function formatRelativeTime(iso: string | null | undefined): string {
   return rtf.format(-Math.sign(deltaSec) * Math.round(abs / 86400), "day");
 }
 
+export function formatChartDate(unixSeconds: number): string {
+  if (!Number.isFinite(unixSeconds)) return "—";
+  return new Date(unixSeconds * 1000).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+export function formatChartTick(unixSeconds: number): string {
+  if (!Number.isFinite(unixSeconds)) return "";
+  return new Date(unixSeconds * 1000).toLocaleDateString("en-US", {
+    month: "short",
+    year: "2-digit",
+    timeZone: "UTC",
+  });
+}
+
 export function volumeShare(value: number | null, max: number | null): number {
   if (value === null || max === null || max <= 0) return 0;
   return Math.max(0, Math.min(100, (value / max) * 100));

@@ -6,7 +6,8 @@ import {
   type TerminalAssetLiquidityProfile,
   type TerminalPriceComparison,
 } from "./map-terminal";
-import { ROBINHOOD_CHAIN_ID, type AssetDetailResult, type ChainDetailResult, type ChainListResult, type MarketDataSource } from "./types";
+import { ROBINHOOD_CHAIN_ID, type AssetDetailResult, type ChainDetailResult, type ChainListResult, type EquityVolumeHistoryResult, type MarketDataSource } from "./types";
+import { emptyEquityVolumeHistory } from "./volume-history";
 
 interface CachedSnapshot {
   mapped: ReturnType<typeof mapTerminalSnapshot>;
@@ -111,6 +112,12 @@ export class TerminalMarketDataSource implements MarketDataSource {
     asset = enrichDetailFromTerminal(base, profile, comparison);
 
     return { chain: mapped.chain, asset, provenance: mapped.provenance };
+  }
+
+  async getEquityVolumeHistory(): Promise<EquityVolumeHistoryResult> {
+    return emptyEquityVolumeHistory(
+      "Robinhood Terminal has no Solana equity pool history. This series is GeckoTerminal OHLCV for classified Solana public equities only.",
+    );
   }
 
   private async tryAssetEndpoint<T>(path: string): Promise<T | null> {

@@ -532,4 +532,79 @@ describe("SolanaMarketDataSource", () => {
     expect(hood?.volume24hUsd).toBe(88);
     expect(hood?.volumeCoverage).toBe("reported");
   });
+
+  it("builds a cumulative equity volume series from GeckoTerminal daily OHLCV and skips ETFs", async () => {
+    const urls: string[] = [];
+    const source = testSource({
+      requestGapMs: 0,
+      enableGeckoTerminal: true,
+      geckoTerminalBaseUrl: "https://api.geckoterminal.com/api/v2",
+      volumeHistoryBudgetMs: 5_000,
+      volumeHistoryMaxPools: 8,
+      fetchImpl: async (input) => {
+        const url = String(input);
+        urls.push(url);
+        if (url.includes("/latest/dex/search")) {
+          return jsonResponse({
+            pairs: [
+              tslaPair(),
+              {
+                chainId: "solana",
+                dexId: "raydium",
+                pairAddress: "pair-spy",
+                baseToken: { address: spyMint, name: "SPY xStock", symbol: "SPYx" },
+                quoteToken: { address: "usdc", name: "USDC", symbol: "USDC" },
+                volume: { h24: 9_000 },
+                liquidity: { usd: 1 },
+              },
+            ],
+          });
+        }
+        if (url.includes("/ohlcv/day") && url.includes("pair-1")) {
+          return jsonResponse({
+            data: {
+              attributes: {
+                ohlcv_list: [
+                  [1_700_086_400, 1, 1, 1, 1, 40],
+                  [1_700_000_000, 1, 1, 1, 1, 10],
+                ],
+              },
+            },
+          });
+        }
+        if (url.includes("/ohlcv/day")) return jsonResponse({ unexpected: true }, 404);
+        if (url.includes("/tokens/v1/solana/")) return jsonResponse([tslaPair()]);
+        if (url.includes("/token-pairs/v1/solana/")) return jsonResponse([tslaPair()]);
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    const history = await source.getEquityVolumeHistory();
+    expect(history.available).toBe(true);
+    expect(history.points).toEqual([
+      { t: 1_700_000_000, volumeUsd: 10, cumulativeUsd: 10 },
+      { t: 1_700_086_400, volumeUsd: 40, cumulativeUsd: 50 },
+    ]);
+    expect(history.mintCount).toBe(1);
+    expect(urls.some((url) => url.includes("/ohlcv/day") && url.includes("pair-spy"))).toBe(false);
+    expect(history.definition).toMatch(/Not issuance-genesis/);
+  });
+
+  it("fails closed when GeckoTerminal history is unavailable", async () => {
+    const source = testSource({
+      requestGapMs: 0,
+      enableGeckoTerminal: true,
+      geckoTerminalBaseUrl: "https://api.geckoterminal.com/api/v2",
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [tslaPair()] });
+        if (url.includes("/ohlcv/day")) return jsonResponse({ error: "nope" }, 429);
+        if (url.includes("/tokens/v1/solana/")) return jsonResponse([tslaPair()]);
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+    const history = await source.getEquityVolumeHistory();
+    expect(history.available).toBe(false);
+    expect(history.points).toEqual([]);
+  });
 });

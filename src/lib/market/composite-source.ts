@@ -6,9 +6,11 @@ import {
   type ChainDetailResult,
   type ChainListResult,
   type DataProvenance,
+  type EquityVolumeHistoryResult,
   type MarketDataSource,
   type SourceFailure,
 } from "./types";
+import { emptyEquityVolumeHistory } from "./volume-history";
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Unknown adapter failure.";
@@ -118,5 +120,15 @@ export class CompositeMarketDataSource implements MarketDataSource {
       throw errors[0];
     }
     return null;
+  }
+
+  async getEquityVolumeHistory(): Promise<EquityVolumeHistoryResult> {
+    const solana = this.adapters.find((adapter) => adapter.id === "solana");
+    if (!solana) {
+      return emptyEquityVolumeHistory(
+        "No Solana adapter is configured, so there is no classified equity pool history to load.",
+      );
+    }
+    return solana.getEquityVolumeHistory();
   }
 }

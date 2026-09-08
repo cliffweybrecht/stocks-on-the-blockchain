@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { geckoTerminalSearchPath, parseGeckoTerminalSearch } from "../solana-geckoterminal";
+import { geckoTerminalOhlcvPath, geckoTerminalSearchPath, parseGeckoTerminalSearch } from "../solana-geckoterminal";
 
 describe("parseGeckoTerminalSearch", () => {
   it("reads Solana token identities from included pool search rows", () => {
@@ -39,5 +39,14 @@ describe("geckoTerminalSearchPath", () => {
     expect(geckoTerminalSearchPath("Ondo Tokenized")).toContain("query=Ondo");
     expect(geckoTerminalSearchPath("Ondo Tokenized")).toContain("network=solana");
     expect(geckoTerminalSearchPath("Ondo Tokenized")).toContain("include=base_token");
+  });
+});
+
+describe("geckoTerminalOhlcvPath", () => {
+  it("asks for daily USD candles on a Solana pool", () => {
+    const path = geckoTerminalOhlcvPath("8aDaBQkTrS6HVMjyc6EZebgdiaXhLYGriDWKWWp1NpFF");
+    expect(path).toContain("/networks/solana/pools/8aDaBQkTrS6HVMjyc6EZebgdiaXhLYGriDWKWWp1NpFF/ohlcv/day");
+    expect(path).toContain("currency=usd");
+    expect(path).toContain("limit=1000");
   });
 });
