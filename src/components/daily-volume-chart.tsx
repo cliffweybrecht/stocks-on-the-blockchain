@@ -98,7 +98,9 @@ export function DailyVolumeChart({ history }: { history: EquityVolumeHistoryResu
           {history.available && latest ? (
             <>
               <p className="num mt-1 text-3xl font-medium text-primary">{formatUsdCompact(latest.volumeUsd)}</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">{formatChartDate(latest.t)}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Latest day · {formatChartDate(latest.t)}
+              </p>
             </>
           ) : null}
         </div>

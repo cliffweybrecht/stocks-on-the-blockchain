@@ -121,6 +121,29 @@ describe("aggregateDailyVolume", () => {
     expect(points.map((point) => point.t)).not.toContain(200);
   });
 
+  it("is per-day volume, not a running total", () => {
+    const points = aggregateDailyVolume([
+      {
+        pairAddress: "a",
+        candles: [
+          { t: 100, volumeUsd: 10 },
+          { t: 200, volumeUsd: 4 },
+          { t: 300, volumeUsd: 9 },
+        ],
+      },
+    ]);
+    expect(points.map((point) => point.volumeUsd)).toEqual([10, 4, 9]);
+    expect(points[2]?.volumeUsd).not.toBe(23);
+    expect(Object.keys(points[0] ?? {})).toEqual(["t", "volumeUsd"]);
+    const history = buildEquityVolumeHistory({
+      seriesByPool: [{ pairAddress: "a", candles: points.map((point) => ({ t: point.t, volumeUsd: point.volumeUsd })) }],
+      attemptedPoolCount: 1,
+      mintCount: 1,
+    });
+    expect(history.definition).toMatch(/Per-day GeckoTerminal USD volume/);
+    expect(history.definition).not.toMatch(/cumulative|inception/i);
+  });
+
   it("keeps a source-reported zero and does not invent zeros for gaps", () => {
     const points = aggregateDailyVolume([
       {
