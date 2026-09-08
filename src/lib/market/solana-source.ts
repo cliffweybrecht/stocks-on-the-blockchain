@@ -877,7 +877,8 @@ export class SolanaMarketDataSource implements MarketDataSource {
 
     return buildEquityVolumeHistory({
       seriesByPool,
-      attemptedPoolCount: allTargets.length,
+      attemptedPoolCount: targets.length,
+      universePoolCount: allTargets.length,
       mintCount,
     });
   }

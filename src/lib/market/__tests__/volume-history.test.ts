@@ -127,4 +127,19 @@ describe("aggregateCumulativeVolume", () => {
     );
     expect(emptyEquityVolumeHistory("none").points).toEqual([]);
   });
+
+  it("labels fetched coverage separately from the snapshot universe", () => {
+    const history = buildEquityVolumeHistory({
+      seriesByPool: [
+        { pairAddress: "a", candles: [{ t: 100, volumeUsd: 3 }] },
+        { pairAddress: "b", candles: [] },
+      ],
+      attemptedPoolCount: 2,
+      universePoolCount: 40,
+      mintCount: 12,
+    });
+    expect(history.available).toBe(true);
+    expect(history.definition).toMatch(/1 of 2 fetched highest-volume pools/);
+    expect(history.definition).toMatch(/40 classified equity pools \/ 12 mints/);
+  });
 });

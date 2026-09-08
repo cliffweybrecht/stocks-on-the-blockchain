@@ -586,8 +586,10 @@ describe("SolanaMarketDataSource", () => {
       { t: 1_700_086_400, volumeUsd: 40, cumulativeUsd: 50 },
     ]);
     expect(history.mintCount).toBe(1);
+    expect(history.poolCount).toBe(1);
     expect(urls.some((url) => url.includes("/ohlcv/day") && url.includes("pair-spy"))).toBe(false);
     expect(history.definition).toMatch(/Not issuance-genesis/);
+    expect(history.definition).toMatch(/fetched highest-volume/);
   });
 
   it("fails closed when GeckoTerminal history is unavailable", async () => {

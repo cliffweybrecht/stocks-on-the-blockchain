@@ -143,6 +143,7 @@ export function buildEquityVolumeHistory(input: {
   seriesByPool: readonly { pairAddress: string; candles: readonly OhlcvCandle[] }[];
   attemptedPoolCount: number;
   mintCount: number;
+  universePoolCount?: number;
   generatedAt?: string;
   emptyReason?: string;
 }): EquityVolumeHistoryResult {
@@ -159,10 +160,16 @@ export function buildEquityVolumeHistory(input: {
 
   const first = points[0];
   const last = points[points.length - 1];
-  const poolNote =
-    input.attemptedPoolCount > usable.length
-      ? ` This snapshot: ${usable.length} of ${input.attemptedPoolCount} classified equity pools have a GeckoTerminal series so far.`
-      : ` This snapshot: ${usable.length} classified equity pool${usable.length === 1 ? "" : "s"}.`;
+  const universe = input.universePoolCount ?? input.attemptedPoolCount;
+  const fetchedNote =
+    usable.length === input.attemptedPoolCount
+      ? `${usable.length} fetched highest-volume pool${usable.length === 1 ? "" : "s"}`
+      : `${usable.length} of ${input.attemptedPoolCount} fetched highest-volume pools`;
+  const universeNote =
+    universe > input.attemptedPoolCount
+      ? ` (${universe} classified equity pools / ${input.mintCount} mints in this snapshot)`
+      : "";
+  const poolNote = ` This snapshot: ${fetchedNote}${universeNote}.`;
 
   return {
     available: true,
