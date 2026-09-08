@@ -581,15 +581,20 @@ describe("SolanaMarketDataSource", () => {
 
     const history = await source.getEquityVolumeHistory();
     expect(history.available).toBe(true);
-    expect(history.points).toEqual([
-      { t: 1_700_000_000, volumeUsd: 10 },
-      { t: 1_700_086_400, volumeUsd: 40 },
-    ]);
+    expect(history.volume24hUsd).toBeCloseTo(1_250.25);
+    expect(history.points[0]).toEqual({ t: 1_699_920_000, volumeUsd: 10, kind: "calendar_day" });
+    expect(history.points[1]?.kind).toBe("calendar_day");
+    expect(history.points[1]?.volumeUsd).toBe(40);
+    const latest = history.points[history.points.length - 1];
+    expect(latest?.kind).toBe("rolling_24h");
+    expect(latest?.volumeUsd).toBeCloseTo(1_250.25);
+    expect(history.points.some((point) => point.kind === "calendar_day" && point.volumeUsd === 0)).toBe(true);
     expect(history.mintCount).toBe(1);
     expect(history.poolCount).toBe(1);
     expect(urls.some((url) => url.includes("/ohlcv/day") && url.includes("pair-spy"))).toBe(false);
-    expect(history.definition).toMatch(/Per-day GeckoTerminal USD volume/);
-    expect(history.definition).toMatch(/omitted, not filled/);
+    expect(history.definition).toMatch(/Per-day GeckoTerminal USD volume/i);
+    expect(history.definition).toMatch(/Missing calendar days are plotted as \$0/);
+    expect(history.definition).toMatch(/DexScreener 24h equity rollup/);
     expect(history.definition).toMatch(/fetched highest-volume/);
   });
 
@@ -607,7 +612,10 @@ describe("SolanaMarketDataSource", () => {
       },
     });
     const history = await source.getEquityVolumeHistory();
-    expect(history.available).toBe(false);
-    expect(history.points).toEqual([]);
+    expect(history.available).toBe(true);
+    expect(history.points).toHaveLength(1);
+    expect(history.points[0]?.kind).toBe("rolling_24h");
+    expect(history.points[0]?.volumeUsd).toBeCloseTo(1_250.25);
+    expect(history.definition).toMatch(/No GeckoTerminal daily candles/);
   });
 });

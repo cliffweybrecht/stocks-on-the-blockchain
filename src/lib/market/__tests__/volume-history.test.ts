@@ -2,12 +2,22 @@ import { describe, expect, it } from "vitest";
 import type { AssetSummary } from "../types";
 import {
   aggregateDailyVolume,
+  alignLatestDayWithDesk24h,
   buildEquityVolumeHistory,
   collectEquityVolumeTargets,
   emptyEquityVolumeHistory,
+  fillMissingCalendarDays,
   parseGeckoTerminalOhlcv,
   rankEquityVolumeTargets,
+  selectEquityVolumeFetchTargets,
+  utcDayStart,
+  UTC_DAY_SECONDS,
 } from "../volume-history";
+
+const DAY0 = 1_699_920_000; // 2023-11-14 00:00 UTC
+const DAY1 = DAY0 + UTC_DAY_SECONDS;
+const DAY2 = DAY0 + 2 * UTC_DAY_SECONDS;
+const DAY3 = DAY0 + 3 * UTC_DAY_SECONDS;
 
 function equity(partial: Partial<AssetSummary> & Pick<AssetSummary, "symbol" | "contractAddress">): AssetSummary {
   return {
@@ -43,15 +53,15 @@ describe("parseGeckoTerminalOhlcv", () => {
         type: "ohlcv_request_response",
         attributes: {
           ohlcv_list: [
-            [1_700_086_400, 2, 3, 1, 2, 40],
-            [1_700_000_000, 1, 2, 1, 1, 10],
+            [DAY1 + 3_600, 2, 3, 1, 2, 40],
+            [DAY0 + 3_600, 1, 2, 1, 1, 10],
           ],
         },
       },
     });
     expect(candles).toEqual([
-      { t: 1_700_000_000, volumeUsd: 10 },
-      { t: 1_700_086_400, volumeUsd: 40 },
+      { t: DAY0 + 3_600, volumeUsd: 10 },
+      { t: DAY1 + 3_600, volumeUsd: 40 },
     ]);
   });
 
@@ -63,15 +73,15 @@ describe("parseGeckoTerminalOhlcv", () => {
         data: {
           attributes: {
             ohlcv_list: [
-              [1_700_000_000, 1, 2, 1, 1, -5],
+              [DAY0, 1, 2, 1, 1, -5],
               [0, 1, 2, 1, 1, 9],
               ["bad", 1, 2, 1, 1, 9],
-              [1_700_086_400, 1, 2, 1, 1, 12],
+              [DAY1, 1, 2, 1, 1, 12],
             ],
           },
         },
       }),
-    ).toEqual([{ t: 1_700_086_400, volumeUsd: 12 }]);
+    ).toEqual([{ t: DAY1, volumeUsd: 12 }]);
   });
 });
 
@@ -97,28 +107,44 @@ describe("collectEquityVolumeTargets", () => {
     expect(targets.map((row) => row.pairAddress)).toEqual(["pool-a", "pool-b"]);
     expect(rankEquityVolumeTargets(targets, 1).map((row) => row.pairAddress)).toEqual(["pool-a"]);
   });
+
+  it("prefers reported DexScreener 24h pools when selecting fetch targets", () => {
+    const targets = collectEquityVolumeTargets([
+      equity({
+        symbol: "NFLXx",
+        contractAddress: "mint-nflx",
+        pools: [{ pairAddress: "pool-null", dexId: "raydium", volume24hUsd: null, liquidityUsd: 1, priceUsd: 1 }],
+      }),
+      equity({
+        symbol: "TSLAx",
+        contractAddress: "mint-tsla",
+        pools: [{ pairAddress: "pool-hot", dexId: "raydium", volume24hUsd: 50, liquidityUsd: 1, priceUsd: 1 }],
+      }),
+    ]);
+    expect(selectEquityVolumeFetchTargets(targets, 1).map((row) => row.pairAddress)).toEqual(["pool-hot"]);
+  });
 });
 
 describe("aggregateDailyVolume", () => {
-  it("sums observed days across pools and never fills missing days", () => {
+  it("sums observed UTC days across pools without filling gaps", () => {
     const points = aggregateDailyVolume([
       {
         pairAddress: "a",
         candles: [
-          { t: 100, volumeUsd: 10 },
-          { t: 300, volumeUsd: 5 },
+          { t: DAY0 + 100, volumeUsd: 10 },
+          { t: DAY2 + 100, volumeUsd: 5 },
         ],
       },
       {
         pairAddress: "b",
-        candles: [{ t: 100, volumeUsd: 2 }],
+        candles: [{ t: DAY0 + 200, volumeUsd: 2 }],
       },
     ]);
     expect(points).toEqual([
-      { t: 100, volumeUsd: 12 },
-      { t: 300, volumeUsd: 5 },
+      { t: DAY0, volumeUsd: 12, kind: "calendar_day" },
+      { t: DAY2, volumeUsd: 5, kind: "calendar_day" },
     ]);
-    expect(points.map((point) => point.t)).not.toContain(200);
+    expect(points.map((point) => point.t)).not.toContain(DAY1);
   });
 
   it("is per-day volume, not a running total", () => {
@@ -126,37 +152,38 @@ describe("aggregateDailyVolume", () => {
       {
         pairAddress: "a",
         candles: [
-          { t: 100, volumeUsd: 10 },
-          { t: 200, volumeUsd: 4 },
-          { t: 300, volumeUsd: 9 },
+          { t: DAY0, volumeUsd: 10 },
+          { t: DAY1, volumeUsd: 4 },
+          { t: DAY2, volumeUsd: 9 },
         ],
       },
     ]);
     expect(points.map((point) => point.volumeUsd)).toEqual([10, 4, 9]);
     expect(points[2]?.volumeUsd).not.toBe(23);
-    expect(Object.keys(points[0] ?? {})).toEqual(["t", "volumeUsd"]);
     const history = buildEquityVolumeHistory({
       seriesByPool: [{ pairAddress: "a", candles: points.map((point) => ({ t: point.t, volumeUsd: point.volumeUsd })) }],
       attemptedPoolCount: 1,
       mintCount: 1,
+      nowT: DAY2,
+      generatedAt: new Date(DAY2 * 1000).toISOString(),
     });
-    expect(history.definition).toMatch(/Per-day GeckoTerminal USD volume/);
+    expect(history.definition).toMatch(/Per-day GeckoTerminal USD volume/i);
     expect(history.definition).not.toMatch(/cumulative|inception/i);
   });
 
-  it("keeps a source-reported zero and does not invent zeros for gaps", () => {
+  it("keeps a source-reported zero", () => {
     const points = aggregateDailyVolume([
       {
         pairAddress: "a",
         candles: [
-          { t: 100, volumeUsd: 0 },
-          { t: 300, volumeUsd: 4 },
+          { t: DAY0, volumeUsd: 0 },
+          { t: DAY2, volumeUsd: 4 },
         ],
       },
     ]);
     expect(points).toEqual([
-      { t: 100, volumeUsd: 0 },
-      { t: 300, volumeUsd: 4 },
+      { t: DAY0, volumeUsd: 0, kind: "calendar_day" },
+      { t: DAY2, volumeUsd: 4, kind: "calendar_day" },
     ]);
   });
 
@@ -167,19 +194,114 @@ describe("aggregateDailyVolume", () => {
     );
     expect(emptyEquityVolumeHistory("none").points).toEqual([]);
   });
+});
 
-  it("labels fetched coverage separately from the snapshot universe", () => {
+describe("fillMissingCalendarDays", () => {
+  it("inserts $0 for every UTC day in the gap and never invents nonzero volume", () => {
+    const filled = fillMissingCalendarDays([
+      { t: DAY0, volumeUsd: 12 },
+      { t: DAY2, volumeUsd: 5 },
+    ]);
+    expect(filled).toEqual([
+      { t: DAY0, volumeUsd: 12, kind: "calendar_day" },
+      { t: DAY1, volumeUsd: 0, kind: "calendar_day" },
+      { t: DAY2, volumeUsd: 5, kind: "calendar_day" },
+    ]);
+  });
+
+  it("extends through an explicit end day with zeros", () => {
+    const filled = fillMissingCalendarDays([{ t: DAY0, volumeUsd: 3 }], DAY2);
+    expect(filled.map((point) => [point.t, point.volumeUsd])).toEqual([
+      [DAY0, 3],
+      [DAY1, 0],
+      [DAY2, 0],
+    ]);
+  });
+});
+
+describe("alignLatestDayWithDesk24h", () => {
+  it("replaces today with the DexScreener 24h rollup", () => {
+    const aligned = alignLatestDayWithDesk24h(
+      [
+        { t: DAY0, volumeUsd: 10 },
+        { t: DAY1, volumeUsd: 3 },
+      ],
+      27_300_000,
+      DAY1 + 3_600,
+    );
+    expect(aligned[aligned.length - 1]).toEqual({ t: DAY1, volumeUsd: 27_300_000, kind: "rolling_24h" });
+    expect(aligned[0]).toEqual({ t: DAY0, volumeUsd: 10, kind: "calendar_day" });
+  });
+
+  it("appends today when GeckoTerminal has not returned a candle yet", () => {
+    const aligned = alignLatestDayWithDesk24h([{ t: DAY0, volumeUsd: 10 }], 100, DAY2 + 100);
+    expect(aligned).toEqual([
+      { t: DAY0, volumeUsd: 10, kind: "calendar_day" },
+      { t: DAY1, volumeUsd: 0, kind: "calendar_day" },
+      { t: DAY2, volumeUsd: 100, kind: "rolling_24h" },
+    ]);
+  });
+
+  it("does not coerce a null desk 24h to zero", () => {
+    const aligned = alignLatestDayWithDesk24h([{ t: DAY0, volumeUsd: 10 }, { t: DAY2, volumeUsd: 4 }], null, DAY3);
+    expect(aligned.map((point) => point.volumeUsd)).toEqual([10, 0, 4]);
+    expect(aligned.every((point) => point.kind !== "rolling_24h")).toBe(true);
+  });
+
+  it("can stand alone as a single desk-24h point when history is empty", () => {
+    expect(alignLatestDayWithDesk24h([], 1_250.25, DAY1 + 10)).toEqual([
+      { t: DAY1, volumeUsd: 1_250.25, kind: "rolling_24h" },
+    ]);
+    expect(alignLatestDayWithDesk24h([], null, DAY1)).toEqual([]);
+  });
+});
+
+describe("buildEquityVolumeHistory", () => {
+  it("fills gaps, aligns the latest point to desk 24h, and labels coverage", () => {
     const history = buildEquityVolumeHistory({
       seriesByPool: [
-        { pairAddress: "a", candles: [{ t: 100, volumeUsd: 3 }] },
+        {
+          pairAddress: "a",
+          candles: [
+            { t: DAY0, volumeUsd: 3 },
+            { t: DAY2, volumeUsd: 8 },
+          ],
+        },
         { pairAddress: "b", candles: [] },
       ],
       attemptedPoolCount: 2,
       universePoolCount: 40,
       mintCount: 12,
+      volume24hUsd: 99,
+      nowT: DAY3,
+      generatedAt: new Date(DAY3 * 1000).toISOString(),
     });
     expect(history.available).toBe(true);
+    expect(history.volume24hUsd).toBe(99);
+    expect(history.points).toEqual([
+      { t: DAY0, volumeUsd: 3, kind: "calendar_day" },
+      { t: DAY1, volumeUsd: 0, kind: "calendar_day" },
+      { t: DAY2, volumeUsd: 8, kind: "calendar_day" },
+      { t: DAY3, volumeUsd: 99, kind: "rolling_24h" },
+    ]);
+    expect(history.definition).toMatch(/Missing calendar days are plotted as \$0/);
+    expect(history.definition).toMatch(/DexScreener 24h equity rollup/);
     expect(history.definition).toMatch(/1 of 2 fetched highest-volume pools/);
     expect(history.definition).toMatch(/40 classified equity pools \/ 12 mints/);
+    expect(utcDayStart(DAY0 + 100)).toBe(DAY0);
+  });
+
+  it("uses a desk-only point when GeckoTerminal returns nothing but 24h is reported", () => {
+    const history = buildEquityVolumeHistory({
+      seriesByPool: [{ pairAddress: "a", candles: [] }],
+      attemptedPoolCount: 1,
+      mintCount: 1,
+      volume24hUsd: 50,
+      nowT: DAY0 + 100,
+      generatedAt: new Date((DAY0 + 100) * 1000).toISOString(),
+    });
+    expect(history.available).toBe(true);
+    expect(history.points).toEqual([{ t: DAY0, volumeUsd: 50, kind: "rolling_24h" }]);
+    expect(history.definition).toMatch(/No GeckoTerminal daily candles/);
   });
 });

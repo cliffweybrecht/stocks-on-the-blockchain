@@ -94,9 +94,9 @@ SOLANA_ONDO_REGISTRY_ENABLED=true
 SOLANA_ONDO_REGISTRY_URL=https://raw.githubusercontent.com/ondoprotocol/gm-solana-simulator/main/constants.rs
 SOLANA_GECKOTERMINAL_ENABLED=true
 SOLANA_GECKOTERMINAL_BASE_URL=https://api.geckoterminal.com/api/v2
-SOLANA_VOLUME_HISTORY_BUDGET_MS=15000
+SOLANA_VOLUME_HISTORY_BUDGET_MS=45000
 SOLANA_VOLUME_HISTORY_CACHE_MS=1800000
-SOLANA_VOLUME_HISTORY_MAX_POOLS=24
+SOLANA_VOLUME_HISTORY_MAX_POOLS=64
 ```
 
 Set `SOLANA_XSTOCKS_REGISTRY_ENABLED=false` or `SOLANA_ONDO_REGISTRY_ENABLED=false` to disable those candidate sources.
@@ -174,11 +174,11 @@ Robinhood marks stay null on Solana. Off-Solana pairs are ignored.
 
 | | |
 | --- | --- |
-| **Definition** | Same-day sum of **GeckoTerminal daily USD volume** (`/networks/solana/pools/{pool}/ohlcv/day?currency=usd`) across Solana pools of **classified public equities** |
+| **Definition** | Historical days: same-day sum of **GeckoTerminal daily USD volume** (`/networks/solana/pools/{pool}/ohlcv/day?currency=usd`) across Solana pools of **classified public equities**. Latest point / headline: the same **DexScreener 24h equity rollup** as the desk (rolling 24h, not a UTC calendar day) |
 | **Universe** | Same fail-closed classifier as the rest of the desk. **ETF / index lane excluded** |
-| **Why GeckoTerminal** | DexScreener’s public API is snapshot-only (no pair history) |
-| **Honesty** | Days with no returned candle are omitted, not filled with zeros. A source-reported `0` is kept. A 429 / disabled GeckoTerminal / seed adapter yields an **empty chart**, never invented points |
-| **Coverage** | Highest-volume classified equity pools first, capped (`SOLANA_VOLUME_HISTORY_MAX_POOLS`, default 24) so a public ~10 req/min budget can finish. The muted line under the chart states how many fetched pools have a series vs classified equity pools in the snapshot |
+| **Why two sources** | DexScreener’s public API is snapshot-only (no pair history). Calendar-day GeckoTerminal candles cannot equal a rolling 24h desk total, so the latest point is the desk number on purpose |
+| **Honesty** | Missing calendar days are plotted as **$0** (no candle / no activity). A source-reported `0` is kept. Null DexScreener 24h is never coerced to zero. A 429 / disabled GeckoTerminal / seed adapter with no desk 24h yields an **empty chart**, never invented nonzero points |
+| **Coverage** | Highest-volume classified equity pools with a reported DexScreener 24h first, capped (`SOLANA_VOLUME_HISTORY_MAX_POOLS`, default 64) with concurrency ≤ 2 and ≥ 400ms pacing. The muted line under the chart states how many fetched pools have a series vs classified equity pools in the snapshot |
 
 The seed adapter does **not** draw a demo series.
 
