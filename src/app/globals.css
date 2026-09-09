@@ -102,6 +102,22 @@
     font-variant-numeric: tabular-nums;
     font-family: var(--font-geist-mono), ui-monospace, monospace;
   }
+  .price-ticker-fade {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 2.5rem,
+      #000 calc(100% - 2.5rem),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 2.5rem,
+      #000 calc(100% - 2.5rem),
+      transparent 100%
+    );
+  }
   .price-ticker-track {
     animation: price-ticker-scroll 40s linear infinite;
   }

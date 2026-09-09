@@ -13,9 +13,12 @@ export function SiteHeader({
 }) {
   return (
     <header className="sticky top-0 z-30 border-b border-border/50 bg-background/90 backdrop-blur-md">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-2.5">
-        <Link href="/" className="min-w-0 text-sm text-muted-foreground hover:text-foreground" aria-label="Home">
-          Volume first. Then the chain. Then the stock.
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3">
+        <Link href="/" className="group min-w-0" aria-label="Home">
+          <h1 className="font-heading text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+            Stocks on the Blockchain
+          </h1>
+          <p className="text-sm text-muted-foreground">Volume first. Then the chain. Then the stock.</p>
         </Link>
         <div className="flex flex-wrap items-center justify-end gap-2">
           {solanaJump && solanaJump.assets.length > 0 ? (
