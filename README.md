@@ -43,7 +43,7 @@ Uses DexScreener’s public API (no API key) plus the public **xStocks / Backed*
    - public Ondo GM constants (`ondoprotocol/gm-solana-simulator` `GM_TOKENS`; not an admission list; Ondo’s keyed `api.gm.ondo.finance` is **not** used)
    - DexScreener `GET /latest/dex/search?q=…` (category/issuer/ticker probes; search is capped)
    - GeckoTerminal `GET /api/v2/search/pools?network=solana` (a few public queries; 429s are skipped; **volume still comes from DexScreener**)
-2. **Classify** each Solana mint fail-closed as a tokenized public equity **or** a separate ETF/index product
+2. **Classify** each Solana mint fail-closed as a tokenized public equity, a separate ETF/index product, **or** a separate private-market / PreStocks name
 3. **Hydrate** pools in two DexScreener steps, with bounded concurrency, 429 retries, and a time budget that starts **after** discovery:
    - Seed volume from DexScreener **search pairs** immediately (so a spent budget cannot render 0/0 after classify)
    - `GET /tokens/v1/solana/{mints}` in batches of 30 for remaining registry/Ondo mints, **search-known / Gecko-known / previously-pooled mints first**
@@ -70,7 +70,7 @@ Coverage is **as discoverable from the live xStocks registry + public Ondo GM mi
 | CoinGecko tokenized-stock / `coins/list` | Not a live candidate source | Public list overlaps xStocks+Ondo; extras had no additional DexScreener pools (and per-coin lookups 429) |
 | Solflare UTL search | Not a live candidate source | Public, but long-tail xStock hits were not DexScreener-indexed; would inflate classified without volume |
 | Dinari / dShares | No | Not a live public Solana source in this adapter |
-| PreStocks / private names | No | Fail-closed (SpaceX, OpenAI, SHEIN, …) |
+| PreStocks / private names | Separate **Private market** tab | Fail-closed (SpaceX, OpenAI, SHEIN, Anduril, …). Not mixed into public 24h / Daily Volume |
 | ETF / index xStocks and Ondo ETFs | Separate **ETF / index** tab only | Never mixed into equity ranking |
 
 The registry schema includes `underlying.type` (`Equity` vs `ETF`); live payloads often leave that field null, so name/symbol rules remain the working ETF/commodity filter, and the type is used when present. If discovery or classification yields zero verifiable stocks, the adapter **fails closed** — no invented volume. If the xStocks registry or Ondo list is down, discovery continues from whatever sources still work.
@@ -136,7 +136,7 @@ Each chain and asset carries `sourceId` / `sourceLabel`. Composite provenance al
 
 ### Solana discovery + classifier
 
-Search queries (probes, not an admission list): `xStock`, `xStocks`, `tokenized stock`, plus ticker probes such as `Circle xStock` / `Palantir xStock` / `Apple (Ondo Tokenized)` because DexScreener search is capped and has no pagination. The **xStocks public registry** is the primary way to discover the broader Backed universe. The **public Ondo GM mint list** is the way to see Ondo mints without a key. **GeckoTerminal search** is a hydrate hint for names DexScreener text search misses (especially Ondo).
+Search queries (probes, not an admission list): `xStock`, `xStocks`, `tokenized stock`, plus ticker probes such as `Circle xStock` / `Palantir xStock` / `Apple (Ondo Tokenized)` / `PreStocks` / `OpenAI PreStocks` because DexScreener search is capped and has no pagination. The **xStocks public registry** is the primary way to discover the broader Backed universe. The **public Ondo GM mint list** is the way to see Ondo mints without a key. **GeckoTerminal search** is a hydrate hint for names DexScreener text search misses (especially Ondo).
 
 **Admitted as equity** only with a verifiable equity signal, for example:
 
@@ -150,13 +150,19 @@ Search queries (probes, not an admission list): `xStock`, `xStocks`, `tokenized 
 
 **Admitted as ETF / index** (separate tab, not the equity ranking) when the same issuer conventions hold and the product is an ETF/index (`SPYx`, `QQQx`, `SPYon`, iShares/Vanguard/VanEck wrappers, leveraged 2x/3x, …).
 
+**Admitted as private market** (separate tab, not the equity ranking or Daily Volume) when a private / pre-IPO / PreStocks-style name has a verifiable issuer convention, for example:
+
+- `OpenAI PreStocks` / `SpaceX PreStocks` on a `Pre…` mint
+- Private-company xStocks or Ondo wrappers (`SHEINx`, `SPCXx`, `SPCXon`) with the matching mint convention
+- A generic `PreStocks` basket, a token merely named `SpaceX`, or a copycat PreStocks brand on a pump mint is still rejected
+
 **Excluded** (fail closed):
 
 - Ordinary crypto and wrapped natives (SOL, BONK, JUP, …)
 - Stablecoins (USDC, USDT, USDY, …)
 - Commodities (gold, oil, PAXG, …)
-- Unrelated RWAs, pre-IPO / PreStocks, private-company names (SpaceX, xAI, OpenAI, …), generic “xStocks” / “Tokenized Equity” baskets, and unverifiable tickers (a token named `Tesla` is not enough)
-- Copycat `xStock` / Ondo names whose mint does not use the issuer convention
+- Unrelated RWAs, generic “xStocks” / “Tokenized Equity” / “PreStocks” baskets, and unverifiable tickers (a token named `Tesla` or `SpaceX` is not enough)
+- Copycat `xStock` / Ondo / PreStocks names whose mint does not use the issuer convention
 
 Listed operating companies whose names contain “Gold” or “Real Estate” (Royal Gold, Laopu Gold, Wharf Real Estate, Nasdaq Inc.) can be admitted when they are verifiable xStocks. A token that *is* gold/silver as the product (`Gold xStock`) is still excluded.
 
@@ -175,7 +181,7 @@ Robinhood marks stay null on Solana. Off-Solana pairs are ignored.
 | | |
 | --- | --- |
 | **Definition** | Historical days: same-day sum of **GeckoTerminal daily USD volume** (`/networks/solana/pools/{pool}/ohlcv/day?currency=usd`) across Solana pools of **classified public equities**. Latest point / headline: the same **DexScreener 24h equity rollup** as the desk (rolling 24h, not a UTC calendar day) |
-| **Universe** | Same fail-closed classifier as the rest of the desk. **ETF / index lane excluded** |
+| **Universe** | Same fail-closed classifier as the rest of the desk. **ETF / index and private-market lanes excluded** |
 | **Why two sources** | DexScreener’s public API is snapshot-only (no pair history). Calendar-day GeckoTerminal candles cannot equal a rolling 24h desk total, so the latest point is the desk number on purpose |
 | **Honesty** | Missing calendar days are plotted as **$0** (no candle / no activity). A source-reported `0` is kept. Null DexScreener 24h is never coerced to zero. A 429 / disabled GeckoTerminal / seed adapter with no desk 24h yields an **empty chart**, never invented nonzero points |
 | **Coverage** | Highest-volume classified equity pools with a reported DexScreener 24h first, capped (`SOLANA_VOLUME_HISTORY_MAX_POOLS`, default 64) with concurrency ≤ 2 and ≥ 400ms pacing. The muted line under the chart states how many fetched pools have a series vs classified equity pools in the snapshot |

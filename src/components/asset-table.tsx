@@ -59,9 +59,11 @@ function emptyCopy(input: {
   issuerFilter: IssuerFilter;
 }): string {
   if (input.totalInLane === 0) {
-    return input.lane === "etf"
-      ? "No verifiable Solana ETF/index products in this snapshot."
-      : "No verifiable tokenized equities in this snapshot. Discovery is fail-closed and is not a full Solana index.";
+    if (input.lane === "etf") return "No verifiable Solana ETF/index products in this snapshot.";
+    if (input.lane === "private") {
+      return "No verifiable Solana private-market / PreStocks names in this snapshot. Discovery is fail-closed and does not invent mints.";
+    }
+    return "No verifiable tokenized equities in this snapshot. Discovery is fail-closed and is not a full Solana index.";
   }
   if (input.query.trim()) {
     return "No classified names match that search. Try symbol, issuer, or the full mint. Null volume is not hidden by search.";
@@ -100,6 +102,7 @@ export function AssetTable({
   totalInLane,
   equityCount,
   etfCount = 0,
+  privateCount = 0,
   hydratingCount = 0,
   lane = "equity",
   coverageFilter = "all",
@@ -131,6 +134,7 @@ export function AssetTable({
   totalInLane: number;
   equityCount: number;
   etfCount?: number;
+  privateCount?: number;
   hydratingCount?: number;
   lane?: InstrumentKind;
   coverageFilter?: CoverageFilter;
@@ -203,19 +207,32 @@ export function AssetTable({
 
   return (
     <div className="space-y-3">
-      {etfCount > 0 ? (
+      {etfCount > 0 || privateCount > 0 ? (
         <div className="flex flex-wrap gap-2">
           <Link href={hrefFor({ lane: "equity" })} scroll={false} className={chipClass(lane === "equity")}>
             Equities ({equityCount})
           </Link>
-          <Link href={hrefFor({ lane: "etf" })} scroll={false} className={chipClass(lane === "etf")}>
-            ETF / index ({etfCount})
-          </Link>
+          {etfCount > 0 ? (
+            <Link href={hrefFor({ lane: "etf" })} scroll={false} className={chipClass(lane === "etf")}>
+              ETF / index ({etfCount})
+            </Link>
+          ) : null}
+          {privateCount > 0 ? (
+            <Link href={hrefFor({ lane: "private" })} scroll={false} className={chipClass(lane === "private")}>
+              Private market ({privateCount})
+            </Link>
+          ) : null}
         </div>
       ) : null}
       {lane === "etf" ? (
         <p className="text-xs text-muted-foreground">
           ETF and index products are catalogued here and are not mixed into the public-equity ranking.
+        </p>
+      ) : null}
+      {lane === "private" ? (
+        <p className="text-xs text-muted-foreground">
+          Private-market and PreStocks-style names are catalogued here. Volume is DexScreener 24h per mint
+          across Solana pools. This lane is not mixed into public-equity ranking or Daily Volume.
         </p>
       ) : null}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

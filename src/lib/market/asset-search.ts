@@ -5,7 +5,7 @@ export interface SearchableAsset {
   name: string;
   issuer: string | null;
   contractAddress: string;
-  instrumentKind?: "equity" | "etf";
+  instrumentKind?: "equity" | "etf" | "private";
   volumeCoverage?: VolumeCoverage;
   volume24hUsd?: number | null;
 }

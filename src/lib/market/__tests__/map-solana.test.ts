@@ -179,6 +179,35 @@ describe("mapDexScreenerPairsToSolanaAssets", () => {
     expect(assets[0]?.symbol).toBe("HOODx");
   });
 
+  it("keeps PreStocks volume in the private lane and out of public equity totals", () => {
+    const openaiMint = "PreweJYECqtQwBtpxHL171nL2K6umo692gTm7Q3rpgF";
+    const { assets, privateAssets } = mapDexScreenerPairsToSolanaAssets([
+      fixturePairs[0]!,
+      {
+        chainId: "solana",
+        dexId: "raydium",
+        pairAddress: "pair-openai",
+        baseToken: { address: openaiMint, name: "OpenAI PreStocks", symbol: "OPENAI" },
+        quoteToken: { address: "usdc", name: "USDC", symbol: "USDC" },
+        volume: { h24: 50_000 },
+        liquidity: { usd: 8_000 },
+      },
+      {
+        chainId: "solana",
+        dexId: "pumpfun",
+        pairAddress: "pair-spacex-meme",
+        baseToken: { address: "SpaceXMeme111111111111111111111111111111", name: "SpaceX", symbol: "SPACEX" },
+        volume: { h24: 9_000_000 },
+        liquidity: { usd: 1_000_000 },
+      },
+    ]);
+    expect(assets.map((asset) => asset.symbol)).toEqual(["TSLAx"]);
+    expect(assets[0]?.volume24hUsd).toBeCloseTo(290_596.11);
+    expect(privateAssets.map((asset) => asset.symbol)).toEqual(["OPENAI"]);
+    expect(privateAssets[0]?.volume24hUsd).toBe(50_000);
+    expect(privateAssets[0]?.instrumentKind).toBe("private");
+  });
+
   it("returns no assets when nothing classifies as a tokenized equity", () => {
     const { assets } = mapDexScreenerPairsToSolanaAssets([
       { chainId: "solana", volume: { h24: 1 }, baseToken: { address: "nope", symbol: "NOPE", name: "Nope" } },

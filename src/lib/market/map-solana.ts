@@ -1,5 +1,5 @@
 import { rollupChainFromAssets, sortByVolumeThenLiquidity } from "./aggregate";
-import { asFiniteNumber, asNonEmptyString, compareNullableDesc } from "./numbers";
+import { asFiniteNumber, asNonEmptyString, compareNullableDesc, sumNullable } from "./numbers";
 import { classifyTokenizedInstrument, tokenIdentityFromFields } from "./solana-classifier";
 import type { DiscoveredEquityMint } from "./solana-discover";
 import { SOLANA_SOURCE_LABEL, SOLANA_SOURCE_NOTE } from "./trust";
@@ -170,6 +170,8 @@ export function mapDexScreenerPairsToSolanaAssets(
   details: AssetDetail[];
   etfAssets: AssetSummary[];
   etfDetails: AssetDetail[];
+  privateAssets: AssetSummary[];
+  privateDetails: AssetDetail[];
 } {
   const byMint = new Map<string, MintAccumulator>();
 
@@ -284,12 +286,16 @@ export function mapDexScreenerPairsToSolanaAssets(
   const equityDetails = details.filter((row) => row.instrumentKind === "equity");
   const etfSummaries = summaries.filter((row) => row.instrumentKind === "etf");
   const etfDetails = details.filter((row) => row.instrumentKind === "etf");
+  const privateSummaries = summaries.filter((row) => row.instrumentKind === "private");
+  const privateDetails = details.filter((row) => row.instrumentKind === "private");
 
   return {
     assets: sortByVolumeThenLiquidity(equitySummaries),
     details: sortByVolumeThenLiquidity(equityDetails),
     etfAssets: sortByVolumeThenLiquidity(etfSummaries),
     etfDetails: sortByVolumeThenLiquidity(etfDetails),
+    privateAssets: sortByVolumeThenLiquidity(privateSummaries),
+    privateDetails: sortByVolumeThenLiquidity(privateDetails),
   };
 }
 
@@ -315,9 +321,11 @@ export function solanaChainMeta(): Omit<
     sourceLabel: SOLANA_SOURCE_LABEL,
     completenessPct: null,
     etfCount: 0,
+    privateCount: 0,
+    privateVolume24hUsd: null,
     volumeAggregation: "all-pools",
     coverageNote:
-      "Tokenized public equities discovered from the live xStocks public registry, the public Ondo GM mint list, DexScreener search, and public GeckoTerminal search, then classified fail-closed. Volume is the sum of DexScreener pair volume.h24 across every Solana pool for that mint. Coverage is as discoverable from those live sources + the classifier, not a full Solana indexer. Most classified mints have no DexScreener pools — that is an index ceiling, not zero volume. Missing pair metrics stay missing — a dash is not zero. ETF/index products are catalogued separately and are not mixed into equity ranking.",
+      "Tokenized public equities discovered from the live xStocks public registry, the public Ondo GM mint list, DexScreener search, and public GeckoTerminal search, then classified fail-closed. Volume is the sum of DexScreener pair volume.h24 across every Solana pool for that mint. Coverage is as discoverable from those live sources + the classifier, not a full Solana indexer. Most classified mints have no DexScreener pools — that is an index ceiling, not zero volume. Missing pair metrics stay missing — a dash is not zero. ETF/index and private-market / PreStocks products are catalogued in separate lanes and are not mixed into public-equity ranking or Daily Volume.",
   };
 }
 
@@ -424,6 +432,7 @@ export function buildSolanaSnapshot(input: {
   fetchedAt: string;
   discovered?: readonly DiscoveredEquityMint[];
   discoveredEtfs?: readonly DiscoveredEquityMint[];
+  discoveredPrivates?: readonly DiscoveredEquityMint[];
   extraNotes?: readonly string[];
   failedMints?: ReadonlySet<string>;
   incompleteMints?: ReadonlySet<string>;
@@ -437,13 +446,15 @@ export function buildSolanaSnapshot(input: {
   details: AssetDetail[];
   etfAssets: AssetSummary[];
   etfDetails: AssetDetail[];
+  privateAssets: AssetSummary[];
+  privateDetails: AssetDetail[];
   provenance: DataProvenance;
 } {
   const aggregation = input.aggregation ?? "all-pools";
   const mapped = mapDexScreenerPairsToSolanaAssets(input.pairs);
   const equities = mergeUnpairedSolanaAssets(
     { assets: mapped.assets, details: mapped.details },
-    (input.discovered ?? []).filter((row) => row.kind !== "etf"),
+    (input.discovered ?? []).filter((row) => row.kind === "equity"),
     {
       failedMints: input.failedMints,
       incompleteMints: input.incompleteMints,
@@ -453,6 +464,15 @@ export function buildSolanaSnapshot(input: {
   const etfs = mergeUnpairedSolanaAssets(
     { assets: mapped.etfAssets, details: mapped.etfDetails },
     input.discoveredEtfs ?? (input.discovered ?? []).filter((row) => row.kind === "etf"),
+    {
+      failedMints: input.failedMints,
+      incompleteMints: input.incompleteMints,
+      aggregation,
+    },
+  );
+  const privates = mergeUnpairedSolanaAssets(
+    { assets: mapped.privateAssets, details: mapped.privateDetails },
+    input.discoveredPrivates ?? (input.discovered ?? []).filter((row) => row.kind === "private"),
     {
       failedMints: input.failedMints,
       incompleteMints: input.incompleteMints,
@@ -470,17 +490,24 @@ export function buildSolanaSnapshot(input: {
     (aggregation === "primary-pair"
       ? "Home rollup uses DexScreener primary-pair volume per mint; the chain page aggregates every Solana pool."
       : "Chain ranking uses aggregate volume across every returned Solana pool for that mint.") +
-    (etfs.assets.length > 0 ? ` ${etfs.assets.length} ETF/index products are listed separately and are not in the equity ranking.` : "");
+    (etfs.assets.length > 0 ? ` ${etfs.assets.length} ETF/index products are listed separately and are not in the equity ranking.` : "") +
+    (privates.assets.length > 0
+      ? ` ${privates.assets.length} private-market / PreStocks names are listed separately; their 24h rollup is labeled and is not mixed into public-equity volume or Daily Volume.`
+      : "");
 
   return {
     chain: rollupChainFromAssets({ ...meta, coverageNote }, equities.assets, {
       etfCount: etfs.assets.length,
+      privateCount: privates.assets.length,
+      privateVolume24hUsd: sumNullable(privates.assets.map((asset) => asset.volume24hUsd)),
       volumeAggregation: aggregation,
     }),
     assets: equities.assets,
     details: equities.details,
     etfAssets: etfs.assets,
     etfDetails: etfs.details,
+    privateAssets: privates.assets,
+    privateDetails: privates.details,
     provenance: {
       sourceId: "solana",
       sourceLabel: SOLANA_SOURCE_LABEL,

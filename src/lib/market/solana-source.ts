@@ -80,6 +80,7 @@ interface CachedSnapshot {
   aggregation: VolumeAggregation;
   discovered: DiscoveredEquityMint[];
   discoveredEtfs: DiscoveredEquityMint[];
+  discoveredPrivates: DiscoveredEquityMint[];
   extraNotes: string[];
   pairRows: DexScreenerPair[];
   pendingPreviewMints: string[];
@@ -430,6 +431,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
       fetchedAt: new Date().toISOString(),
       discovered: snapshot.discovered,
       discoveredEtfs: snapshot.discoveredEtfs,
+      discoveredPrivates: snapshot.discoveredPrivates,
       extraNotes,
       failedMints: new Set(snapshot.failedMints),
       incompleteMints,
@@ -438,7 +440,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
       cacheStatus: hydrating > 0 ? "partial" : "fresh",
       cacheAgeMs: 0,
     });
-    if (mapped.assets.length === 0 && mapped.etfAssets.length === 0) {
+    if (mapped.assets.length === 0 && mapped.etfAssets.length === 0 && mapped.privateAssets.length === 0) {
       throw new Error(
         "Discovery returned candidates but none classified as verifiable tokenized equities. Nothing was invented.",
       );
@@ -448,6 +450,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
       aggregation: snapshot.aggregation,
       discovered: snapshot.discovered,
       discoveredEtfs: snapshot.discoveredEtfs,
+      discoveredPrivates: snapshot.discoveredPrivates,
       extraNotes,
       pairRows: snapshot.pairRows,
       pendingPreviewMints: snapshot.pendingPreviewMints,
@@ -530,7 +533,8 @@ export class SolanaMarketDataSource implements MarketDataSource {
     );
     const discovered = selected.equities;
     const discoveredEtfs = selected.etfs;
-    if (discovered.length === 0 && discoveredEtfs.length === 0) {
+    const discoveredPrivates = selected.privates;
+    if (discovered.length === 0 && discoveredEtfs.length === 0 && discoveredPrivates.length === 0) {
       if (
         searchResult.error &&
         (!this.registryEnabled || registryResult.error) &&
@@ -548,7 +552,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
       );
     }
 
-    const allDiscovered = [...discovered, ...discoveredEtfs];
+    const allDiscovered = [...discovered, ...discoveredEtfs, ...discoveredPrivates];
     const classifiedMints = new Set(allDiscovered.map((row) => row.mint));
     const searchMints = new Set(
       searchResult.identities.map((token) => token.address).filter((mint) => classifiedMints.has(mint)),
@@ -573,7 +577,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
     const pendingPreview = [...preview.incompleteMints];
 
     extraNotes.push(
-      `Classified ${discovered.length} public equities and ${discoveredEtfs.length} ETF/index products. ${seededMints.size} mint(s) seeded from DexScreener search. ${skipEmpty.size} mint(s) skipped as recently confirmed empty on DexScreener. ${preview.failedMints.size} mint batch(es) failed DexScreener preview; ${pendingPreview.length} did not finish before the snapshot budget.`,
+      `Classified ${discovered.length} public equities, ${discoveredEtfs.length} ETF/index products, and ${discoveredPrivates.length} private-market names. ${seededMints.size} mint(s) seeded from DexScreener search. ${skipEmpty.size} mint(s) skipped as recently confirmed empty on DexScreener. ${preview.failedMints.size} mint batch(es) failed DexScreener preview; ${pendingPreview.length} did not finish before the snapshot budget.`,
     );
 
     const aggregation: VolumeAggregation = mode === "light" ? "primary-pair" : "all-pools";
@@ -618,6 +622,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
       aggregation,
       discovered,
       discoveredEtfs,
+      discoveredPrivates,
       extraNotes,
       pairRows: finalPairs,
       pendingPreviewMints: pendingPreview,
@@ -647,7 +652,9 @@ export class SolanaMarketDataSource implements MarketDataSource {
     while (passes < 12 && Date.now() < deadline) {
       const snapshot = this.cache;
       if (!snapshot) return;
-      const classifiedMints = new Set([...snapshot.discovered, ...snapshot.discoveredEtfs].map((row) => row.mint));
+      const classifiedMints = new Set(
+        [...snapshot.discovered, ...snapshot.discoveredEtfs, ...snapshot.discoveredPrivates].map((row) => row.mint),
+      );
       const knownMints = new Set([
         ...mintsInPairs(snapshot.pairRows, classifiedMints),
         ...this.memory.pooledMints(),
@@ -665,6 +672,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
             aggregation: snapshot.aggregation,
             discovered: snapshot.discovered,
             discoveredEtfs: snapshot.discoveredEtfs,
+            discoveredPrivates: snapshot.discoveredPrivates,
             extraNotes: snapshot.extraNotes.filter((note) => !/still hydrating DexScreener volume/.test(note)),
             pairRows: snapshot.pairRows,
             pendingPreviewMints: [],
@@ -711,6 +719,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
         aggregation: snapshot.aggregation,
         discovered: snapshot.discovered,
         discoveredEtfs: snapshot.discoveredEtfs,
+        discoveredPrivates: snapshot.discoveredPrivates,
         extraNotes: snapshot.extraNotes.filter((note) => !/still hydrating DexScreener volume/.test(note)),
         pairRows,
         pendingPreviewMints: pendingPreview,
@@ -793,6 +802,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
       chain: cached.mapped.chain,
       assets: cached.mapped.assets,
       etfAssets: cached.mapped.etfAssets,
+      privateAssets: cached.mapped.privateAssets,
       provenance: cached.mapped.provenance,
     };
   }
@@ -800,7 +810,10 @@ export class SolanaMarketDataSource implements MarketDataSource {
   async getAsset(chainId: string, symbol: string): Promise<AssetDetailResult | null> {
     if (chainId !== SOLANA_CHAIN_ID) return null;
     const cached = await this.loadCached("full");
-    const asset = findAssetByKey([...cached.mapped.details, ...cached.mapped.etfDetails], symbol);
+    const asset = findAssetByKey(
+      [...cached.mapped.details, ...cached.mapped.etfDetails, ...cached.mapped.privateDetails],
+      symbol,
+    );
     if (!asset) return null;
     return { chain: cached.mapped.chain, asset, provenance: cached.mapped.provenance };
   }
