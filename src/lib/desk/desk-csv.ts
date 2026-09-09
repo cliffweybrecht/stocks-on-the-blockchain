@@ -70,7 +70,7 @@ export function deskCsvFilename(input: {
   at?: Date;
 }): string {
   const day = (input.at ?? new Date()).toISOString().slice(0, 10);
-  const lane = input.lane === "etf" ? "etf" : "equity";
+  const lane = input.lane === "etf" ? "etf" : input.lane === "private" ? "private" : "equity";
   const coverage = (input.coverage ?? "all").replace(/[^a-z0-9-]/gi, "") || "all";
   return `solana-${lane}-${coverage}-${day}.csv`;
 }

@@ -323,6 +323,89 @@ describe("classifyTokenizedEquity", () => {
     ).toBe("reject");
   });
 
+  it("classifies verifiable private-market names without putting them in the equity lane", () => {
+    expect(
+      classifyTokenizedInstrument({
+        address: "PreANxuXjsy2pvisWWMNB6YaJNzr7681wJJr2rHsfTh",
+        symbol: "SPACEX",
+        name: "SpaceX PreStocks",
+      }),
+    ).toMatchObject({ kind: "private", issuer: "PreStocks", reason: "PreStocks name" });
+    expect(
+      classifyTokenizedInstrument({
+        address: "PreweJYECqtQwBtpxHL171nL2K6umo692gTm7Q3rpgF",
+        symbol: "OPENAI",
+        name: "OpenAI PreStocks",
+      }),
+    ).toMatchObject({ kind: "private", issuer: "PreStocks" });
+    expect(
+      classifyTokenizedInstrument({
+        address: "Pren1FvFX6J3E4kXhJuCiAD5aDmGEb7qJRncwA8Lkhw",
+        symbol: "ANTHROPIC",
+        name: "Anthropic PreStocks",
+      }).kind,
+    ).toBe("private");
+    expect(
+      classifyTokenizedInstrument({
+        address: "Xs3oZwbHvqis4NYcf4YKWmEia2eC84wSiVrcYcTqpH8",
+        symbol: "SPCXx",
+        name: "SpaceX xStock",
+      }),
+    ).toMatchObject({ kind: "private", issuer: "Backed / xStocks" });
+    expect(
+      classifyTokenizedInstrument({
+        address: "XsShein111111111111111111111111111111111",
+        symbol: "SHEINx",
+        name: "SHEIN xStock",
+      }),
+    ).toMatchObject({ kind: "private", issuer: "Backed / xStocks" });
+    expect(
+      classifyTokenizedInstrument({
+        address: "KeGv7bsfR4MheC1CkmnAVceoApjrkvBhHYjWb67ondo",
+        symbol: "SPCXon",
+        name: "SpaceX (Ondo Tokenized)",
+      }),
+    ).toMatchObject({ kind: "private", issuer: "Ondo" });
+    expect(
+      classifyTokenizedEquity({
+        address: "PreANxuXjsy2pvisWWMNB6YaJNzr7681wJJr2rHsfTh",
+        symbol: "SPACEX",
+        name: "SpaceX PreStocks",
+      }).kind,
+    ).toBe("reject");
+  });
+
+  it("fails closed on private-name memes and copycat PreStocks brands", () => {
+    expect(
+      classifyTokenizedInstrument({
+        address: "SpaceXMeme111111111111111111111111111111",
+        symbol: "SPACEX",
+        name: "SpaceX",
+      }),
+    ).toMatchObject({ kind: "reject", reason: "no verifiable private-market signal" });
+    expect(
+      classifyTokenizedInstrument({
+        address: "CopycatPreStocks11111111111111111111111",
+        symbol: "OPENAI",
+        name: "OpenAI PreStocks",
+      }),
+    ).toMatchObject({ kind: "reject", reason: "no verifiable private-market signal" });
+    expect(
+      classifyTokenizedInstrument({
+        address: "7fipR8vFdp5RbZCaL1HJfYkawWqCxiWx2h8jUKdBnSuQ",
+        symbol: "PRESTOCKS",
+        name: "PreStocks",
+      }).kind,
+    ).toBe("reject");
+    expect(
+      classifyTokenizedInstrument({
+        address: "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+        symbol: "TSLAx",
+        name: "Tesla xStock",
+      }).kind,
+    ).toBe("equity");
+  });
+
   it("classifies verifiable ETF products as etf without putting them in the equity lane", () => {
     expect(
       classifyTokenizedInstrument({

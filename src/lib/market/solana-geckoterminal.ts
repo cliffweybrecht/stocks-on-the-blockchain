@@ -4,7 +4,7 @@ import { tokenIdentityFromFields, type TokenIdentity } from "./solana-classifier
 /** Public GeckoTerminal on-chain search (no API key). Candidate source, not an admission list. */
 export const DEFAULT_GECKOTERMINAL_BASE_URL = "https://api.geckoterminal.com/api/v2";
 
-export const DEFAULT_GECKOTERMINAL_QUERIES = ["xStock", "Ondo Tokenized", "tokenized stock"] as const;
+export const DEFAULT_GECKOTERMINAL_QUERIES = ["xStock", "Ondo Tokenized", "tokenized stock", "PreStocks"] as const;
 
 export function geckoTerminalSearchPath(query: string): string {
   const params = new URLSearchParams({

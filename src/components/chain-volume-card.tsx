@@ -75,6 +75,12 @@ export function ChainVolumeCard({
               equity ranking.
             </p>
           ) : null}
+          {chain.privateCount > 0 ? (
+            <p className="text-xs text-muted-foreground">
+              Private market {formatUsdCompact(chain.privateVolume24hUsd)} 24h across {formatCount(chain.privateCount)}{" "}
+              names — labeled separately, not in this public-equity ranking or Daily Volume.
+            </p>
+          ) : null}
           <p className="text-xs text-muted-foreground">{chain.coverageNote}</p>
         </CardContent>
       </Card>
