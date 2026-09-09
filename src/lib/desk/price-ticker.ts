@@ -1,3 +1,4 @@
+import { formatPrice } from "../market/format";
 import { assetRouteKey } from "../market/identity";
 import type { AssetSummary } from "../market/types";
 
@@ -17,6 +18,8 @@ export interface EquityPriceTickerItem {
 export function deskSpotPriceUsd(asset: Pick<AssetSummary, "dexMedianPriceUsd">): number | null {
   const price = asset.dexMedianPriceUsd;
   if (price === null || price === undefined || !Number.isFinite(price) || price <= 0) return null;
+  const printed = formatPrice(price);
+  if (printed === "—" || printed === "$0.00") return null;
   return price;
 }
 

@@ -55,10 +55,12 @@ describe("selectEquityPriceTicker", () => {
         row({ symbol: "A", contractAddress: "a", volume24hUsd: null, dexMedianPriceUsd: 12 }),
         row({ symbol: "B", contractAddress: "b", volume24hUsd: 2_000_000, dexMedianPriceUsd: 0 }),
         row({ symbol: "C", contractAddress: "c", volume24hUsd: 2_000_000, dexMedianPriceUsd: Number.NaN }),
+        row({ symbol: "D", contractAddress: "d", volume24hUsd: 3_000_000, dexMedianPriceUsd: 0.00001 }),
       ]),
     ).toEqual([]);
     expect(deskSpotPriceUsd({ dexMedianPriceUsd: null })).toBeNull();
     expect(deskSpotPriceUsd({ dexMedianPriceUsd: 0 })).toBeNull();
+    expect(deskSpotPriceUsd({ dexMedianPriceUsd: 0.00001 })).toBeNull();
   });
 
   it("ranks by reported 24h volume, then symbol", () => {
