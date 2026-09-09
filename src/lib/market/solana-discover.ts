@@ -49,6 +49,18 @@ export const DEFAULT_SOLANA_DISCOVERY_QUERIES = [
   "xAI PreStocks",
   "SHEIN xStock",
   "SpaceX xStock",
+  "Backpack Securities",
+  "Micron Technology - Backpack Securities",
+  "Intel - Backpack Securities",
+  "Sandisk - Backpack Securities",
+  "Robinhood Markets - Backpack Securities",
+  "SpaceX - Backpack Securities",
+  "T-SpaceX",
+  "T-Kalshi",
+  "T-OpenAI",
+  "tSpaceX",
+  "tKalshi",
+  "tOpenAI",
 ] as const;
 
 export const DEXSCREENER_TOKEN_BATCH_SIZE = 30;

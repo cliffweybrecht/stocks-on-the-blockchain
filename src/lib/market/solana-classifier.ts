@@ -248,6 +248,7 @@ const ETF_LABELS = new Set(["etf", "equity-etf", "index", "index-fund"]);
 const ISSUER_NAME_PATTERNS: readonly { re: RegExp; issuer: string }[] = [
   { re: /\bxstocks?\b/i, issuer: "Backed / xStocks" },
   { re: /\bprestocks?\b/i, issuer: "PreStocks" },
+  { re: /\bbackpack\s+securities\b/i, issuer: "Backpack Securities" },
   { re: /\bdinari\b/i, issuer: "Dinari" },
   { re: /\bdshares?\b/i, issuer: "dShares" },
   { re: /\bbacked(?:\s+finance)?\b/i, issuer: "Backed" },
@@ -298,6 +299,9 @@ const GENERIC_CATEGORY_NAME =
 const COMPANY_XSTOCK_NAME = /\S.+\bxstocks?\b/i;
 
 const COMPANY_PRESTOCKS_NAME = /\S.+\bprestocks?\b/i;
+
+/** Official Tessera PE product names look like `T-SpaceX`, not a generic Tessera basket. */
+const TESSERA_TTOKEN_NAME = /^T-\S+/i;
 
 const TOKENIZED_EQUITY_PHRASE = /\btokeni[sz]ed(?:\s+public)?\s+(?:stock|equity|share|shares)\b/i;
 
@@ -355,6 +359,9 @@ export function inferIssuer(name: string | null, symbol: string | null, address:
   if (prestocksMintConvention(address) && (privateCompanySymbol(symbol) || privateTickerLike(symbol))) {
     return "PreStocks";
   }
+  if (tesseraTTokenName(name) && tesseraTickerSymbol(symbol)) {
+    return "Tessera";
+  }
   return null;
 }
 
@@ -377,6 +384,20 @@ export function ondoMintConvention(address: string, symbol: string | null): bool
 /** Live PreStocks Solana mints start with `Pre` (SpaceX, OpenAI, Anthropic, …). Not an admission list by itself. */
 export function prestocksMintConvention(address: string): boolean {
   return /^Pre/.test(address);
+}
+
+/** `tSpaceX` / `tKalshi` / `tOpenAI` after symbol normalize (`TSPACEX`). */
+export function tesseraTickerSymbol(symbol: string | null): boolean {
+  return Boolean(symbol && symbol.startsWith("T") && PRIVATE_BASE_SYMBOLS.has(symbol.slice(1)));
+}
+
+export function tesseraTTokenName(name: string | null): boolean {
+  return Boolean(name && TESSERA_TTOKEN_NAME.test(name.trim()) && PRIVATE_OR_PREIPO_NAME.test(name));
+}
+
+/** Pump.fun mints end in `pump`. Official Tessera T-Token mints do not. */
+export function isPumpFunMint(address: string): boolean {
+  return /pump$/i.test(address);
 }
 
 function privateTickerLike(symbol: string | null): boolean {
@@ -588,6 +609,13 @@ function verifiablePrivateMarketSignal(input: {
       return { ok: false };
     }
     return { ok: true, reason: "PreStocks name" };
+  }
+
+  if (tesseraTTokenName(name) && tesseraTickerSymbol(symbol)) {
+    if (isPumpFunMint(address)) {
+      return { ok: false };
+    }
+    return { ok: true, reason: "Tessera T-Token name" };
   }
 
   if (prestocksMintConvention(address) && privateTickerLike(symbol) && !isGenericCategory(name, symbol)) {

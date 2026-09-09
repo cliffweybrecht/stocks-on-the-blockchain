@@ -19,13 +19,16 @@ import {
 import {
   DEFAULT_GECKOTERMINAL_BASE_URL,
   DEFAULT_GECKOTERMINAL_QUERIES,
+  geckoPairsForSupplement,
   geckoTerminalOhlcvPath,
   geckoTerminalSearchPath,
   parseGeckoTerminalSearch,
+  parseGeckoTerminalSearchPools,
 } from "./solana-geckoterminal";
 import { SolanaHydrateMemory } from "./solana-hydrate-memory";
 import { fetchJsonOrText, type FetchLike } from "./solana-http";
 import { DEFAULT_ONDO_REGISTRY_URL, parseOndoGmConstants } from "./solana-ondo";
+import { DEFAULT_TESSERA_REGISTRY_URL, parseTesseraTokenMints } from "./solana-tessera";
 import {
   DEFAULT_XSTOCKS_REGISTRY_BASE_URL,
   parseXStocksAssetsPage,
@@ -105,6 +108,8 @@ export interface SolanaMarketDataSourceOptions {
   registryBaseUrl?: string;
   enableOndoRegistry?: boolean;
   ondoRegistryUrl?: string;
+  enableTesseraRegistry?: boolean;
+  tesseraRegistryUrl?: string;
   enableGeckoTerminal?: boolean;
   geckoTerminalBaseUrl?: string;
   enrichBudgetMs?: number;
@@ -166,6 +171,14 @@ export class SolanaMarketDataSource implements MarketDataSource {
 
   private get ondoRegistryUrl() {
     return this.options.ondoRegistryUrl ?? DEFAULT_ONDO_REGISTRY_URL;
+  }
+
+  private get tesseraEnabled() {
+    return this.options.enableTesseraRegistry !== false;
+  }
+
+  private get tesseraRegistryUrl() {
+    return this.options.tesseraRegistryUrl ?? DEFAULT_TESSERA_REGISTRY_URL;
   }
 
   private get geckoEnabled() {
@@ -292,16 +305,23 @@ export class SolanaMarketDataSource implements MarketDataSource {
     return parseOndoGmConstants(payload);
   }
 
-  private async loadGeckoTerminalIdentities(): Promise<TokenIdentity[]> {
+  private async loadTesseraIdentities(): Promise<TokenIdentity[]> {
+    const payload = await this.fetchSource(this.tesseraRegistryUrl, "Tessera T-Token list");
+    return parseTesseraTokenMints(payload);
+  }
+
+  private async loadGeckoTerminalIdentities(): Promise<{ identities: TokenIdentity[]; pairs: DexScreenerPair[] }> {
     const identities: TokenIdentity[] = [];
+    const pairs: DexScreenerPair[] = [];
     const gate = this.gate();
     for (const query of DEFAULT_GECKOTERMINAL_QUERIES) {
       const payload = await gate.run(() =>
         this.fetchSource(`${this.geckoTerminalBaseUrl}${geckoTerminalSearchPath(query)}`, "GeckoTerminal"),
       );
       identities.push(...parseGeckoTerminalSearch(payload));
+      pairs.push(...parseGeckoTerminalSearchPools(payload));
     }
-    return identities;
+    return { identities, pairs };
   }
 
   private rememberHydrateOutcome(
@@ -486,20 +506,32 @@ export class SolanaMarketDataSource implements MarketDataSource {
         )
       : Promise.resolve({ identities: [] as TokenIdentity[], error: null as Error | null });
 
-    const geckoTask = this.geckoEnabled
-      ? this.loadGeckoTerminalIdentities().then(
+    const tesseraTask = this.tesseraEnabled
+      ? this.loadTesseraIdentities().then(
           (identities) => ({ identities, error: null as Error | null }),
           (error: unknown) => ({
             identities: [] as TokenIdentity[],
-            error: error instanceof Error ? error : new Error("GeckoTerminal search failed."),
+            error: error instanceof Error ? error : new Error("Tessera T-Token list failed."),
           }),
         )
       : Promise.resolve({ identities: [] as TokenIdentity[], error: null as Error | null });
 
-    const [searchResult, registryResult, ondoResult, geckoResult] = await Promise.all([
+    const geckoTask = this.geckoEnabled
+      ? this.loadGeckoTerminalIdentities().then(
+          (loaded) => ({ identities: loaded.identities, pairs: loaded.pairs, error: null as Error | null }),
+          (error: unknown) => ({
+            identities: [] as TokenIdentity[],
+            pairs: [] as DexScreenerPair[],
+            error: error instanceof Error ? error : new Error("GeckoTerminal search failed."),
+          }),
+        )
+      : Promise.resolve({ identities: [] as TokenIdentity[], pairs: [] as DexScreenerPair[], error: null as Error | null });
+
+    const [searchResult, registryResult, ondoResult, tesseraResult, geckoResult] = await Promise.all([
       searchTask,
       registryTask,
       ondoTask,
+      tesseraTask,
       geckoTask,
     ]);
     if (registryResult.error) {
@@ -512,9 +544,14 @@ export class SolanaMarketDataSource implements MarketDataSource {
         `Ondo public GM mint list unavailable: ${ondoResult.error.message}. Official Ondo Stocks API was not used (requires a key). Discovery continued from other live sources.`,
       );
     }
+    if (tesseraResult.error) {
+      extraNotes.push(
+        `Tessera public T-Token mint list unavailable: ${tesseraResult.error.message}. Discovery continued from other live sources.`,
+      );
+    }
     if (geckoResult.error) {
       extraNotes.push(
-        `GeckoTerminal public search unavailable: ${geckoResult.error.message}. DexScreener remains the volume source. Discovery continued from other live sources.`,
+        `GeckoTerminal public search unavailable: ${geckoResult.error.message}. DexScreener remains the primary volume source. Discovery continued from other live sources.`,
       );
     }
     if (searchResult.failedQueries > 0 && searchResult.failedQueries < this.discoveryQueries.length) {
@@ -528,6 +565,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
         searchResult.identities,
         registryResult.identities,
         ondoResult.identities,
+        tesseraResult.identities,
         geckoResult.identities,
       ]),
     );
@@ -539,16 +577,23 @@ export class SolanaMarketDataSource implements MarketDataSource {
         searchResult.error &&
         (!this.registryEnabled || registryResult.error) &&
         (!this.ondoEnabled || ondoResult.error) &&
+        (!this.tesseraEnabled || tesseraResult.error) &&
         (!this.geckoEnabled || geckoResult.error)
       ) {
         throw new Error(
-          [searchResult.error.message, registryResult.error?.message, ondoResult.error?.message, geckoResult.error?.message]
+          [
+            searchResult.error.message,
+            registryResult.error?.message,
+            ondoResult.error?.message,
+            tesseraResult.error?.message,
+            geckoResult.error?.message,
+          ]
             .filter(Boolean)
             .join(" · "),
         );
       }
       throw new Error(
-        "No verifiable Solana tokenized stocks from live discovery + classifier. Coverage is as discoverable from DexScreener search, the xStocks public registry, the public Ondo GM mint list, public GeckoTerminal search, and the classifier — not a full chain index. Keyed issuer APIs are not used.",
+        "No verifiable Solana tokenized stocks from live discovery + classifier. Coverage is as discoverable from DexScreener search, the xStocks public registry, the public Ondo GM mint list, the public Tessera T-Token mint list, public GeckoTerminal search, and the classifier — not a full chain index. Keyed issuer APIs are not used.",
       );
     }
 
@@ -560,7 +605,15 @@ export class SolanaMarketDataSource implements MarketDataSource {
     const geckoMints = new Set(
       geckoResult.identities.map((token) => token.address).filter((mint) => classifiedMints.has(mint)),
     );
-    const priorityMints = new Set([...searchMints, ...geckoMints, ...this.memory.pooledMints()]);
+    const tesseraMints = new Set(
+      tesseraResult.identities.map((token) => token.address).filter((mint) => classifiedMints.has(mint)),
+    );
+    const priorityMints = new Set([
+      ...searchMints,
+      ...geckoMints,
+      ...tesseraMints,
+      ...this.memory.pooledMints(),
+    ]);
     const seedPairs = pairsTouchingMints(searchResult.pairs, classifiedMints);
     const seededMints = mintsInPairs(seedPairs, classifiedMints);
     this.memory.markPooled(seededMints);
@@ -615,6 +668,21 @@ export class SolanaMarketDataSource implements MarketDataSource {
     } else {
       extraNotes.push(
         "Home snapshot uses DexScreener search pairs plus a time-boxed primary-pair hydrate. Open Solana for every-pool aggregation. Remaining mints keep hydrating in the background. Confirmed-empty mints are not re-fetched until the empty-cache TTL.",
+      );
+    }
+
+    const seenPairAddresses = new Set(
+      finalPairs.flatMap((pair) => {
+        const address = typeof pair.pairAddress === "string" ? pair.pairAddress.trim() : "";
+        return address ? [address] : [];
+      }),
+    );
+    const geckoSupplement = geckoPairsForSupplement(geckoResult.pairs, classifiedMints, seenPairAddresses);
+    if (geckoSupplement.length > 0) {
+      finalPairs = [...finalPairs, ...geckoSupplement];
+      this.memory.markPooled(mintsInPairs(geckoSupplement, classifiedMints));
+      extraNotes.push(
+        `GeckoTerminal added ${geckoSupplement.length} pool(s) on venues DexScreener does not index for these stocks (ZeroFi / HumidiFi / Byreal). Duplicate pair addresses were dropped. Tessera V prop-AMM has no per-stock public pool feed.`,
       );
     }
 
