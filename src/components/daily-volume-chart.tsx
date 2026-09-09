@@ -42,10 +42,12 @@ export function DailyVolumeChart({
   history,
   deskVolume24hUsd,
   privateVolume24hUsd = null,
+  etfVolume24hUsd = null,
 }: {
   history: EquityVolumeHistoryResult;
   deskVolume24hUsd?: number | null;
   privateVolume24hUsd?: number | null;
+  etfVolume24hUsd?: number | null;
 }) {
   const [range, setRange] = useState<VolumeChartRangeId>("all");
   const [hover, setHover] = useState<VolumeHistoryPoint | null>(null);
@@ -65,6 +67,7 @@ export function DailyVolumeChart({
   const headline = deskVolumeHeadline({
     publicVolume24hUsd: publicVolume24hUsd ?? null,
     privateVolume24hUsd,
+    etfVolume24hUsd,
     hover: null,
     latest,
   });
@@ -72,6 +75,7 @@ export function DailyVolumeChart({
     ? deskVolumeHeadline({
         publicVolume24hUsd: publicVolume24hUsd ?? null,
         privateVolume24hUsd,
+        etfVolume24hUsd,
         hover,
         latest,
       })
@@ -119,7 +123,9 @@ export function DailyVolumeChart({
               >
                 {formatUsdCompact(headline.volumeUsd)}
               </p>
-              <p className="mt-1 text-[11px] leading-snug text-muted-foreground">{headline.caption}</p>
+              <p className="mt-1 text-[11px] leading-snug text-muted-foreground" data-volume-caption>
+                {headline.caption}
+              </p>
             </>
           ) : null}
         </div>
@@ -162,7 +168,7 @@ export function DailyVolumeChart({
             preserveAspectRatio="none"
             className="pointer-events-none h-[240px] w-full touch-none sm:h-[280px]"
             role="img"
-            aria-label="Daily Solana tokenized public-equity volume. Headline is public plus private 24h."
+            aria-label="Daily Solana tokenized public-equity volume. Headline is public plus private plus ETF/index 24h."
           >
             <defs>
               <linearGradient id="volume-area" x1="0" x2="0" y1="0" y2="1">
@@ -251,8 +257,8 @@ export function DailyVolumeChart({
       )}
       {showHeadline ? (
         <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
-          Headline is reported public + private DexScreener 24h (null omitted, not $0). Chart series is
-          public-equity GeckoTerminal history. ETF lane excluded.
+          Headline is reported public + private + ETF/index DexScreener 24h (null omitted, not $0). Chart
+          series is public-equity GeckoTerminal history — the headline universe is broader than the chart.
         </p>
       ) : null}
     </section>

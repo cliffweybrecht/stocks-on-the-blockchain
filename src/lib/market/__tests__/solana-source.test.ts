@@ -167,6 +167,7 @@ describe("SolanaMarketDataSource", () => {
     expect(chain?.assets.map((asset) => asset.symbol).sort()).toEqual(["NFLXx", "TSLAx"]);
     expect(chain?.etfAssets?.map((asset) => asset.symbol)).toEqual(["SPYx"]);
     expect(chain?.chain.etfCount).toBe(1);
+    expect(chain?.chain.etfVolume24hUsd).toBeNull();
     expect(chain?.assets.find((asset) => asset.symbol === "TSLAx")?.volume24hUsd).toBeCloseTo(1_250.25);
     const nflx = chain?.assets.find((asset) => asset.symbol === "NFLXx");
     expect(nflx?.volume24hUsd).toBeNull();
@@ -202,6 +203,7 @@ describe("SolanaMarketDataSource", () => {
     expect(list.chains[0]?.volume24hUsd).toBeCloseTo(1_250.25);
     expect(list.chains[0]?.privateCount).toBe(1);
     expect(list.chains[0]?.privateVolume24hUsd).toBe(88_000);
+    expect(list.chains[0]?.etfVolume24hUsd).toBeNull();
 
     const chain = await source.getChain("solana");
     expect(chain?.assets.map((asset) => asset.symbol)).toEqual(["TSLAx"]);
@@ -215,6 +217,43 @@ describe("SolanaMarketDataSource", () => {
     const asset = await source.getAsset("solana", openaiMint);
     expect(asset?.asset.instrumentKind).toBe("private");
     expect(asset?.asset.volume24hUsd).toBe(88_000);
+  });
+
+  it("rolls ETF/index 24h separately and does not mix it into public ranking", async () => {
+    const spyPair = {
+      chainId: "solana",
+      dexId: "raydium",
+      pairAddress: "pair-spy",
+      baseToken: { address: spyMint, name: "SP500 xStock", symbol: "SPYx" },
+      quoteToken: { address: "usdc", name: "USDC", symbol: "USDC" },
+      volume: { h24: 13_000_000 },
+      liquidity: { usd: 4_000_000 },
+    };
+    const source = testSource({
+      requestGapMs: 0,
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [tslaPair(), spyPair] });
+        if (url.includes("/tokens/v1/solana/")) return jsonResponse([tslaPair(), spyPair]);
+        if (url.includes(`/token-pairs/v1/solana/${spyMint}`)) return jsonResponse([spyPair]);
+        if (url.includes(`/token-pairs/v1/solana/${tslaMint}`)) return jsonResponse([tslaPair()]);
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    const list = await source.listChains();
+    expect(list.chains[0]?.volume24hUsd).toBeCloseTo(1_250.25);
+    expect(list.chains[0]?.etfCount).toBe(1);
+    expect(list.chains[0]?.etfVolume24hUsd).toBe(13_000_000);
+    expect(list.chains[0]?.privateVolume24hUsd).toBeNull();
+
+    const chain = await source.getChain("solana");
+    expect(chain?.assets.map((asset) => asset.symbol)).toEqual(["TSLAx"]);
+    expect(chain?.etfAssets?.map((asset) => asset.symbol)).toEqual(["SPYx"]);
+    expect(chain?.etfAssets?.[0]?.volume24hUsd).toBe(13_000_000);
+    expect(chain?.etfAssets?.[0]?.instrumentKind).toBe("etf");
+    expect(chain?.chain.volume24hUsd).toBeCloseTo(1_250.25);
+    expect(chain?.chain.etfVolume24hUsd).toBe(13_000_000);
   });
 
   it("fails closed when search finds only crypto", async () => {

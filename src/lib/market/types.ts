@@ -57,6 +57,8 @@ export interface ChainVolume {
   privateCount: number;
   /** Labeled private-market 24h rollup. Never mixed into volume24hUsd (public ranking) or the Gecko chart series. Headline / Solana card add it via sumNullable. Null is unknown, not $0. */
   privateVolume24hUsd: number | null;
+  /** Labeled ETF/index 24h rollup. Never mixed into volume24hUsd (public ranking) or the Gecko chart series. Headline / Solana card add it via sumNullable. Null is unknown, not $0. */
+  etfVolume24hUsd: number | null;
   volumeAggregation: VolumeAggregation;
   completenessPct: number | null;
   coverageNote: string;

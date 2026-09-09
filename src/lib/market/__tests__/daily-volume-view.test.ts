@@ -79,47 +79,61 @@ describe("volumeHeadlineCopy", () => {
 describe("deskVolumeHeadline", () => {
   const latest = { t: DAY0, volumeUsd: 1_250.25, kind: "rolling_24h" as const };
 
-  it("uses public + private 24h for the rest-state headline and labels the chart as public history", () => {
+  it("uses public + private + ETF/index 24h for the rest-state headline and labels the chart as public history", () => {
     const headline = deskVolumeHeadline({
       publicVolume24hUsd: 1_250.25,
       privateVolume24hUsd: 88_000,
+      etfVolume24hUsd: 13_000_000,
       hover: null,
       latest,
     });
-    expect(headline.volumeUsd).toBeCloseTo(89_250.25);
+    expect(headline.volumeUsd).toBeCloseTo(13_089_250.25);
     expect(headline.kind).toBe("combined_24h");
-    expect(headline.caption).toMatch(/public \+ private/);
+    expect(headline.caption).toMatch(/public \+ private \+ ETF\/index/);
     expect(headline.caption).toMatch(/chart is public history/);
   });
 
-  it("omits unreported private volume instead of treating it as zero", () => {
-    const headline = deskVolumeHeadline({
+  it("omits unreported private or ETF volume instead of treating it as zero", () => {
+    const withoutPrivate = deskVolumeHeadline({
       publicVolume24hUsd: 1_250.25,
       privateVolume24hUsd: null,
+      etfVolume24hUsd: 13_000_000,
       hover: null,
       latest,
     });
-    expect(headline.volumeUsd).toBe(1_250.25);
+    expect(withoutPrivate.volumeUsd).toBeCloseTo(13_001_250.25);
+
+    const publicOnly = deskVolumeHeadline({
+      publicVolume24hUsd: 1_250.25,
+      privateVolume24hUsd: null,
+      etfVolume24hUsd: null,
+      hover: null,
+      latest,
+    });
+    expect(publicOnly.volumeUsd).toBe(1_250.25);
   });
 
   it("keeps hover on the public chart series and labels the universe split", () => {
     const hoverDay = deskVolumeHeadline({
       publicVolume24hUsd: 1_250.25,
       privateVolume24hUsd: 88_000,
+      etfVolume24hUsd: 13_000_000,
       hover: { t: DAY0, volumeUsd: 9, kind: "calendar_day" },
       latest,
     });
     expect(hoverDay.volumeUsd).toBe(9);
     expect(hoverDay.kind).toBe("calendar_day");
     expect(hoverDay.caption).toMatch(/public history/);
+    expect(hoverDay.caption).toMatch(/headline universe is broader/);
 
     const hover24h = deskVolumeHeadline({
       publicVolume24hUsd: 1_250.25,
       privateVolume24hUsd: 88_000,
+      etfVolume24hUsd: 13_000_000,
       hover: latest,
       latest,
     });
     expect(hover24h.volumeUsd).toBe(1_250.25);
-    expect(hover24h.caption).toMatch(/headline is public \+ private/);
+    expect(hover24h.caption).toMatch(/headline is public \+ private \+ ETF\/index/);
   });
 });

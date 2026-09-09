@@ -76,6 +76,7 @@ export default async function HomePage() {
           history={history}
           deskVolume24hUsd={solanaChain?.volume24hUsd ?? null}
           privateVolume24hUsd={solanaChain?.privateVolume24hUsd ?? null}
+          etfVolume24hUsd={solanaChain?.etfVolume24hUsd ?? null}
         />
         <section className="space-y-3">
           <h2 className="font-heading text-lg font-medium">Chain volume</h2>

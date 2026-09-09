@@ -321,11 +321,12 @@ export function solanaChainMeta(): Omit<
     sourceLabel: SOLANA_SOURCE_LABEL,
     completenessPct: null,
     etfCount: 0,
+    etfVolume24hUsd: null,
     privateCount: 0,
     privateVolume24hUsd: null,
     volumeAggregation: "all-pools",
     coverageNote:
-      "Tokenized public equities discovered from the live xStocks public registry, the public Ondo GM mint list, DexScreener search, and public GeckoTerminal search, then classified fail-closed. Volume is the sum of DexScreener pair volume.h24 across every Solana pool for that mint. Coverage is as discoverable from those live sources + the classifier, not a full Solana indexer. Most classified mints have no DexScreener pools — that is an index ceiling, not zero volume. Missing pair metrics stay missing — a dash is not zero. ETF/index products stay in a separate lane. Private-market / PreStocks 24h is labeled on the Solana card and added to the Daily Volume headline; it is not mixed into public-equity ranking or the Gecko chart series.",
+      "Tokenized public equities discovered from the live xStocks public registry, the public Ondo GM mint list, DexScreener search, and public GeckoTerminal search, then classified fail-closed. Volume is the sum of DexScreener pair volume.h24 across every Solana pool for that mint. Coverage is as discoverable from those live sources + the classifier, not a full Solana indexer. Most classified mints have no DexScreener pools — that is an index ceiling, not zero volume. Missing pair metrics stay missing — a dash is not zero. ETF/index and private-market / PreStocks 24h are labeled on the Solana card and added to the Daily Volume headline; they are not mixed into public-equity ranking or the Gecko chart series. The ETF / index lane stays available for drilling into those names.",
   };
 }
 
@@ -490,7 +491,9 @@ export function buildSolanaSnapshot(input: {
     (aggregation === "primary-pair"
       ? "Home rollup uses DexScreener primary-pair volume per mint; the chain page aggregates every Solana pool."
       : "Chain ranking uses aggregate volume across every returned Solana pool for that mint.") +
-    (etfs.assets.length > 0 ? ` ${etfs.assets.length} ETF/index products are listed separately and are not in the equity ranking.` : "") +
+    (etfs.assets.length > 0
+      ? ` ${etfs.assets.length} ETF/index products are listed in a separate lane; their 24h rollup is labeled on the Solana card and added to the Daily Volume headline, not mixed into public-equity ranking or the Gecko chart series.`
+      : "") +
     (privates.assets.length > 0
       ? ` ${privates.assets.length} private-market / PreStocks names are listed separately; their 24h rollup is labeled on the Solana card and added to the Daily Volume headline, not mixed into public-equity ranking or the Gecko chart series.`
       : "");
@@ -498,6 +501,7 @@ export function buildSolanaSnapshot(input: {
   return {
     chain: rollupChainFromAssets({ ...meta, coverageNote }, equities.assets, {
       etfCount: etfs.assets.length,
+      etfVolume24hUsd: sumNullable(etfs.assets.map((asset) => asset.volume24hUsd)),
       privateCount: privates.assets.length,
       privateVolume24hUsd: sumNullable(privates.assets.map((asset) => asset.volume24hUsd)),
       volumeAggregation: aggregation,

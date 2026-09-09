@@ -106,15 +106,39 @@ export default async function ChainPage({
             history={volumeHistory}
             deskVolume24hUsd={chain.volume24hUsd}
             privateVolume24hUsd={chain.privateVolume24hUsd}
+            etfVolume24hUsd={chain.etfVolume24hUsd}
           />
+        ) : null}
+        {isSolana && chain.etfCount > 0 ? (
+          <p className="rounded-xl border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">ETF/index 24h</span>
+            {" · "}
+            {formatUsdCompact(chain.etfVolume24hUsd)} across {formatCount(chain.etfCount)} classified names.
+            Included in the Daily Volume headline with public and private 24h; chart history stays public.
+            Null is unknown, not $0.{" "}
+            <Link
+              href={solanaChainHref({
+                chainId: chain.id,
+                lane: "etf",
+                coverage: coverageFilter,
+                defaultCoverage,
+                sortKey,
+                pinned: pinnedOnly,
+                issuer: issuerFilter,
+              })}
+              className="text-primary hover:underline"
+            >
+              Open ETF / index lane
+            </Link>
+          </p>
         ) : null}
         {isSolana && chain.privateCount > 0 ? (
           <p className="rounded-xl border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
             <span className="font-medium text-foreground">Private market 24h</span>
             {" · "}
             {formatUsdCompact(chain.privateVolume24hUsd)} across {formatCount(chain.privateCount)} classified
-            names. Included in the Daily Volume headline with public 24h; chart history stays public. Null is
-            unknown, not $0.{" "}
+            names. Included in the Daily Volume headline with public and ETF/index 24h; chart history stays
+            public. Null is unknown, not $0.{" "}
             <Link
               href={solanaChainHref({
                 chainId: chain.id,
@@ -138,7 +162,7 @@ export default async function ChainPage({
             value={formatUsdCompact(isSolana ? chainCombinedVolume24h(chain) : chain.volume24hUsd)}
             hint={
               isSolana
-                ? `Public + private equity · ${chain.sourceLabel}. ETF lane excluded. Null is unknown, not $0.`
+                ? `Public + private + ETF/index · ${chain.sourceLabel}. Null is unknown, not $0.`
                 : `Sum of reported 24h volume · ${chain.sourceLabel}`
             }
           />
