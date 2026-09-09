@@ -30,22 +30,22 @@ export function EquityCard({
         className="absolute inset-0 z-0 rounded-2xl"
         aria-label={`${asset.symbol} ${asset.name}`}
       />
-      <div className="relative z-10 flex items-start justify-between gap-2">
+      <div className="relative z-10 flex items-start justify-between gap-2 pointer-events-none">
         <div className="min-w-0">
           <p className="truncate text-[15px] font-semibold tracking-tight text-white">{asset.symbol}</p>
           <p className="truncate text-xs text-neutral-500">{asset.name}</p>
         </div>
-        <div className="flex shrink-0 items-center gap-0.5">
+        <div className="flex shrink-0 items-center gap-0.5 pointer-events-auto">
           {enableFavorites && onTogglePin ? (
             <PinButton pinned={Boolean(pinned)} label={asset.symbol} onToggle={onTogglePin} />
           ) : null}
           <CopyAddressIcon address={asset.contractAddress} />
         </div>
       </div>
-      <p className="relative z-10 mt-5 text-[28px] leading-none font-semibold tracking-tight text-white">
+      <p className="relative z-10 mt-5 text-[28px] leading-none font-semibold tracking-tight text-white pointer-events-none">
         <span className="num">{formatUsdCompact(asset.volume24hUsd)}</span>
       </p>
-      <div className="relative z-10 mt-auto -mx-4 pt-3">
+      <div className="relative z-10 mt-auto -mx-4 pt-3 pointer-events-none">
         {weekSeries && weekSeries.length >= 2 ? (
           <VolumeSparkline
             points={weekSeries}
