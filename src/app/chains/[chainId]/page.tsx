@@ -16,6 +16,7 @@ import {
 } from "@/lib/desk/issuer-filter";
 import { toPinCompareAsset } from "@/lib/desk/pin-compare";
 import { parsePinnedFilter } from "@/lib/desk/solana-chain-href";
+import { selectEquityPriceTicker } from "@/lib/desk/price-ticker";
 import { parseAssetSortKey, sortAssets } from "@/lib/market/aggregate";
 import { toJumpAsset } from "@/lib/market/asset-search";
 import { createMarketDataSource } from "@/lib/market/factory";
@@ -86,6 +87,7 @@ export default async function ChainPage({
     <PageShell
       provenance={provenance}
       solanaJump={jumpAssets.length > 0 ? { chainId, assets: jumpAssets } : undefined}
+      priceTicker={selectEquityPriceTicker(assets)}
     >
       <div className="space-y-5">
         <nav className="text-sm text-muted-foreground">
