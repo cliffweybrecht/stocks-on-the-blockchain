@@ -43,7 +43,7 @@ Uses DexScreener’s public API (no API key) plus the public **xStocks / Backed*
    - public Ondo GM constants (`ondoprotocol/gm-solana-simulator` `GM_TOKENS`; not an admission list; Ondo’s keyed `api.gm.ondo.finance` is **not** used)
    - public Tessera on-chain-programs docs (`docs.tessera.pe` T-Token mint table; not an admission list)
    - DexScreener `GET /latest/dex/search?q=…` (category/issuer/ticker probes; search is capped)
-   - GeckoTerminal `GET /api/v2/search/pools?network=solana` (a few public queries; 429s are skipped)
+   - GeckoTerminal `GET /api/v2/search/pools?network=solana` (a few public queries; 429s are skipped; **volume still comes from DexScreener**)
 2. **Classify** each Solana mint fail-closed as a tokenized public equity, a separate ETF/index product, **or** a separate private-market / PreStocks / Tessera T-Token name
 3. **Hydrate** pools in two DexScreener steps, with bounded concurrency, 429 retries, and a time budget that starts **after** discovery:
    - Seed volume from DexScreener **search pairs** immediately (so a spent budget cannot render 0/0 after classify)
@@ -59,7 +59,15 @@ Process-level snapshot cache (default 5 minutes) is shared across home / chain /
 
 Coverage is **as discoverable from the live xStocks registry + public Ondo GM mint list + public Tessera T-Token mint list + DexScreener search + public GeckoTerminal search + the classifier**, not a full Solana index. Search results are noisy and capped (~30 pairs per query, no page cursor).
 
-**Tessera V prop-AMM (measured 2026-09-09):** Wintermute’s Tessera V is a dark / off-chain-quoted venue (`TessVdML9pBGgG9yGks7o4HewRaXVAMuoVj4x83GLQH`). DexScreener stock-pair samples are still raydium / orca / meteora (no `tessera` dexId). GeckoTerminal’s Solana dex list includes ZeroFi, HumidiFi, and Byreal but **not** Tessera V. Birdeye public endpoints 401 without a key. Jupiter Tokens `tag=stocks` is still keyed. DefiLlama reports protocol-wide Tessera V 24h (~$150M Solana) with **no per-mint / per-stock breakdown** — that number is not stock volume and is not added. The desk does **not** invent Tessera V stock volume.
+**Tessera V prop-AMM (negative, measured 2026-09-09):** no per-mint stock volume is added from this venue.
+
+- DefiLlama Tessera V Solana ~$149M 24h is **protocol-level only** (`hasLabelBreakdown: false`). The public Volumes API has no pair/token split.
+- Tessera V TVL tokens can include SPCX (~$369k) among mostly SOL/USDC/memes. **TVL ≠ attributable stock volume.**
+- Backpack/Sunrise SPCX already has large DexScreener Solana legs (Raydium/Orca/Meteora, ~$0.7M+ in a sample). That is DexScreener pool volume, not Tessera V.
+- GeckoTerminal Solana dex list / search: **no Tessera V dex**. Text search for “tessera” returns meme TESS / Tesseract pairs.
+- DexScreener stock-pair samples: raydium / orca / meteora only — no `tessera` dexId.
+
+GeckoTerminal ZeroFi / HumidiFi / Byreal pools exist for some stock mints, but mixing that 24h into the DexScreener desk total would be a second indexer with a different methodology. The desk does **not** invent Tessera V (or other prop-AMM) stock volume.
 
 **DexScreener index ceiling (measured 2026-09-07):** a full `/tokens/v1` pass over **1,169** unique xStocks-registry + Ondo GM Solana mints found **54 with at least one DexScreener pair and 1,115 with none** (0 batch failures). After fail-closed ETF / commodity / private-name filters that is about **48 public equities with DexScreener pools** — matching the live desk. Extra public candidate lists (CoinGecko `coins/list?include_platform=true`, Solflare token-list search) added names DexScreener also does not index. So most **Confirmed no pools** rows are **never listed on DexScreener**, not “hydrate never reached.” The desk still hydrates every *new* mint and re-checks empties after `SOLANA_EMPTY_CACHE_MS`.
 
@@ -67,7 +75,8 @@ Coverage is **as discoverable from the live xStocks registry + public Ondo GM mi
 | --- | --- | --- |
 | Backed / xStocks | Yes, when the public registry or DexScreener/GeckoTerminal search returns them and the classifier admits | Primary live equity universe on Solana today |
 | Ondo Stocks | Yes, from the **public** GM mint list + DexScreener/GeckoTerminal names that pass the classifier | Keyed Ondo API is out (403 without a key). Most Ondo mints have no DexScreener pools |
-| GeckoTerminal search | Candidate + hydrate priority, and **non-overlapping** 24h | Public, no key, tight rate limits. Volume from Gecko is added only for venues DexScreener does not index on stock pairs (ZeroFi, HumidiFi, Byreal), keyed by `pairAddress`. Tessera V is not in that feed |
+| GeckoTerminal search | Candidate + hydrate priority only | Public, no key, tight rate limits. Volume is still DexScreener. Not a Tessera V feed |
+| Tessera V (Wintermute prop-AMM) | **No** | Protocol-level DefiLlama 24h only; no per-mint split. Not invented |
 | Tessera PE T-Tokens | Yes, private-market lane | Official docs mint list + `T-SpaceX` / `tSpaceX` naming. Pump.fun copycats fail closed. Not Tessera V |
 | Backpack Securities | Yes, when the on-chain name includes `Backpack Securities` | Public names (MU, INTC, HOOD, SNDK, …) go equity; SPCX stays private; Roundhill Memory ETF (`DRAM`) stays ETF. Sunrise is a listing gateway, not a DEX to sum. Backpack CEX / RFQ volume is still out |
 | Jupiter Tokens API `tag=stocks` | No | Requires `x-api-key`; unauthenticated calls return 400 |
@@ -106,7 +115,7 @@ SOLANA_VOLUME_HISTORY_CACHE_MS=1800000
 SOLANA_VOLUME_HISTORY_MAX_POOLS=64
 ```
 
-Set `SOLANA_XSTOCKS_REGISTRY_ENABLED=false` or `SOLANA_ONDO_REGISTRY_ENABLED=false` to disable those candidate sources.
+Set `SOLANA_XSTOCKS_REGISTRY_ENABLED=false`, `SOLANA_ONDO_REGISTRY_ENABLED=false`, or `SOLANA_TESSERA_REGISTRY_ENABLED=false` to disable those candidate sources.
 
 ### Terminal + Solana together
 
@@ -143,7 +152,7 @@ Each chain and asset carries `sourceId` / `sourceLabel`. Composite provenance al
 
 ### Solana discovery + classifier
 
-Search queries (probes, not an admission list): `xStock`, `xStocks`, `tokenized stock`, plus ticker probes such as `Circle xStock` / `Palantir xStock` / `Apple (Ondo Tokenized)` / `PreStocks` / `OpenAI PreStocks` / `Backpack Securities` / `T-SpaceX` because DexScreener search is capped and has no pagination. The **xStocks public registry** is the primary way to discover the broader Backed universe. The **public Ondo GM mint list** is the way to see Ondo mints without a key. The **public Tessera T-Token mint list** is the way to see official Tessera PE mints without a key. **GeckoTerminal search** is a hydrate hint for names DexScreener text search misses, and a secondary 24h source only for venues DexScreener does not index.
+Search queries (probes, not an admission list): `xStock`, `xStocks`, `tokenized stock`, plus ticker probes such as `Circle xStock` / `Palantir xStock` / `Apple (Ondo Tokenized)` / `PreStocks` / `OpenAI PreStocks` / `Backpack Securities` / `T-SpaceX` because DexScreener search is capped and has no pagination. The **xStocks public registry** is the primary way to discover the broader Backed universe. The **public Ondo GM mint list** is the way to see Ondo mints without a key. The **public Tessera T-Token mint list** is the way to see official Tessera PE mints without a key. **GeckoTerminal search** is a hydrate hint for names DexScreener text search misses (especially Ondo / Backpack / T-Tokens). Volume stays DexScreener.
 
 **Admitted as equity** only with a verifiable equity signal, for example:
 
@@ -175,7 +184,7 @@ Search queries (probes, not an admission list): `xStock`, `xStocks`, `tokenized 
 
 Listed operating companies whose names contain “Gold” or “Real Estate” (Royal Gold, Laopu Gold, Wharf Real Estate, Nasdaq Inc.) can be admitted when they are verifiable xStocks. A token that *is* gold/silver as the product (`Gold xStock`) is still excluded.
 
-Volume = sum of returned pair `volume.h24` for that mint across every Solana pool on the chain page, plus GeckoTerminal 24h only when the pool address is absent from DexScreener **and** the venue is one DexScreener stock samples do not index (ZeroFi, HumidiFi, Byreal). Home may show DexScreener primary-pair volume until that full snapshot is cached. A DexScreener pair is never treated as one stock. Duplicate `pairAddress` values are dropped. Null/unknown volume stays null and ranks last; a reported `0` is a real zero. Tessera V protocol-wide Dex volume is not a stock series.
+Volume = sum of returned pair `volume.h24` for that mint across every Solana pool on the chain page. Home may show DexScreener primary-pair volume until that full snapshot is cached. A DexScreener pair is never treated as one stock. Duplicate `pairAddress` values are dropped. Null/unknown volume stays null and ranks last; a reported `0` is a real zero. Tessera V protocol-wide Dex volume is not a stock series.
 
 The UI says **why** volume is missing: no indexed pools, pools without reported 24h volume, fetch failure, or hydrate still running.
 

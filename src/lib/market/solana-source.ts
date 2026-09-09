@@ -19,11 +19,9 @@ import {
 import {
   DEFAULT_GECKOTERMINAL_BASE_URL,
   DEFAULT_GECKOTERMINAL_QUERIES,
-  geckoPairsForSupplement,
   geckoTerminalOhlcvPath,
   geckoTerminalSearchPath,
   parseGeckoTerminalSearch,
-  parseGeckoTerminalSearchPools,
 } from "./solana-geckoterminal";
 import { SolanaHydrateMemory } from "./solana-hydrate-memory";
 import { fetchJsonOrText, type FetchLike } from "./solana-http";
@@ -310,18 +308,16 @@ export class SolanaMarketDataSource implements MarketDataSource {
     return parseTesseraTokenMints(payload);
   }
 
-  private async loadGeckoTerminalIdentities(): Promise<{ identities: TokenIdentity[]; pairs: DexScreenerPair[] }> {
+  private async loadGeckoTerminalIdentities(): Promise<TokenIdentity[]> {
     const identities: TokenIdentity[] = [];
-    const pairs: DexScreenerPair[] = [];
     const gate = this.gate();
     for (const query of DEFAULT_GECKOTERMINAL_QUERIES) {
       const payload = await gate.run(() =>
         this.fetchSource(`${this.geckoTerminalBaseUrl}${geckoTerminalSearchPath(query)}`, "GeckoTerminal"),
       );
       identities.push(...parseGeckoTerminalSearch(payload));
-      pairs.push(...parseGeckoTerminalSearchPools(payload));
     }
-    return { identities, pairs };
+    return identities;
   }
 
   private rememberHydrateOutcome(
@@ -518,14 +514,13 @@ export class SolanaMarketDataSource implements MarketDataSource {
 
     const geckoTask = this.geckoEnabled
       ? this.loadGeckoTerminalIdentities().then(
-          (loaded) => ({ identities: loaded.identities, pairs: loaded.pairs, error: null as Error | null }),
+          (identities) => ({ identities, error: null as Error | null }),
           (error: unknown) => ({
             identities: [] as TokenIdentity[],
-            pairs: [] as DexScreenerPair[],
             error: error instanceof Error ? error : new Error("GeckoTerminal search failed."),
           }),
         )
-      : Promise.resolve({ identities: [] as TokenIdentity[], pairs: [] as DexScreenerPair[], error: null as Error | null });
+      : Promise.resolve({ identities: [] as TokenIdentity[], error: null as Error | null });
 
     const [searchResult, registryResult, ondoResult, tesseraResult, geckoResult] = await Promise.all([
       searchTask,
@@ -551,7 +546,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
     }
     if (geckoResult.error) {
       extraNotes.push(
-        `GeckoTerminal public search unavailable: ${geckoResult.error.message}. DexScreener remains the primary volume source. Discovery continued from other live sources.`,
+        `GeckoTerminal public search unavailable: ${geckoResult.error.message}. DexScreener remains the volume source. Discovery continued from other live sources.`,
       );
     }
     if (searchResult.failedQueries > 0 && searchResult.failedQueries < this.discoveryQueries.length) {
@@ -668,21 +663,6 @@ export class SolanaMarketDataSource implements MarketDataSource {
     } else {
       extraNotes.push(
         "Home snapshot uses DexScreener search pairs plus a time-boxed primary-pair hydrate. Open Solana for every-pool aggregation. Remaining mints keep hydrating in the background. Confirmed-empty mints are not re-fetched until the empty-cache TTL.",
-      );
-    }
-
-    const seenPairAddresses = new Set(
-      finalPairs.flatMap((pair) => {
-        const address = typeof pair.pairAddress === "string" ? pair.pairAddress.trim() : "";
-        return address ? [address] : [];
-      }),
-    );
-    const geckoSupplement = geckoPairsForSupplement(geckoResult.pairs, classifiedMints, seenPairAddresses);
-    if (geckoSupplement.length > 0) {
-      finalPairs = [...finalPairs, ...geckoSupplement];
-      this.memory.markPooled(mintsInPairs(geckoSupplement, classifiedMints));
-      extraNotes.push(
-        `GeckoTerminal added ${geckoSupplement.length} pool(s) on venues DexScreener does not index for these stocks (ZeroFi / HumidiFi / Byreal). Duplicate pair addresses were dropped. Tessera V prop-AMM has no per-stock public pool feed.`,
       );
     }
 

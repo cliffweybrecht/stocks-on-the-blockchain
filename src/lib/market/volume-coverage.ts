@@ -67,7 +67,7 @@ export function volumeCoverageNote(
     case "reported":
       return input.aggregation === "primary-pair"
         ? `DexScreener reported 24h volume on the primary indexed pair (${input.poolCount} pool${input.poolCount === 1 ? "" : "s"} in this snapshot). Open the chain page for every-pool aggregation.`
-        : `Aggregate 24h volume is the sum of DexScreener pair volume.h24 across ${input.poolCount} Solana pool${input.poolCount === 1 ? "" : "s"}, plus GeckoTerminal 24h only when a pool address is absent from DexScreener (ZeroFi / HumidiFi / Byreal). A reported 0 is a real zero.`;
+        : `Aggregate 24h volume is the sum of DexScreener pair volume.h24 across ${input.poolCount} Solana pool${input.poolCount === 1 ? "" : "s"}. A reported 0 is a real zero.`;
     case "no_indexed_pools":
       return "DexScreener lookup finished and found no indexed Solana pools for this mint. Volume is unknown, not zero — not the same as still hydrating.";
     case "pools_without_volume":
