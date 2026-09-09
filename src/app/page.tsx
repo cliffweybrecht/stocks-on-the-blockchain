@@ -46,23 +46,26 @@ export default async function HomePage() {
     );
   }
 
-  const { chains, provenance, history } = loaded;
-  const maxVolume = maxNullable(chains.map(chainCombinedVolume24h));
-  const solanaChain = chains.find((chain) => chain.id === SOLANA_CHAIN_ID);
+  const { chains: listedChains, provenance, history } = loaded;
   const tickerAssets: AssetSummary[] = [];
   let jumpAssets: ReturnType<typeof toJumpAsset>[] = [];
-  for (const chain of chains) {
+  const chains = [...listedChains];
+  for (const [index, chain] of listedChains.entries()) {
     try {
       const detail = await source.getChain(chain.id);
       if (!detail) continue;
       tickerAssets.push(...detail.assets);
       if (chain.id === SOLANA_CHAIN_ID) {
+        // Prefer the all-pools desk rollup for the headline and Solana card.
+        chains[index] = detail.chain;
         jumpAssets = [...detail.assets, ...(detail.etfAssets ?? [])].map(toJumpAsset);
       }
     } catch {
       // Skip a chain that listed but failed to hydrate. Do not invent ticker rows.
     }
   }
+  const maxVolume = maxNullable(chains.map(chainCombinedVolume24h));
+  const solanaChain = chains.find((chain) => chain.id === SOLANA_CHAIN_ID);
   const priceTicker = selectEquityPriceTicker(tickerAssets);
 
   return (
