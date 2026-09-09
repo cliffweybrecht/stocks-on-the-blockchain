@@ -5,7 +5,7 @@ export const UTC_DAY_SECONDS = 86_400;
 
 /** Historical days: GeckoTerminal. Latest point / headline: DexScreener 24h when reported. */
 export const EQUITY_VOLUME_HISTORY_DEFINITION =
-  "Historical days are per-day GeckoTerminal USD volume across classified Solana public-equity pools (same-day candles summed). Missing calendar days are plotted as $0 (no candle / no activity), never as invented nonzero volume. The latest point and headline use the same DexScreener 24h equity rollup as the desk (rolling 24h, not a UTC calendar day) when that rollup is reported. ETF lane excluded.";
+  "Historical days are per-day GeckoTerminal USD volume across classified Solana public-equity pools (same-day candles summed). Missing calendar days are plotted as $0 (no candle / no activity), never as invented nonzero volume. The latest point and headline use the same DexScreener 24h equity rollup as the desk (rolling 24h, not a UTC calendar day) when that rollup is reported. ETF and private-market lanes excluded.";
 
 export const EQUITY_VOLUME_HISTORY_SOURCE_LABEL = "GeckoTerminal pool OHLCV (USD) + DexScreener 24h";
 
@@ -120,7 +120,7 @@ export function buildMintWeekVolumeSeries(input: {
 
 /**
  * Unique Solana pools on classified public-equity rows only.
- * ETF / index products are never admitted. Empty pair addresses are dropped.
+ * ETF / index and private-market products are never admitted. Empty pair addresses are dropped.
  */
 export function collectEquityVolumeTargets(
   assets: readonly AssetSummary[],
@@ -319,7 +319,7 @@ function historyDefinition(input: {
   const latest = input.aligned24h
     ? " The latest point and headline use the same DexScreener 24h equity rollup as the desk (rolling 24h, not a UTC calendar day)."
     : " The latest point is the last GeckoTerminal UTC calendar day; DexScreener 24h was not reported for this snapshot.";
-  return `${historical}${latest} ETF lane excluded.${coverageNote(input)}`;
+  return `${historical}${latest} ETF and private-market lanes excluded.${coverageNote(input)}`;
 }
 
 export function buildEquityVolumeHistory(input: {

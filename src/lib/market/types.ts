@@ -8,7 +8,7 @@
 
 export type SourceKind = "mock" | "terminal" | "solana" | "composite";
 export type TrustKind = "fact" | "interpretive";
-export type InstrumentKind = "equity" | "etf";
+export type InstrumentKind = "equity" | "etf" | "private";
 export type VolumeAggregation = "all-pools" | "primary-pair" | "none";
 export type VolumeCoverage =
   | "reported"
@@ -54,6 +54,9 @@ export interface ChainVolume {
   reportedPoolCount: number;
   peakDexCount: number;
   etfCount: number;
+  privateCount: number;
+  /** Labeled private-market 24h rollup. Never mixed into volume24hUsd / Daily Volume. Null is unknown, not $0. */
+  privateVolume24hUsd: number | null;
   volumeAggregation: VolumeAggregation;
   completenessPct: number | null;
   coverageNote: string;
@@ -156,6 +159,7 @@ export interface ChainDetailResult {
   chain: ChainVolume;
   assets: AssetSummary[];
   etfAssets?: AssetSummary[];
+  privateAssets?: AssetSummary[];
   provenance: DataProvenance;
 }
 

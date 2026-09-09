@@ -1,6 +1,7 @@
 import { type AssetSortKey, assetSortQueryValue } from "../market/aggregate";
 import type { InstrumentKind } from "../market/types";
 import type { CoverageFilter } from "../market/volume-coverage";
+import { deskLaneQueryValue } from "./desk-lane";
 import { ALL_ISSUERS, type IssuerFilter, issuerQueryValue } from "./issuer-filter";
 
 export function parsePinnedFilter(value: string | string[] | undefined): boolean {
@@ -18,7 +19,8 @@ export function solanaChainHref(input: {
   issuer?: IssuerFilter;
 }): string {
   const params = new URLSearchParams();
-  if (input.lane === "etf") params.set("lane", "etf");
+  const lane = deskLaneQueryValue(input.lane ?? "equity");
+  if (lane) params.set("lane", lane);
   const coverage = input.coverage ?? input.defaultCoverage ?? "all";
   const fallback = input.defaultCoverage ?? "all";
   if (coverage !== fallback) params.set("coverage", coverage);

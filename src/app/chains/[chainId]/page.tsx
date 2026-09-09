@@ -14,7 +14,8 @@ import {
   parseIssuerFilter,
 } from "@/lib/desk/issuer-filter";
 import { toPinCompareAsset } from "@/lib/desk/pin-compare";
-import { parsePinnedFilter } from "@/lib/desk/solana-chain-href";
+import { parseDeskLane } from "@/lib/desk/desk-lane";
+import { parsePinnedFilter, solanaChainHref } from "@/lib/desk/solana-chain-href";
 import { selectEquityPriceTicker } from "@/lib/desk/price-ticker";
 import { parseAssetSortKey, sortAssets } from "@/lib/market/aggregate";
 import { toJumpAsset } from "@/lib/market/asset-search";
@@ -58,18 +59,18 @@ export default async function ChainPage({
     );
   }
 
-  const { chain, assets, etfAssets = [], provenance } = result;
+  const { chain, assets, etfAssets = [], privateAssets = [], provenance } = result;
   const isSolana = chain.id === SOLANA_CHAIN_ID;
   const volumeHistory = isSolana
     ? await source.getEquityVolumeHistory()
     : emptyEquityVolumeHistory("This chart is Solana tokenized public equities only.");
-  const lane = query.lane === "etf" && etfAssets.length > 0 ? "etf" : "equity";
+  const lane = parseDeskLane(query.lane, { etf: etfAssets.length > 0, private: privateAssets.length > 0 });
   const defaultCoverage = isSolana ? "with-volume" : "all";
   const coverageFilter = parseCoverageFilter(query.coverage, defaultCoverage);
   const sortKey = parseAssetSortKey(query.sort);
   const pinnedOnly = parsePinnedFilter(query.pinned);
   const issuerFilter = isSolana ? parseIssuerFilter(query.issuer) : "all";
-  const laneAssets = lane === "etf" ? etfAssets : assets;
+  const laneAssets = lane === "etf" ? etfAssets : lane === "private" ? privateAssets : assets;
   const issuerFacets = isSolana ? listIssuerFacets(laneAssets) : { issuers: [], unknownCount: 0 };
   const visibleAssets = sortAssets(
     laneAssets.filter(
@@ -79,8 +80,8 @@ export default async function ChainPage({
     sortKey,
   );
   const hydratingCount = laneAssets.filter((asset) => asset.volumeCoverage === "hydrate_incomplete").length;
-  const jumpAssets = isSolana ? [...assets, ...etfAssets].map(toJumpAsset) : [];
-  const catalogRows = [...assets, ...etfAssets].map(toPinCompareAsset);
+  const jumpAssets = isSolana ? [...assets, ...etfAssets, ...privateAssets].map(toJumpAsset) : [];
+  const catalogRows = [...assets, ...etfAssets, ...privateAssets].map(toPinCompareAsset);
 
   return (
     <PageShell
@@ -101,9 +102,35 @@ export default async function ChainPage({
           <p className="mt-1 text-sm text-muted-foreground">{chain.sourceLabel}</p>
         </div>
         {isSolana ? <DailyVolumeChart history={volumeHistory} deskVolume24hUsd={chain.volume24hUsd} /> : null}
+        {isSolana && chain.privateCount > 0 ? (
+          <p className="rounded-xl border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">Private market 24h</span>
+            {" · "}
+            {formatUsdCompact(chain.privateVolume24hUsd)} across {formatCount(chain.privateCount)} classified
+            names. Labeled rollup only — not in public 24h or Daily Volume. Null is unknown, not $0.{" "}
+            <Link
+              href={solanaChainHref({
+                chainId: chain.id,
+                lane: "private",
+                coverage: coverageFilter,
+                defaultCoverage,
+                sortKey,
+                pinned: pinnedOnly,
+                issuer: issuerFilter,
+              })}
+              className="text-primary hover:underline"
+            >
+              Open private-market lane
+            </Link>
+          </p>
+        ) : null}
         <ProvenanceBar provenance={provenance} compact />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Metric label="24h volume" value={formatUsdCompact(chain.volume24hUsd)} hint={`Sum of reported 24h volume · ${chain.sourceLabel}`} />
+          <Metric
+            label="24h volume"
+            value={formatUsdCompact(chain.volume24hUsd)}
+            hint={`Public equities only · ${chain.sourceLabel}. ETF and private-market lanes are separate.`}
+          />
           <Metric
             label="Displayed liquidity"
             value={formatUsdCompact(chain.displayedLiquidityUsd)}
@@ -118,13 +145,18 @@ export default async function ChainPage({
             label="Reported pools"
             value={formatCount(chain.reportedPoolCount)}
             hint={
-              chain.etfCount > 0
-                ? `${formatCount(chain.etfCount)} ETF/index products in a separate tab`
+              chain.etfCount > 0 || chain.privateCount > 0
+                ? [
+                    chain.etfCount > 0 ? `${formatCount(chain.etfCount)} ETF/index` : null,
+                    chain.privateCount > 0 ? `${formatCount(chain.privateCount)} private-market` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ") + " in separate tabs"
                 : `Peak DEX count on one stock: ${formatCount(chain.peakDexCount)}`
             }
           />
         </div>
-        {assets.length === 0 && etfAssets.length === 0 ? (
+        {assets.length === 0 && etfAssets.length === 0 && privateAssets.length === 0 ? (
           <EmptyState
             title="No stocks on this chain snapshot"
             detail="The source listed the chain but returned no asset rows. That is an empty snapshot, not zero volume. On Solana this usually means live discovery found no verifiable public equities."
@@ -136,6 +168,7 @@ export default async function ChainPage({
             totalInLane={laneAssets.length}
             equityCount={assets.length}
             etfCount={etfAssets.length}
+            privateCount={privateAssets.length}
             hydratingCount={hydratingCount}
             lane={lane}
             coverageFilter={coverageFilter}

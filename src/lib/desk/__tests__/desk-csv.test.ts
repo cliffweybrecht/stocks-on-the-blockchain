@@ -63,5 +63,8 @@ describe("deskCsvFilename", () => {
     expect(deskCsvFilename({ lane: "etf", coverage: "hydrating", at: new Date("2026-09-07T00:00:00.000Z") })).toBe(
       "solana-etf-hydrating-2026-09-07.csv",
     );
+    expect(deskCsvFilename({ lane: "private", coverage: "with-volume", at: new Date("2026-09-07T00:00:00.000Z") })).toBe(
+      "solana-private-with-volume-2026-09-07.csv",
+    );
   });
 });

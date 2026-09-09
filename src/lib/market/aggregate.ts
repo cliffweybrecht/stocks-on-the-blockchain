@@ -113,7 +113,12 @@ export function rollupChainFromAssets(
     | "peakDexCount"
   >,
   assets: readonly AssetSummary[],
-  extras?: { etfCount?: number; volumeAggregation?: ChainVolume["volumeAggregation"] },
+  extras?: {
+    etfCount?: number;
+    privateCount?: number;
+    privateVolume24hUsd?: number | null;
+    volumeAggregation?: ChainVolume["volumeAggregation"];
+  },
 ): ChainVolume {
   return {
     ...chain,
@@ -128,6 +133,8 @@ export function rollupChainFromAssets(
     reportedPoolCount: assets.reduce((sum, asset) => sum + asset.poolCount, 0),
     peakDexCount: maxNullable(assets.map((asset) => asset.dexCount)) ?? 0,
     etfCount: extras?.etfCount ?? chain.etfCount ?? 0,
+    privateCount: extras?.privateCount ?? chain.privateCount ?? 0,
+    privateVolume24hUsd: extras?.privateVolume24hUsd ?? chain.privateVolume24hUsd ?? null,
     volumeAggregation: extras?.volumeAggregation ?? chain.volumeAggregation ?? "all-pools",
   };
 }
@@ -154,6 +161,8 @@ export function robinhoodChainMeta(): Omit<
     sourceLabel: "Robinhood Liquidity Terminal",
     completenessPct: null,
     etfCount: 0,
+    privateCount: 0,
+    privateVolume24hUsd: null,
     volumeAggregation: "all-pools",
     coverageNote:
       "Single-chain Terminal snapshot. Volume is the sum of observedVolume24h across reported stocks; missing values stay missing.",

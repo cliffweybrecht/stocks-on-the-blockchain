@@ -69,7 +69,7 @@ export default async function AssetPage({
   const poolTotals = poolAggregateTotals(rankedPools);
   const catalog = chainSettled.status === "fulfilled" ? chainSettled.value : null;
   const jumpAssets = catalog
-    ? [...catalog.assets, ...(catalog.etfAssets ?? [])].map(toJumpAsset)
+    ? [...catalog.assets, ...(catalog.etfAssets ?? []), ...(catalog.privateAssets ?? [])].map(toJumpAsset)
     : [];
 
     return (
@@ -103,6 +103,7 @@ export default async function AssetPage({
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
                 {asset.issuer ? <span>Issuer · {asset.issuer}</span> : null}
                 {asset.instrumentKind === "etf" ? <span>ETF / index</span> : null}
+                {asset.instrumentKind === "private" ? <span>Private market</span> : null}
               </div>
               {isSolana ? <CopyAddress address={asset.contractAddress} compact /> : null}
               {asset.coverageNote ? <p className="max-w-2xl text-sm text-muted-foreground">{asset.coverageNote}</p> : null}

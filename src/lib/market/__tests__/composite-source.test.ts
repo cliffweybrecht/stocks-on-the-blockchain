@@ -50,6 +50,8 @@ function chain(id: string, sourceId: SourceKind, volume: number | null): ChainVo
     reportedPoolCount: 1,
     peakDexCount: 1,
     etfCount: 0,
+    privateCount: 0,
+    privateVolume24hUsd: null,
     volumeAggregation: "all-pools",
     completenessPct: 100,
     coverageNote: "test",

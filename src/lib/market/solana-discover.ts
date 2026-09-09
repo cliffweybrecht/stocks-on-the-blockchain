@@ -41,6 +41,14 @@ export const DEFAULT_SOLANA_DISCOVERY_QUERIES = [
   "NVIDIA (Ondo Tokenized)",
   "Apple (Ondo Tokenized)",
   "Micron (Ondo Tokenized)",
+  "PreStocks",
+  "SpaceX PreStocks",
+  "OpenAI PreStocks",
+  "Anthropic PreStocks",
+  "Anduril PreStocks",
+  "xAI PreStocks",
+  "SHEIN xStock",
+  "SpaceX xStock",
 ] as const;
 
 export const DEXSCREENER_TOKEN_BATCH_SIZE = 30;
@@ -163,7 +171,7 @@ export function collectSolanaCandidateTokens(pairs: readonly DexScreenerPair[]):
   for (const pair of pairs) {
     if (asNonEmptyString(pair.chainId) !== SOLANA_CHAIN_ID) continue;
     const labels = readPairLabels(pair).filter((label) =>
-      /tokenized|equity|stock|etf|index|rwa/i.test(label),
+      /tokenized|equity|stock|etf|index|rwa|prestocks?|pre-?ipo|private/i.test(label),
     );
     for (const side of [pair.baseToken, pair.quoteToken]) {
       const identity = tokenIdentityFromSide(side, labels);
@@ -184,7 +192,7 @@ export interface DiscoveredEquityMint {
   name: string | null;
   issuer: string | null;
   reason: string;
-  kind: "equity" | "etf";
+  kind: "equity" | "etf" | "private";
 }
 
 function displayNameFor(token: TokenIdentity, issuer: string | null): string | null {
@@ -200,9 +208,11 @@ function displayNameFor(token: TokenIdentity, issuer: string | null): string | n
 export function selectInstrumentMints(tokens: readonly TokenIdentity[]): {
   equities: DiscoveredEquityMint[];
   etfs: DiscoveredEquityMint[];
+  privates: DiscoveredEquityMint[];
 } {
   const equities: DiscoveredEquityMint[] = [];
   const etfs: DiscoveredEquityMint[] = [];
+  const privates: DiscoveredEquityMint[] = [];
   for (const token of tokens) {
     const classified = classifyTokenizedInstrument(token);
     if (classified.kind === "reject") continue;
@@ -215,9 +225,10 @@ export function selectInstrumentMints(tokens: readonly TokenIdentity[]): {
       kind: classified.kind,
     };
     if (classified.kind === "etf") etfs.push(row);
+    else if (classified.kind === "private") privates.push(row);
     else equities.push(row);
   }
-  return { equities, etfs };
+  return { equities, etfs, privates };
 }
 
 export function selectEquityMints(tokens: readonly TokenIdentity[]): DiscoveredEquityMint[] {

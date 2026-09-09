@@ -175,6 +175,48 @@ describe("SolanaMarketDataSource", () => {
     expect(urls.some((url) => url.includes("/tokens/v1/solana/"))).toBe(true);
   });
 
+  it("classifies PreStocks in a private lane and keeps public 24h honest", async () => {
+    const openaiMint = "PreweJYECqtQwBtpxHL171nL2K6umo692gTm7Q3rpgF";
+    const openaiPair = {
+      chainId: "solana",
+      dexId: "raydium",
+      pairAddress: "pair-openai",
+      baseToken: { address: openaiMint, name: "OpenAI PreStocks", symbol: "OPENAI" },
+      quoteToken: { address: "usdc", name: "USDC", symbol: "USDC" },
+      volume: { h24: 88_000 },
+      liquidity: { usd: 12_000 },
+    };
+    const source = testSource({
+      requestGapMs: 0,
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [tslaPair(), openaiPair] });
+        if (url.includes("/tokens/v1/solana/")) return jsonResponse([tslaPair(), openaiPair]);
+        if (url.includes(`/token-pairs/v1/solana/${openaiMint}`)) return jsonResponse([openaiPair]);
+        if (url.includes(`/token-pairs/v1/solana/${tslaMint}`)) return jsonResponse([tslaPair()]);
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    const list = await source.listChains();
+    expect(list.chains[0]?.volume24hUsd).toBeCloseTo(1_250.25);
+    expect(list.chains[0]?.privateCount).toBe(1);
+    expect(list.chains[0]?.privateVolume24hUsd).toBe(88_000);
+
+    const chain = await source.getChain("solana");
+    expect(chain?.assets.map((asset) => asset.symbol)).toEqual(["TSLAx"]);
+    expect(chain?.privateAssets?.map((asset) => asset.symbol)).toEqual(["OPENAI"]);
+    expect(chain?.privateAssets?.[0]?.volume24hUsd).toBe(88_000);
+    expect(chain?.privateAssets?.[0]?.issuer).toBe("PreStocks");
+    expect(chain?.privateAssets?.[0]?.instrumentKind).toBe("private");
+    expect(chain?.chain.volume24hUsd).toBeCloseTo(1_250.25);
+    expect(chain?.chain.privateVolume24hUsd).toBe(88_000);
+
+    const asset = await source.getAsset("solana", openaiMint);
+    expect(asset?.asset.instrumentKind).toBe("private");
+    expect(asset?.asset.volume24hUsd).toBe(88_000);
+  });
+
   it("fails closed when search finds only crypto", async () => {
     const source = testSource({
       requestGapMs: 0,
@@ -219,6 +261,9 @@ describe("SolanaMarketDataSource", () => {
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("Robinhood xStock");
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("Ondo Tokenized");
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("NVIDIA (Ondo Tokenized)");
+    expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("PreStocks");
+    expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("OpenAI PreStocks");
+    expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("SpaceX xStock");
   });
 
   it("keeps DexScreener search when the xStocks registry is down", async () => {

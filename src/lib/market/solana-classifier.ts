@@ -1,6 +1,6 @@
 import { asNonEmptyString } from "./numbers";
 
-export type UnderlyingInstrumentType = "equity" | "etf";
+export type UnderlyingInstrumentType = "equity" | "etf" | "private";
 
 export interface TokenIdentity {
   address: string;
@@ -23,12 +23,22 @@ export interface EtfClassification {
   reason: string;
 }
 
+export interface PrivateClassification {
+  kind: "private";
+  issuer: string | null;
+  reason: string;
+}
+
 export interface RejectClassification {
   kind: "reject";
   reason: string;
 }
 
-export type TokenClassification = EquityClassification | EtfClassification | RejectClassification;
+export type TokenClassification =
+  | EquityClassification
+  | EtfClassification
+  | PrivateClassification
+  | RejectClassification;
 
 const CRYPTO_STABLE_SYMBOLS = new Set([
   "BONK",
@@ -221,7 +231,7 @@ const ETF_INDEX_SYMBOLS = new Set([
   "EWYON",
 ]);
 
-const GENERIC_CATEGORY_SYMBOLS = new Set(["EQUITY", "RWA", "STOCK", "STOCKS", "XSTOCK", "XSTOCKS"]);
+const GENERIC_CATEGORY_SYMBOLS = new Set(["EQUITY", "RWA", "STOCK", "STOCKS", "XSTOCK", "XSTOCKS", "PRESTOCKS"]);
 
 const EQUITY_LABELS = new Set([
   "equity",
@@ -237,6 +247,7 @@ const ETF_LABELS = new Set(["etf", "equity-etf", "index", "index-fund"]);
 
 const ISSUER_NAME_PATTERNS: readonly { re: RegExp; issuer: string }[] = [
   { re: /\bxstocks?\b/i, issuer: "Backed / xStocks" },
+  { re: /\bprestocks?\b/i, issuer: "PreStocks" },
   { re: /\bdinari\b/i, issuer: "Dinari" },
   { re: /\bdshares?\b/i, issuer: "dShares" },
   { re: /\bbacked(?:\s+finance)?\b/i, issuer: "Backed" },
@@ -253,9 +264,26 @@ const CRYPTO_NAME =
   /\b(?:usd\s*coin|tether|wrapped\s+sol|wrapped\s+bitcoin|wrapped\s+ether|memecoin|meme\s+coin|stablecoin)\b/i;
 
 const PRIVATE_OR_PREIPO_NAME =
-  /\b(?:prestocks?|pre-?ipo|pre\s+ipo|spacex|xai|openai|anthropic|stripe|shein)\b/i;
+  /\b(?:prestocks?|pre-?ipo|pre\s+ipo|spacex|xai|openai|anthropic|stripe|shein|anduril|neuralink|polymarket|kalshi|databricks|perplexity|discord|kraken|huggingface|epic\s+games|figure\s+ai)\b/i;
 
-const PRIVATE_BASE_SYMBOLS = new Set(["SPCX", "SPACEX", "OPENAI", "SHEIN", "XAI", "STRIPE", "ANTHROPIC"]);
+const PRIVATE_BASE_SYMBOLS = new Set([
+  "ANDURIL",
+  "ANTHROPIC",
+  "DATABRICKS",
+  "DISCORD",
+  "HUGGINGFACE",
+  "KALSHI",
+  "KRAKEN",
+  "NEURALINK",
+  "OPENAI",
+  "PERPLEXITY",
+  "POLYMARKET",
+  "SHEIN",
+  "SPACEX",
+  "SPCX",
+  "STRIPE",
+  "XAI",
+]);
 
 const ONDO_NON_EQUITY_NAME =
   /\b(?:usdy|ousg|ommf|usd\s*y|dollar\s+yield|tokenized\s+currency|us\s+dollar\s+yield|treasury\s+bill)\b/i;
@@ -265,9 +293,11 @@ const ONDO_TOKENIZED_NAME = /\bondo\s+tokenized\b|\(ondo tokenized\)|tokenized\s
 const TOKENIZED_REAL_ESTATE_RWA = /tokeni[sz]ed\s+real\s+estate/i;
 
 const GENERIC_CATEGORY_NAME =
-  /^(?:the\s+)?(?:xstocks?|tokeni[sz]ed(?:\s+public)?\s+(?:stocks?|equit(?:y|ies)|shares?))$/i;
+  /^(?:the\s+)?(?:xstocks?|prestocks?|tokeni[sz]ed(?:\s+public)?\s+(?:stocks?|equit(?:y|ies)|shares?))$/i;
 
 const COMPANY_XSTOCK_NAME = /\S.+\bxstocks?\b/i;
+
+const COMPANY_PRESTOCKS_NAME = /\S.+\bprestocks?\b/i;
 
 const TOKENIZED_EQUITY_PHRASE = /\btokeni[sz]ed(?:\s+public)?\s+(?:stock|equity|share|shares)\b/i;
 
@@ -286,6 +316,7 @@ export function parseUnderlyingInstrumentType(value: unknown): UnderlyingInstrum
   const raw = asNonEmptyString(value)?.toLowerCase();
   if (raw === "equity") return "equity";
   if (raw === "etf") return "etf";
+  if (raw === "private" || raw === "pre-ipo" || raw === "preipo") return "private";
   return null;
 }
 
@@ -321,6 +352,9 @@ export function inferIssuer(name: string | null, symbol: string | null, address:
   if (ondoMintConvention(address, symbol)) {
     return "Ondo";
   }
+  if (prestocksMintConvention(address) && (privateCompanySymbol(symbol) || privateTickerLike(symbol))) {
+    return "PreStocks";
+  }
   return null;
 }
 
@@ -340,17 +374,31 @@ export function ondoMintConvention(address: string, symbol: string | null): bool
   return /ondo$/i.test(address) && ondoTickerSymbol(symbol);
 }
 
+/** Live PreStocks Solana mints start with `Pre` (SpaceX, OpenAI, Anthropic, …). Not an admission list by itself. */
+export function prestocksMintConvention(address: string): boolean {
+  return /^Pre/.test(address);
+}
+
+function privateTickerLike(symbol: string | null): boolean {
+  return Boolean(symbol && /^[A-Z]{1,12}$/.test(symbol));
+}
+
 function isGenericCategory(name: string | null, symbol: string | null): boolean {
   if (symbol && GENERIC_CATEGORY_SYMBOLS.has(symbol)) return true;
   return Boolean(name && GENERIC_CATEGORY_NAME.test(name));
 }
 
-function privateCompanySymbol(symbol: string | null): boolean {
+export function privateCompanySymbol(symbol: string | null): boolean {
   if (!symbol) return false;
   if (PRIVATE_BASE_SYMBOLS.has(symbol)) return true;
   if (symbol.endsWith("ON") && PRIVATE_BASE_SYMBOLS.has(symbol.slice(0, -2))) return true;
   if (symbol.endsWith("X") && PRIVATE_BASE_SYMBOLS.has(symbol.slice(0, -1))) return true;
   return false;
+}
+
+export function isPrivateMarketCandidate(name: string | null, symbol: string | null): boolean {
+  if (privateCompanySymbol(symbol)) return true;
+  return Boolean(name && (PRIVATE_OR_PREIPO_NAME.test(name) || COMPANY_PRESTOCKS_NAME.test(name)));
 }
 
 export function isEtfOrIndexSymbol(symbol: string | null): boolean {
@@ -468,12 +516,6 @@ export function classifyTokenizedInstrument(token: TokenIdentity): TokenClassifi
   if (name && ONDO_NON_EQUITY_NAME.test(name)) {
     return { kind: "reject", reason: "Ondo non-equity product" };
   }
-  if (name && PRIVATE_OR_PREIPO_NAME.test(name)) {
-    return { kind: "reject", reason: "not a public equity" };
-  }
-  if (privateCompanySymbol(symbol)) {
-    return { kind: "reject", reason: "not a public equity" };
-  }
   if (name && TOKENIZED_REAL_ESTATE_RWA.test(name)) {
     return { kind: "reject", reason: "real-estate RWA" };
   }
@@ -494,12 +536,31 @@ export function classifyTokenizedInstrument(token: TokenIdentity): TokenClassifi
     underlyingInstrumentType: token.underlyingInstrumentType,
   });
   const etf = etfReason(token, name, symbol, labels);
+  const privateCandidate = isPrivateMarketCandidate(name, symbol);
 
   if (etf) {
     if (signal.ok) {
       return { kind: "etf", issuer: issuer ?? (ondoMintConvention(address, symbol) ? "Ondo" : null), reason: etf };
     }
     return { kind: "reject", reason: etf };
+  }
+
+  if (privateCandidate) {
+    const privateSignal = verifiablePrivateMarketSignal({
+      address,
+      name,
+      symbol,
+      issuer,
+      instrumentSignal: signal,
+    });
+    if (privateSignal.ok) {
+      return {
+        kind: "private",
+        issuer: issuer ?? (prestocksMintConvention(address) ? "PreStocks" : null),
+        reason: privateSignal.reason,
+      };
+    }
+    return { kind: "reject", reason: "no verifiable private-market signal" };
   }
 
   if (name && COMPANY_XSTOCK_NAME.test(name) && !/^Xs/.test(address)) {
@@ -513,9 +574,46 @@ export function classifyTokenizedInstrument(token: TokenIdentity): TokenClassifi
   return { kind: "reject", reason: "no verifiable tokenized-equity signal" };
 }
 
-export function classifyTokenizedEquity(token: TokenIdentity): Exclude<TokenClassification, EtfClassification> {
+function verifiablePrivateMarketSignal(input: {
+  address: string;
+  name: string | null;
+  symbol: string | null;
+  issuer: string | null;
+  instrumentSignal: { ok: true; reason: string } | { ok: false };
+}): { ok: true; reason: string } | { ok: false } {
+  const { address, name, symbol, issuer, instrumentSignal } = input;
+
+  if (name && COMPANY_PRESTOCKS_NAME.test(name)) {
+    if (!prestocksMintConvention(address)) {
+      return { ok: false };
+    }
+    return { ok: true, reason: "PreStocks name" };
+  }
+
+  if (prestocksMintConvention(address) && privateTickerLike(symbol) && !isGenericCategory(name, symbol)) {
+    return { ok: true, reason: "PreStocks mint convention" };
+  }
+
+  if (name && COMPANY_XSTOCK_NAME.test(name) && !/^Xs/.test(address)) {
+    return { ok: false };
+  }
+
+  if (instrumentSignal.ok) {
+    return instrumentSignal;
+  }
+
+  if (issuer === "PreStocks" && (privateTickerLike(symbol) || privateCompanySymbol(symbol))) {
+    return { ok: true, reason: "PreStocks issuer with private-market ticker" };
+  }
+
+  return { ok: false };
+}
+
+export function classifyTokenizedEquity(
+  token: TokenIdentity,
+): Exclude<TokenClassification, EtfClassification | PrivateClassification> {
   const result = classifyTokenizedInstrument(token);
-  if (result.kind === "etf") {
+  if (result.kind === "etf" || result.kind === "private") {
     return { kind: "reject", reason: result.reason };
   }
   return result;
@@ -529,4 +627,9 @@ export function classifyOrNull(token: TokenIdentity): EquityClassification | nul
 export function classifyEtfOrNull(token: TokenIdentity): EtfClassification | null {
   const result = classifyTokenizedInstrument(token);
   return result.kind === "etf" ? result : null;
+}
+
+export function classifyPrivateOrNull(token: TokenIdentity): PrivateClassification | null {
+  const result = classifyTokenizedInstrument(token);
+  return result.kind === "private" ? result : null;
 }

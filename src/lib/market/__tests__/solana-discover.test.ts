@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { collectSolanaCandidateTokens, mergeTokenIdentities, prioritizeMintsForHydrate, selectEquityMints } from "../solana-discover";
+import {
+  collectSolanaCandidateTokens,
+  mergeTokenIdentities,
+  prioritizeMintsForHydrate,
+  selectEquityMints,
+  selectInstrumentMints,
+} from "../solana-discover";
 
 describe("discovery filters", () => {
   it("keeps Solana tokenized equities and drops crypto, stables, and other chains", () => {
@@ -80,6 +86,17 @@ describe("discovery filters", () => {
       "Tesla xStock",
     );
     expect(selectEquityMints(tokens)).toHaveLength(1);
+  });
+
+  it("puts PreStocks in the private lane and keeps public equities separate", () => {
+    const selected = selectInstrumentMints([
+      { address: "XsHoodMint111111111111111111111111111111", symbol: "HOODx", name: "Robinhood xStock" },
+      { address: "PreweJYECqtQwBtpxHL171nL2K6umo692gTm7Q3rpgF", symbol: "OPENAI", name: "OpenAI PreStocks" },
+      { address: "SpaceXMeme111111111111111111111111111111", symbol: "SPACEX", name: "SpaceX" },
+    ]);
+    expect(selected.equities.map((row) => row.symbol)).toEqual(["HOODx"]);
+    expect(selected.privates.map((row) => row.symbol)).toEqual(["OPENAI"]);
+    expect(selected.etfs).toEqual([]);
   });
 
   it("hydrates DexScreener-known mints before blind registry names", () => {

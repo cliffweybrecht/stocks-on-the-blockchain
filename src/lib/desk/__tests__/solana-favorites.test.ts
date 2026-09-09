@@ -75,6 +75,14 @@ describe("solanaChainHref", () => {
         issuer: "Backed / xStocks",
       }),
     ).toBe("/chains/solana?lane=etf&coverage=all&sort=pools&issuer=backed-xstocks");
+    expect(
+      solanaChainHref({
+        chainId: "solana",
+        defaultCoverage: "with-volume",
+        lane: "private",
+        coverage: "all",
+      }),
+    ).toBe("/chains/solana?lane=private&coverage=all");
   });
 });
 

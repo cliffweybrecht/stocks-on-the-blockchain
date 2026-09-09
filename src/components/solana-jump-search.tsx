@@ -178,7 +178,11 @@ export function SolanaJumpSearch({
                             <span className="mt-0.5 block text-xs text-muted-foreground">
                               {asset.name}
                               {asset.issuer ? ` · ${asset.issuer}` : ""}
-                              {asset.instrumentKind === "etf" ? " · ETF" : ""}
+                              {asset.instrumentKind === "etf"
+                                ? " · ETF"
+                                : asset.instrumentKind === "private"
+                                  ? " · Private"
+                                  : ""}
                             </span>
                           </span>
                           <span className="flex shrink-0 flex-col items-end gap-1">

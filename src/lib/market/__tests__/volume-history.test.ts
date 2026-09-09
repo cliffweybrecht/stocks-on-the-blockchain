@@ -89,7 +89,7 @@ describe("parseGeckoTerminalOhlcv", () => {
 });
 
 describe("collectEquityVolumeTargets", () => {
-  it("keeps unique equity pools and excludes the ETF lane", () => {
+  it("keeps unique equity pools and excludes the ETF and private-market lanes", () => {
     const targets = collectEquityVolumeTargets([
       equity({
         symbol: "TSLAx",
@@ -105,6 +105,12 @@ describe("collectEquityVolumeTargets", () => {
         contractAddress: "mint-spy",
         instrumentKind: "etf",
         pools: [{ pairAddress: "pool-etf", dexId: "raydium", volume24hUsd: 9_000, liquidityUsd: 1, priceUsd: 1 }],
+      }),
+      equity({
+        symbol: "OPENAI",
+        contractAddress: "mint-openai",
+        instrumentKind: "private",
+        pools: [{ pairAddress: "pool-private", dexId: "raydium", volume24hUsd: 8_000, liquidityUsd: 1, priceUsd: 1 }],
       }),
     ]);
     expect(targets.map((row) => row.pairAddress)).toEqual(["pool-a", "pool-b"]);
@@ -292,6 +298,7 @@ describe("buildEquityVolumeHistory", () => {
     expect(history.definition).toMatch(/DexScreener 24h equity rollup/);
     expect(history.definition).toMatch(/1 of 2 fetched highest-volume pools/);
     expect(history.definition).toMatch(/40 classified equity pools \/ 12 mints/);
+    expect(history.definition).toMatch(/private-market lanes excluded/);
     expect(utcDayStart(DAY0 + 100)).toBe(DAY0);
   });
 

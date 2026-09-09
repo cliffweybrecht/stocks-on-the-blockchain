@@ -39,6 +39,8 @@ function chainShell(
     sourceLabel: "Seed market adapter",
     completenessPct: 100,
     etfCount: 0,
+    privateCount: 0,
+    privateVolume24hUsd: null,
     volumeAggregation: "all-pools",
     coverageNote,
   };

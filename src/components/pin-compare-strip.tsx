@@ -52,6 +52,8 @@ export function PinCompareStrip({
               {asset.symbol}
               {asset.instrumentKind === "etf" ? (
                 <span className="ml-2 text-xs font-normal text-muted-foreground">ETF</span>
+              ) : asset.instrumentKind === "private" ? (
+                <span className="ml-2 text-xs font-normal text-muted-foreground">Private</span>
               ) : null}
             </p>
             <p className="truncate text-xs text-muted-foreground">{asset.issuer ?? "—"}</p>
@@ -89,6 +91,8 @@ export function PinCompareStrip({
                   </Link>
                   {asset.instrumentKind === "etf" ? (
                     <div className="text-xs text-muted-foreground">ETF / index</div>
+                  ) : asset.instrumentKind === "private" ? (
+                    <div className="text-xs text-muted-foreground">Private market · {asset.name}</div>
                   ) : (
                     <div className="text-xs text-muted-foreground">{asset.name}</div>
                   )}
