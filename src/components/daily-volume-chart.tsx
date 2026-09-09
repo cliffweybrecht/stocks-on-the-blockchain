@@ -65,9 +65,17 @@ export function DailyVolumeChart({
   const headline = deskVolumeHeadline({
     publicVolume24hUsd: publicVolume24hUsd ?? null,
     privateVolume24hUsd,
-    hover,
+    hover: null,
     latest,
   });
+  const hoverCopy = hover
+    ? deskVolumeHeadline({
+        publicVolume24hUsd: publicVolume24hUsd ?? null,
+        privateVolume24hUsd,
+        hover,
+        latest,
+      })
+    : null;
   const hasSeries = points.length > 0;
   const showHeadline = headline.volumeUsd !== null;
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((frac) => map.maxY * frac);
@@ -229,7 +237,7 @@ export function DailyVolumeChart({
           />
           {hover ? (
             <div className="pointer-events-none absolute top-2 right-2 z-20 rounded-md border border-border bg-background/90 px-2.5 py-1.5 text-xs shadow-sm">
-              <p className="text-muted-foreground">{headline.caption}</p>
+              <p className="text-muted-foreground">{hoverCopy?.caption}</p>
               <p className="num mt-0.5 text-foreground">{formatUsdFull(hover.volumeUsd)}</p>
             </div>
           ) : null}
