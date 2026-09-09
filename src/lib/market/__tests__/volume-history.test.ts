@@ -295,10 +295,11 @@ describe("buildEquityVolumeHistory", () => {
       { t: DAY3, volumeUsd: 99, kind: "rolling_24h" },
     ]);
     expect(history.definition).toMatch(/Missing calendar days are plotted as \$0/);
-    expect(history.definition).toMatch(/DexScreener 24h equity rollup/);
+    expect(history.definition).toMatch(/DexScreener 24h public-equity rollup/);
     expect(history.definition).toMatch(/1 of 2 fetched highest-volume pools/);
     expect(history.definition).toMatch(/40 classified equity pools \/ 12 mints/);
-    expect(history.definition).toMatch(/private-market lanes excluded/);
+    expect(history.definition).toMatch(/page headline adds reported private-market 24h/);
+    expect(history.definition).toMatch(/ETF lane excluded/);
     expect(utcDayStart(DAY0 + 100)).toBe(DAY0);
   });
 

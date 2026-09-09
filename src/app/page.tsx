@@ -4,6 +4,7 @@ import { ErrorState } from "@/components/error-state";
 import { PageShell } from "@/components/page-shell";
 import { DailyVolumeChart } from "@/components/daily-volume-chart";
 import { selectEquityPriceTicker } from "@/lib/desk/price-ticker";
+import { chainCombinedVolume24h } from "@/lib/market/aggregate";
 import { toJumpAsset } from "@/lib/market/asset-search";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { maxNullable } from "@/lib/market/numbers";
@@ -46,7 +47,7 @@ export default async function HomePage() {
   }
 
   const { chains, provenance, history } = loaded;
-  const maxVolume = maxNullable(chains.map((chain) => chain.volume24hUsd));
+  const maxVolume = maxNullable(chains.map(chainCombinedVolume24h));
   const solanaChain = chains.find((chain) => chain.id === SOLANA_CHAIN_ID);
   const tickerAssets: AssetSummary[] = [];
   let jumpAssets: ReturnType<typeof toJumpAsset>[] = [];
@@ -71,7 +72,11 @@ export default async function HomePage() {
       solanaJump={jumpAssets.length > 0 ? { chainId: SOLANA_CHAIN_ID, assets: jumpAssets } : undefined}
     >
       <div className="space-y-4">
-        <DailyVolumeChart history={history} deskVolume24hUsd={solanaChain?.volume24hUsd ?? null} />
+        <DailyVolumeChart
+          history={history}
+          deskVolume24hUsd={solanaChain?.volume24hUsd ?? null}
+          privateVolume24hUsd={solanaChain?.privateVolume24hUsd ?? null}
+        />
         <section className="space-y-3">
           <h2 className="font-heading text-lg font-medium">Chain volume</h2>
           {chains.length === 0 ? (

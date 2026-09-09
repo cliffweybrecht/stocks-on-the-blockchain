@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { compareAssetsByRank, parseAssetSortKey, sortAssets, sortByVolumeThenLiquidity } from "../aggregate";
+import {
+  chainCombinedVolume24h,
+  combinedPublicPrivateVolume24h,
+  compareAssetsByRank,
+  parseAssetSortKey,
+  sortAssets,
+  sortByVolumeThenLiquidity,
+} from "../aggregate";
 import type { RankableRow } from "../aggregate";
 
 function row(partial: Partial<RankableRow> & { symbol: string }): RankableRow {
@@ -112,6 +119,27 @@ describe("compareAssetsByRank", () => {
     expect(sortAssets(rows, "displayedLiquidityUsd").map((asset) => asset.symbol)).toEqual(["C", "B", "A"]);
     expect(sortAssets(rows, "poolCount").map((asset) => asset.symbol)).toEqual(["B", "C", "A"]);
     expect(compareAssetsByRank(rows[0]!, rows[1]!, "volume24hUsd")).toBeLessThan(0);
+  });
+});
+
+describe("combinedPublicPrivateVolume24h", () => {
+  it("sums only reported volumes and never treats null as zero", () => {
+    expect(combinedPublicPrivateVolume24h(1_250.25, 88_000)).toBeCloseTo(89_250.25);
+    expect(combinedPublicPrivateVolume24h(1_250.25, null)).toBe(1_250.25);
+    expect(combinedPublicPrivateVolume24h(null, 88_000)).toBe(88_000);
+    expect(combinedPublicPrivateVolume24h(null, null)).toBeNull();
+    expect(combinedPublicPrivateVolume24h(0, null)).toBe(0);
+    expect(combinedPublicPrivateVolume24h(null, 0)).toBe(0);
+  });
+
+  it("rolls a chain headline from public + private fields without mixing ETF", () => {
+    expect(
+      chainCombinedVolume24h({
+        volume24hUsd: 1_250.25,
+        privateVolume24hUsd: 88_000,
+      }),
+    ).toBeCloseTo(89_250.25);
+    expect(chainCombinedVolume24h({ volume24hUsd: 10, privateVolume24hUsd: null })).toBe(10);
   });
 });
 

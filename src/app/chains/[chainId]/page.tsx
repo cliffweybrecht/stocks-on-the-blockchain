@@ -17,7 +17,7 @@ import { toPinCompareAsset } from "@/lib/desk/pin-compare";
 import { parseDeskLane } from "@/lib/desk/desk-lane";
 import { parsePinnedFilter, solanaChainHref } from "@/lib/desk/solana-chain-href";
 import { selectEquityPriceTicker } from "@/lib/desk/price-ticker";
-import { parseAssetSortKey, sortAssets } from "@/lib/market/aggregate";
+import { chainCombinedVolume24h, parseAssetSortKey, sortAssets } from "@/lib/market/aggregate";
 import { toJumpAsset } from "@/lib/market/asset-search";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { SOLANA_CHAIN_ID } from "@/lib/market/types";
@@ -101,13 +101,20 @@ export default async function ChainPage({
           <h2 className="font-heading text-2xl font-semibold tracking-tight">{chain.name}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{chain.sourceLabel}</p>
         </div>
-        {isSolana ? <DailyVolumeChart history={volumeHistory} deskVolume24hUsd={chain.volume24hUsd} /> : null}
+        {isSolana ? (
+          <DailyVolumeChart
+            history={volumeHistory}
+            deskVolume24hUsd={chain.volume24hUsd}
+            privateVolume24hUsd={chain.privateVolume24hUsd}
+          />
+        ) : null}
         {isSolana && chain.privateCount > 0 ? (
           <p className="rounded-xl border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
             <span className="font-medium text-foreground">Private market 24h</span>
             {" · "}
             {formatUsdCompact(chain.privateVolume24hUsd)} across {formatCount(chain.privateCount)} classified
-            names. Labeled rollup only — not in public 24h or Daily Volume. Null is unknown, not $0.{" "}
+            names. Included in the Daily Volume headline with public 24h; chart history stays public. Null is
+            unknown, not $0.{" "}
             <Link
               href={solanaChainHref({
                 chainId: chain.id,
@@ -128,8 +135,12 @@ export default async function ChainPage({
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Metric
             label="24h volume"
-            value={formatUsdCompact(chain.volume24hUsd)}
-            hint={`Public equities only · ${chain.sourceLabel}. ETF and private-market lanes are separate.`}
+            value={formatUsdCompact(isSolana ? chainCombinedVolume24h(chain) : chain.volume24hUsd)}
+            hint={
+              isSolana
+                ? `Public + private equity · ${chain.sourceLabel}. ETF lane excluded. Null is unknown, not $0.`
+                : `Sum of reported 24h volume · ${chain.sourceLabel}`
+            }
           />
           <Metric
             label="Displayed liquidity"

@@ -6,7 +6,7 @@ import {
   nearestVolumePoint,
   pointerToSvgX,
   scaleVolumePoints,
-  volumeHeadlineCopy,
+  deskVolumeHeadline,
   VOLUME_CHART_HEIGHT,
   VOLUME_CHART_INNER_H,
   VOLUME_CHART_PAD,
@@ -41,26 +41,35 @@ function linePath(
 export function DailyVolumeChart({
   history,
   deskVolume24hUsd,
+  privateVolume24hUsd = null,
 }: {
   history: EquityVolumeHistoryResult;
   deskVolume24hUsd?: number | null;
+  privateVolume24hUsd?: number | null;
 }) {
   const [range, setRange] = useState<VolumeChartRangeId>("all");
   const [hover, setHover] = useState<VolumeHistoryPoint | null>(null);
 
+  const publicVolume24hUsd = deskVolume24hUsd !== undefined ? deskVolume24hUsd : history.volume24hUsd;
+
   const points = useMemo(() => {
-    const volume24h = deskVolume24hUsd !== undefined ? deskVolume24hUsd : history.volume24hUsd;
     const parsedGeneratedAt = Date.parse(history.generatedAt);
     const fallbackT = history.points[history.points.length - 1]?.t ?? 0;
     const nowT = Number.isFinite(parsedGeneratedAt) ? parsedGeneratedAt / 1000 : fallbackT;
-    return alignLatestDayWithDesk24h(history.points, volume24h ?? null, nowT);
-  }, [deskVolume24hUsd, history.generatedAt, history.points, history.volume24hUsd]);
+    return alignLatestDayWithDesk24h(history.points, publicVolume24hUsd ?? null, nowT);
+  }, [history.generatedAt, history.points, publicVolume24hUsd]);
 
   const visible = useMemo(() => filterVolumeRange(points, range), [points, range]);
   const map = useMemo(() => scaleVolumePoints(visible), [visible]);
   const latest = visible[visible.length - 1] ?? points[points.length - 1] ?? null;
-  const displayed = hover ?? latest;
-  const available = points.length > 0;
+  const headline = deskVolumeHeadline({
+    publicVolume24hUsd: publicVolume24hUsd ?? null,
+    privateVolume24hUsd,
+    hover,
+    latest,
+  });
+  const hasSeries = points.length > 0;
+  const showHeadline = headline.volumeUsd !== null;
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((frac) => map.maxY * frac);
   const xTicks =
     visible.length > 1
@@ -89,21 +98,24 @@ export function DailyVolumeChart({
     <section className="rounded-xl border border-border bg-card/80 px-4 py-4 sm:px-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="font-heading text-[8px] leading-none font-medium tracking-tight">
+          <h2 className="font-heading text-[9px] leading-tight font-medium tracking-wide text-foreground/90">
             Total Daily Tokenized Stock Volume
           </h2>
-          {available && displayed ? (
-            <p
-              className="num mt-1 text-3xl font-medium text-primary"
-              aria-live="polite"
-              data-volume-headline
-              data-volume-kind={displayed.kind ?? "calendar_day"}
-            >
-              {formatUsdCompact(displayed.volumeUsd)}
-            </p>
+          {showHeadline ? (
+            <>
+              <p
+                className="num mt-1 text-3xl font-medium text-primary"
+                aria-live="polite"
+                data-volume-headline
+                data-volume-kind={headline.kind}
+              >
+                {formatUsdCompact(headline.volumeUsd)}
+              </p>
+              <p className="mt-1 text-[11px] leading-snug text-muted-foreground">{headline.caption}</p>
+            </>
           ) : null}
         </div>
-        {available ? (
+        {hasSeries ? (
           <div className="flex flex-wrap gap-1">
             {VOLUME_CHART_RANGES.map((row) => (
               <button
@@ -126,7 +138,7 @@ export function DailyVolumeChart({
         ) : null}
       </div>
 
-      {available && visible.length > 0 ? (
+      {hasSeries && visible.length > 0 ? (
         <div
           className="relative mt-3 cursor-crosshair"
           data-volume-plot
@@ -142,7 +154,7 @@ export function DailyVolumeChart({
             preserveAspectRatio="none"
             className="pointer-events-none h-[240px] w-full touch-none sm:h-[280px]"
             role="img"
-            aria-label="Daily Solana tokenized equity volume"
+            aria-label="Daily Solana tokenized public-equity volume. Headline is public plus private 24h."
           >
             <defs>
               <linearGradient id="volume-area" x1="0" x2="0" y1="0" y2="1">
@@ -217,7 +229,7 @@ export function DailyVolumeChart({
           />
           {hover ? (
             <div className="pointer-events-none absolute top-2 right-2 z-20 rounded-md border border-border bg-background/90 px-2.5 py-1.5 text-xs shadow-sm">
-              <p className="text-muted-foreground">{volumeHeadlineCopy(hover).caption}</p>
+              <p className="text-muted-foreground">{headline.caption}</p>
               <p className="num mt-0.5 text-foreground">{formatUsdFull(hover.volumeUsd)}</p>
             </div>
           ) : null}
@@ -229,6 +241,12 @@ export function DailyVolumeChart({
           </p>
         </div>
       )}
+      {showHeadline ? (
+        <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+          Headline is reported public + private DexScreener 24h (null omitted, not $0). Chart series is
+          public-equity GeckoTerminal history. ETF lane excluded.
+        </p>
+      ) : null}
     </section>
   );
 }

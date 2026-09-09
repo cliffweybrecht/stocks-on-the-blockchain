@@ -639,7 +639,7 @@ describe("SolanaMarketDataSource", () => {
     expect(urls.some((url) => url.includes("/ohlcv/day") && url.includes("pair-spy"))).toBe(false);
     expect(history.definition).toMatch(/Per-day GeckoTerminal USD volume/i);
     expect(history.definition).toMatch(/Missing calendar days are plotted as \$0/);
-    expect(history.definition).toMatch(/DexScreener 24h equity rollup/);
+    expect(history.definition).toMatch(/DexScreener 24h public-equity rollup/);
     expect(history.definition).toMatch(/fetched highest-volume/);
     expect(history.seriesByMint[tslaMint]?.length).toBeGreaterThanOrEqual(2);
     expect(history.seriesByMint[spyMint]).toBeUndefined();

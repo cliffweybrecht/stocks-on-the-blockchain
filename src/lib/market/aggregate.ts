@@ -98,6 +98,20 @@ export function assetSortQueryValue(key: AssetSortKey): string | null {
   return null;
 }
 
+/** Reported public + private 24h. Null is omitted, not zero. ETF is not included. */
+export function combinedPublicPrivateVolume24h(
+  publicVolume24hUsd: number | null | undefined,
+  privateVolume24hUsd: number | null | undefined = null,
+): number | null {
+  return sumNullable([publicVolume24hUsd, privateVolume24hUsd]);
+}
+
+export function chainCombinedVolume24h(
+  chain: Pick<ChainVolume, "volume24hUsd" | "privateVolume24hUsd">,
+): number | null {
+  return combinedPublicPrivateVolume24h(chain.volume24hUsd, chain.privateVolume24hUsd);
+}
+
 export function rollupChainFromAssets(
   chain: Omit<
     ChainVolume,
