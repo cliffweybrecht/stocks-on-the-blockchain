@@ -98,18 +98,23 @@ export function assetSortQueryValue(key: AssetSortKey): string | null {
   return null;
 }
 
-/** Reported public + private 24h. Null is omitted, not zero. ETF is not included. */
+/** Reported public + private + ETF/index 24h. Null is omitted, not zero. */
 export function combinedPublicPrivateVolume24h(
   publicVolume24hUsd: number | null | undefined,
   privateVolume24hUsd: number | null | undefined = null,
+  etfVolume24hUsd: number | null | undefined = null,
 ): number | null {
-  return sumNullable([publicVolume24hUsd, privateVolume24hUsd]);
+  return sumNullable([publicVolume24hUsd, privateVolume24hUsd, etfVolume24hUsd]);
 }
 
 export function chainCombinedVolume24h(
-  chain: Pick<ChainVolume, "volume24hUsd" | "privateVolume24hUsd">,
+  chain: Pick<ChainVolume, "volume24hUsd" | "privateVolume24hUsd" | "etfVolume24hUsd">,
 ): number | null {
-  return combinedPublicPrivateVolume24h(chain.volume24hUsd, chain.privateVolume24hUsd);
+  return combinedPublicPrivateVolume24h(
+    chain.volume24hUsd,
+    chain.privateVolume24hUsd,
+    chain.etfVolume24hUsd,
+  );
 }
 
 export function rollupChainFromAssets(
@@ -129,6 +134,7 @@ export function rollupChainFromAssets(
   assets: readonly AssetSummary[],
   extras?: {
     etfCount?: number;
+    etfVolume24hUsd?: number | null;
     privateCount?: number;
     privateVolume24hUsd?: number | null;
     volumeAggregation?: ChainVolume["volumeAggregation"];
@@ -147,6 +153,7 @@ export function rollupChainFromAssets(
     reportedPoolCount: assets.reduce((sum, asset) => sum + asset.poolCount, 0),
     peakDexCount: maxNullable(assets.map((asset) => asset.dexCount)) ?? 0,
     etfCount: extras?.etfCount ?? chain.etfCount ?? 0,
+    etfVolume24hUsd: extras?.etfVolume24hUsd ?? chain.etfVolume24hUsd ?? null,
     privateCount: extras?.privateCount ?? chain.privateCount ?? 0,
     privateVolume24hUsd: extras?.privateVolume24hUsd ?? chain.privateVolume24hUsd ?? null,
     volumeAggregation: extras?.volumeAggregation ?? chain.volumeAggregation ?? "all-pools",
@@ -175,6 +182,7 @@ export function robinhoodChainMeta(): Omit<
     sourceLabel: "Robinhood Liquidity Terminal",
     completenessPct: null,
     etfCount: 0,
+    etfVolume24hUsd: null,
     privateCount: 0,
     privateVolume24hUsd: null,
     volumeAggregation: "all-pools",

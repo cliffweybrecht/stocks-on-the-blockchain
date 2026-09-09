@@ -180,8 +180,8 @@ Robinhood marks stay null on Solana. Off-Solana pairs are ignored.
 
 | | |
 | --- | --- |
-| **Definition** | Historical days: same-day sum of **GeckoTerminal daily USD volume** (`/networks/solana/pools/{pool}/ohlcv/day?currency=usd`) across Solana pools of **classified public equities**. Latest chart point: the **DexScreener 24h public-equity rollup** (rolling 24h, not a UTC calendar day). Headline / Solana card: **public + private** DexScreener 24h (`sumNullable`; null omitted, not zero) |
-| **Universe** | Same fail-closed classifier as the rest of the desk. **ETF / index excluded**. Private-market 24h is in the headline and Solana card, not the Gecko chart series or public ranking |
+| **Definition** | Historical days: same-day sum of **GeckoTerminal daily USD volume** (`/networks/solana/pools/{pool}/ohlcv/day?currency=usd`) across Solana pools of **classified public equities**. Latest chart point: the **DexScreener 24h public-equity rollup** (rolling 24h, not a UTC calendar day). Headline / Solana card: **public + private + ETF/index** DexScreener 24h (`sumNullable`; null omitted, not zero) |
+| **Universe** | Same fail-closed classifier as the rest of the desk. Headline and Solana card include **public + private + ETF/index** 24h. Chart series and public ranking stay public-equity only — the headline universe is broader than the chart |
 | **Why two sources** | DexScreener’s public API is snapshot-only (no pair history). Calendar-day GeckoTerminal candles cannot equal a rolling 24h desk total, so the latest point is the desk number on purpose |
 | **Honesty** | Missing calendar days are plotted as **$0** (no candle / no activity). A source-reported `0` is kept. Null DexScreener 24h is never coerced to zero. A 429 / disabled GeckoTerminal / seed adapter with no desk 24h yields an **empty chart**, never invented nonzero points |
 | **Coverage** | Highest-volume classified equity pools with a reported DexScreener 24h first, capped (`SOLANA_VOLUME_HISTORY_MAX_POOLS`, default 64) with concurrency ≤ 2 and ≥ 400ms pacing. The muted line under the chart states how many fetched pools have a series vs classified equity pools in the snapshot |

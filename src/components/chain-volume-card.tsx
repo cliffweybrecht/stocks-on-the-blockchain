@@ -27,7 +27,7 @@ export function ChainVolumeCard({
           </div>
           <div className="text-right">
             <p className="text-[11px] tracking-wide text-muted-foreground uppercase">
-              {isSolana ? "24h volume · public + private" : "24h volume"}
+              {isSolana ? "24h volume · public + private + ETF/index" : "24h volume"}
             </p>
             <p className="num text-2xl font-medium text-primary" data-combined-volume>
               {formatUsdCompact(combinedVolume)}
@@ -39,7 +39,7 @@ export function ChainVolumeCard({
             <div className="h-full rounded-full bg-primary" style={{ width: `${share}%` }} />
           </div>
           {isSolana ? (
-            <dl className="grid grid-cols-2 gap-3 text-sm" data-solana-volume-split>
+            <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3" data-solana-volume-split>
               <div>
                 <dt className="text-[11px] tracking-wide text-muted-foreground uppercase">Public 24h</dt>
                 <dd className="num mt-0.5 text-lg font-medium" data-public-volume>
@@ -50,6 +50,12 @@ export function ChainVolumeCard({
                 <dt className="text-[11px] tracking-wide text-muted-foreground uppercase">Private 24h</dt>
                 <dd className="num mt-0.5 text-lg font-medium" data-private-volume>
                   {formatUsdCompact(chain.privateVolume24hUsd)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[11px] tracking-wide text-muted-foreground uppercase">ETF/index 24h</dt>
+                <dd className="num mt-0.5 text-lg font-medium" data-etf-volume>
+                  {formatUsdCompact(chain.etfVolume24hUsd)}
                 </dd>
               </div>
             </dl>

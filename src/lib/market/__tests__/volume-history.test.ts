@@ -298,8 +298,9 @@ describe("buildEquityVolumeHistory", () => {
     expect(history.definition).toMatch(/DexScreener 24h public-equity rollup/);
     expect(history.definition).toMatch(/1 of 2 fetched highest-volume pools/);
     expect(history.definition).toMatch(/40 classified equity pools \/ 12 mints/);
-    expect(history.definition).toMatch(/page headline adds reported private-market 24h/);
-    expect(history.definition).toMatch(/ETF lane excluded/);
+    expect(history.definition).toMatch(/page headline adds reported private-market and ETF\/index 24h/);
+    expect(history.definition).toMatch(/headline universe is broader/);
+    expect(history.definition).not.toMatch(/ETF lane excluded/);
     expect(utcDayStart(DAY0 + 100)).toBe(DAY0);
   });
 

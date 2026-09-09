@@ -106,6 +106,7 @@ export type DeskVolumeHeadlineKind = "combined_24h" | "rolling_24h" | "calendar_
 export function deskVolumeHeadline(input: {
   publicVolume24hUsd: number | null;
   privateVolume24hUsd: number | null;
+  etfVolume24hUsd?: number | null;
   hover: VolumeHistoryPoint | null;
   latest: VolumeHistoryPoint | null;
 }): { volumeUsd: number | null; caption: string; kind: DeskVolumeHeadlineKind } {
@@ -113,22 +114,26 @@ export function deskVolumeHeadline(input: {
     if (input.hover.kind === "rolling_24h") {
       return {
         volumeUsd: input.hover.volumeUsd,
-        caption: "24h · public equity chart point · headline is public + private",
+        caption: "24h · public equity chart point · headline is public + private + ETF/index",
         kind: "rolling_24h",
       };
     }
     return {
       volumeUsd: input.hover.volumeUsd,
-      caption: `Calendar day · ${formatChartDate(input.hover.t)} · public history`,
+      caption: `Calendar day · ${formatChartDate(input.hover.t)} · public history (headline universe is broader)`,
       kind: "calendar_day",
     };
   }
 
-  const combined = combinedPublicPrivateVolume24h(input.publicVolume24hUsd, input.privateVolume24hUsd);
+  const combined = combinedPublicPrivateVolume24h(
+    input.publicVolume24hUsd,
+    input.privateVolume24hUsd,
+    input.etfVolume24hUsd ?? null,
+  );
   if (combined !== null) {
     return {
       volumeUsd: combined,
-      caption: "24h · public + private equity · chart is public history",
+      caption: "24h · public + private + ETF/index · chart is public history",
       kind: "combined_24h",
     };
   }
@@ -142,5 +147,9 @@ export function deskVolumeHeadline(input: {
     };
   }
 
-  return { volumeUsd: null, caption: "24h · no reported public or private volume", kind: "combined_24h" };
+  return {
+    volumeUsd: null,
+    caption: "24h · no reported public, private, or ETF/index volume",
+    kind: "combined_24h",
+  };
 }

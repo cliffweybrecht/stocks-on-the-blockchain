@@ -5,7 +5,7 @@ export const UTC_DAY_SECONDS = 86_400;
 
 /** Historical days: GeckoTerminal. Latest point / headline: DexScreener 24h when reported. */
 export const EQUITY_VOLUME_HISTORY_DEFINITION =
-  "Historical days are per-day GeckoTerminal USD volume across classified Solana public-equity pools (same-day candles summed). Missing calendar days are plotted as $0 (no candle / no activity), never as invented nonzero volume. The latest chart point uses the DexScreener 24h public-equity rollup (rolling 24h, not a UTC calendar day) when that rollup is reported. The page headline adds reported private-market 24h (null omitted, not zero). ETF lane excluded.";
+  "Historical days are per-day GeckoTerminal USD volume across classified Solana public-equity pools (same-day candles summed). Missing calendar days are plotted as $0 (no candle / no activity), never as invented nonzero volume. The latest chart point uses the DexScreener 24h public-equity rollup (rolling 24h, not a UTC calendar day) when that rollup is reported. The page headline adds reported private-market and ETF/index 24h (null omitted, not zero). The headline universe is broader than this public-equity chart series.";
 
 export const EQUITY_VOLUME_HISTORY_SOURCE_LABEL = "GeckoTerminal pool OHLCV (USD) + DexScreener 24h";
 
@@ -319,7 +319,7 @@ function historyDefinition(input: {
   const latest = input.aligned24h
     ? " The latest chart point uses the DexScreener 24h public-equity rollup (rolling 24h, not a UTC calendar day)."
     : " The latest chart point is the last GeckoTerminal UTC calendar day; DexScreener 24h was not reported for this snapshot.";
-  return `${historical}${latest} The page headline adds reported private-market 24h (null omitted, not zero). ETF lane excluded.${coverageNote(input)}`;
+  return `${historical}${latest} The page headline adds reported private-market and ETF/index 24h (null omitted, not zero). The headline universe is broader than this public-equity chart series.${coverageNote(input)}`;
 }
 
 export function buildEquityVolumeHistory(input: {
