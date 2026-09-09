@@ -5,7 +5,6 @@ import { ErrorState } from "@/components/error-state";
 import { Metric } from "@/components/metric";
 import { PageShell } from "@/components/page-shell";
 import { ProvenanceBar } from "@/components/provenance-bar";
-import { SolanaCoverageBanner } from "@/components/solana-coverage-banner";
 import { DailyVolumeChart } from "@/components/daily-volume-chart";
 import { emptyEquityVolumeHistory } from "@/lib/market/volume-history";
 import { formatCount, formatUsdCompact } from "@/lib/market/format";
@@ -100,9 +99,6 @@ export default async function ChainPage({
         <div>
           <h2 className="font-heading text-2xl font-semibold tracking-tight">{chain.name}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{chain.sourceLabel}</p>
-          {isSolana ? <SolanaCoverageBanner chain={chain} /> : (
-            <p className="mt-1 text-sm text-muted-foreground">{chain.coverageNote}</p>
-          )}
         </div>
         {isSolana ? <DailyVolumeChart history={volumeHistory} deskVolume24hUsd={chain.volume24hUsd} /> : null}
         <ProvenanceBar provenance={provenance} compact />

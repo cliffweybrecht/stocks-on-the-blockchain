@@ -60,7 +60,6 @@ export function DailyVolumeChart({
   const map = useMemo(() => scaleVolumePoints(visible), [visible]);
   const latest = visible[visible.length - 1] ?? points[points.length - 1] ?? null;
   const displayed = hover ?? latest;
-  const headline = displayed ? volumeHeadlineCopy(displayed) : null;
   const available = points.length > 0;
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((frac) => map.maxY * frac);
   const xTicks =
@@ -92,19 +91,14 @@ export function DailyVolumeChart({
         <div>
           <h2 className="font-heading text-lg font-medium tracking-tight">Daily Volume</h2>
           {available && displayed ? (
-            <>
-              <p
-                className="num mt-1 text-3xl font-medium text-primary"
-                aria-live="polite"
-                data-volume-headline
-                data-volume-kind={displayed.kind ?? "calendar_day"}
-              >
-                {formatUsdCompact(displayed.volumeUsd)}
-              </p>
-              <p className="mt-0.5 text-xs text-muted-foreground" data-volume-caption>
-                {headline?.caption}
-              </p>
-            </>
+            <p
+              className="num mt-1 text-3xl font-medium text-primary"
+              aria-live="polite"
+              data-volume-headline
+              data-volume-kind={displayed.kind ?? "calendar_day"}
+            >
+              {formatUsdCompact(displayed.volumeUsd)}
+            </p>
           ) : null}
         </div>
         {available ? (
@@ -233,8 +227,6 @@ export function DailyVolumeChart({
           </p>
         </div>
       )}
-
-      <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{history.definition}</p>
     </section>
   );
 }

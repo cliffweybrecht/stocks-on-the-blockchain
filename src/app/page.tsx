@@ -3,7 +3,6 @@ import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { PageShell } from "@/components/page-shell";
 import { ProvenanceBar } from "@/components/provenance-bar";
-import { SolanaCoverageBanner } from "@/components/solana-coverage-banner";
 import { DailyVolumeChart } from "@/components/daily-volume-chart";
 import { selectEquityPriceTicker } from "@/lib/desk/price-ticker";
 import { toJumpAsset } from "@/lib/market/asset-search";
@@ -72,18 +71,11 @@ export default async function HomePage() {
       priceTicker={priceTicker}
       solanaJump={jumpAssets.length > 0 ? { chainId: SOLANA_CHAIN_ID, assets: jumpAssets } : undefined}
     >
-      <div className="space-y-5">
+      <div className="space-y-4">
         <DailyVolumeChart history={history} deskVolume24hUsd={solanaChain?.volume24hUsd ?? null} />
         <ProvenanceBar provenance={provenance} compact />
         <section className="space-y-3">
-          <div>
-            <h2 className="font-heading text-lg font-medium">Chain volume</h2>
-            <p className="text-sm text-muted-foreground">
-              Ranked by observed 24h volume when the source reports it. Liquidity is secondary
-              and is displayed, not executable. Missing volume stays a dash, never a zero.
-            </p>
-          </div>
-          {solanaChain ? <SolanaCoverageBanner chain={solanaChain} /> : null}
+          <h2 className="font-heading text-lg font-medium">Chain volume</h2>
           {chains.length === 0 ? (
             <EmptyState
               title="No chains reported"
