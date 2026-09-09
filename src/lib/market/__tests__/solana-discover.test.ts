@@ -99,6 +99,29 @@ describe("discovery filters", () => {
     expect(selected.etfs).toEqual([]);
   });
 
+  it("admits Backpack Securities and Tessera T-Tokens into the matching lanes", () => {
+    const selected = selectInstrumentMints([
+      {
+        address: "MUxEsUKSMACyw5fZf68wxf5FLnZVhtU9CwH8uNNGay1",
+        symbol: "MU",
+        name: "Micron Technology - Backpack Securities",
+      },
+      {
+        address: "TSPXcLV76s6V2zDiZQ18kBfcbnjaE2ZzNT3ga2Pd99v",
+        symbol: "tSpaceX",
+        name: "T-SpaceX",
+      },
+      {
+        address: "DRAMjSWR7HRfJKjRkvQWYL2bcaejaVhuxEcjf4pAY4Cw",
+        symbol: "DRAM",
+        name: "Roundhill Memory ETF - Backpack Securities",
+      },
+    ]);
+    expect(selected.equities.map((row) => row.symbol)).toEqual(["MU"]);
+    expect(selected.privates.map((row) => row.symbol)).toEqual(["tSpaceX"]);
+    expect(selected.etfs.map((row) => row.symbol)).toEqual(["DRAM"]);
+  });
+
   it("hydrates DexScreener-known mints before blind registry names", () => {
     expect(prioritizeMintsForHydrate(["registry-only", "search-seen", "other"], new Set(["search-seen"]))).toEqual([
       "search-seen",

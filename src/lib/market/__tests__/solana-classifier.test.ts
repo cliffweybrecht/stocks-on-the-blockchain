@@ -375,6 +375,75 @@ describe("classifyTokenizedEquity", () => {
     ).toBe("reject");
   });
 
+  it("admits official Tessera T-Tokens as private and rejects pump copycats", () => {
+    expect(
+      classifyTokenizedInstrument({
+        address: "TSPXcLV76s6V2zDiZQ18kBfcbnjaE2ZzNT3ga2Pd99v",
+        symbol: "tSpaceX",
+        name: "T-SpaceX",
+      }),
+    ).toMatchObject({ kind: "private", issuer: "Tessera", reason: "Tessera T-Token name" });
+    expect(
+      classifyTokenizedInstrument({
+        address: "TKLSidmLVt3cqGaaodG8tyRzoANfQwoh67AccjmubeZ",
+        symbol: "tKalshi",
+        name: "T-Kalshi",
+      }),
+    ).toMatchObject({ kind: "private", issuer: "Tessera" });
+    expect(
+      classifyTokenizedInstrument({
+        address: "oPAiAikWTaFj9RYoRFD35ccfwhnMcB3ThgBZRHSkjTZ",
+        symbol: "tOpenAI",
+        name: "T-OpenAI",
+      }),
+    ).toMatchObject({ kind: "private", issuer: "Tessera" });
+    expect(
+      classifyTokenizedInstrument({
+        address: "CopycatTSpaceX11111111111111111111111pump",
+        symbol: "tSpaceX",
+        name: "T-SpaceX",
+      }),
+    ).toMatchObject({ kind: "reject", reason: "no verifiable private-market signal" });
+    expect(
+      classifyTokenizedEquity({
+        address: "TSPXcLV76s6V2zDiZQ18kBfcbnjaE2ZzNT3ga2Pd99v",
+        symbol: "tSpaceX",
+        name: "T-SpaceX",
+      }).kind,
+    ).toBe("reject");
+  });
+
+  it("admits Backpack Securities names into the matching lane", () => {
+    expect(
+      classifyTokenizedInstrument({
+        address: "MUxEsUKSMACyw5fZf68wxf5FLnZVhtU9CwH8uNNGay1",
+        symbol: "MU",
+        name: "Micron Technology - Backpack Securities",
+      }),
+    ).toMatchObject({ kind: "equity", issuer: "Backpack Securities", reason: "known issuer with equity signal" });
+    expect(
+      classifyTokenizedInstrument({
+        address: "SPCXxcqXj6e5dJDVNovHN8744zkbhM2bYudU45BimGb",
+        symbol: "SPCX",
+        name: "SpaceX - Backpack Securities",
+      }),
+    ).toMatchObject({ kind: "private", issuer: "Backpack Securities" });
+    expect(
+      classifyTokenizedInstrument({
+        address: "DRAMjSWR7HRfJKjRkvQWYL2bcaejaVhuxEcjf4pAY4Cw",
+        symbol: "DRAM",
+        name: "Roundhill Memory ETF - Backpack Securities",
+      }),
+    ).toMatchObject({ kind: "etf", issuer: "Backpack Securities" });
+    expect(
+      classifyTokenizedInstrument({
+        address: "iNTCy1qTsUEZQe3DSocLz1ZXXai34Gdw8THQh5rxFaF",
+        symbol: "INTC",
+        name: "Intel Cat",
+      }),
+    ).toMatchObject({ kind: "reject" });
+  });
+
   it("fails closed on private-name memes and copycat PreStocks brands", () => {
     expect(
       classifyTokenizedInstrument({

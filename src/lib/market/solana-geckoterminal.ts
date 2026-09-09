@@ -4,7 +4,16 @@ import { tokenIdentityFromFields, type TokenIdentity } from "./solana-classifier
 /** Public GeckoTerminal on-chain search (no API key). Candidate source, not an admission list. */
 export const DEFAULT_GECKOTERMINAL_BASE_URL = "https://api.geckoterminal.com/api/v2";
 
-export const DEFAULT_GECKOTERMINAL_QUERIES = ["xStock", "Ondo Tokenized", "tokenized stock", "PreStocks"] as const;
+export const DEFAULT_GECKOTERMINAL_QUERIES = [
+  "xStock",
+  "Ondo Tokenized",
+  "tokenized stock",
+  "PreStocks",
+  "Backpack Securities",
+  "T-SpaceX",
+  "T-Kalshi",
+  "T-OpenAI",
+] as const;
 
 export function geckoTerminalSearchPath(query: string): string {
   const params = new URLSearchParams({
@@ -48,6 +57,7 @@ function readIncludedTokens(payload: unknown): TokenIdentity[] {
 /**
  * Pull Solana token identities out of a GeckoTerminal pool-search payload.
  * Classifier still fail-closes; this is only a candidate feed + hydrate hint.
+ * Volume stays DexScreener — Gecko is not a 24h supplement.
  */
 export function parseGeckoTerminalSearch(payload: unknown): TokenIdentity[] {
   const fromIncluded = readIncludedTokens(payload);

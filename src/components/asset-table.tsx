@@ -217,9 +217,9 @@ export function AssetTable({
       ) : null}
       {lane === "private" ? (
         <p className="text-xs text-muted-foreground">
-          Private-market and PreStocks-style names are catalogued here. Volume is DexScreener 24h per mint
-          across Solana pools. This lane is not mixed into public-equity ranking; reported 24h is included in
-          the Daily Volume headline.
+          Private-market, PreStocks, and Tessera T-Token names are catalogued here. Volume is DexScreener 24h
+          per mint across Solana pools. This lane is not mixed into public-equity ranking; reported 24h is
+          included in the Daily Volume headline.
         </p>
       ) : null}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

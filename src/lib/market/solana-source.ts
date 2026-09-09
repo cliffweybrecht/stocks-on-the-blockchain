@@ -26,6 +26,7 @@ import {
 import { SolanaHydrateMemory } from "./solana-hydrate-memory";
 import { fetchJsonOrText, type FetchLike } from "./solana-http";
 import { DEFAULT_ONDO_REGISTRY_URL, parseOndoGmConstants } from "./solana-ondo";
+import { DEFAULT_TESSERA_REGISTRY_URL, parseTesseraTokenMints } from "./solana-tessera";
 import {
   DEFAULT_XSTOCKS_REGISTRY_BASE_URL,
   parseXStocksAssetsPage,
@@ -105,6 +106,8 @@ export interface SolanaMarketDataSourceOptions {
   registryBaseUrl?: string;
   enableOndoRegistry?: boolean;
   ondoRegistryUrl?: string;
+  enableTesseraRegistry?: boolean;
+  tesseraRegistryUrl?: string;
   enableGeckoTerminal?: boolean;
   geckoTerminalBaseUrl?: string;
   enrichBudgetMs?: number;
@@ -166,6 +169,14 @@ export class SolanaMarketDataSource implements MarketDataSource {
 
   private get ondoRegistryUrl() {
     return this.options.ondoRegistryUrl ?? DEFAULT_ONDO_REGISTRY_URL;
+  }
+
+  private get tesseraEnabled() {
+    return this.options.enableTesseraRegistry !== false;
+  }
+
+  private get tesseraRegistryUrl() {
+    return this.options.tesseraRegistryUrl ?? DEFAULT_TESSERA_REGISTRY_URL;
   }
 
   private get geckoEnabled() {
@@ -290,6 +301,11 @@ export class SolanaMarketDataSource implements MarketDataSource {
   private async loadOndoIdentities(): Promise<TokenIdentity[]> {
     const payload = await this.fetchSource(this.ondoRegistryUrl, "Ondo GM list");
     return parseOndoGmConstants(payload);
+  }
+
+  private async loadTesseraIdentities(): Promise<TokenIdentity[]> {
+    const payload = await this.fetchSource(this.tesseraRegistryUrl, "Tessera T-Token list");
+    return parseTesseraTokenMints(payload);
   }
 
   private async loadGeckoTerminalIdentities(): Promise<TokenIdentity[]> {
@@ -486,6 +502,16 @@ export class SolanaMarketDataSource implements MarketDataSource {
         )
       : Promise.resolve({ identities: [] as TokenIdentity[], error: null as Error | null });
 
+    const tesseraTask = this.tesseraEnabled
+      ? this.loadTesseraIdentities().then(
+          (identities) => ({ identities, error: null as Error | null }),
+          (error: unknown) => ({
+            identities: [] as TokenIdentity[],
+            error: error instanceof Error ? error : new Error("Tessera T-Token list failed."),
+          }),
+        )
+      : Promise.resolve({ identities: [] as TokenIdentity[], error: null as Error | null });
+
     const geckoTask = this.geckoEnabled
       ? this.loadGeckoTerminalIdentities().then(
           (identities) => ({ identities, error: null as Error | null }),
@@ -496,10 +522,11 @@ export class SolanaMarketDataSource implements MarketDataSource {
         )
       : Promise.resolve({ identities: [] as TokenIdentity[], error: null as Error | null });
 
-    const [searchResult, registryResult, ondoResult, geckoResult] = await Promise.all([
+    const [searchResult, registryResult, ondoResult, tesseraResult, geckoResult] = await Promise.all([
       searchTask,
       registryTask,
       ondoTask,
+      tesseraTask,
       geckoTask,
     ]);
     if (registryResult.error) {
@@ -510,6 +537,11 @@ export class SolanaMarketDataSource implements MarketDataSource {
     if (ondoResult.error) {
       extraNotes.push(
         `Ondo public GM mint list unavailable: ${ondoResult.error.message}. Official Ondo Stocks API was not used (requires a key). Discovery continued from other live sources.`,
+      );
+    }
+    if (tesseraResult.error) {
+      extraNotes.push(
+        `Tessera public T-Token mint list unavailable: ${tesseraResult.error.message}. Discovery continued from other live sources.`,
       );
     }
     if (geckoResult.error) {
@@ -528,6 +560,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
         searchResult.identities,
         registryResult.identities,
         ondoResult.identities,
+        tesseraResult.identities,
         geckoResult.identities,
       ]),
     );
@@ -539,16 +572,23 @@ export class SolanaMarketDataSource implements MarketDataSource {
         searchResult.error &&
         (!this.registryEnabled || registryResult.error) &&
         (!this.ondoEnabled || ondoResult.error) &&
+        (!this.tesseraEnabled || tesseraResult.error) &&
         (!this.geckoEnabled || geckoResult.error)
       ) {
         throw new Error(
-          [searchResult.error.message, registryResult.error?.message, ondoResult.error?.message, geckoResult.error?.message]
+          [
+            searchResult.error.message,
+            registryResult.error?.message,
+            ondoResult.error?.message,
+            tesseraResult.error?.message,
+            geckoResult.error?.message,
+          ]
             .filter(Boolean)
             .join(" · "),
         );
       }
       throw new Error(
-        "No verifiable Solana tokenized stocks from live discovery + classifier. Coverage is as discoverable from DexScreener search, the xStocks public registry, the public Ondo GM mint list, public GeckoTerminal search, and the classifier — not a full chain index. Keyed issuer APIs are not used.",
+        "No verifiable Solana tokenized stocks from live discovery + classifier. Coverage is as discoverable from DexScreener search, the xStocks public registry, the public Ondo GM mint list, the public Tessera T-Token mint list, public GeckoTerminal search, and the classifier — not a full chain index. Keyed issuer APIs are not used.",
       );
     }
 
@@ -560,7 +600,15 @@ export class SolanaMarketDataSource implements MarketDataSource {
     const geckoMints = new Set(
       geckoResult.identities.map((token) => token.address).filter((mint) => classifiedMints.has(mint)),
     );
-    const priorityMints = new Set([...searchMints, ...geckoMints, ...this.memory.pooledMints()]);
+    const tesseraMints = new Set(
+      tesseraResult.identities.map((token) => token.address).filter((mint) => classifiedMints.has(mint)),
+    );
+    const priorityMints = new Set([
+      ...searchMints,
+      ...geckoMints,
+      ...tesseraMints,
+      ...this.memory.pooledMints(),
+    ]);
     const seedPairs = pairsTouchingMints(searchResult.pairs, classifiedMints);
     const seededMints = mintsInPairs(seedPairs, classifiedMints);
     this.memory.markPooled(seededMints);

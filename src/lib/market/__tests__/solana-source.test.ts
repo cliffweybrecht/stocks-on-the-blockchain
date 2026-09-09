@@ -21,6 +21,7 @@ function testSource(options: SolanaMarketDataSourceOptions) {
     discoveryQueries: ["xStock"],
     enableRegistry: false,
     enableOndoRegistry: false,
+    enableTesseraRegistry: false,
     enableGeckoTerminal: false,
     backgroundEnrichment: false,
     ...options,
@@ -303,6 +304,9 @@ describe("SolanaMarketDataSource", () => {
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("PreStocks");
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("OpenAI PreStocks");
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("SpaceX xStock");
+    expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("Backpack Securities");
+    expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("T-SpaceX");
+    expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("tKalshi");
   });
 
   it("keeps DexScreener search when the xStocks registry is down", async () => {
@@ -355,6 +359,55 @@ describe("SolanaMarketDataSource", () => {
     expect(chain?.assets[0]?.volume24hUsd).toBeNull();
     expect(chain?.assets[0]?.volumeCoverage).toBe("no_indexed_pools");
     expect(chain?.etfAssets?.map((asset) => asset.symbol)).toEqual(["SPYon"]);
+  });
+
+  it("admits official Tessera T-Tokens from the public docs list into the private lane", async () => {
+    const tesseraMint = "TSPXcLV76s6V2zDiZQ18kBfcbnjaE2ZzNT3ga2Pd99v";
+    const tesseraPair = {
+      chainId: "solana",
+      dexId: "meteora",
+      pairAddress: "pair-tspacex",
+      baseToken: { address: tesseraMint, name: "T-SpaceX", symbol: "tSpaceX" },
+      quoteToken: { address: "usdc", name: "USDC", symbol: "USDC" },
+      volume: { h24: 378_000 },
+      liquidity: { usd: 570_000 },
+    };
+    const source = testSource({
+      requestGapMs: 0,
+      discoveryQueries: ["xStock"],
+      enableRegistry: false,
+      enableTesseraRegistry: true,
+      tesseraRegistryUrl: "https://docs.tessera.pe/technicals/on-chain-programs.md",
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("docs.tessera.pe")) {
+          return new Response(
+            [
+              "### Token Mints",
+              "",
+              "#### T-SpaceX (tSpaceX)",
+              "",
+              "| Property | Value |",
+              "| --- | --- |",
+              `| Mint Address | \`${tesseraMint}\` |`,
+              "| Symbol | tSpaceX |",
+            ].join("\n"),
+            { status: 200, headers: { "content-type": "text/markdown" } },
+          );
+        }
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [] });
+        if (url.includes(`/tokens/v1/solana/`) && url.includes(tesseraMint)) return jsonResponse([tesseraPair]);
+        if (url.includes(`/token-pairs/v1/solana/${tesseraMint}`)) return jsonResponse([tesseraPair]);
+        if (url.includes("/tokens/v1/solana/")) return jsonResponse([]);
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    const chain = await source.getChain("solana");
+    expect(chain?.assets).toEqual([]);
+    expect(chain?.privateAssets?.map((asset) => asset.symbol)).toEqual(["tSpaceX"]);
+    expect(chain?.privateAssets?.[0]?.volume24hUsd).toBe(378_000);
+    expect(chain?.privateAssets?.[0]?.issuer).toBe("Tessera");
   });
 
   it("reuses a cached light snapshot without refetching DexScreener", async () => {

@@ -179,6 +179,53 @@ describe("mapDexScreenerPairsToSolanaAssets", () => {
     expect(assets[0]?.symbol).toBe("HOODx");
   });
 
+  it("keeps Backpack Securities public names in equity and Tessera T-Tokens in private", () => {
+    const muMint = "MUxEsUKSMACyw5fZf68wxf5FLnZVhtU9CwH8uNNGay1";
+    const tesseraMint = "TSPXcLV76s6V2zDiZQ18kBfcbnjaE2ZzNT3ga2Pd99v";
+    const { assets, privateAssets, etfAssets } = mapDexScreenerPairsToSolanaAssets([
+      {
+        chainId: "solana",
+        dexId: "meteora",
+        pairAddress: "pair-mu",
+        baseToken: {
+          address: muMint,
+          name: "Micron Technology - Backpack Securities",
+          symbol: "MU",
+        },
+        quoteToken: { address: "usdc", name: "USDC", symbol: "USDC" },
+        volume: { h24: 5_000 },
+        liquidity: { usd: 1_000 },
+      },
+      {
+        chainId: "solana",
+        dexId: "zerofi",
+        pairAddress: "pair-mu-zerofi",
+        baseToken: {
+          address: muMint,
+          name: "Micron Technology - Backpack Securities",
+          symbol: "MU",
+        },
+        volume: { h24: 2_000 },
+        liquidity: { usd: 400 },
+      },
+      {
+        chainId: "solana",
+        dexId: "meteora",
+        pairAddress: "pair-tspacex",
+        baseToken: { address: tesseraMint, name: "T-SpaceX", symbol: "tSpaceX" },
+        volume: { h24: 800 },
+        liquidity: { usd: 200 },
+      },
+    ]);
+    expect(assets.map((asset) => asset.symbol)).toEqual(["MU"]);
+    expect(assets[0]?.volume24hUsd).toBe(7_000);
+    expect(assets[0]?.issuer).toBe("Backpack Securities");
+    expect(assets[0]?.pools.map((pool) => pool.dexId).sort()).toEqual(["meteora", "zerofi"]);
+    expect(privateAssets.map((asset) => asset.symbol)).toEqual(["tSpaceX"]);
+    expect(privateAssets[0]?.volume24hUsd).toBe(800);
+    expect(etfAssets).toEqual([]);
+  });
+
   it("keeps PreStocks volume in the private lane and out of public equity totals", () => {
     const openaiMint = "PreweJYECqtQwBtpxHL171nL2K6umo692gTm7Q3rpgF";
     const { assets, privateAssets } = mapDexScreenerPairsToSolanaAssets([
