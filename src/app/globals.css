@@ -52,9 +52,9 @@
 
 :root,
 .dark {
-  --background: oklch(0.17 0.02 168);
+  --background: #080808;
   --foreground: oklch(0.93 0.01 100);
-  --card: oklch(0.21 0.018 168);
+  --card: #141414;
   --card-foreground: oklch(0.93 0.01 100);
   --popover: oklch(0.21 0.018 168);
   --popover-foreground: oklch(0.93 0.01 100);
@@ -97,12 +97,42 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
-    background-image:
-      radial-gradient(1200px 500px at 10% -10%, oklch(0.28 0.05 168 / 0.45), transparent 55%),
-      radial-gradient(900px 400px at 100% 0%, oklch(0.3 0.04 80 / 0.18), transparent 50%);
   }
   .num {
     font-variant-numeric: tabular-nums;
     font-family: var(--font-geist-mono), ui-monospace, monospace;
+  }
+  .price-ticker-fade {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 2.5rem,
+      #000 calc(100% - 2.5rem),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 2.5rem,
+      #000 calc(100% - 2.5rem),
+      transparent 100%
+    );
+  }
+  .price-ticker-track {
+    animation: price-ticker-scroll 40s linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .price-ticker-track {
+      animation: none;
+    }
+  }
+}
+
+@keyframes price-ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
   }
 }

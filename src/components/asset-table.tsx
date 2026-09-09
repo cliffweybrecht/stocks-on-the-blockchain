@@ -2,18 +2,9 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { CoverageBadge } from "@/components/coverage-badge";
 import { DeskCsvButton } from "@/components/desk-csv-button";
-import { PinButton } from "@/components/pin-button";
+import { EquityCard } from "@/components/equity-card";
 import { PinCompareStrip } from "@/components/pin-compare-strip";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { useSolanaFavorites } from "@/components/use-solana-favorites";
 import { type AssetSortKey, sortAssets } from "@/lib/market/aggregate";
 import { assetMatchesSearch } from "@/lib/market/asset-search";
@@ -26,8 +17,7 @@ import {
   type IssuerFilter,
 } from "@/lib/desk/issuer-filter";
 import { assetRouteKey } from "@/lib/market/identity";
-import { formatAddress, formatPct, formatPrice, formatUsdCompact } from "@/lib/market/format";
-import type { AssetSummary, InstrumentKind } from "@/lib/market/types";
+import type { AssetSummary, InstrumentKind, VolumeHistoryPoint } from "@/lib/market/types";
 import { PIN_COMPARE_MAX, selectPinnedCompareRows, shouldShowPinCompare } from "@/lib/desk/pin-compare";
 import { type CoverageFilter } from "@/lib/market/volume-coverage";
 
@@ -41,12 +31,6 @@ const SORT_LABELS: Record<AssetSortKey, string> = {
 function chipClass(active: boolean): string {
   return `rounded-full border px-3 py-1 text-xs ${
     active ? "border-primary bg-primary/15 text-primary" : "border-border text-muted-foreground"
-  }`;
-}
-
-function sortHeadClass(active: boolean, align: "left" | "right" = "right"): string {
-  return `w-full ${align === "right" ? "text-right" : "text-left"} ${
-    active ? "text-primary" : "text-muted-foreground hover:text-foreground"
   }`;
 }
 
@@ -114,6 +98,7 @@ export function AssetTable({
   unknownIssuerCount = 0,
   showRobinhoodMarks = true,
   enableFavorites = false,
+  weekVolumeByMint = {},
 }: {
   assets: AssetSummary[];
   catalogAssets?: Array<
@@ -146,6 +131,7 @@ export function AssetTable({
   unknownIssuerCount?: number;
   showRobinhoodMarks?: boolean;
   enableFavorites?: boolean;
+  weekVolumeByMint?: Readonly<Record<string, readonly VolumeHistoryPoint[]>>;
 }) {
   const [query, setQuery] = useState("");
   const favorites = useSolanaFavorites();
@@ -232,7 +218,8 @@ export function AssetTable({
       {lane === "private" ? (
         <p className="text-xs text-muted-foreground">
           Private-market and PreStocks-style names are catalogued here. Volume is DexScreener 24h per mint
-          across Solana pools. This lane is not mixed into public-equity ranking or Daily Volume.
+          across Solana pools. This lane is not mixed into public-equity ranking; reported 24h is included in
+          the Daily Volume headline.
         </p>
       ) : null}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -326,155 +313,19 @@ export function AssetTable({
       ) : null}
 
       {rows.length > 0 ? (
-      <div className="grid gap-2 lg:hidden">
-        {rows.map((asset, index) => (
-          <div key={asset.contractAddress} className="rounded-xl border border-border bg-card px-3 py-2.5">
-            <div className="flex items-start justify-between gap-2">
-              <Link
-                href={`/chains/${chainId}/assets/${encodeURIComponent(assetRouteKey(asset, catalog))}`}
-                prefetch
-                className="min-w-0 flex-1"
-              >
-                <p className="font-medium">
-                  <span className="num mr-2 text-xs text-muted-foreground">#{index + 1}</span>
-                  {asset.symbol}
-                </p>
-                <p className="truncate text-xs text-muted-foreground">{asset.name}</p>
-                {asset.issuer ? <p className="text-xs text-muted-foreground">{asset.issuer}</p> : null}
-              </Link>
-              <div className="flex items-center gap-1">
-                <p className="num text-sm text-primary">{formatUsdCompact(asset.volume24hUsd)}</p>
-                {enableFavorites ? (
-                  <PinButton
-                    pinned={favorites.isFavorite(asset.contractAddress)}
-                    label={asset.symbol}
-                    onToggle={() => favorites.toggle(asset.contractAddress)}
-                  />
-                ) : null}
-              </div>
-            </div>
-            <div className="mt-1.5 flex flex-wrap items-center gap-2">
-              <CoverageBadge coverage={asset.volumeCoverage} />
-              <span className="text-xs text-muted-foreground">
-                Liq {formatUsdCompact(asset.displayedLiquidityUsd)} · {asset.poolCount} pools ·{" "}
-                {formatAddress(asset.contractAddress)}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
-      ) : null}
-
-      {rows.length > 0 ? (
-      <div className="hidden overflow-x-hidden rounded-xl border border-border bg-card lg:block">
-        <Table
-          className="table-fixed"
-          containerClassName="max-h-[min(70vh,42rem)] overflow-x-hidden overflow-y-auto"
-        >
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead className="sticky top-0 z-20 w-10 bg-card text-right">#</TableHead>
-              {enableFavorites ? <TableHead className="sticky top-0 z-20 w-10 bg-card" /> : null}
-              <TableHead className="sticky top-0 z-20 w-[22%] min-w-0 bg-card">Stock</TableHead>
-              <TableHead className="sticky top-0 z-20 w-[14%] min-w-0 bg-card">Issuer</TableHead>
-              <TableHead className="sticky top-0 z-20 w-24 bg-card">Mint</TableHead>
-              <TableHead className="sticky top-0 z-20 w-[18%] min-w-0 bg-card">Coverage</TableHead>
-              <TableHead
-                className="sticky top-0 z-20 w-[10%] whitespace-normal bg-card text-right"
-                aria-sort={sortKey === "volume24hUsd" ? "descending" : "none"}
-              >
-                <Link href={hrefFor({ sortKey: "volume24hUsd" })} className={sortHeadClass(sortKey === "volume24hUsd")}>
-                  24h volume{sortKey === "volume24hUsd" ? " ↓" : ""}
-                </Link>
-              </TableHead>
-              <TableHead
-                className="sticky top-0 z-20 w-[10%] whitespace-normal bg-card text-right"
-                aria-sort={sortKey === "displayedLiquidityUsd" ? "descending" : "none"}
-              >
-                <Link
-                  href={hrefFor({ sortKey: "displayedLiquidityUsd" })}
-                  className={sortHeadClass(sortKey === "displayedLiquidityUsd")}
-                >
-                  Displayed liq{sortKey === "displayedLiquidityUsd" ? " ↓" : ""}
-                </Link>
-              </TableHead>
-              {showRobinhoodMarks ? (
-                <>
-                  <TableHead className="sticky top-0 z-20 w-[9%] whitespace-normal bg-card text-right">RH mark</TableHead>
-                  <TableHead className="sticky top-0 z-20 w-[9%] whitespace-normal bg-card text-right">DEX median</TableHead>
-                  <TableHead
-                    className="sticky top-0 z-20 w-[9%] whitespace-normal bg-card text-right"
-                    aria-sort={sortKey === "premiumDiscountPct" ? "descending" : "none"}
-                  >
-                    <Link
-                      href={hrefFor({ sortKey: "premiumDiscountPct" })}
-                      className={sortHeadClass(sortKey === "premiumDiscountPct")}
-                    >
-                      RH vs DEX{sortKey === "premiumDiscountPct" ? " ↓" : ""}
-                    </Link>
-                  </TableHead>
-                </>
-              ) : (
-                <TableHead className="sticky top-0 z-20 w-[10%] whitespace-normal bg-card text-right">
-                  DEX median
-                </TableHead>
-              )}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((asset, index) => (
-              <TableRow key={asset.contractAddress}>
-                <TableCell className="num text-right text-muted-foreground">{index + 1}</TableCell>
-                {enableFavorites ? (
-                  <TableCell>
-                    <PinButton
-                      pinned={favorites.isFavorite(asset.contractAddress)}
-                      label={asset.symbol}
-                      onToggle={() => favorites.toggle(asset.contractAddress)}
-                    />
-                  </TableCell>
-                ) : null}
-                <TableCell className="min-w-0 whitespace-normal">
-                  <Link
-                    href={`/chains/${chainId}/assets/${encodeURIComponent(assetRouteKey(asset, catalog))}`}
-                    prefetch
-                    className="font-medium text-primary hover:underline"
-                  >
-                    {asset.symbol}
-                  </Link>
-                  <div className="truncate text-xs text-muted-foreground">{asset.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {asset.poolCount} {asset.poolCount === 1 ? "pool" : "pools"}
-                  </div>
-                </TableCell>
-                <TableCell className="min-w-0 truncate text-xs text-muted-foreground" title={asset.issuer ?? undefined}>
-                  {asset.issuer ?? "—"}
-                </TableCell>
-                <TableCell className="num truncate text-xs">{formatAddress(asset.contractAddress)}</TableCell>
-                <TableCell className="min-w-0 whitespace-normal">
-                  <CoverageBadge
-                    coverage={asset.volumeCoverage}
-                    className="h-auto max-w-full whitespace-normal"
-                  />
-                </TableCell>
-                <TableCell className="num text-right">{formatUsdCompact(asset.volume24hUsd)}</TableCell>
-                <TableCell className="num text-right">{formatUsdCompact(asset.displayedLiquidityUsd)}</TableCell>
-                {showRobinhoodMarks ? (
-                  <>
-                    <TableCell className="num text-right">{formatPrice(asset.robinhoodReferencePriceUsd)}</TableCell>
-                    <TableCell className="num text-right">{formatPrice(asset.dexMedianPriceUsd)}</TableCell>
-                    <TableCell className="num text-right text-interpretive">
-                      {formatPct(asset.premiumDiscountPct)}
-                    </TableCell>
-                  </>
-                ) : (
-                  <TableCell className="num text-right">{formatPrice(asset.dexMedianPriceUsd)}</TableCell>
-                )}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {rows.map((asset) => (
+            <EquityCard
+              key={asset.contractAddress}
+              asset={asset}
+              href={`/chains/${chainId}/assets/${encodeURIComponent(assetRouteKey(asset, catalog))}`}
+              weekSeries={weekVolumeByMint[asset.contractAddress]}
+              enableFavorites={enableFavorites}
+              pinned={favorites.isFavorite(asset.contractAddress)}
+              onTogglePin={() => favorites.toggle(asset.contractAddress)}
+            />
+          ))}
+        </div>
       ) : null}
 
       {rows.length === 0 ? (

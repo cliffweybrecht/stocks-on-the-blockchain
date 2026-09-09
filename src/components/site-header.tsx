@@ -12,20 +12,14 @@ export function SiteHeader({
   solanaJump?: { chainId: string; assets: readonly SearchableAsset[] };
 }) {
   return (
-    <header className="sticky top-0 z-30 border-b border-border/70 bg-background/80 backdrop-blur-md">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <Link href="/" className="group min-w-0">
-          <p className="text-[11px] font-medium tracking-[0.22em] text-primary uppercase">
-            On-chain equities
-          </p>
-          <h1 className="font-heading text-xl font-semibold tracking-tight sm:text-2xl">
+    <header className="sticky top-0 z-30 border-b border-border/50 bg-background/90 backdrop-blur-md">
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-2.5">
+        <Link href="/" className="min-w-0" aria-label="Home">
+          <h1 className="font-heading text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
             Stocks on the Blockchain
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Volume first. Then the chain. Then the stock.
-          </p>
         </Link>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {solanaJump && solanaJump.assets.length > 0 ? (
             <SolanaJumpSearch chainId={solanaJump.chainId} assets={solanaJump.assets} />
           ) : null}

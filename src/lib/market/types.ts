@@ -55,7 +55,7 @@ export interface ChainVolume {
   peakDexCount: number;
   etfCount: number;
   privateCount: number;
-  /** Labeled private-market 24h rollup. Never mixed into volume24hUsd / Daily Volume. Null is unknown, not $0. */
+  /** Labeled private-market 24h rollup. Never mixed into volume24hUsd (public ranking) or the Gecko chart series. Headline / Solana card add it via sumNullable. Null is unknown, not $0. */
   privateVolume24hUsd: number | null;
   volumeAggregation: VolumeAggregation;
   completenessPct: number | null;
@@ -180,6 +180,8 @@ export interface VolumeHistoryPoint {
 export interface EquityVolumeHistoryResult {
   available: boolean;
   points: VolumeHistoryPoint[];
+  /** Last ~7 UTC days of per-mint equity volume from the same pool OHLCV as `points`. */
+  seriesByMint: Record<string, VolumeHistoryPoint[]>;
   definition: string;
   sourceLabel: string;
   poolCount: number;

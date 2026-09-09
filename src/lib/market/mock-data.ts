@@ -1,4 +1,5 @@
 import { rollupChainFromAssets, sortByVolumeThenLiquidity } from "./aggregate";
+import { sumNullable } from "./numbers";
 import { MOCK_SOURCE_NOTE } from "./trust";
 import {
   ROBINHOOD_CHAIN_ID,
@@ -68,7 +69,7 @@ function stock(
     ...defaultInstrumentFields({
       volume24hUsd: partial.volume24hUsd,
       poolCount: partial.poolCount,
-      instrumentKind: "equity",
+      instrumentKind: partial.instrumentKind ?? "equity",
     }),
   };
 }
@@ -605,6 +606,71 @@ const solanaAssets: AssetDetail[] = [
   }),
 ];
 
+const solanaPrivateAssets: AssetDetail[] = [
+  stock({
+    chainId: "solana",
+    symbol: "OPENAI",
+    name: "OpenAI PreStocks",
+    contractAddress: "PreweJYECqtQwBtpxHL171nL2K6umo692gTm7Q3rpgF",
+    issuer: "PreStocks",
+    instrumentKind: "private",
+    logoUrl: null,
+    volume24hUsd: 880_000,
+    displayedLiquidityUsd: 120_000,
+    usdGLiquidityUsd: null,
+    poolCount: 1,
+    dexCount: 1,
+    pools: [
+      {
+        pairAddress: "So11OPENAI111111111111111111111111111111",
+        dexId: "raydium",
+        volume24hUsd: 880_000,
+        liquidityUsd: 120_000,
+        priceUsd: 412.5,
+      },
+    ],
+    robinhoodReferencePriceUsd: null,
+    dexMedianPriceUsd: 412.5,
+    premiumDiscountPct: null,
+    top3ConcentrationPct: 100,
+    liquidityCoverageComplete: true,
+    volume24hCoverageComplete: true,
+    buys24h: 220,
+    sells24h: 198,
+    largestPool: {
+      dexId: "raydium",
+      pairAddress: "So11OPENAI111111111111111111111111111111",
+      liquidityUsd: 120_000,
+      shareOfDisplayedLiquidityPct: 100,
+    },
+    concentration: { top1Pct: 100, top3Pct: 100, top5Pct: 100 },
+    dexes: [{ dexId: "raydium", displayedLiquidityUsd: 120_000, shareOfDisplayedLiquidityPct: 100, poolCount: 1 }],
+    quoteAssets: [
+      {
+        address: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        symbol: "USDC",
+        symbolConflict: false,
+        displayedLiquidityUsd: 120_000,
+        shareOfDisplayedLiquidityPct: 100,
+        poolCount: 1,
+      },
+    ],
+    price: {
+      robinhoodReferenceUsd: null,
+      robinhoodBidUsd: null,
+      robinhoodAskUsd: null,
+      robinhoodGeneratedAt: null,
+      isTradingHalt: null,
+      dexMedianUsd: 412.5,
+      dexLiquidityWeightedUsd: 412.5,
+      dexLargestPoolUsd: 412.5,
+      premiumDiscountPct: null,
+      priceDispersionPct: 0,
+      priceCoverageComplete: true,
+    },
+  }),
+];
+
 const ethereumAssets: AssetDetail[] = [
   stock({
     chainId: "ethereum",
@@ -874,9 +940,13 @@ const baseAssets: AssetDetail[] = [
 
 export const MOCK_DETAILS: Record<string, AssetDetail[]> = {
   [ROBINHOOD_CHAIN_ID]: robinhoodAssets,
-  solana: solanaAssets,
+  solana: [...solanaAssets, ...solanaPrivateAssets],
   ethereum: ethereumAssets,
   base: baseAssets,
+};
+
+export const MOCK_PRIVATE_ASSETS: Record<string, AssetSummary[]> = {
+  solana: toSummaries(solanaPrivateAssets),
 };
 
 function toSummaries(details: AssetDetail[]): AssetSummary[] {
@@ -909,9 +979,12 @@ function toSummaries(details: AssetDetail[]): AssetSummary[] {
   );
 }
 
-export const MOCK_ASSETS: Record<string, AssetSummary[]> = Object.fromEntries(
-  Object.entries(MOCK_DETAILS).map(([chainId, details]) => [chainId, toSummaries(details)]),
-);
+export const MOCK_ASSETS: Record<string, AssetSummary[]> = {
+  [ROBINHOOD_CHAIN_ID]: toSummaries(robinhoodAssets),
+  solana: toSummaries(solanaAssets),
+  ethereum: toSummaries(ethereumAssets),
+  base: toSummaries(baseAssets),
+};
 
 export const MOCK_CHAINS: ChainVolume[] = sortByVolumeThenLiquidity(
   [
@@ -934,6 +1007,10 @@ export const MOCK_CHAINS: ChainVolume[] = sortByVolumeThenLiquidity(
         "Demo venue for tokenized wrappers. No Robinhood reference marks on this chain.",
       ),
       MOCK_ASSETS.solana,
+      {
+        privateCount: (MOCK_PRIVATE_ASSETS.solana ?? []).length,
+        privateVolume24hUsd: sumNullable((MOCK_PRIVATE_ASSETS.solana ?? []).map((asset) => asset.volume24hUsd)),
+      },
     ),
     rollupChainFromAssets(
       chainShell(

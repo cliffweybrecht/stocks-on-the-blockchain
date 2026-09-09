@@ -4,14 +4,17 @@ import {
   aggregateDailyVolume,
   alignLatestDayWithDesk24h,
   buildEquityVolumeHistory,
+  buildMintWeekVolumeSeries,
   collectEquityVolumeTargets,
   emptyEquityVolumeHistory,
   fillMissingCalendarDays,
   parseGeckoTerminalOhlcv,
   rankEquityVolumeTargets,
   selectEquityVolumeFetchTargets,
+  sliceWeekVolumeSeries,
   utcDayStart,
   UTC_DAY_SECONDS,
+  volumeSparklineDirection,
 } from "../volume-history";
 
 const DAY0 = 1_699_920_000; // 2023-11-14 00:00 UTC
@@ -199,6 +202,7 @@ describe("aggregateDailyVolume", () => {
       false,
     );
     expect(emptyEquityVolumeHistory("none").points).toEqual([]);
+    expect(emptyEquityVolumeHistory("none").seriesByMint).toEqual({});
   });
 });
 
@@ -291,10 +295,11 @@ describe("buildEquityVolumeHistory", () => {
       { t: DAY3, volumeUsd: 99, kind: "rolling_24h" },
     ]);
     expect(history.definition).toMatch(/Missing calendar days are plotted as \$0/);
-    expect(history.definition).toMatch(/DexScreener 24h equity rollup/);
+    expect(history.definition).toMatch(/DexScreener 24h public-equity rollup/);
     expect(history.definition).toMatch(/1 of 2 fetched highest-volume pools/);
     expect(history.definition).toMatch(/40 classified equity pools \/ 12 mints/);
-    expect(history.definition).toMatch(/private-market lanes excluded/);
+    expect(history.definition).toMatch(/page headline adds reported private-market 24h/);
+    expect(history.definition).toMatch(/ETF lane excluded/);
     expect(utcDayStart(DAY0 + 100)).toBe(DAY0);
   });
 
@@ -310,5 +315,79 @@ describe("buildEquityVolumeHistory", () => {
     expect(history.available).toBe(true);
     expect(history.points).toEqual([{ t: DAY0, volumeUsd: 50, kind: "rolling_24h" }]);
     expect(history.definition).toMatch(/No GeckoTerminal daily candles/);
+  });
+
+  it("attaches a per-mint week series from the same pool candles", () => {
+    const history = buildEquityVolumeHistory({
+      seriesByPool: [
+        {
+          pairAddress: "pool-tsla",
+          mint: "mint-tsla",
+          candles: [
+            { t: DAY0, volumeUsd: 10 },
+            { t: DAY1, volumeUsd: 4 },
+            { t: DAY2, volumeUsd: 20 },
+          ],
+        },
+        {
+          pairAddress: "pool-hood",
+          mint: "mint-hood",
+          candles: [
+            { t: DAY0, volumeUsd: 50 },
+            { t: DAY2, volumeUsd: 8 },
+          ],
+        },
+      ],
+      attemptedPoolCount: 2,
+      mintCount: 2,
+      volume24hByMint: { "mint-tsla": 22, "mint-hood": 9 },
+      nowT: DAY2 + 3_600,
+      generatedAt: new Date((DAY2 + 3_600) * 1000).toISOString(),
+    });
+    expect(history.seriesByMint["mint-tsla"]?.map((point) => point.volumeUsd)).toEqual([10, 4, 22]);
+    expect(history.seriesByMint["mint-hood"]?.map((point) => point.volumeUsd)).toEqual([50, 0, 9]);
+    expect(volumeSparklineDirection(history.seriesByMint["mint-tsla"] ?? [])).toBe("up");
+    expect(volumeSparklineDirection(history.seriesByMint["mint-hood"] ?? [])).toBe("down");
+  });
+});
+
+describe("week volume sparkline series", () => {
+  it("slices the last 7 UTC days and does not invent a week from a single 24h point", () => {
+    const points = [
+      { t: DAY0, volumeUsd: 3, kind: "calendar_day" as const },
+      { t: DAY1, volumeUsd: 8, kind: "calendar_day" as const },
+      { t: DAY2, volumeUsd: 1, kind: "calendar_day" as const },
+    ];
+    expect(sliceWeekVolumeSeries(points, DAY2, 2).map((point) => point.t)).toEqual([DAY1, DAY2]);
+    expect(
+      buildMintWeekVolumeSeries({
+        seriesByPool: [{ pairAddress: "a", mint: "mint-a", candles: [] }],
+        volume24hByMint: { "mint-a": 99 },
+        nowT: DAY2,
+      }),
+    ).toEqual({});
+  });
+
+  it("omits mints without candles and never fabricates a series", () => {
+    expect(
+      buildMintWeekVolumeSeries({
+        seriesByPool: [
+          { pairAddress: "a", mint: "mint-a", candles: [] },
+          { pairAddress: "b", candles: [{ t: DAY0, volumeUsd: 4 }] },
+        ],
+        nowT: DAY2,
+      }),
+    ).toEqual({});
+  });
+
+  it("needs two points before calling a direction", () => {
+    expect(volumeSparklineDirection([])).toBeNull();
+    expect(volumeSparklineDirection([{ t: DAY0, volumeUsd: 4 }])).toBeNull();
+    expect(
+      volumeSparklineDirection([
+        { t: DAY0, volumeUsd: 4 },
+        { t: DAY1, volumeUsd: 4 },
+      ]),
+    ).toBe("flat");
   });
 });

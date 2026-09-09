@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatCount, formatPct, formatPrice, formatRelativeTime, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
+import { selectEquityPriceTicker } from "@/lib/desk/price-ticker";
 import { poolAggregateTotals, sortPoolsByVolume } from "@/lib/desk/pool-sort";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { toJumpAsset } from "@/lib/market/asset-search";
@@ -75,6 +76,7 @@ export default async function AssetPage({
       <PageShell
         provenance={provenance}
         solanaJump={jumpAssets.length > 0 ? { chainId: chain.id, assets: jumpAssets } : undefined}
+        priceTicker={selectEquityPriceTicker(catalog?.assets ?? (asset.instrumentKind === "equity" ? [asset] : []))}
       >
         <div className="space-y-5">
           <nav className="text-sm text-muted-foreground">

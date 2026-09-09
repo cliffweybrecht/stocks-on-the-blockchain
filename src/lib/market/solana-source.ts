@@ -876,7 +876,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
     });
     const seriesByPool = await mapWithConcurrency(targets, Math.min(2, this.maxConcurrent), async (target) => {
       if (Date.now() >= deadline) {
-        return { pairAddress: target.pairAddress, candles: [] };
+        return { pairAddress: target.pairAddress, mint: target.mint, candles: [] };
       }
       try {
         const payload = await gate.run(() =>
@@ -885,11 +885,13 @@ export class SolanaMarketDataSource implements MarketDataSource {
             "GeckoTerminal",
           ),
         );
-        return { pairAddress: target.pairAddress, candles: parseGeckoTerminalOhlcv(payload) };
+        return { pairAddress: target.pairAddress, mint: target.mint, candles: parseGeckoTerminalOhlcv(payload) };
       } catch {
-        return { pairAddress: target.pairAddress, candles: [] };
+        return { pairAddress: target.pairAddress, mint: target.mint, candles: [] };
       }
     });
+
+    const volume24hByMint = Object.fromEntries(assets.map((asset) => [asset.contractAddress, asset.volume24hUsd]));
 
     return buildEquityVolumeHistory({
       seriesByPool,
@@ -897,6 +899,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
       universePoolCount: allTargets.length,
       mintCount,
       volume24hUsd,
+      volume24hByMint,
     });
   }
 }

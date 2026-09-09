@@ -1,3 +1,4 @@
+import { combinedPublicPrivateVolume24h } from "./aggregate";
 import { formatChartDate } from "./format";
 import type { VolumeHistoryPoint } from "./types";
 
@@ -98,4 +99,48 @@ export function volumeHeadlineCopy(point: VolumeHistoryPoint): { caption: string
     return { caption: "24h · same DexScreener equity rollup as the desk", isRolling24h: true };
   }
   return { caption: `Calendar day · ${formatChartDate(point.t)}`, isRolling24h: false };
+}
+
+export type DeskVolumeHeadlineKind = "combined_24h" | "rolling_24h" | "calendar_day";
+
+export function deskVolumeHeadline(input: {
+  publicVolume24hUsd: number | null;
+  privateVolume24hUsd: number | null;
+  hover: VolumeHistoryPoint | null;
+  latest: VolumeHistoryPoint | null;
+}): { volumeUsd: number | null; caption: string; kind: DeskVolumeHeadlineKind } {
+  if (input.hover) {
+    if (input.hover.kind === "rolling_24h") {
+      return {
+        volumeUsd: input.hover.volumeUsd,
+        caption: "24h · public equity chart point · headline is public + private",
+        kind: "rolling_24h",
+      };
+    }
+    return {
+      volumeUsd: input.hover.volumeUsd,
+      caption: `Calendar day · ${formatChartDate(input.hover.t)} · public history`,
+      kind: "calendar_day",
+    };
+  }
+
+  const combined = combinedPublicPrivateVolume24h(input.publicVolume24hUsd, input.privateVolume24hUsd);
+  if (combined !== null) {
+    return {
+      volumeUsd: combined,
+      caption: "24h · public + private equity · chart is public history",
+      kind: "combined_24h",
+    };
+  }
+
+  if (input.latest) {
+    const copy = volumeHeadlineCopy(input.latest);
+    return {
+      volumeUsd: input.latest.volumeUsd,
+      caption: copy.caption,
+      kind: input.latest.kind === "rolling_24h" ? "rolling_24h" : "calendar_day",
+    };
+  }
+
+  return { volumeUsd: null, caption: "24h · no reported public or private volume", kind: "combined_24h" };
 }

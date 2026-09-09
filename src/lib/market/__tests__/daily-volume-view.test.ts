@@ -5,6 +5,7 @@ import {
   pointerToSvgX,
   pointerToViewBoxX,
   scaleVolumePoints,
+  deskVolumeHeadline,
   volumeHeadlineCopy,
   VOLUME_CHART_PAD,
   VOLUME_CHART_WIDTH,
@@ -72,5 +73,53 @@ describe("volumeHeadlineCopy", () => {
   it("labels the desk 24h point separately from a calendar day", () => {
     expect(volumeHeadlineCopy({ t: DAY0, volumeUsd: 9, kind: "rolling_24h" }).caption).toMatch(/24h/);
     expect(volumeHeadlineCopy({ t: DAY0, volumeUsd: 9, kind: "calendar_day" }).caption).toMatch(/Calendar day/);
+  });
+});
+
+describe("deskVolumeHeadline", () => {
+  const latest = { t: DAY0, volumeUsd: 1_250.25, kind: "rolling_24h" as const };
+
+  it("uses public + private 24h for the rest-state headline and labels the chart as public history", () => {
+    const headline = deskVolumeHeadline({
+      publicVolume24hUsd: 1_250.25,
+      privateVolume24hUsd: 88_000,
+      hover: null,
+      latest,
+    });
+    expect(headline.volumeUsd).toBeCloseTo(89_250.25);
+    expect(headline.kind).toBe("combined_24h");
+    expect(headline.caption).toMatch(/public \+ private/);
+    expect(headline.caption).toMatch(/chart is public history/);
+  });
+
+  it("omits unreported private volume instead of treating it as zero", () => {
+    const headline = deskVolumeHeadline({
+      publicVolume24hUsd: 1_250.25,
+      privateVolume24hUsd: null,
+      hover: null,
+      latest,
+    });
+    expect(headline.volumeUsd).toBe(1_250.25);
+  });
+
+  it("keeps hover on the public chart series and labels the universe split", () => {
+    const hoverDay = deskVolumeHeadline({
+      publicVolume24hUsd: 1_250.25,
+      privateVolume24hUsd: 88_000,
+      hover: { t: DAY0, volumeUsd: 9, kind: "calendar_day" },
+      latest,
+    });
+    expect(hoverDay.volumeUsd).toBe(9);
+    expect(hoverDay.kind).toBe("calendar_day");
+    expect(hoverDay.caption).toMatch(/public history/);
+
+    const hover24h = deskVolumeHeadline({
+      publicVolume24hUsd: 1_250.25,
+      privateVolume24hUsd: 88_000,
+      hover: latest,
+      latest,
+    });
+    expect(hover24h.volumeUsd).toBe(1_250.25);
+    expect(hover24h.caption).toMatch(/headline is public \+ private/);
   });
 });
