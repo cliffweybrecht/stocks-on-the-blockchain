@@ -32,6 +32,7 @@ export function emptyEquityVolumeHistory(
   return {
     available: false,
     points: [],
+    seriesByMint: {},
     definition: EQUITY_VOLUME_HISTORY_DEFINITION,
     sourceLabel: EQUITY_VOLUME_HISTORY_SOURCE_LABEL,
     poolCount: 0,
@@ -43,6 +44,78 @@ export function emptyEquityVolumeHistory(
     generatedAt,
     emptyReason: reason,
   };
+}
+
+export const WEEK_VOLUME_DAYS = 7;
+
+export type VolumeSparklineDirection = "up" | "down" | "flat";
+
+export interface PoolVolumeSeries {
+  pairAddress: string;
+  candles: readonly OhlcvCandle[];
+  mint?: string;
+}
+
+/** Last `days` UTC calendar days through `throughT`, oldest first. Empty if nothing falls in range. */
+export function sliceWeekVolumeSeries(
+  points: readonly VolumeHistoryPoint[],
+  throughT: number,
+  days = WEEK_VOLUME_DAYS,
+): VolumeHistoryPoint[] {
+  if (points.length === 0) return [];
+  if (!Number.isFinite(throughT) || throughT <= 0) return [];
+  const end = utcDayStart(throughT);
+  if (end <= 0) return [];
+  const start = end - (days - 1) * UTC_DAY_SECONDS;
+  return points.filter((point) => point.t >= start && point.t <= end);
+}
+
+/**
+ * Direction of a week volume series: last vs first observed point.
+ * Needs two points; a single 24h reading is not a week series.
+ */
+export function volumeSparklineDirection(
+  points: readonly VolumeHistoryPoint[],
+): VolumeSparklineDirection | null {
+  if (points.length < 2) return null;
+  const first = points[0];
+  const last = points[points.length - 1];
+  if (!first || !last) return null;
+  if (last.volumeUsd > first.volumeUsd) return "up";
+  if (last.volumeUsd < first.volumeUsd) return "down";
+  return "flat";
+}
+
+/**
+ * Per-mint week series from the same GeckoTerminal pool candles as the chain chart.
+ * Mints with no candles are omitted — a lone DexScreener 24h is not invented into a week.
+ */
+export function buildMintWeekVolumeSeries(input: {
+  seriesByPool: readonly PoolVolumeSeries[];
+  volume24hByMint?: Readonly<Record<string, number | null | undefined>>;
+  nowT: number;
+  days?: number;
+}): Record<string, VolumeHistoryPoint[]> {
+  const days = input.days ?? WEEK_VOLUME_DAYS;
+  const byMint = new Map<string, PoolVolumeSeries[]>();
+  for (const row of input.seriesByPool) {
+    const mint = row.mint?.trim();
+    if (!mint || !row.pairAddress.trim()) continue;
+    const list = byMint.get(mint) ?? [];
+    list.push(row);
+    byMint.set(mint, list);
+  }
+
+  const result: Record<string, VolumeHistoryPoint[]> = {};
+  for (const [mint, rows] of byMint) {
+    const observed = aggregateDailyVolume(rows);
+    if (observed.length === 0) continue;
+    const mint24h = input.volume24hByMint?.[mint];
+    const aligned = alignLatestDayWithDesk24h(observed, mint24h ?? null, input.nowT);
+    const week = sliceWeekVolumeSeries(aligned, input.nowT, days);
+    if (week.length >= 2) result[mint] = week;
+  }
+  return result;
 }
 
 /**
@@ -250,11 +323,12 @@ function historyDefinition(input: {
 }
 
 export function buildEquityVolumeHistory(input: {
-  seriesByPool: readonly { pairAddress: string; candles: readonly OhlcvCandle[] }[];
+  seriesByPool: readonly PoolVolumeSeries[];
   attemptedPoolCount: number;
   mintCount: number;
   universePoolCount?: number;
   volume24hUsd?: number | null;
+  volume24hByMint?: Readonly<Record<string, number | null | undefined>>;
   nowT?: number;
   generatedAt?: string;
   emptyReason?: string;
@@ -273,6 +347,11 @@ export function buildEquityVolumeHistory(input: {
   const aligned24h = volume24hUsd !== null;
   const points = alignLatestDayWithDesk24h(observed, volume24hUsd, nowT);
   const universe = input.universePoolCount ?? input.attemptedPoolCount;
+  const seriesByMint = buildMintWeekVolumeSeries({
+    seriesByPool: input.seriesByPool,
+    volume24hByMint: input.volume24hByMint,
+    nowT,
+  });
 
   if (points.length === 0) {
     return emptyEquityVolumeHistory(
@@ -288,6 +367,7 @@ export function buildEquityVolumeHistory(input: {
   return {
     available: true,
     points,
+    seriesByMint,
     definition: historyDefinition({
       usable: usable.length,
       attemptedPoolCount: input.attemptedPoolCount,

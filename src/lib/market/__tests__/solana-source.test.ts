@@ -596,6 +596,8 @@ describe("SolanaMarketDataSource", () => {
     expect(history.definition).toMatch(/Missing calendar days are plotted as \$0/);
     expect(history.definition).toMatch(/DexScreener 24h equity rollup/);
     expect(history.definition).toMatch(/fetched highest-volume/);
+    expect(history.seriesByMint[tslaMint]?.length).toBeGreaterThanOrEqual(2);
+    expect(history.seriesByMint[spyMint]).toBeUndefined();
   });
 
   it("fails closed when GeckoTerminal history is unavailable", async () => {

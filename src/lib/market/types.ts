@@ -176,6 +176,8 @@ export interface VolumeHistoryPoint {
 export interface EquityVolumeHistoryResult {
   available: boolean;
   points: VolumeHistoryPoint[];
+  /** Last ~7 UTC days of per-mint equity volume from the same pool OHLCV as `points`. */
+  seriesByMint: Record<string, VolumeHistoryPoint[]>;
   definition: string;
   sourceLabel: string;
   poolCount: number;

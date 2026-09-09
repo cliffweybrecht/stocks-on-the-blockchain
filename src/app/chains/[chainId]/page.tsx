@@ -150,6 +150,7 @@ export default async function ChainPage({
             chainId={chain.id}
             showRobinhoodMarks={!isSolana}
             enableFavorites={isSolana}
+            weekVolumeByMint={volumeHistory.seriesByMint}
           />
         )}
       </div>
