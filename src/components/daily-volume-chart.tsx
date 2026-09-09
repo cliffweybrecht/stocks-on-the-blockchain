@@ -89,7 +89,9 @@ export function DailyVolumeChart({
     <section className="rounded-xl border border-border bg-card/80 px-4 py-4 sm:px-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="font-heading text-lg font-medium tracking-tight">Daily Volume</h2>
+          <h2 className="font-heading text-[8px] leading-none font-medium tracking-tight">
+            Total Daily Tokenized Stock Volume
+          </h2>
           {available && displayed ? (
             <p
               className="num mt-1 text-3xl font-medium text-primary"

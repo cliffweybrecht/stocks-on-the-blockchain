@@ -2,7 +2,6 @@ import { ChainVolumeCard } from "@/components/chain-volume-card";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { PageShell } from "@/components/page-shell";
-import { ProvenanceBar } from "@/components/provenance-bar";
 import { DailyVolumeChart } from "@/components/daily-volume-chart";
 import { selectEquityPriceTicker } from "@/lib/desk/price-ticker";
 import { toJumpAsset } from "@/lib/market/asset-search";
@@ -73,7 +72,6 @@ export default async function HomePage() {
     >
       <div className="space-y-4">
         <DailyVolumeChart history={history} deskVolume24hUsd={solanaChain?.volume24hUsd ?? null} />
-        <ProvenanceBar provenance={provenance} compact />
         <section className="space-y-3">
           <h2 className="font-heading text-lg font-medium">Chain volume</h2>
           {chains.length === 0 ? (
