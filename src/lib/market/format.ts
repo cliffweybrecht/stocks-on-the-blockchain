@@ -40,6 +40,19 @@ export function formatCount(value: number | null | undefined): string {
   return integer.format(value);
 }
 
+const compactCount = new Intl.NumberFormat("en-US", {
+  notation: "compact",
+  maximumFractionDigits: 2,
+});
+
+/** Compact count for Markets-style tables. Missing stays a dash — never coerced to 0. */
+export function formatCountCompact(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  const abs = Math.abs(value);
+  if (abs >= 1000) return compactCount.format(value);
+  return integer.format(value);
+}
+
 export function formatPct(value: number | null | undefined, digits = 2): string {
   if (value === null || value === undefined || !Number.isFinite(value)) return "—";
   const sign = value > 0 ? "+" : "";

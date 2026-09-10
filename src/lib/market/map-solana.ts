@@ -29,6 +29,7 @@ export interface DexScreenerPair {
   chainId?: unknown;
   dexId?: unknown;
   pairAddress?: unknown;
+  url?: unknown;
   labels?: unknown;
   baseToken?: { address?: unknown; name?: unknown; symbol?: unknown; labels?: unknown };
   quoteToken?: { address?: unknown; name?: unknown; symbol?: unknown; labels?: unknown };
@@ -111,6 +112,19 @@ function pairPriceUsd(pair: DexScreenerPair): number | null {
   return asFiniteNumber(typeof pair.priceUsd === "string" ? Number(pair.priceUsd) : pair.priceUsd);
 }
 
+/** Both DexScreener txn sides must be present. A missing side stays unknown, not zero. */
+function pairTrades24h(buys: number | null, sells: number | null): number | null {
+  if (buys === null || sells === null) return null;
+  return buys + sells;
+}
+
+function pairHref(pairAddress: string | null, reportedUrl: unknown): string | null {
+  const reported = asHttpUrl(reportedUrl);
+  if (reported) return reported;
+  if (!pairAddress) return null;
+  return `https://dexscreener.com/solana/${pairAddress}`;
+}
+
 interface PairReportedStats {
   volume24hUsd: number | null;
   marketCapUsd: number | null;
@@ -189,12 +203,28 @@ function addPairToBucket(bucket: MintAccumulator, pair: DexScreenerPair, tokenAd
   if (buys !== null) bucket.buys.push(buys);
   if (sells !== null) bucket.sells.push(sells);
 
+  const baseAddress = asNonEmptyString(pair.baseToken?.address);
+  const quoteAddress = asNonEmptyString(pair.quoteToken?.address);
+
   bucket.pools.push({
     pairAddress: pairAddress ?? "",
     dexId,
     volume24hUsd: volume,
     liquidityUsd: liquidity,
     priceUsd: price,
+    baseSymbol: asNonEmptyString(pair.baseToken?.symbol),
+    quoteSymbol: asNonEmptyString(pair.quoteToken?.symbol),
+    baseName: asNonEmptyString(pair.baseToken?.name),
+    quoteName: asNonEmptyString(pair.quoteToken?.name),
+    baseAddress,
+    quoteAddress,
+    baseLogoUrl: baseAddress ? pairTokenLogoUrl(pair, baseAddress) : null,
+    quoteLogoUrl: quoteAddress ? pairTokenLogoUrl(pair, quoteAddress) : null,
+    url: pairHref(pairAddress, pair.url),
+    trades24h: pairTrades24h(buys, sells),
+    wallets24h: null,
+    tradesChange24hPct: null,
+    walletsChange24hPct: null,
   });
   bucket.pairStats.push({
     volume24hUsd: volume,

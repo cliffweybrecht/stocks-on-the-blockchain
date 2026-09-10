@@ -4,6 +4,7 @@ import { AssetStatsCard } from "@/components/asset-stats-card";
 import { CopyAddress } from "@/components/copy-address";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
+import { MarketsTable } from "@/components/markets-table";
 import { Metric } from "@/components/metric";
 import { PageShell } from "@/components/page-shell";
 import { TrustBanner } from "@/components/trust-banner";
@@ -18,7 +19,7 @@ import {
 import { formatCount, formatPct, formatPrice, formatRelativeTime, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
 import { emptyAssetPriceHistory } from "@/lib/market/asset-price-history";
 import { deskSpotPriceUsd, selectEquityPriceTicker } from "@/lib/desk/price-ticker";
-import { poolAggregateTotals, sortPoolsByVolume } from "@/lib/desk/pool-sort";
+import { sortPoolsByVolume } from "@/lib/desk/pool-sort";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { toJumpAsset } from "@/lib/market/asset-search";
 import { SOLANA_CHAIN_ID } from "@/lib/market/types";
@@ -65,7 +66,6 @@ export default async function AssetPage({
   const { chain, asset, provenance } = result;
   const isSolana = chain.id === SOLANA_CHAIN_ID;
   const rankedPools = sortPoolsByVolume(asset.pools);
-  const poolTotals = poolAggregateTotals(rankedPools);
   const priceHistory =
     priceHistorySettled.status === "fulfilled"
       ? priceHistorySettled.value
@@ -154,53 +154,7 @@ export default async function AssetPage({
           ) : null}
 
           {rankedPools.length > 0 ? (
-            <section className="space-y-2">
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <h3 className="font-heading text-lg font-medium">Solana pools</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Ranked by pair 24h volume (nulls last). Stock volume is the sum of these rows. A pair is never
-                    one stock.
-                  </p>
-                </div>
-                <p className="num text-sm text-muted-foreground">
-                  Aggregate {formatUsdCompact(poolTotals.volume24hUsd)} vol · {formatUsdCompact(poolTotals.liquidityUsd)}{" "}
-                  liq · {formatCount(poolTotals.poolCount)} pairs
-                </p>
-              </div>
-              <div className="rounded-xl border border-border bg-card">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-10 text-right">#</TableHead>
-                      <TableHead>DEX</TableHead>
-                      <TableHead>Pair</TableHead>
-                      <TableHead className="text-right">24h volume</TableHead>
-                      <TableHead className="text-right">Displayed liq</TableHead>
-                      <TableHead className="text-right">Price</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {rankedPools.map((pool, index) => (
-                      <TableRow key={pool.pairAddress || `${pool.dexId}-${index}`}>
-                        <TableCell className="num text-right text-muted-foreground">{index + 1}</TableCell>
-                        <TableCell>{pool.dexId}</TableCell>
-                        <TableCell className="num max-w-[9rem] truncate text-xs sm:max-w-none">{pool.pairAddress || "—"}</TableCell>
-                        <TableCell className="num text-right">{formatUsdFull(pool.volume24hUsd)}</TableCell>
-                        <TableCell className="num text-right">{formatUsdFull(pool.liquidityUsd)}</TableCell>
-                        <TableCell className="num text-right">{formatPrice(pool.priceUsd)}</TableCell>
-                      </TableRow>
-                    ))}
-                    <TableRow className="bg-muted/30 font-medium hover:bg-muted/30">
-                      <TableCell colSpan={3}>Aggregate</TableCell>
-                      <TableCell className="num text-right">{formatUsdFull(poolTotals.volume24hUsd)}</TableCell>
-                      <TableCell className="num text-right">{formatUsdFull(poolTotals.liquidityUsd)}</TableCell>
-                      <TableCell className="num text-right text-muted-foreground">{formatCount(poolTotals.poolCount)}</TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </div>
-            </section>
+            <MarketsTable asset={asset} pools={rankedPools} />
           ) : isSolana ? (
             <section className="rounded-xl border border-dashed border-border bg-card px-4 py-6">
               <h3 className="font-heading text-lg font-medium">

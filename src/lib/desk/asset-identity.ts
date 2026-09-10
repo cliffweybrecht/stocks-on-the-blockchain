@@ -68,6 +68,19 @@ export function dexScreenerTokenUrl(chainId: string, mint: string): string | nul
   return `https://dexscreener.com/solana/${mint}`;
 }
 
+/** Prefer a reported DexScreener pair URL; otherwise build one from a Solana pair address. */
+export function dexScreenerPairUrl(
+  chainId: string,
+  pairAddress: string | null | undefined,
+  reportedUrl?: string | null,
+): string | null {
+  const reported = asHttpUrl(reportedUrl);
+  if (reported) return reported;
+  const address = pairAddress?.trim();
+  if (chainId !== "solana" || !address) return null;
+  return `https://dexscreener.com/solana/${address}`;
+}
+
 /** Last breadcrumb crumb — ordinary foreground, never yellow / primary / interpretive. */
 export const BREADCRUMB_CURRENT_CLASS = "text-foreground";
 

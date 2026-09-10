@@ -98,6 +98,18 @@ describe("mapDexScreenerPairsToSolanaAssets", () => {
     expect(tsla?.pools).toHaveLength(2);
     expect(tsla?.pools.map((pool) => pool.pairAddress)).toEqual(["pair-tsla-usdc", "pair-tsla-sol"]);
     expect(tsla?.pools[0]?.volume24hUsd).toBeCloseTo(290_596.11);
+    expect(tsla?.pools[0]).toMatchObject({
+      baseSymbol: "TSLAx",
+      quoteSymbol: "USDC",
+      baseName: "Tesla xStock",
+      quoteName: "USD Coin",
+      trades24h: 2703,
+      wallets24h: null,
+      tradesChange24hPct: null,
+      walletsChange24hPct: null,
+      url: "https://dexscreener.com/solana/pair-tsla-usdc",
+    });
+    expect(tsla?.pools[1]?.trades24h).toBe(18);
     expect(tsla?.robinhoodReferencePriceUsd).toBeNull();
     expect(tsla?.sourceId).toBe("solana");
     expect(tsla?.logoUrl).toBeNull();
@@ -344,6 +356,35 @@ describe("mapDexScreenerPairsToSolanaAssets", () => {
     expect(assets.find((asset) => asset.contractAddress === otherTeslaMint)?.logoUrl).toBe(
       "https://example.com/other-tesla.png",
     );
+  });
+
+  it("maps pair identity and trades from DexScreener and leaves wallets unknown", () => {
+    const { assets } = mapDexScreenerPairsToSolanaAssets([
+      {
+        ...fixturePairs[0]!,
+        url: "https://dexscreener.com/solana/custom-tsla",
+        info: { imageUrl: "https://dd.dexscreener.com/ds-data/tokens/solana/tsla.png" },
+        txns: { h24: { buys: 10, sells: 4 } },
+      },
+      {
+        ...fixturePairs[1]!,
+        txns: { h24: { buys: 3 } },
+      },
+    ]);
+    const pools = assets[0]?.pools ?? [];
+    expect(pools[0]).toMatchObject({
+      baseSymbol: "TSLAx",
+      quoteSymbol: "USDC",
+      baseLogoUrl: "https://dd.dexscreener.com/ds-data/tokens/solana/tsla.png",
+      quoteLogoUrl: null,
+      url: "https://dexscreener.com/solana/custom-tsla",
+      trades24h: 14,
+      wallets24h: null,
+      tradesChange24hPct: null,
+      walletsChange24hPct: null,
+    });
+    expect(pools[1]?.trades24h).toBeNull();
+    expect(pools[1]?.wallets24h).toBeNull();
   });
 
   it("keeps classified registry mints with no DexScreener pools as null-volume rows", () => {
