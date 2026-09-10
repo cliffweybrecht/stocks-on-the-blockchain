@@ -26,6 +26,12 @@ import {
 import { SolanaHydrateMemory } from "./solana-hydrate-memory";
 import { fetchJsonOrText, type FetchLike } from "./solana-http";
 import { DEFAULT_ONDO_REGISTRY_URL, parseOndoGmConstants } from "./solana-ondo";
+import {
+  DEFAULT_SUNRISE_REGISTRY_BASE_URL,
+  parseSunriseTokensPage,
+  SUNRISE_REGISTRY_MAX_PAGES,
+  sunriseTokensPath,
+} from "./solana-sunrise";
 import { DEFAULT_TESSERA_REGISTRY_URL, parseTesseraTokenMints } from "./solana-tessera";
 import {
   DEFAULT_XSTOCKS_REGISTRY_BASE_URL,
@@ -108,6 +114,8 @@ export interface SolanaMarketDataSourceOptions {
   ondoRegistryUrl?: string;
   enableTesseraRegistry?: boolean;
   tesseraRegistryUrl?: string;
+  enableSunriseRegistry?: boolean;
+  sunriseRegistryUrl?: string;
   enableGeckoTerminal?: boolean;
   geckoTerminalBaseUrl?: string;
   enrichBudgetMs?: number;
@@ -177,6 +185,14 @@ export class SolanaMarketDataSource implements MarketDataSource {
 
   private get tesseraRegistryUrl() {
     return this.options.tesseraRegistryUrl ?? DEFAULT_TESSERA_REGISTRY_URL;
+  }
+
+  private get sunriseEnabled() {
+    return this.options.enableSunriseRegistry !== false;
+  }
+
+  private get sunriseRegistryUrl() {
+    return (this.options.sunriseRegistryUrl ?? DEFAULT_SUNRISE_REGISTRY_BASE_URL).replace(/\/+$/, "");
   }
 
   private get geckoEnabled() {
@@ -306,6 +322,27 @@ export class SolanaMarketDataSource implements MarketDataSource {
   private async loadTesseraIdentities(): Promise<TokenIdentity[]> {
     const payload = await this.fetchSource(this.tesseraRegistryUrl, "Tessera T-Token list");
     return parseTesseraTokenMints(payload);
+  }
+
+  private async loadSunriseIdentities(): Promise<TokenIdentity[]> {
+    const identities: TokenIdentity[] = [];
+    const seen = new Set<string>();
+    let cursor: string | undefined;
+    for (let page = 0; page < SUNRISE_REGISTRY_MAX_PAGES; page += 1) {
+      const payload = await this.fetchSource(
+        `${this.sunriseRegistryUrl}${sunriseTokensPath(cursor)}`,
+        "Sunrise token list",
+      );
+      const parsed = parseSunriseTokensPage(payload);
+      for (const identity of parsed.identities) {
+        if (seen.has(identity.address)) continue;
+        seen.add(identity.address);
+        identities.push(identity);
+      }
+      if (!parsed.nextCursor) break;
+      cursor = parsed.nextCursor;
+    }
+    return identities;
   }
 
   private async loadGeckoTerminalIdentities(): Promise<TokenIdentity[]> {
@@ -512,6 +549,16 @@ export class SolanaMarketDataSource implements MarketDataSource {
         )
       : Promise.resolve({ identities: [] as TokenIdentity[], error: null as Error | null });
 
+    const sunriseTask = this.sunriseEnabled
+      ? this.loadSunriseIdentities().then(
+          (identities) => ({ identities, error: null as Error | null }),
+          (error: unknown) => ({
+            identities: [] as TokenIdentity[],
+            error: error instanceof Error ? error : new Error("Sunrise token list failed."),
+          }),
+        )
+      : Promise.resolve({ identities: [] as TokenIdentity[], error: null as Error | null });
+
     const geckoTask = this.geckoEnabled
       ? this.loadGeckoTerminalIdentities().then(
           (identities) => ({ identities, error: null as Error | null }),
@@ -522,11 +569,12 @@ export class SolanaMarketDataSource implements MarketDataSource {
         )
       : Promise.resolve({ identities: [] as TokenIdentity[], error: null as Error | null });
 
-    const [searchResult, registryResult, ondoResult, tesseraResult, geckoResult] = await Promise.all([
+    const [searchResult, registryResult, ondoResult, tesseraResult, sunriseResult, geckoResult] = await Promise.all([
       searchTask,
       registryTask,
       ondoTask,
       tesseraTask,
+      sunriseTask,
       geckoTask,
     ]);
     if (registryResult.error) {
@@ -542,6 +590,11 @@ export class SolanaMarketDataSource implements MarketDataSource {
     if (tesseraResult.error) {
       extraNotes.push(
         `Tessera public T-Token mint list unavailable: ${tesseraResult.error.message}. Discovery continued from other live sources.`,
+      );
+    }
+    if (sunriseResult.error) {
+      extraNotes.push(
+        `Sunrise public token list unavailable: ${sunriseResult.error.message}. Discovery continued from other live sources.`,
       );
     }
     if (geckoResult.error) {
@@ -561,6 +614,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
         registryResult.identities,
         ondoResult.identities,
         tesseraResult.identities,
+        sunriseResult.identities,
         geckoResult.identities,
       ]),
     );
@@ -573,6 +627,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
         (!this.registryEnabled || registryResult.error) &&
         (!this.ondoEnabled || ondoResult.error) &&
         (!this.tesseraEnabled || tesseraResult.error) &&
+        (!this.sunriseEnabled || sunriseResult.error) &&
         (!this.geckoEnabled || geckoResult.error)
       ) {
         throw new Error(
@@ -581,6 +636,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
             registryResult.error?.message,
             ondoResult.error?.message,
             tesseraResult.error?.message,
+            sunriseResult.error?.message,
             geckoResult.error?.message,
           ]
             .filter(Boolean)
@@ -588,7 +644,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
         );
       }
       throw new Error(
-        "No verifiable Solana tokenized stocks from live discovery + classifier. Coverage is as discoverable from DexScreener search, the xStocks public registry, the public Ondo GM mint list, the public Tessera T-Token mint list, public GeckoTerminal search, and the classifier — not a full chain index. Keyed issuer APIs are not used.",
+        "No verifiable Solana tokenized stocks from live discovery + classifier. Coverage is as discoverable from DexScreener search, the xStocks public registry, the public Ondo GM mint list, the public Tessera T-Token mint list, the public Sunrise token list, public GeckoTerminal search, and the classifier — not a full chain index. Keyed issuer APIs are not used.",
       );
     }
 
@@ -603,10 +659,14 @@ export class SolanaMarketDataSource implements MarketDataSource {
     const tesseraMints = new Set(
       tesseraResult.identities.map((token) => token.address).filter((mint) => classifiedMints.has(mint)),
     );
+    const sunriseMints = new Set(
+      sunriseResult.identities.map((token) => token.address).filter((mint) => classifiedMints.has(mint)),
+    );
     const priorityMints = new Set([
       ...searchMints,
       ...geckoMints,
       ...tesseraMints,
+      ...sunriseMints,
       ...this.memory.pooledMints(),
     ]);
     const seedPairs = pairsTouchingMints(searchResult.pairs, classifiedMints);

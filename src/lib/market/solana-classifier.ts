@@ -548,6 +548,9 @@ export function classifyTokenizedInstrument(token: TokenIdentity): TokenClassifi
   }
 
   const issuer = inferIssuer(name, symbol, address);
+  if (issuer === "Backpack Securities" && isPumpFunMint(address)) {
+    return { kind: "reject", reason: "pump-fun copycat" };
+  }
   const signal = hasVerifiableInstrumentSignal({
     address,
     name,

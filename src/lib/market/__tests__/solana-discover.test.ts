@@ -107,6 +107,31 @@ describe("discovery filters", () => {
         name: "Micron Technology - Backpack Securities",
       },
       {
+        address: "NKEda5nHhNGgjrE9nDdMvaEmkmJ96qqxzBVZEcKmjSg",
+        symbol: "NKE",
+        name: "NIKE - Backpack Securities",
+      },
+      {
+        address: "SH55hfaipFAbwT42nQYhRoM5o5t61QpkmJ6p62vXB3m",
+        symbol: "SHOP",
+        name: "Shopify - Backpack Securities",
+      },
+      {
+        address: "BArimz1PcKZr8PcPh3tcZ2dg4S7FJLk3cw6R5F8GsHKg",
+        symbol: "BA",
+        name: "The Boeing Company - Backpack Securities",
+      },
+      {
+        address: "BMKdM4yUxX12moFqVk195k7coMbaybd4RUKCUdm7D1Sk",
+        symbol: "IBM",
+        name: "International Business Machines - Backpack Securities",
+      },
+      {
+        address: "SNAPcESrvnH8yUdgeMF6xm1hym9b6hW6s8YeqeHdZFz",
+        symbol: "SNAP",
+        name: "Snap - Backpack Securities",
+      },
+      {
         address: "TSPXcLV76s6V2zDiZQ18kBfcbnjaE2ZzNT3ga2Pd99v",
         symbol: "tSpaceX",
         name: "T-SpaceX",
@@ -116,9 +141,14 @@ describe("discovery filters", () => {
         symbol: "DRAM",
         name: "Roundhill Memory ETF - Backpack Securities",
       },
+      {
+        address: "SPCXxcqXj6e5dJDVNovHN8744zkbhM2bYudU45BimGb",
+        symbol: "SPCX",
+        name: "SpaceX - Backpack Securities",
+      },
     ]);
-    expect(selected.equities.map((row) => row.symbol)).toEqual(["MU"]);
-    expect(selected.privates.map((row) => row.symbol)).toEqual(["tSpaceX"]);
+    expect(selected.equities.map((row) => row.symbol)).toEqual(["MU", "NKE", "SHOP", "BA", "IBM", "SNAP"]);
+    expect(selected.privates.map((row) => row.symbol)).toEqual(["tSpaceX", "SPCX"]);
     expect(selected.etfs.map((row) => row.symbol)).toEqual(["DRAM"]);
   });
 

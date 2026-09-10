@@ -442,6 +442,62 @@ describe("classifyTokenizedEquity", () => {
         name: "Intel Cat",
       }),
     ).toMatchObject({ kind: "reject" });
+    expect(
+      classifyTokenizedInstrument({
+        address: "NKEda5nHhNGgjrE9nDdMvaEmkmJ96qqxzBVZEcKmjSg",
+        symbol: "NKE",
+        name: "NIKE - Backpack Securities",
+      }),
+    ).toMatchObject({ kind: "equity", issuer: "Backpack Securities" });
+    expect(
+      classifyTokenizedInstrument({
+        address: "SH55hfaipFAbwT42nQYhRoM5o5t61QpkmJ6p62vXB3m",
+        symbol: "SHOP",
+        name: "Shopify - Backpack Securities",
+      }),
+    ).toMatchObject({ kind: "equity", issuer: "Backpack Securities" });
+    expect(
+      classifyTokenizedInstrument({
+        address: "BArimz1PcKZr8PcPh3tcZ2dg4S7FJLk3cw6R5F8GsHKg",
+        symbol: "BA",
+        name: "The Boeing Company - Backpack Securities",
+      }),
+    ).toMatchObject({ kind: "equity", issuer: "Backpack Securities" });
+    expect(
+      classifyTokenizedInstrument({
+        address: "CopycatNikeBackpack1111111111111111111pump",
+        symbol: "NKE",
+        name: "NIKE - Backpack Securities",
+      }),
+    ).toMatchObject({ kind: "reject", reason: "pump-fun copycat" });
+    expect(
+      classifyTokenizedInstrument({
+        address: "BMKdM4yUxX12moFqVk195k7coMbaybd4RUKCUdm7D1Sk",
+        symbol: "IBM",
+        name: "International Business Machines - Backpack Securities",
+      }),
+    ).toMatchObject({ kind: "equity", issuer: "Backpack Securities" });
+    expect(
+      classifyTokenizedInstrument({
+        address: "G5xwBrVmb2QWjDq3WzbksK5dBme8EHECXXP8WxdxUZhi",
+        symbol: "IBM",
+        name: "IBM",
+      }),
+    ).toMatchObject({ kind: "reject" });
+    expect(
+      classifyTokenizedInstrument({
+        address: "SNAPcESrvnH8yUdgeMF6xm1hym9b6hW6s8YeqeHdZFz",
+        symbol: "SNAP",
+        name: "Snap - Backpack Securities",
+      }),
+    ).toMatchObject({ kind: "equity", issuer: "Backpack Securities" });
+    expect(
+      classifyTokenizedInstrument({
+        address: "DJTu7vi8norVzdVAffgvb39VP7wjKeTsgaMBJrzfxvoF",
+        symbol: "DJT",
+        name: "Trump Media & Technology Group Corp. Common Stock - Backpack Securities",
+      }),
+    ).toMatchObject({ kind: "equity", issuer: "Backpack Securities" });
   });
 
   it("fails closed on private-name memes and copycat PreStocks brands", () => {

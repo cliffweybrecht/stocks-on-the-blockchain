@@ -4,6 +4,38 @@ import { classifyTokenizedInstrument, tokenIdentityFromFields, type TokenIdentit
 import { SOLANA_CHAIN_ID } from "./types";
 
 /**
+ * Sunrise-listed Backpack Securities tickers from the 2026-09 public batch.
+ * DexScreener ticker probes only — not a mint allowlist. Classifier still
+ * fail-closes unless the on-chain name includes "Backpack Securities".
+ */
+export const BACKPACK_SUNRISE_BATCH_TICKERS = [
+  "BA",
+  "BABA",
+  "BULL",
+  "COST",
+  "DELL",
+  "DJT",
+  "HIMS",
+  "HTZ",
+  "IBM",
+  "JNJ",
+  "LMT",
+  "LULU",
+  "MGM",
+  "PFE",
+  "QUBT",
+  "RBLX",
+  "RDDT",
+  "RIVN",
+  "SHOP",
+  "SNAP",
+] as const;
+
+export const BACKPACK_SUNRISE_BATCH_QUERIES = BACKPACK_SUNRISE_BATCH_TICKERS.map(
+  (ticker) => `${ticker} - Backpack Securities` as const,
+);
+
+/**
  * Live DexScreener search queries. These are discovery probes, not an admission
  * list. Search is noisy and capped (~30 pairs / query), so coverage is
  * "as discoverable from these queries + classifier", not a full Solana index.
@@ -50,18 +82,44 @@ export const DEFAULT_SOLANA_DISCOVERY_QUERIES = [
   "SHEIN xStock",
   "SpaceX xStock",
   "Backpack Securities",
+  ...BACKPACK_SUNRISE_BATCH_QUERIES,
   "Micron Technology - Backpack Securities",
   "Intel - Backpack Securities",
   "Sandisk - Backpack Securities",
   "Robinhood Markets - Backpack Securities",
   "SpaceX - Backpack Securities",
+  "Nike - Backpack Securities",
+  "Boeing - Backpack Securities",
+  "Alibaba - Backpack Securities",
+  "Dell - Backpack Securities",
+  "Hims - Backpack Securities",
+  "Hertz - Backpack Securities",
+  "IBM - Backpack Securities",
+  "Johnson & Johnson - Backpack Securities",
+  "Lockheed - Backpack Securities",
+  "Pfizer - Backpack Securities",
+  "Quantum Computing - Backpack Securities",
+  "Roblox - Backpack Securities",
+  "Rivian - Backpack Securities",
+  "Shopify - Backpack Securities",
+  "Trump Media - Backpack Securities",
+  "lululemon - Backpack Securities",
+  "MGM Resorts - Backpack Securities",
+  "Snap - Backpack Securities",
+  "GoPro - Backpack Securities",
+  "Webull - Backpack Securities",
+  "AMC Entertainment - Backpack Securities",
+  "Costco - Backpack Securities",
+  "Reddit - Backpack Securities",
+  "UPS - Backpack Securities",
+  "Sphere - Backpack Securities",
   "T-SpaceX",
   "T-Kalshi",
   "T-OpenAI",
   "tSpaceX",
   "tKalshi",
   "tOpenAI",
-] as const;
+];
 
 export const DEXSCREENER_TOKEN_BATCH_SIZE = 30;
 
