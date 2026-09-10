@@ -51,19 +51,44 @@ function chainShell(
 function stock(
   partial: Omit<
     AssetDetail,
-    "detailEnriched" | "sourceId" | "sourceLabel" | "issuer" | "pools" | "instrumentKind" | "volumeCoverage" | "coverageNote"
+    | "detailEnriched"
+    | "sourceId"
+    | "sourceLabel"
+    | "issuer"
+    | "pools"
+    | "instrumentKind"
+    | "volumeCoverage"
+    | "coverageNote"
+    | "marketCapUsd"
+    | "fdvUsd"
+    | "priceChange24hPct"
+    | "holderCount"
+    | "circulatingSupply"
+    | "totalSupply"
   > & {
     issuer?: string | null;
     pools?: AssetDetail["pools"];
     instrumentKind?: AssetDetail["instrumentKind"];
     volumeCoverage?: AssetDetail["volumeCoverage"];
     coverageNote?: string | null;
+    marketCapUsd?: number | null;
+    fdvUsd?: number | null;
+    priceChange24hPct?: number | null;
+    holderCount?: number | null;
+    circulatingSupply?: number | null;
+    totalSupply?: number | null;
   },
 ): AssetDetail {
   return {
-    issuer: null,
-    pools: [],
     ...partial,
+    issuer: partial.issuer ?? null,
+    pools: partial.pools ?? [],
+    marketCapUsd: partial.marketCapUsd ?? null,
+    fdvUsd: partial.fdvUsd ?? null,
+    priceChange24hPct: partial.priceChange24hPct ?? null,
+    holderCount: partial.holderCount ?? null,
+    circulatingSupply: partial.circulatingSupply ?? null,
+    totalSupply: partial.totalSupply ?? null,
     sourceId: "mock",
     sourceLabel: "Seed market adapter",
     detailEnriched: true,

@@ -6,7 +6,8 @@ import {
   type TerminalAssetLiquidityProfile,
   type TerminalPriceComparison,
 } from "./map-terminal";
-import { ROBINHOOD_CHAIN_ID, type AssetDetailResult, type ChainDetailResult, type ChainListResult, type EquityVolumeHistoryResult, type MarketDataSource } from "./types";
+import { ROBINHOOD_CHAIN_ID, type AssetDetailResult, type AssetPriceHistoryResult, type ChainDetailResult, type ChainListResult, type EquityVolumeHistoryResult, type MarketDataSource } from "./types";
+import { emptyAssetPriceHistory } from "./asset-price-history";
 import { emptyEquityVolumeHistory } from "./volume-history";
 
 interface CachedSnapshot {
@@ -117,6 +118,12 @@ export class TerminalMarketDataSource implements MarketDataSource {
   async getEquityVolumeHistory(): Promise<EquityVolumeHistoryResult> {
     return emptyEquityVolumeHistory(
       "Robinhood Terminal has no Solana equity pool history. This series is GeckoTerminal OHLCV for classified Solana public equities only.",
+    );
+  }
+
+  async getAssetPriceHistory(): Promise<AssetPriceHistoryResult> {
+    return emptyAssetPriceHistory(
+      "Robinhood Terminal has no GeckoTerminal price candles. This series is pool USD closes for Solana mints only.",
     );
   }
 

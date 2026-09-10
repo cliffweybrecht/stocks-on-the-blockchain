@@ -3,6 +3,7 @@ import { COMPOSITE_SOURCE_NOTE } from "./trust";
 import {
   SOLANA_CHAIN_ID,
   type AssetDetailResult,
+  type AssetPriceHistoryResult,
   type ChainDetailResult,
   type ChainListResult,
   type DataProvenance,
@@ -10,6 +11,7 @@ import {
   type MarketDataSource,
   type SourceFailure,
 } from "./types";
+import { emptyAssetPriceHistory } from "./asset-price-history";
 import { emptyEquityVolumeHistory } from "./volume-history";
 
 function errorMessage(error: unknown): string {
@@ -130,5 +132,21 @@ export class CompositeMarketDataSource implements MarketDataSource {
       );
     }
     return solana.getEquityVolumeHistory();
+  }
+
+  async getAssetPriceHistory(chainId: string, symbol: string): Promise<AssetPriceHistoryResult> {
+    const errors: Error[] = [];
+    for (const adapter of this.adapters) {
+      try {
+        const result = await adapter.getAssetPriceHistory(chainId, symbol);
+        if (result.available || adapter.id === "solana") return result;
+      } catch (error) {
+        errors.push(error instanceof Error ? error : new Error(errorMessage(error)));
+      }
+    }
+    if (errors.length > 0) {
+      return emptyAssetPriceHistory(errors[0]!.message);
+    }
+    return emptyAssetPriceHistory("No adapter returned a price series for this mint.");
   }
 }

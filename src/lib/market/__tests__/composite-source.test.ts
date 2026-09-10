@@ -14,6 +14,7 @@ import type {
   MarketDataSource,
   SourceKind,
 } from "../types";
+import { emptyAssetPriceHistory } from "../asset-price-history";
 import { emptyEquityVolumeHistory } from "../volume-history";
 
 function provenance(sourceId: SourceKind, label: string, failures: DataProvenance["sourceFailures"] = []): DataProvenance {
@@ -87,6 +88,12 @@ class FakeSource implements MarketDataSource {
     return this.impl.history
       ? this.impl.history()
       : Promise.resolve(emptyEquityVolumeHistory(`No history on ${this.id}.`));
+  }
+
+  getAssetPriceHistory() {
+    return Promise.resolve(
+      emptyAssetPriceHistory(`No price history on ${this.id}.`),
+    );
   }
 }
 

@@ -148,6 +148,18 @@ export interface AssetDetail extends AssetSummary {
   quoteAssets: readonly QuoteAssetSlice[];
   price: PriceMarks;
   detailEnriched: boolean;
+  /** DexScreener pair `marketCap` when reported. Never computed from supply × price. */
+  marketCapUsd: number | null;
+  /** DexScreener pair `fdv` when reported. Never computed from supply × price. */
+  fdvUsd: number | null;
+  /** DexScreener `priceChange.h24` from the highest-volume pair that reported it. */
+  priceChange24hPct: number | null;
+  /** Source-reported holder count. Unknown stays null — this desk has no holder indexer. */
+  holderCount: number | null;
+  /** Source-reported circulating supply. Never inferred from market cap / price. */
+  circulatingSupply: number | null;
+  /** Source-reported total supply. Never inferred from FDV / price. */
+  totalSupply: number | null;
 }
 
 export interface ChainListResult {
@@ -196,6 +208,24 @@ export interface EquityVolumeHistoryResult {
   emptyReason: string | null;
 }
 
+export type PriceChartRangeId = "24h" | "7d" | "30d" | "90d";
+
+export interface PriceHistoryPoint {
+  t: number;
+  priceUsd: number;
+}
+
+export interface AssetPriceHistoryResult {
+  available: boolean;
+  pairAddress: string | null;
+  sourceLabel: string;
+  definition: string;
+  daily: PriceHistoryPoint[];
+  hourly: PriceHistoryPoint[];
+  generatedAt: string;
+  emptyReason: string | null;
+}
+
 export interface MarketDataSource {
   readonly id: SourceKind;
   readonly label: string;
@@ -203,6 +233,7 @@ export interface MarketDataSource {
   getChain(chainId: string): Promise<ChainDetailResult | null>;
   getAsset(chainId: string, symbol: string): Promise<AssetDetailResult | null>;
   getEquityVolumeHistory(): Promise<EquityVolumeHistoryResult>;
+  getAssetPriceHistory(chainId: string, symbol: string): Promise<AssetPriceHistoryResult>;
 }
 
 export const ROBINHOOD_CHAIN_ID = "robinhood-chain";

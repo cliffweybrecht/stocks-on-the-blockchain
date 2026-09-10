@@ -852,4 +852,71 @@ describe("SolanaMarketDataSource", () => {
     expect(history.points[0]?.volumeUsd).toBeCloseTo(1_250.25);
     expect(history.definition).toMatch(/No GeckoTerminal daily candles/);
   });
+
+  it("loads per-mint price closes from GeckoTerminal and never treats volume as price", async () => {
+    const urls: string[] = [];
+    const source = testSource({
+      requestGapMs: 0,
+      enableGeckoTerminal: true,
+      geckoTerminalBaseUrl: "https://api.geckoterminal.com/api/v2",
+      fetchImpl: async (input) => {
+        const url = String(input);
+        urls.push(url);
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [tslaPair()] });
+        if (url.includes("/tokens/v1/solana/")) return jsonResponse([tslaPair()]);
+        if (url.includes("/token-pairs/v1/solana/")) return jsonResponse([tslaPair()]);
+        if (url.includes("/ohlcv/day") && url.includes("pair-1")) {
+          return jsonResponse({
+            data: {
+              attributes: {
+                ohlcv_list: [
+                  [1_700_000_000, 90, 110, 80, 100.5, 9_999],
+                  [1_700_086_400, 100, 120, 95, 108, 40],
+                ],
+              },
+            },
+          });
+        }
+        if (url.includes("/ohlcv/hour") && url.includes("pair-1")) {
+          return jsonResponse({
+            data: {
+              attributes: {
+                ohlcv_list: [[1_700_086_400, 107, 109, 106, 108.2, 12]],
+              },
+            },
+          });
+        }
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    const history = await source.getAssetPriceHistory("solana", "TSLAx");
+    expect(history.available).toBe(true);
+    expect(history.pairAddress).toBe("pair-1");
+    expect(history.daily.map((point) => point.priceUsd)).toEqual([100.5, 108]);
+    expect(history.hourly).toEqual([{ t: 1_700_086_400, priceUsd: 108.2 }]);
+    expect(history.daily.some((point) => point.priceUsd === 9_999)).toBe(false);
+    expect(urls.some((url) => url.includes("/ohlcv/day") && url.includes("pair-1"))).toBe(true);
+    expect(urls.some((url) => url.includes("/ohlcv/hour") && url.includes("pair-1"))).toBe(true);
+  });
+
+  it("fails closed when GeckoTerminal price candles are missing", async () => {
+    const source = testSource({
+      requestGapMs: 0,
+      enableGeckoTerminal: true,
+      geckoTerminalBaseUrl: "https://api.geckoterminal.com/api/v2",
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [tslaPair()] });
+        if (url.includes("/tokens/v1/solana/")) return jsonResponse([tslaPair()]);
+        if (url.includes("/ohlcv/")) return jsonResponse({ error: "nope" }, 429);
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+    const history = await source.getAssetPriceHistory("solana", "TSLAx");
+    expect(history.available).toBe(false);
+    expect(history.daily).toEqual([]);
+    expect(history.hourly).toEqual([]);
+    expect(history.emptyReason).toMatch(/did not return usable USD closes/i);
+  });
 });

@@ -1,5 +1,13 @@
 import { rollupChainFromAssets, sortByVolumeThenLiquidity } from "./aggregate";
-import { asFiniteNumber, asHttpUrl, asNonEmptyString, compareNullableDesc, sumNullable } from "./numbers";
+import {
+  asFiniteNumber,
+  asHttpUrl,
+  asNonEmptyString,
+  asNonNegativeNumber,
+  asReportedNumber,
+  compareNullableDesc,
+  sumNullable,
+} from "./numbers";
 import { classifyTokenizedInstrument, tokenIdentityFromFields } from "./solana-classifier";
 import type { DiscoveredEquityMint } from "./solana-discover";
 import { SOLANA_SOURCE_LABEL, SOLANA_SOURCE_NOTE } from "./trust";
@@ -26,6 +34,9 @@ export interface DexScreenerPair {
   quoteToken?: { address?: unknown; name?: unknown; symbol?: unknown; labels?: unknown };
   info?: { imageUrl?: unknown };
   priceUsd?: unknown;
+  priceChange?: { h24?: unknown };
+  fdv?: unknown;
+  marketCap?: unknown;
   volume?: { h24?: unknown };
   liquidity?: { usd?: unknown };
   txns?: { h24?: { buys?: unknown; sells?: unknown } };
@@ -100,6 +111,22 @@ function pairPriceUsd(pair: DexScreenerPair): number | null {
   return asFiniteNumber(typeof pair.priceUsd === "string" ? Number(pair.priceUsd) : pair.priceUsd);
 }
 
+interface PairReportedStats {
+  volume24hUsd: number | null;
+  marketCapUsd: number | null;
+  fdvUsd: number | null;
+  priceChange24hPct: number | null;
+}
+
+function pickPrimaryReported(rows: readonly PairReportedStats[], key: keyof Omit<PairReportedStats, "volume24hUsd">): number | null {
+  const ranked = [...rows].sort((a, b) => compareNullableDesc(a.volume24hUsd, b.volume24hUsd));
+  for (const row of ranked) {
+    const value = row[key];
+    if (value !== null) return value;
+  }
+  return null;
+}
+
 interface MintAccumulator {
   symbol: string;
   name: string;
@@ -116,6 +143,7 @@ interface MintAccumulator {
   pools: AssetPoolMark[];
   dexes: Map<string, { liquidity: number[]; poolCount: number }>;
   largestPool: { dexId: string; pairAddress: string; liquidityUsd: number } | null;
+  pairStats: PairReportedStats[];
 }
 
 function emptyAccumulator(side: NonNullable<ReturnType<typeof classifiedSide>>): MintAccumulator {
@@ -135,6 +163,7 @@ function emptyAccumulator(side: NonNullable<ReturnType<typeof classifiedSide>>):
     pools: [],
     dexes: new Map(),
     largestPool: null,
+    pairStats: [],
   };
 }
 
@@ -166,6 +195,12 @@ function addPairToBucket(bucket: MintAccumulator, pair: DexScreenerPair, tokenAd
     volume24hUsd: volume,
     liquidityUsd: liquidity,
     priceUsd: price,
+  });
+  bucket.pairStats.push({
+    volume24hUsd: volume,
+    marketCapUsd: asNonNegativeNumber(pair.marketCap),
+    fdvUsd: asNonNegativeNumber(pair.fdv),
+    priceChange24hPct: asReportedNumber(pair.priceChange?.h24),
   });
 
   const dex = bucket.dexes.get(dexId) ?? { liquidity: [], poolCount: 0 };
@@ -294,6 +329,12 @@ export function mapDexScreenerPairsToSolanaAssets(
         priceCoverageComplete: dexMedianUsd !== null,
       },
       detailEnriched: true,
+      marketCapUsd: pickPrimaryReported(bucket.pairStats, "marketCapUsd"),
+      fdvUsd: pickPrimaryReported(bucket.pairStats, "fdvUsd"),
+      priceChange24hPct: pickPrimaryReported(bucket.pairStats, "priceChange24hPct"),
+      holderCount: null,
+      circulatingSupply: null,
+      totalSupply: null,
     });
   }
 
@@ -410,6 +451,12 @@ export function unpairedSolanaAsset(
       priceCoverageComplete: false,
     },
     detailEnriched: true,
+    marketCapUsd: null,
+    fdvUsd: null,
+    priceChange24hPct: null,
+    holderCount: null,
+    circulatingSupply: null,
+    totalSupply: null,
   };
 }
 

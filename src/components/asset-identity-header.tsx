@@ -5,18 +5,46 @@ import { AssetPin } from "@/components/asset-pin";
 import { CopyAddress } from "@/components/copy-address";
 import { CoverageBadge } from "@/components/coverage-badge";
 import { Badge } from "@/components/ui/badge";
-import { assetIdentityMetaParts, dexScreenerTokenUrl, sourceRowLabel } from "@/lib/desk/asset-identity";
+import { assetIdentityMetaParts, BREADCRUMB_CURRENT_CLASS, dexScreenerTokenUrl, sourceRowLabel } from "@/lib/desk/asset-identity";
 import type { AssetDetail, ChainVolume } from "@/lib/market/types";
+
+export { BREADCRUMB_CURRENT_CLASS };
+
+export function AssetBreadcrumb({
+  chain,
+  symbol,
+}: {
+  chain: Pick<ChainVolume, "id" | "name">;
+  symbol: string;
+}) {
+  return (
+    <nav className="text-sm text-muted-foreground" data-asset-breadcrumb>
+      <Link href="/" className="hover:text-foreground">
+        Chains
+      </Link>
+      <span className="px-2">/</span>
+      <Link href={`/chains/${chain.id}`} className="hover:text-foreground">
+        {chain.name}
+      </Link>
+      <span className="px-2">/</span>
+      <span className={BREADCRUMB_CURRENT_CLASS} data-breadcrumb-current>
+        {symbol}
+      </span>
+    </nav>
+  );
+}
 
 export function AssetIdentityHeader({
   chain,
   asset,
   showPin = false,
+  showBreadcrumb = true,
   description,
 }: {
   chain: Pick<ChainVolume, "id" | "name">;
   asset: AssetDetail;
   showPin?: boolean;
+  showBreadcrumb?: boolean;
   /** Rendered only when a source already supplied a real blurb. Never fabricated. */
   description?: string | null;
 }) {
@@ -28,17 +56,7 @@ export function AssetIdentityHeader({
 
   return (
     <header className="space-y-4">
-      <nav className="text-sm text-muted-foreground">
-        <Link href="/" className="hover:text-foreground">
-          Chains
-        </Link>
-        <span className="px-2">/</span>
-        <Link href={`/chains/${chain.id}`} className="hover:text-foreground">
-          {chain.name}
-        </Link>
-        <span className="px-2">/</span>
-        <span className="text-foreground">{asset.symbol}</span>
-      </nav>
+      {showBreadcrumb ? <AssetBreadcrumb chain={chain} symbol={asset.symbol} /> : null}
 
       <div className="flex items-start gap-3 sm:gap-4">
         <AssetLogo logoUrl={asset.logoUrl} name={asset.name} symbol={asset.symbol} />
@@ -55,8 +73,6 @@ export function AssetIdentityHeader({
           </div>
 
           <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-            <span className="tracking-[0.12em] uppercase">{meta.kind}</span>
-            <span aria-hidden="true">•</span>
             <span className="font-medium text-foreground">{meta.symbol}</span>
             <span aria-hidden="true">•</span>
             <CopyAddress address={asset.contractAddress} variant="inline" />

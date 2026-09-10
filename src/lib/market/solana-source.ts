@@ -43,12 +43,19 @@ import { SOLANA_SOURCE_LABEL } from "./trust";
 import {
   SOLANA_CHAIN_ID,
   type AssetDetailResult,
+  type AssetPriceHistoryResult,
   type ChainDetailResult,
   type ChainListResult,
   type EquityVolumeHistoryResult,
   type MarketDataSource,
   type VolumeAggregation,
 } from "./types";
+import {
+  buildAssetPriceHistory,
+  emptyAssetPriceHistory,
+  parseGeckoTerminalPriceOhlcv,
+  selectPrimaryPricePool,
+} from "./asset-price-history";
 import {
   buildEquityVolumeHistory,
   collectEquityVolumeTargets,
@@ -138,6 +145,8 @@ export class SolanaMarketDataSource implements MarketDataSource {
   private readonly memory: SolanaHydrateMemory;
   private volumeHistoryCache: { result: EquityVolumeHistoryResult; expiresAt: number } | null = null;
   private volumeHistoryInflight: Promise<EquityVolumeHistoryResult> | null = null;
+  private priceHistoryCache = new Map<string, { result: AssetPriceHistoryResult; expiresAt: number }>();
+  private priceHistoryInflight = new Map<string, Promise<AssetPriceHistoryResult>>();
 
   constructor(private readonly options: SolanaMarketDataSourceOptions = {}) {
     this.memory = new SolanaHydrateMemory(options.emptyCacheMs ?? SOLANA_DEFAULTS.emptyCacheMs);
@@ -1008,6 +1017,98 @@ export class SolanaMarketDataSource implements MarketDataSource {
       mintCount,
       volume24hUsd,
       volume24hByMint,
+    });
+  }
+
+  async getAssetPriceHistory(chainId: string, symbol: string): Promise<AssetPriceHistoryResult> {
+    if (chainId !== SOLANA_CHAIN_ID) {
+      return emptyAssetPriceHistory("Price candles are GeckoTerminal Solana pool closes only.");
+    }
+    if (!this.geckoEnabled) {
+      return emptyAssetPriceHistory(
+        "GeckoTerminal is disabled, so there is no historical close series to load.",
+      );
+    }
+
+    const cacheKey = `${chainId}:${symbol.toLowerCase()}`;
+    const now = Date.now();
+    const cached = this.priceHistoryCache.get(cacheKey);
+    if (cached && cached.expiresAt > now) return cached.result;
+    const inflight = this.priceHistoryInflight.get(cacheKey);
+    if (inflight) return inflight;
+
+    const pending = this.buildAssetPriceHistory(symbol)
+      .then((result) => {
+        if (result.available) {
+          this.priceHistoryCache.set(cacheKey, {
+            result,
+            expiresAt: Date.now() + this.volumeHistoryCacheMs,
+          });
+        }
+        return result;
+      })
+      .finally(() => {
+        this.priceHistoryInflight.delete(cacheKey);
+      });
+    this.priceHistoryInflight.set(cacheKey, pending);
+    return pending;
+  }
+
+  private async buildAssetPriceHistory(symbol: string): Promise<AssetPriceHistoryResult> {
+    let pairAddress: string | null = null;
+    try {
+      const snapshot = await this.loadCached("full");
+      const asset = findAssetByKey(
+        [...snapshot.mapped.details, ...snapshot.mapped.etfDetails, ...snapshot.mapped.privateDetails],
+        symbol,
+      );
+      if (!asset) {
+        return emptyAssetPriceHistory("That mint is not in this Solana snapshot.");
+      }
+      pairAddress = selectPrimaryPricePool(asset.pools);
+      if (!pairAddress) {
+        return emptyAssetPriceHistory(
+          "This mint has no DexScreener pair address, so there is no GeckoTerminal close series to load.",
+        );
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Solana snapshot failed.";
+      return emptyAssetPriceHistory(message);
+    }
+
+    const gate = createRequestGate({
+      maxConcurrent: Math.min(2, this.maxConcurrent),
+      minGapMs: Math.max(this.requestGapMs, 400),
+    });
+
+    const [dailySettled, hourlySettled] = await Promise.allSettled([
+      gate.run(() =>
+        this.fetchSource(
+          `${this.geckoTerminalBaseUrl}${geckoTerminalOhlcvPath(pairAddress, { timeframe: "day", limit: 90 })}`,
+          "GeckoTerminal",
+        ),
+      ),
+      gate.run(() =>
+        this.fetchSource(
+          `${this.geckoTerminalBaseUrl}${geckoTerminalOhlcvPath(pairAddress, { timeframe: "hour", limit: 24 })}`,
+          "GeckoTerminal",
+        ),
+      ),
+    ]);
+
+    const daily =
+      dailySettled.status === "fulfilled" ? parseGeckoTerminalPriceOhlcv(dailySettled.value) : [];
+    const hourly =
+      hourlySettled.status === "fulfilled" ? parseGeckoTerminalPriceOhlcv(hourlySettled.value) : [];
+
+    return buildAssetPriceHistory({
+      pairAddress,
+      daily,
+      hourly,
+      emptyReason:
+        daily.length === 0 && hourly.length === 0
+          ? "GeckoTerminal did not return usable USD closes for this mint’s primary pool."
+          : undefined,
     });
   }
 }

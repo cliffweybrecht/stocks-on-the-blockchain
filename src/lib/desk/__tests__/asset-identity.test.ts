@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   assetIdentityMetaParts,
   assetMonogram,
+  BREADCRUMB_CURRENT_CLASS,
   dexScreenerTokenUrl,
   instrumentKindMetaLabel,
   isHttpLogoUrl,
@@ -55,6 +56,13 @@ describe("assetIdentityMetaParts", () => {
       symbol: "MSFTx",
       mint: "XspzW1…aaaa",
     });
+  });
+});
+
+describe("breadcrumb current segment", () => {
+  it("uses ordinary foreground color, not a yellow or primary accent", () => {
+    expect(BREADCRUMB_CURRENT_CLASS).toBe("text-foreground");
+    expect(BREADCRUMB_CURRENT_CLASS).not.toMatch(/primary|interpretive|yellow|amber/);
   });
 });
 
