@@ -130,7 +130,7 @@ export function AssetMarketPanel({
         <p className="num text-3xl font-medium tracking-tight sm:text-4xl" data-asset-spot>
           {formatPrice(priceUsd)}
         </p>
-        <PriceChangeText value={changePct} className="text-sm sm:text-base" />
+        {changePct !== null ? <PriceChangeText value={changePct} className="text-sm sm:text-base" /> : null}
       </div>
 
       {hasSeries ? (
