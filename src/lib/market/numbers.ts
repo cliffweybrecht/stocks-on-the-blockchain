@@ -25,6 +25,23 @@ export function asFiniteNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+/** Finite number from a JSON number or numeric string. Missing / NaN stays missing. */
+export function asReportedNumber(value: unknown): number | null {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+/** Non-negative reported metric. Negatives are dropped, not clamped. */
+export function asNonNegativeNumber(value: unknown): number | null {
+  const parsed = asReportedNumber(value);
+  if (parsed === null || parsed < 0) return null;
+  return parsed;
+}
+
 export function asBoolean(value: unknown): boolean | null {
   return typeof value === "boolean" ? value : null;
 }

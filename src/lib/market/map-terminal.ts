@@ -214,6 +214,12 @@ export function mapTerminalRowToDetail(row: TerminalMarketRow): AssetDetail | nu
     quoteAssets: [],
     price,
     detailEnriched: false,
+    marketCapUsd: null,
+    fdvUsd: null,
+    priceChange24hPct: null,
+    holderCount: null,
+    circulatingSupply: null,
+    totalSupply: null,
   };
 }
 

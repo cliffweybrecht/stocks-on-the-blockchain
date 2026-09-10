@@ -1,0 +1,99 @@
+import { describe, expect, it } from "vitest";
+import {
+  buildAssetPriceHistory,
+  emptyAssetPriceHistory,
+  parseGeckoTerminalPriceOhlcv,
+  selectPrimaryPricePool,
+} from "../asset-price-history";
+
+const T0 = 1_700_000_000;
+const HOUR = 3_600;
+
+describe("parseGeckoTerminalPriceOhlcv", () => {
+  it("reads close (index 4) and ignores volume", () => {
+    const points = parseGeckoTerminalPriceOhlcv({
+      data: {
+        attributes: {
+          ohlcv_list: [
+            [T0 + HOUR, 10, 12, 9, 11.5, 9_999],
+            [T0, 8, 9, 7, 8.25, 1],
+          ],
+        },
+      },
+    });
+    expect(points).toEqual([
+      { t: T0, priceUsd: 8.25 },
+      { t: T0 + HOUR, priceUsd: 11.5 },
+    ]);
+    expect(points.some((point) => point.priceUsd === 9_999)).toBe(false);
+  });
+
+  it("drops invalid or non-positive closes instead of inventing prices", () => {
+    expect(parseGeckoTerminalPriceOhlcv("nope")).toEqual([]);
+    expect(parseGeckoTerminalPriceOhlcv({ data: { attributes: {} } })).toEqual([]);
+    expect(
+      parseGeckoTerminalPriceOhlcv({
+        data: {
+          attributes: {
+            ohlcv_list: [
+              [T0, 1, 2, 1, 0, 40],
+              [T0 + HOUR, 1, 2, 1, -3, 40],
+              [0, 1, 2, 1, 9, 40],
+              [T0 + 2 * HOUR, 1, 2, 1, 12, 40],
+              [T0 + 3 * HOUR, 1, 2, 1],
+            ],
+          },
+        },
+      }),
+    ).toEqual([{ t: T0 + 2 * HOUR, priceUsd: 12 }]);
+  });
+});
+
+describe("selectPrimaryPricePool", () => {
+  it("picks the highest-volume pair with a real address", () => {
+    expect(
+      selectPrimaryPricePool([
+        { pairAddress: "  ", volume24hUsd: 9_000 },
+        { pairAddress: "pool-b", volume24hUsd: 20 },
+        { pairAddress: "pool-a", volume24hUsd: 100 },
+      ]),
+    ).toBe("pool-a");
+  });
+
+  it("returns null when no pair address exists", () => {
+    expect(selectPrimaryPricePool([{ pairAddress: "", volume24hUsd: 10 }])).toBeNull();
+    expect(selectPrimaryPricePool([])).toBeNull();
+  });
+});
+
+describe("buildAssetPriceHistory", () => {
+  it("is unavailable when both series are empty", () => {
+    const empty = buildAssetPriceHistory({ pairAddress: "pool-a", daily: [], hourly: [] });
+    expect(empty.available).toBe(false);
+    expect(empty.daily).toEqual([]);
+    expect(empty.hourly).toEqual([]);
+    expect(empty.emptyReason).toMatch(/did not return usable USD closes/i);
+  });
+
+  it("keeps observed closes without filling gaps", () => {
+    const history = buildAssetPriceHistory({
+      pairAddress: "pool-a",
+      daily: [
+        { t: T0 + 86_400, priceUsd: 12 },
+        { t: T0, priceUsd: 10 },
+      ],
+      hourly: [{ t: T0, priceUsd: 10.2 }],
+    });
+    expect(history.available).toBe(true);
+    expect(history.daily.map((point) => point.t)).toEqual([T0, T0 + 86_400]);
+    expect(history.emptyReason).toBeNull();
+  });
+
+  it("empty helper never invents a series", () => {
+    const empty = emptyAssetPriceHistory("none");
+    expect(empty.available).toBe(false);
+    expect(empty.daily).toEqual([]);
+    expect(empty.hourly).toEqual([]);
+    expect(empty.pairAddress).toBeNull();
+  });
+});

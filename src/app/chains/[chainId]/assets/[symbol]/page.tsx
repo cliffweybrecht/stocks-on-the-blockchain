@@ -1,4 +1,6 @@
-import { AssetIdentityHeader } from "@/components/asset-identity-header";
+import { AssetBreadcrumb, AssetIdentityHeader } from "@/components/asset-identity-header";
+import { AssetMarketPanel } from "@/components/asset-price-chart";
+import { AssetStatsCard } from "@/components/asset-stats-card";
 import { CopyAddress } from "@/components/copy-address";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
@@ -15,7 +17,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatCount, formatPct, formatPrice, formatRelativeTime, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
-import { selectEquityPriceTicker } from "@/lib/desk/price-ticker";
+import { emptyAssetPriceHistory } from "@/lib/market/asset-price-history";
+import { deskSpotPriceUsd, selectEquityPriceTicker } from "@/lib/desk/price-ticker";
 import { poolAggregateTotals, sortPoolsByVolume } from "@/lib/desk/pool-sort";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { toJumpAsset } from "@/lib/market/asset-search";
@@ -32,9 +35,10 @@ export default async function AssetPage({
   const source = createMarketDataSource();
   const decoded = decodeURIComponent(symbol);
 
-  const [assetSettled, chainSettled] = await Promise.allSettled([
+  const [assetSettled, chainSettled, priceHistorySettled] = await Promise.allSettled([
     source.getAsset(chainId, decoded),
     chainId === SOLANA_CHAIN_ID ? source.getChain(chainId) : Promise.resolve(null),
+    source.getAssetPriceHistory(chainId, decoded),
   ]);
 
   if (assetSettled.status === "rejected") {
@@ -63,6 +67,14 @@ export default async function AssetPage({
   const isSolana = chain.id === SOLANA_CHAIN_ID;
   const rankedPools = sortPoolsByVolume(asset.pools);
   const poolTotals = poolAggregateTotals(rankedPools);
+  const priceHistory =
+    priceHistorySettled.status === "fulfilled"
+      ? priceHistorySettled.value
+      : emptyAssetPriceHistory(
+          priceHistorySettled.reason instanceof Error
+            ? priceHistorySettled.reason.message
+            : "Price history request failed. The desk does not invent a series.",
+        );
   const catalog = chainSettled.status === "fulfilled" ? chainSettled.value : null;
   const jumpAssets = catalog
     ? [...catalog.assets, ...(catalog.etfAssets ?? []), ...(catalog.privateAssets ?? [])].map(toJumpAsset)
@@ -75,58 +87,25 @@ export default async function AssetPage({
         priceTicker={selectEquityPriceTicker(catalog?.assets ?? (asset.instrumentKind === "equity" ? [asset] : []))}
       >
         <div className="space-y-5">
-          <AssetIdentityHeader chain={chain} asset={asset} showPin={isSolana} />
+          <AssetBreadcrumb chain={chain} symbol={asset.symbol} />
+          <AssetMarketPanel
+            header={<AssetIdentityHeader chain={chain} asset={asset} showPin={isSolana} showBreadcrumb={false} />}
+            priceUsd={deskSpotPriceUsd(asset)}
+            priceChange24hPct={asset.priceChange24hPct}
+            history={priceHistory}
+          />
+          <AssetStatsCard asset={asset} />
           {asset.coverageNote ? <p className="max-w-2xl text-sm text-muted-foreground">{asset.coverageNote}</p> : null}
 
           {isSolana ? null : <TrustBanner />}
           <ProvenanceBar provenance={provenance} compact={isSolana} />
 
           {!isSolana ? (
-            <section className="space-y-3">
-              <h3 className="font-heading text-lg font-medium">Identity</h3>
-              <CopyAddress address={asset.contractAddress} />
-            </section>
-          ) : null}
-
-          <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Metric
-              label="24h volume"
-              value={formatUsdCompact(asset.volume24hUsd)}
-              hint={isSolana ? "Sum of DexScreener pair volume.h24 for this mint" : "observedVolume24h"}
-            />
-            <Metric
-              label="Displayed liquidity"
-              value={formatUsdCompact(asset.displayedLiquidityUsd)}
-              hint="Provider-reported, not executable"
-            />
-            <Metric
-              label="Pools / DEXes"
-              value={`${formatCount(asset.poolCount)} / ${formatCount(asset.dexCount)}`}
-              hint={isSolana ? `${formatCount(poolTotals.poolCount)} pairs in this snapshot` : undefined}
-            />
-            <Metric label="DEX median" value={formatPrice(asset.price.dexMedianUsd)} hint="Median of usable pool prices" />
-          </section>
-
-          {isSolana ? (
-            <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <Metric label="24h buys" value={formatCount(asset.buys24h)} />
-              <Metric label="24h sells" value={formatCount(asset.sells24h)} />
-              <Metric
-                label="Top-3 concentration"
-                value={formatPct(asset.concentration.top3Pct)}
-                hint="Share of displayed liquidity"
-              />
-              <Metric
-                label="Largest pool"
-                value={
-                  asset.largestPool
-                    ? `${asset.largestPool.dexId} · ${formatUsdCompact(asset.largestPool.liquidityUsd)}`
-                    : "—"
-                }
-              />
-            </section>
-          ) : (
             <>
+              <section className="space-y-3">
+                <h3 className="font-heading text-lg font-medium">Identity</h3>
+                <CopyAddress address={asset.contractAddress} />
+              </section>
               <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Metric
                   label="Robinhood mark"
@@ -175,7 +154,7 @@ export default async function AssetPage({
                 <Metric label="USDG displayed liq" value={formatUsdCompact(asset.usdGLiquidityUsd)} />
               </section>
             </>
-          )}
+          ) : null}
 
           {rankedPools.length > 0 ? (
             <section className="space-y-2">

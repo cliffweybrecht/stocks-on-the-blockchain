@@ -2,11 +2,13 @@ import { findAssetByKey } from "./identity";
 import { MOCK_ASSETS, MOCK_CHAINS, MOCK_DETAILS, MOCK_PRIVATE_ASSETS, mockProvenance } from "./mock-data";
 import type {
   AssetDetailResult,
+  AssetPriceHistoryResult,
   ChainDetailResult,
   ChainListResult,
   EquityVolumeHistoryResult,
   MarketDataSource,
 } from "./types";
+import { emptyAssetPriceHistory } from "./asset-price-history";
 import { emptyEquityVolumeHistory } from "./volume-history";
 
 export class MockMarketDataSource implements MarketDataSource {
@@ -42,6 +44,12 @@ export class MockMarketDataSource implements MarketDataSource {
   async getEquityVolumeHistory(): Promise<EquityVolumeHistoryResult> {
     return emptyEquityVolumeHistory(
       "Seed adapter does not invent a historical volume series. Enable live Solana to load GeckoTerminal pool OHLCV.",
+    );
+  }
+
+  async getAssetPriceHistory(): Promise<AssetPriceHistoryResult> {
+    return emptyAssetPriceHistory(
+      "Seed adapter does not invent a price series. Enable live Solana to load GeckoTerminal pool closes.",
     );
   }
 }

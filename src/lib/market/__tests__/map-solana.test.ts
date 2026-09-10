@@ -111,6 +111,49 @@ describe("mapDexScreenerPairsToSolanaAssets", () => {
     expect(details[0]?.buys24h).toBe(1287);
     expect(details[0]?.dexes.map((dex) => dex.dexId)).toEqual(["raydium", "orca"]);
     expect(details[0]?.largestPool?.pairAddress).toBe("pair-tsla-usdc");
+    expect(details[0]?.marketCapUsd).toBeNull();
+    expect(details[0]?.fdvUsd).toBeNull();
+    expect(details[0]?.priceChange24hPct).toBeNull();
+    expect(details[0]?.holderCount).toBeNull();
+    expect(details[0]?.circulatingSupply).toBeNull();
+    expect(details[0]?.totalSupply).toBeNull();
+  });
+
+  it("maps DexScreener marketCap, fdv, and 24h change from the highest-volume pair", () => {
+    const { details } = mapDexScreenerPairsToSolanaAssets([
+      {
+        ...fixturePairs[0]!,
+        marketCap: "91040",
+        fdv: 91_040,
+        priceChange: { h24: -7.09 },
+      },
+      {
+        ...fixturePairs[1]!,
+        marketCap: 1,
+        fdv: 1,
+        priceChange: { h24: 99 },
+      },
+    ]);
+    expect(details[0]?.marketCapUsd).toBe(91_040);
+    expect(details[0]?.fdvUsd).toBe(91_040);
+    expect(details[0]?.priceChange24hPct).toBeCloseTo(-7.09);
+    expect(details[0]?.circulatingSupply).toBeNull();
+    expect(details[0]?.totalSupply).toBeNull();
+    expect(details[0]?.holderCount).toBeNull();
+  });
+
+  it("does not invent cap, fdv, or change when DexScreener omitted them", () => {
+    const { details } = mapDexScreenerPairsToSolanaAssets([
+      {
+        ...fixturePairs[0]!,
+        marketCap: "nope",
+        fdv: -4,
+        priceChange: { h24: "NaN" },
+      },
+    ]);
+    expect(details[0]?.marketCapUsd).toBeNull();
+    expect(details[0]?.fdvUsd).toBeNull();
+    expect(details[0]?.priceChange24hPct).toBeNull();
   });
 
   it("ignores non-positive DexScreener prices when computing the DEX median", () => {

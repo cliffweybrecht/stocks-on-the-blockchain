@@ -49,4 +49,14 @@ describe("geckoTerminalOhlcvPath", () => {
     expect(path).toContain("currency=usd");
     expect(path).toContain("limit=1000");
   });
+
+  it("can ask for hourly USD candles with an explicit limit", () => {
+    const path = geckoTerminalOhlcvPath("8aDaBQkTrS6HVMjyc6EZebgdiaXhLYGriDWKWWp1NpFF", {
+      timeframe: "hour",
+      limit: 24,
+    });
+    expect(path).toContain("/ohlcv/hour");
+    expect(path).toContain("limit=24");
+    expect(path).toContain("currency=usd");
+  });
 });

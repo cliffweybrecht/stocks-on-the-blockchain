@@ -68,6 +68,9 @@ export function dexScreenerTokenUrl(chainId: string, mint: string): string | nul
   return `https://dexscreener.com/solana/${mint}`;
 }
 
+/** Last breadcrumb crumb — ordinary foreground, never yellow / primary / interpretive. */
+export const BREADCRUMB_CURRENT_CLASS = "text-foreground";
+
 export function assetIdentityMetaParts(input: {
   instrumentKind: InstrumentKind;
   symbol: string;

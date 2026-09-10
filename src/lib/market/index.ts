@@ -8,3 +8,4 @@ export * from "./types";
 export * from "./trust";
 export * from "./format";
 export { EQUITY_VOLUME_HISTORY_DEFINITION, emptyEquityVolumeHistory } from "./volume-history";
+export { emptyAssetPriceHistory } from "./asset-price-history";

@@ -93,6 +93,34 @@ export function formatChartTick(unixSeconds: number): string {
   });
 }
 
+export function formatChartDay(unixSeconds: number): string {
+  if (!Number.isFinite(unixSeconds)) return "";
+  return new Date(unixSeconds * 1000).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+export function formatChartClock(unixSeconds: number): string {
+  if (!Number.isFinite(unixSeconds)) return "";
+  return new Date(unixSeconds * 1000).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "UTC",
+  });
+}
+
+/** Token units as reported. Never derived from USD / price. */
+export function formatTokenAmount(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  const abs = Math.abs(value);
+  if (abs >= 1_000) {
+    return new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 }).format(value);
+  }
+  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(value);
+}
+
 export function volumeShare(value: number | null, max: number | null): number {
   if (value === null || max === null || max <= 0) return 0;
   return Math.max(0, Math.min(100, (value / max) * 100));
