@@ -3,7 +3,6 @@ import { ExternalLink } from "lucide-react";
 import { AssetLogo } from "@/components/asset-logo";
 import { AssetPin } from "@/components/asset-pin";
 import { CopyAddress } from "@/components/copy-address";
-import { CoverageBadge } from "@/components/coverage-badge";
 import { Badge } from "@/components/ui/badge";
 import { assetIdentityMetaParts, BREADCRUMB_CURRENT_CLASS, dexScreenerTokenUrl, sourceRowLabel } from "@/lib/desk/asset-identity";
 import type { AssetDetail, ChainVolume } from "@/lib/market/types";
@@ -64,7 +63,6 @@ export function AssetIdentityHeader({
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <h2 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">{asset.name}</h2>
             {showPin ? <AssetPin mint={asset.contractAddress} label={asset.symbol} /> : null}
-            <CoverageBadge coverage={asset.volumeCoverage} />
             {asset.issuer ? (
               <Badge variant="outline" className="border-border/80 text-muted-foreground">
                 {asset.issuer}
