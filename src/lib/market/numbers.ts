@@ -35,6 +35,19 @@ export function asNonEmptyString(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+/** Accept only http(s) URLs. Never invent or pass through javascript:/data: schemes. */
+export function asHttpUrl(value: unknown): string | null {
+  const raw = asNonEmptyString(value);
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    return url.href;
+  } catch {
+    return null;
+  }
+}
+
 export function compareNullableDesc(a: number | null, b: number | null): number {
   if (a === null && b === null) return 0;
   if (a === null) return 1;
