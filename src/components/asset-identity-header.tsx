@@ -1,0 +1,98 @@
+import Link from "next/link";
+import { ExternalLink } from "lucide-react";
+import { AssetLogo } from "@/components/asset-logo";
+import { AssetPin } from "@/components/asset-pin";
+import { CopyAddress } from "@/components/copy-address";
+import { CoverageBadge } from "@/components/coverage-badge";
+import { Badge } from "@/components/ui/badge";
+import { assetIdentityMetaParts, dexScreenerTokenUrl, sourceRowLabel } from "@/lib/desk/asset-identity";
+import type { AssetDetail, ChainVolume } from "@/lib/market/types";
+
+export function AssetIdentityHeader({
+  chain,
+  asset,
+  showPin = false,
+  description,
+}: {
+  chain: Pick<ChainVolume, "id" | "name">;
+  asset: AssetDetail;
+  showPin?: boolean;
+  /** Rendered only when a source already supplied a real blurb. Never fabricated. */
+  description?: string | null;
+}) {
+  const halt = asset.price.isTradingHalt;
+  const meta = assetIdentityMetaParts(asset);
+  const screenerUrl =
+    asset.sourceId === "solana" ? dexScreenerTokenUrl(chain.id, asset.contractAddress) : null;
+  const blurb = description?.trim() || null;
+
+  return (
+    <header className="space-y-4">
+      <nav className="text-sm text-muted-foreground">
+        <Link href="/" className="hover:text-foreground">
+          Chains
+        </Link>
+        <span className="px-2">/</span>
+        <Link href={`/chains/${chain.id}`} className="hover:text-foreground">
+          {chain.name}
+        </Link>
+        <span className="px-2">/</span>
+        <span className="text-foreground">{asset.symbol}</span>
+      </nav>
+
+      <div className="flex items-start gap-3 sm:gap-4">
+        <AssetLogo logoUrl={asset.logoUrl} name={asset.name} symbol={asset.symbol} />
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <h2 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">{asset.name}</h2>
+            {showPin ? <AssetPin mint={asset.contractAddress} label={asset.symbol} /> : null}
+            <CoverageBadge coverage={asset.volumeCoverage} />
+            {asset.issuer ? (
+              <Badge variant="outline" className="border-border/80 text-muted-foreground">
+                {asset.issuer}
+              </Badge>
+            ) : null}
+          </div>
+
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+            <span className="tracking-[0.12em] uppercase">{meta.kind}</span>
+            <span aria-hidden="true">•</span>
+            <span className="font-medium text-foreground">{meta.symbol}</span>
+            <span aria-hidden="true">•</span>
+            <CopyAddress address={asset.contractAddress} variant="inline" />
+          </p>
+
+          {blurb ? <p className="max-w-2xl text-sm text-muted-foreground">{blurb}</p> : null}
+
+          <div className="flex flex-wrap items-center gap-2 pt-0.5">
+            <Badge variant="outline" className="text-muted-foreground">
+              {sourceRowLabel(asset.sourceId)}
+            </Badge>
+            {asset.detailEnriched ? (
+              <Badge variant="secondary" className="text-muted-foreground">
+                Enriched detail
+              </Badge>
+            ) : null}
+            {halt ? <Badge variant="destructive">Trading halt reported</Badge> : null}
+            {screenerUrl ? (
+              <a
+                href={screenerUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex h-5 items-center gap-1 rounded-full px-1.5 text-xs text-muted-foreground hover:text-foreground"
+              >
+                DexScreener
+                <ExternalLink className="size-3" />
+              </a>
+            ) : null}
+            {asset.instrumentKind !== "equity" ? (
+              <span className="text-xs text-muted-foreground">
+                {asset.instrumentKind === "etf" ? "ETF / index" : "Private market"}
+              </span>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}

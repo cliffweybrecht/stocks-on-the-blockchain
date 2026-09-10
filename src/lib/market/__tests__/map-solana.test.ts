@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   mapDexScreenerPairsToSolanaAssets,
   mergeUnpairedSolanaAssets,
+  pairTokenLogoUrl,
   unwrapDexScreenerPairs,
   unwrapDexScreenerSearch,
 } from "../map-solana";
@@ -99,6 +100,7 @@ describe("mapDexScreenerPairsToSolanaAssets", () => {
     expect(tsla?.pools[0]?.volume24hUsd).toBeCloseTo(290_596.11);
     expect(tsla?.robinhoodReferencePriceUsd).toBeNull();
     expect(tsla?.sourceId).toBe("solana");
+    expect(tsla?.logoUrl).toBeNull();
 
     const aapl = assets[1];
     expect(aapl?.volume24hUsd).toBeNull();
@@ -269,6 +271,36 @@ describe("mapDexScreenerPairsToSolanaAssets", () => {
       { symbol: "TSLAx", volume24hUsd: 10, displayedLiquidityUsd: 1 },
     ]);
     expect(ranked.map((row) => row.symbol)).toEqual(["TSLAx", "AAPLx", "MSFTx"]);
+  });
+
+  it("keeps a real DexScreener base-token imageUrl and ignores invented or quote-side URLs", () => {
+    const logo = "https://dd.dexscreener.com/ds-data/tokens/solana/tsla.png";
+    expect(pairTokenLogoUrl({ info: { imageUrl: logo }, baseToken: { address: tslaMint } }, tslaMint)).toBe(logo);
+    expect(pairTokenLogoUrl({ info: { imageUrl: logo }, baseToken: { address: tslaMint } }, otherTeslaMint)).toBeNull();
+    expect(
+      pairTokenLogoUrl({ info: { imageUrl: "javascript:alert(1)" }, baseToken: { address: tslaMint } }, tslaMint),
+    ).toBeNull();
+
+    const { assets } = mapDexScreenerPairsToSolanaAssets([
+      {
+        ...fixturePairs[0]!,
+        info: { imageUrl: logo },
+      },
+      {
+        chainId: "solana",
+        dexId: "raydium",
+        pairAddress: "pair-other-tesla",
+        baseToken: { address: otherTeslaMint, name: "Tesla Tokenized Stock", symbol: "TSLA" },
+        quoteToken: { address: tslaMint, name: "Tesla xStock", symbol: "TSLAx" },
+        info: { imageUrl: "https://example.com/other-tesla.png" },
+        volume: { h24: 1 },
+        liquidity: { usd: 1 },
+      },
+    ]);
+    expect(assets.find((asset) => asset.contractAddress === tslaMint)?.logoUrl).toBe(logo);
+    expect(assets.find((asset) => asset.contractAddress === otherTeslaMint)?.logoUrl).toBe(
+      "https://example.com/other-tesla.png",
+    );
   });
 
   it("keeps classified registry mints with no DexScreener pools as null-volume rows", () => {

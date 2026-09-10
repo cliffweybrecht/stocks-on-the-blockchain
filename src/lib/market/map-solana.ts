@@ -1,5 +1,5 @@
 import { rollupChainFromAssets, sortByVolumeThenLiquidity } from "./aggregate";
-import { asFiniteNumber, asNonEmptyString, compareNullableDesc, sumNullable } from "./numbers";
+import { asFiniteNumber, asHttpUrl, asNonEmptyString, compareNullableDesc, sumNullable } from "./numbers";
 import { classifyTokenizedInstrument, tokenIdentityFromFields } from "./solana-classifier";
 import type { DiscoveredEquityMint } from "./solana-discover";
 import { SOLANA_SOURCE_LABEL, SOLANA_SOURCE_NOTE } from "./trust";
@@ -24,10 +24,19 @@ export interface DexScreenerPair {
   labels?: unknown;
   baseToken?: { address?: unknown; name?: unknown; symbol?: unknown; labels?: unknown };
   quoteToken?: { address?: unknown; name?: unknown; symbol?: unknown; labels?: unknown };
+  info?: { imageUrl?: unknown };
   priceUsd?: unknown;
   volume?: { h24?: unknown };
   liquidity?: { usd?: unknown };
   txns?: { h24?: { buys?: unknown; sells?: unknown } };
+}
+
+/** DexScreener `info.imageUrl` is the displayed (usually base) token. Quote sides do not inherit it. */
+export function pairTokenLogoUrl(pair: DexScreenerPair, tokenAddress: string): string | null {
+  const imageUrl = asHttpUrl(pair.info?.imageUrl);
+  if (!imageUrl) return null;
+  const base = asNonEmptyString(pair.baseToken?.address);
+  return base === tokenAddress ? imageUrl : null;
 }
 
 export function unwrapDexScreenerPairs(payload: unknown): DexScreenerPair[] {
@@ -96,6 +105,7 @@ interface MintAccumulator {
   name: string;
   address: string;
   issuer: string | null;
+  logoUrl: string | null;
   kind: InstrumentKind;
   volumes: number[];
   liquidities: number[];
@@ -114,6 +124,7 @@ function emptyAccumulator(side: NonNullable<ReturnType<typeof classifiedSide>>):
     name: side.name,
     address: side.address,
     issuer: side.issuer,
+    logoUrl: null,
     kind: side.kind,
     volumes: [],
     liquidities: [],
@@ -127,7 +138,11 @@ function emptyAccumulator(side: NonNullable<ReturnType<typeof classifiedSide>>):
   };
 }
 
-function addPairToBucket(bucket: MintAccumulator, pair: DexScreenerPair) {
+function addPairToBucket(bucket: MintAccumulator, pair: DexScreenerPair, tokenAddress: string) {
+  if (!bucket.logoUrl) {
+    const logoUrl = pairTokenLogoUrl(pair, tokenAddress);
+    if (logoUrl) bucket.logoUrl = logoUrl;
+  }
   const pairAddress = asNonEmptyString(pair.pairAddress);
   if (pairAddress && bucket.pairAddresses.has(pairAddress)) return;
   if (pairAddress) bucket.pairAddresses.add(pairAddress);
@@ -185,7 +200,7 @@ export function mapDexScreenerPairsToSolanaAssets(
     for (const side of sides) {
       const bucket = byMint.get(side.address) ?? emptyAccumulator(side);
       if (!bucket.issuer && side.issuer) bucket.issuer = side.issuer;
-      addPairToBucket(bucket, pair);
+      addPairToBucket(bucket, pair, side.address);
       byMint.set(side.address, bucket);
     }
   }
@@ -227,7 +242,7 @@ export function mapDexScreenerPairsToSolanaAssets(
       name: bucket.name,
       contractAddress: bucket.address,
       issuer: bucket.issuer,
-      logoUrl: null,
+      logoUrl: bucket.logoUrl,
       volume24hUsd,
       displayedLiquidityUsd,
       usdGLiquidityUsd: null,

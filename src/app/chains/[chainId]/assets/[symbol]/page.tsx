@@ -1,14 +1,11 @@
-import Link from "next/link";
-import { AssetPin } from "@/components/asset-pin";
+import { AssetIdentityHeader } from "@/components/asset-identity-header";
 import { CopyAddress } from "@/components/copy-address";
-import { CoverageBadge } from "@/components/coverage-badge";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { Metric } from "@/components/metric";
 import { PageShell } from "@/components/page-shell";
 import { ProvenanceBar } from "@/components/provenance-bar";
 import { TrustBanner } from "@/components/trust-banner";
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -63,7 +60,6 @@ export default async function AssetPage({
   }
 
   const { chain, asset, provenance } = result;
-  const halt = asset.price.isTradingHalt;
   const isSolana = chain.id === SOLANA_CHAIN_ID;
   const rankedPools = sortPoolsByVolume(asset.pools);
   const poolTotals = poolAggregateTotals(rankedPools);
@@ -79,47 +75,8 @@ export default async function AssetPage({
         priceTicker={selectEquityPriceTicker(catalog?.assets ?? (asset.instrumentKind === "equity" ? [asset] : []))}
       >
         <div className="space-y-5">
-          <nav className="text-sm text-muted-foreground">
-            <Link href="/" className="hover:text-foreground">
-              Chains
-            </Link>
-            <span className="px-2">/</span>
-            <Link href={`/chains/${chain.id}`} className="hover:text-foreground">
-              {chain.name}
-            </Link>
-            <span className="px-2">/</span>
-            <span className="text-foreground">{asset.symbol}</span>
-          </nav>
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0 space-y-2">
-              <p className="text-xs tracking-[0.18em] text-primary uppercase">{chain.name}</p>
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="font-heading text-3xl font-semibold tracking-tight">{asset.symbol}</h2>
-                {isSolana ? <AssetPin mint={asset.contractAddress} label={asset.symbol} /> : null}
-                <CoverageBadge coverage={asset.volumeCoverage} />
-              </div>
-              <p className="text-muted-foreground">{asset.name}</p>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                {asset.issuer ? <span>Issuer · {asset.issuer}</span> : null}
-                {asset.instrumentKind === "etf" ? <span>ETF / index</span> : null}
-                {asset.instrumentKind === "private" ? <span>Private market</span> : null}
-              </div>
-              {isSolana ? <CopyAddress address={asset.contractAddress} compact /> : null}
-              {asset.coverageNote ? <p className="max-w-2xl text-sm text-muted-foreground">{asset.coverageNote}</p> : null}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="outline">
-                {asset.sourceId === "mock"
-                  ? "Demo row"
-                  : asset.sourceId === "solana"
-                    ? "DexScreener row"
-                    : "Terminal row"}
-              </Badge>
-              {asset.detailEnriched ? <Badge variant="secondary">Enriched detail</Badge> : null}
-              {halt ? <Badge variant="destructive">Trading halt reported</Badge> : null}
-            </div>
-          </div>
+          <AssetIdentityHeader chain={chain} asset={asset} showPin={isSolana} />
+          {asset.coverageNote ? <p className="max-w-2xl text-sm text-muted-foreground">{asset.coverageNote}</p> : null}
 
           {isSolana ? null : <TrustBanner />}
           <ProvenanceBar provenance={provenance} compact={isSolana} />
