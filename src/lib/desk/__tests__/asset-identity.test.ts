@@ -3,6 +3,7 @@ import {
   assetIdentityMetaParts,
   assetMonogram,
   BREADCRUMB_CURRENT_CLASS,
+  dexScreenerPairUrl,
   dexScreenerTokenUrl,
   instrumentKindMetaLabel,
   isHttpLogoUrl,
@@ -81,5 +82,17 @@ describe("logo and DexScreener URLs", () => {
     expect(dexScreenerTokenUrl("solana", "Mint111")).toBe("https://dexscreener.com/solana/Mint111");
     expect(dexScreenerTokenUrl("robinhood-chain", "0xabc")).toBeNull();
     expect(dexScreenerTokenUrl("solana", "")).toBeNull();
+  });
+
+  it("prefers a reported pair URL and otherwise builds a Solana pair href", () => {
+    expect(dexScreenerPairUrl("solana", "pair-nke", "https://dexscreener.com/solana/pair-nke")).toBe(
+      "https://dexscreener.com/solana/pair-nke",
+    );
+    expect(dexScreenerPairUrl("solana", "pair-nke", "javascript:alert(1)")).toBe(
+      "https://dexscreener.com/solana/pair-nke",
+    );
+    expect(dexScreenerPairUrl("solana", "pair-nke")).toBe("https://dexscreener.com/solana/pair-nke");
+    expect(dexScreenerPairUrl("robinhood-chain", "0xabc")).toBeNull();
+    expect(dexScreenerPairUrl("solana", "")).toBeNull();
   });
 });

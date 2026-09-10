@@ -7,19 +7,26 @@ export function AssetLogo({
   logoUrl,
   name,
   symbol,
+  size = "lg",
 }: {
   logoUrl: string | null;
   name: string;
   symbol: string;
+  size?: "sm" | "lg";
 }) {
   const safeUrl = isHttpLogoUrl(logoUrl) ? logoUrl : null;
   const [failed, setFailed] = useState(false);
   const monogram = assetMonogram(name, symbol);
   const showImage = Boolean(safeUrl) && !failed;
+  const box = size === "sm" ? "size-8" : "size-14 sm:size-16";
+  const type = size === "sm" ? "text-[10px] font-semibold" : "text-sm font-semibold sm:text-base";
+  const ring = size === "sm" ? "ring-2 ring-card" : "ring-1 ring-border";
 
   return (
-    <div className="relative size-14 shrink-0 sm:size-16" aria-hidden={showImage ? undefined : true}>
-      <div className="flex size-full items-center justify-center rounded-full bg-muted text-sm font-semibold tracking-wide text-foreground ring-1 ring-border sm:text-base">
+    <div className={`relative shrink-0 ${box}`} aria-hidden={showImage ? undefined : true}>
+      <div
+        className={`flex size-full items-center justify-center rounded-full bg-muted tracking-wide text-foreground ${type} ${ring}`}
+      >
         {monogram}
       </div>
       {showImage && safeUrl ? (
@@ -28,7 +35,7 @@ export function AssetLogo({
         <img
           src={safeUrl}
           alt=""
-          className="absolute inset-0 size-full rounded-full bg-card object-cover ring-1 ring-border"
+          className={`absolute inset-0 size-full rounded-full bg-card object-cover ${ring}`}
           onError={() => setFailed(true)}
         />
       ) : null}

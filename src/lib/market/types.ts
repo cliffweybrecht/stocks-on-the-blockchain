@@ -70,6 +70,24 @@ export interface AssetPoolMark {
   volume24hUsd: number | null;
   liquidityUsd: number | null;
   priceUsd: number | null;
+  /** DexScreener base token symbol when reported. */
+  baseSymbol?: string | null;
+  quoteSymbol?: string | null;
+  baseName?: string | null;
+  quoteName?: string | null;
+  baseAddress?: string | null;
+  quoteAddress?: string | null;
+  /** Real http(s) logo only. Quote sides do not inherit the pair imageUrl. */
+  baseLogoUrl?: string | null;
+  quoteLogoUrl?: string | null;
+  /** DexScreener pair `url` when reported, else a constructed Solana pair href. */
+  url?: string | null;
+  /** buys + sells when DexScreener reported both `txns.h24` sides. */
+  trades24h?: number | null;
+  /** Unique wallets are not on the DexScreener pair payload we fetch. */
+  wallets24h?: number | null;
+  tradesChange24hPct?: number | null;
+  walletsChange24hPct?: number | null;
 }
 
 export interface AssetSummary {
