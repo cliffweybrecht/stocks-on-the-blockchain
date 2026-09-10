@@ -65,11 +65,11 @@ export function CopyAddress({
           type="button"
           onClick={onCopy}
           onPointerUp={onCopy}
-          className="inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-xs hover:bg-muted hover:text-foreground"
-          aria-label={copied ? "Copied contract address" : `Copy contract address ${formatAddress(address)}`}
+          className="inline-flex size-6 items-center justify-center rounded-md hover:bg-muted hover:text-foreground"
+          title={copied ? "Copied" : "Copy mint"}
+          aria-label={copied ? "Copied mint" : "Copy mint"}
         >
           {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-          <span>{label}</span>
         </button>
       </span>
     );
