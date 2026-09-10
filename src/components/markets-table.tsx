@@ -84,7 +84,7 @@ export function MarketsTable({
     <section className="space-y-3" data-markets>
       <h3 className="font-heading text-lg font-medium">Markets</h3>
       <div className="rounded-2xl bg-card/90 px-1 py-2 sm:px-3 sm:py-3">
-        <Table>
+        <Table className="min-w-[52rem]">
           <TableHeader className="[&_tr]:border-0">
             <TableRow className="border-0 hover:bg-transparent">
               <TableHead className="w-10 font-normal text-muted-foreground">#</TableHead>
