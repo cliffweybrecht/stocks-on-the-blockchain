@@ -122,6 +122,16 @@ describe("discovery filters", () => {
         name: "The Boeing Company - Backpack Securities",
       },
       {
+        address: "BMKdM4yUxX12moFqVk195k7coMbaybd4RUKCUdm7D1Sk",
+        symbol: "IBM",
+        name: "International Business Machines - Backpack Securities",
+      },
+      {
+        address: "SNAPcESrvnH8yUdgeMF6xm1hym9b6hW6s8YeqeHdZFz",
+        symbol: "SNAP",
+        name: "Snap - Backpack Securities",
+      },
+      {
         address: "TSPXcLV76s6V2zDiZQ18kBfcbnjaE2ZzNT3ga2Pd99v",
         symbol: "tSpaceX",
         name: "T-SpaceX",
@@ -137,7 +147,7 @@ describe("discovery filters", () => {
         name: "SpaceX - Backpack Securities",
       },
     ]);
-    expect(selected.equities.map((row) => row.symbol)).toEqual(["MU", "NKE", "SHOP", "BA"]);
+    expect(selected.equities.map((row) => row.symbol)).toEqual(["MU", "NKE", "SHOP", "BA", "IBM", "SNAP"]);
     expect(selected.privates.map((row) => row.symbol)).toEqual(["tSpaceX", "SPCX"]);
     expect(selected.etfs.map((row) => row.symbol)).toEqual(["DRAM"]);
   });

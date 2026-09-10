@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_SOLANA_DISCOVERY_QUERIES } from "../solana-discover";
+import { BACKPACK_SUNRISE_BATCH_TICKERS, DEFAULT_SOLANA_DISCOVERY_QUERIES } from "../solana-discover";
 import { SolanaMarketDataSource, type SolanaMarketDataSourceOptions } from "../solana-source";
 
 const tslaMint = "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB";
@@ -306,10 +306,22 @@ describe("SolanaMarketDataSource", () => {
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("OpenAI PreStocks");
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("SpaceX xStock");
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("Backpack Securities");
+    for (const ticker of BACKPACK_SUNRISE_BATCH_TICKERS) {
+      expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain(`${ticker} - Backpack Securities`);
+    }
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("Nike - Backpack Securities");
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("Shopify - Backpack Securities");
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("Hertz - Backpack Securities");
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("AMC Entertainment - Backpack Securities");
+    expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("DJT - Backpack Securities");
+    expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("LULU - Backpack Securities");
+    expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("MGM - Backpack Securities");
+    expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("SNAP - Backpack Securities");
+    expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("IBM - Backpack Securities");
+    expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("Trump Media - Backpack Securities");
+    expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("lululemon - Backpack Securities");
+    expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("MGM Resorts - Backpack Securities");
+    expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("Snap - Backpack Securities");
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("T-SpaceX");
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("tKalshi");
   });
