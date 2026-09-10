@@ -6,7 +6,6 @@ import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { Metric } from "@/components/metric";
 import { PageShell } from "@/components/page-shell";
-import { ProvenanceBar } from "@/components/provenance-bar";
 import { TrustBanner } from "@/components/trust-banner";
 import {
   Table,
@@ -95,10 +94,8 @@ export default async function AssetPage({
             history={priceHistory}
           />
           <AssetStatsCard asset={asset} />
-          {asset.coverageNote ? <p className="max-w-2xl text-sm text-muted-foreground">{asset.coverageNote}</p> : null}
 
           {isSolana ? null : <TrustBanner />}
-          <ProvenanceBar provenance={provenance} compact={isSolana} />
 
           {!isSolana ? (
             <>
