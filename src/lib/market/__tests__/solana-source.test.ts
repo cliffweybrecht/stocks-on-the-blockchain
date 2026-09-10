@@ -22,6 +22,7 @@ function testSource(options: SolanaMarketDataSourceOptions) {
     enableRegistry: false,
     enableOndoRegistry: false,
     enableTesseraRegistry: false,
+    enableSunriseRegistry: false,
     enableGeckoTerminal: false,
     backgroundEnrichment: false,
     ...options,
@@ -305,6 +306,10 @@ describe("SolanaMarketDataSource", () => {
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("OpenAI PreStocks");
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("SpaceX xStock");
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("Backpack Securities");
+    expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("Nike - Backpack Securities");
+    expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("Shopify - Backpack Securities");
+    expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("Hertz - Backpack Securities");
+    expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("AMC Entertainment - Backpack Securities");
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("T-SpaceX");
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("tKalshi");
   });
@@ -408,6 +413,84 @@ describe("SolanaMarketDataSource", () => {
     expect(chain?.privateAssets?.map((asset) => asset.symbol)).toEqual(["tSpaceX"]);
     expect(chain?.privateAssets?.[0]?.volume24hUsd).toBe(378_000);
     expect(chain?.privateAssets?.[0]?.issuer).toBe("Tessera");
+  });
+
+  it("admits official Sunrise Backpack names as candidates without using them as an allowlist", async () => {
+    const nkeMint = "NKEda5nHhNGgjrE9nDdMvaEmkmJ96qqxzBVZEcKmjSg";
+    const shopMint = "SH55hfaipFAbwT42nQYhRoM5o5t61QpkmJ6p62vXB3m";
+    const dramMint = "DRAMjSWR7HRfJKjRkvQWYL2bcaejaVhuxEcjf4pAY4Cw";
+    const nkePair = {
+      chainId: "solana",
+      dexId: "raydium",
+      pairAddress: "pair-nke",
+      baseToken: { address: nkeMint, name: "NIKE - Backpack Securities", symbol: "NKE" },
+      quoteToken: { address: "usdc", name: "USDC", symbol: "USDC" },
+      volume: { h24: 2_500_000 },
+      liquidity: { usd: 150_000 },
+    };
+    const source = testSource({
+      requestGapMs: 0,
+      discoveryQueries: ["xStock"],
+      enableRegistry: false,
+      enableSunriseRegistry: true,
+      sunriseRegistryUrl: "https://api.sunrise.xyz",
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("api.sunrise.xyz/v1/tokens")) {
+          return jsonResponse({
+            success: true,
+            data: {
+              tokens: [
+                {
+                  chain: "solana",
+                  address: nkeMint,
+                  symbol: "NKE",
+                  name: "NIKE - Backpack Securities",
+                  assetClass: "stock",
+                  issuer: null,
+                },
+                {
+                  chain: "solana",
+                  address: shopMint,
+                  symbol: "SHOP",
+                  name: "Shopify - Backpack Securities",
+                  assetClass: "stock",
+                  issuer: "backpack_securities",
+                },
+                {
+                  chain: "solana",
+                  address: dramMint,
+                  symbol: "DRAM",
+                  name: "Roundhill Memory ETF - Backpack Securities",
+                  assetClass: "stock",
+                  issuer: "backpack_securities",
+                },
+                {
+                  chain: "solana",
+                  address: "BPxxfRCXkUVhig4HS1Lh7kZqV6SPJhzfEk4x6fVBjPCy",
+                  symbol: "BP",
+                  name: "Backpack",
+                  assetClass: "crypto",
+                  issuer: null,
+                },
+              ],
+              pagination: { nextCursor: null },
+            },
+          });
+        }
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [] });
+        if (url.includes(`/tokens/v1/solana/`) && url.includes(nkeMint)) return jsonResponse([nkePair]);
+        if (url.includes(`/token-pairs/v1/solana/${nkeMint}`)) return jsonResponse([nkePair]);
+        if (url.includes("/tokens/v1/solana/")) return jsonResponse([]);
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    const chain = await source.getChain("solana");
+    expect(chain?.assets.map((asset) => asset.symbol).sort()).toEqual(["NKE", "SHOP"]);
+    expect(chain?.assets.find((asset) => asset.symbol === "NKE")?.volume24hUsd).toBe(2_500_000);
+    expect(chain?.etfAssets?.map((asset) => asset.symbol)).toEqual(["DRAM"]);
+    expect(chain?.assets.find((asset) => asset.symbol === "BP")).toBeUndefined();
   });
 
   it("reuses a cached light snapshot without refetching DexScreener", async () => {

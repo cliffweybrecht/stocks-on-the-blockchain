@@ -442,6 +442,34 @@ describe("classifyTokenizedEquity", () => {
         name: "Intel Cat",
       }),
     ).toMatchObject({ kind: "reject" });
+    expect(
+      classifyTokenizedInstrument({
+        address: "NKEda5nHhNGgjrE9nDdMvaEmkmJ96qqxzBVZEcKmjSg",
+        symbol: "NKE",
+        name: "NIKE - Backpack Securities",
+      }),
+    ).toMatchObject({ kind: "equity", issuer: "Backpack Securities" });
+    expect(
+      classifyTokenizedInstrument({
+        address: "SH55hfaipFAbwT42nQYhRoM5o5t61QpkmJ6p62vXB3m",
+        symbol: "SHOP",
+        name: "Shopify - Backpack Securities",
+      }),
+    ).toMatchObject({ kind: "equity", issuer: "Backpack Securities" });
+    expect(
+      classifyTokenizedInstrument({
+        address: "BArimz1PcKZr8PcPh3tcZ2dg4S7FJLk3cw6R5F8GsHKg",
+        symbol: "BA",
+        name: "The Boeing Company - Backpack Securities",
+      }),
+    ).toMatchObject({ kind: "equity", issuer: "Backpack Securities" });
+    expect(
+      classifyTokenizedInstrument({
+        address: "CopycatNikeBackpack1111111111111111111pump",
+        symbol: "NKE",
+        name: "NIKE - Backpack Securities",
+      }),
+    ).toMatchObject({ kind: "reject", reason: "pump-fun copycat" });
   });
 
   it("fails closed on private-name memes and copycat PreStocks brands", () => {
