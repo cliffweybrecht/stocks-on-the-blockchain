@@ -98,7 +98,7 @@ export function pointerToSvgX(
 
 export function volumeHeadlineCopy(point: VolumeHistoryPoint): { caption: string; isRolling24h: boolean } {
   if (point.kind === "rolling_24h") {
-    return { caption: "24h · same DexScreener equity rollup as the desk", isRolling24h: true };
+    return { caption: "24h · DexScreener snapshot", isRolling24h: true };
   }
   return { caption: `Calendar day · ${formatChartDate(point.t)}`, isRolling24h: false };
 }
@@ -116,13 +116,13 @@ export function deskVolumeHeadline(input: {
     if (input.hover.kind === "rolling_24h") {
       return {
         volumeUsd: input.hover.volumeUsd,
-        caption: "24h · public equity chart point · headline is public + private + ETF/index",
+        caption: "24h · DexScreener snapshot · public + private + ETF/index",
         kind: "rolling_24h",
       };
     }
     return {
       volumeUsd: input.hover.volumeUsd,
-      caption: `Calendar day · ${formatChartDate(input.hover.t)} · public history (headline universe is broader)`,
+      caption: `Calendar day · ${formatChartDate(input.hover.t)} · DexScreener snapshot`,
       kind: "calendar_day",
     };
   }

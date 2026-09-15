@@ -412,7 +412,7 @@ export function solanaChainMeta(): Omit<
     privateVolume24hUsd: null,
     volumeAggregation: "all-pools",
     coverageNote:
-      "Tokenized public equities discovered from the live xStocks public registry, the public Ondo GM mint list, the public Tessera T-Token mint list, the public Sunrise token list, DexScreener search, and public GeckoTerminal search, then classified fail-closed. Volume is the sum of DexScreener pair volume.h24 across every Solana pool for that mint. GeckoTerminal is not a 24h supplement. Tessera V prop-AMM has no per-mint public volume feed and is not invented. Coverage is as discoverable from those live sources + the classifier, not a full Solana indexer. Most classified mints have no DexScreener pools — that is an index ceiling, not zero volume. Missing pair metrics stay missing — a dash is not zero. ETF/index and private-market / PreStocks / Tessera T-Token 24h are labeled on the Solana card and added to the Daily Volume headline; they are not mixed into public-equity ranking or the Gecko chart series. The ETF / index lane stays available for drilling into those names.",
+      "Tokenized public equities discovered from the live xStocks public registry, the public Ondo GM mint list, the public Tessera T-Token mint list, the public Sunrise token list, DexScreener search, and public GeckoTerminal search, then classified fail-closed. Volume is the sum of DexScreener pair volume.h24 across every Solana pool for that mint. GeckoTerminal is not a 24h supplement. Tessera V prop-AMM has no per-mint public volume feed and is not invented. Coverage is as discoverable from those live sources + the classifier, not a full Solana indexer. Most classified mints have no DexScreener pools — that is an index ceiling, not zero volume. Missing pair metrics stay missing — a dash is not zero. ETF/index and private-market / PreStocks / Tessera T-Token 24h are labeled on the Solana card and added to the Daily Volume headline and DexScreener snapshot history; they are not mixed into public-equity ranking. The ETF / index lane stays available for drilling into those names.",
   };
 }
 
@@ -584,10 +584,10 @@ export function buildSolanaSnapshot(input: {
       ? "Home rollup uses DexScreener primary-pair volume per mint; the chain page aggregates every Solana pool."
       : "Chain ranking uses aggregate volume across every returned Solana pool for that mint.") +
     (etfs.assets.length > 0
-      ? ` ${etfs.assets.length} ETF/index products are listed in a separate lane; their 24h rollup is labeled on the Solana card and added to the Daily Volume headline, not mixed into public-equity ranking or the Gecko chart series.`
+      ? ` ${etfs.assets.length} ETF/index products are listed in a separate lane; their 24h rollup is labeled on the Solana card and added to the Daily Volume headline and DexScreener snapshot history, not mixed into public-equity ranking.`
       : "") +
     (privates.assets.length > 0
-      ? ` ${privates.assets.length} private-market / PreStocks names are listed separately; their 24h rollup is labeled on the Solana card and added to the Daily Volume headline, not mixed into public-equity ranking or the Gecko chart series.`
+      ? ` ${privates.assets.length} private-market / PreStocks names are listed separately; their 24h rollup is labeled on the Solana card and added to the Daily Volume headline and DexScreener snapshot history, not mixed into public-equity ranking.`
       : "");
 
   return {

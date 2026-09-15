@@ -3,11 +3,11 @@ import type { AssetSummary, EquityVolumeHistoryResult, VolumeHistoryPoint } from
 
 export const UTC_DAY_SECONDS = 86_400;
 
-/** Historical days: GeckoTerminal. Latest point / headline: DexScreener 24h when reported. */
+/** Historical days + latest tip: desk DexScreener 24h snapshots. GeckoTerminal is not this series. */
 export const EQUITY_VOLUME_HISTORY_DEFINITION =
-  "Historical days are per-day GeckoTerminal USD volume across classified Solana public-equity pools (same-day candles summed). Missing calendar days are plotted as $0 (no candle / no activity), never as invented nonzero volume. The latest chart point uses the DexScreener 24h public-equity rollup (rolling 24h, not a UTC calendar day) when that rollup is reported. The page headline adds reported private-market and ETF/index 24h (null omitted, not zero). The headline universe is broader than this public-equity chart series.";
+  "History is this desk’s DexScreener 24h snapshots (public + private + ETF/index, null omitted not $0). Days before snapshots began have no series — past DexScreener totals are not invented from GeckoTerminal. Today’s point is the live DexScreener desk 24h when reported.";
 
-export const EQUITY_VOLUME_HISTORY_SOURCE_LABEL = "GeckoTerminal pool OHLCV (USD) + DexScreener 24h";
+export const EQUITY_VOLUME_HISTORY_SOURCE_LABEL = "Desk DexScreener 24h snapshots";
 
 export interface EquityVolumePoolTarget {
   pairAddress: string;

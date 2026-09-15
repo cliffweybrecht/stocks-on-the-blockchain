@@ -117,7 +117,7 @@ export class TerminalMarketDataSource implements MarketDataSource {
 
   async getEquityVolumeHistory(): Promise<EquityVolumeHistoryResult> {
     return emptyEquityVolumeHistory(
-      "Robinhood Terminal has no Solana equity pool history. This series is GeckoTerminal OHLCV for classified Solana public equities only.",
+      "Robinhood Terminal has no Solana desk snapshots. This series is DexScreener 24h history for classified Solana stocks only.",
     );
   }
 

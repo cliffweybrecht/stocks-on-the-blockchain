@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Desk DexScreener 24h snapshots written at runtime
+/data/volume-snapshots/*.json

@@ -16,9 +16,10 @@ import {
   VOLUME_CHART_WIDTH,
   type VolumeChartRangeId,
 } from "@/lib/market/daily-volume-view";
+import { combinedPublicPrivateVolume24h } from "@/lib/market/aggregate";
 import { formatUsdCompact, formatUsdFull } from "@/lib/market/format";
 import type { EquityVolumeHistoryResult, VolumeHistoryPoint } from "@/lib/market/types";
-import { alignLatestDayWithDesk24h } from "@/lib/market/volume-history";
+import { overlayLiveDesk24h } from "@/lib/market/volume-snapshots";
 
 function areaPath(
   points: readonly VolumeHistoryPoint[],
@@ -60,8 +61,13 @@ export function DailyVolumeChart({
     const parsedGeneratedAt = Date.parse(history.generatedAt);
     const fallbackT = history.points[history.points.length - 1]?.t ?? 0;
     const nowT = Number.isFinite(parsedGeneratedAt) ? parsedGeneratedAt / 1000 : fallbackT;
-    return alignLatestDayWithDesk24h(history.points, publicVolume24hUsd ?? null, nowT);
-  }, [history.generatedAt, history.points, publicVolume24hUsd]);
+    const liveCombined = combinedPublicPrivateVolume24h(
+      publicVolume24hUsd ?? null,
+      privateVolume24hUsd,
+      etfVolume24hUsd,
+    );
+    return overlayLiveDesk24h(history.points, liveCombined, nowT);
+  }, [etfVolume24hUsd, history.generatedAt, history.points, privateVolume24hUsd, publicVolume24hUsd]);
 
   const visible = useMemo(() => filterVolumeRange(points, range), [points, range]);
   const map = useMemo(() => scaleVolumePoints(visible), [visible]);
@@ -161,7 +167,7 @@ export function DailyVolumeChart({
             preserveAspectRatio="none"
             className="pointer-events-none h-[240px] w-full touch-none sm:h-[280px]"
             role="img"
-            aria-label="Daily Solana tokenized public-equity volume. Headline is public plus private plus ETF/index 24h."
+            aria-label="Daily Solana tokenized stock volume from desk DexScreener 24h snapshots. Headline is public plus private plus ETF/index 24h."
           >
             <defs>
               <linearGradient id="volume-area" x1="0" x2="0" y1="0" y2="1">
@@ -248,6 +254,11 @@ export function DailyVolumeChart({
           </p>
         </div>
       )}
+      {hasSeries ? (
+        <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+          History from desk DexScreener snapshots. Days before snapshots began have no series.
+        </p>
+      ) : null}
     </section>
   );
 }
