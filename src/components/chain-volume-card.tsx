@@ -20,7 +20,7 @@ export function ChainVolumeCard({
   return (
     <Link href={`/chains/${chain.id}`} prefetch className="block rounded-xl focus-visible:ring-2 focus-visible:ring-ring">
       <Card size="sm" className="transition-colors hover:bg-accent/40">
-        <CardHeader className="flex-row items-center justify-between gap-2">
+        <CardHeader className="flex flex-row items-center justify-between gap-2">
           <div className="min-w-0">
             <p className="num text-[10px] leading-none text-muted-foreground">#{rank}</p>
             <CardTitle className="mt-0.5 text-base">{chain.name}</CardTitle>
