@@ -22,6 +22,7 @@ const integer = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 
 export function formatUsdCompact(value: number | null | undefined): string {
   if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  if (value === 0) return "$0";
   return compactUsd.format(value);
 }
 
