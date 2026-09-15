@@ -15,7 +15,7 @@ import {
 } from "@/lib/desk/issuer-filter";
 import { toPinCompareAsset } from "@/lib/desk/pin-compare";
 import { parseDeskLane } from "@/lib/desk/desk-lane";
-import { parsePinnedFilter, solanaChainHref } from "@/lib/desk/solana-chain-href";
+import { parsePinnedFilter } from "@/lib/desk/solana-chain-href";
 import { selectEquityPriceTicker } from "@/lib/desk/price-ticker";
 import { chainCombinedVolume24h, parseAssetSortKey, sortAssets } from "@/lib/market/aggregate";
 import { toJumpAsset } from "@/lib/market/asset-search";
@@ -108,52 +108,6 @@ export default async function ChainPage({
             privateVolume24hUsd={chain.privateVolume24hUsd}
             etfVolume24hUsd={chain.etfVolume24hUsd}
           />
-        ) : null}
-        {isSolana && chain.etfCount > 0 ? (
-          <p className="rounded-xl border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">ETF/index 24h</span>
-            {" · "}
-            {formatUsdCompact(chain.etfVolume24hUsd)} across {formatCount(chain.etfCount)} classified names.
-            Included in the Daily Volume headline with public and private 24h; chart history stays public.
-            Null is unknown, not $0.{" "}
-            <Link
-              href={solanaChainHref({
-                chainId: chain.id,
-                lane: "etf",
-                coverage: coverageFilter,
-                defaultCoverage,
-                sortKey,
-                pinned: pinnedOnly,
-                issuer: issuerFilter,
-              })}
-              className="text-primary hover:underline"
-            >
-              Open ETF / index lane
-            </Link>
-          </p>
-        ) : null}
-        {isSolana && chain.privateCount > 0 ? (
-          <p className="rounded-xl border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">Private market 24h</span>
-            {" · "}
-            {formatUsdCompact(chain.privateVolume24hUsd)} across {formatCount(chain.privateCount)} classified
-            names. Included in the Daily Volume headline with public and ETF/index 24h; chart history stays
-            public. Null is unknown, not $0.{" "}
-            <Link
-              href={solanaChainHref({
-                chainId: chain.id,
-                lane: "private",
-                coverage: coverageFilter,
-                defaultCoverage,
-                sortKey,
-                pinned: pinnedOnly,
-                issuer: issuerFilter,
-              })}
-              className="text-primary hover:underline"
-            >
-              Open private-market lane
-            </Link>
-          </p>
         ) : null}
         <ProvenanceBar provenance={provenance} compact />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
