@@ -233,6 +233,8 @@ export interface PriceHistoryPoint {
   priceUsd: number;
 }
 
+export type AssetChartMode = "price" | "volume";
+
 export interface AssetPriceHistoryResult {
   available: boolean;
   pairAddress: string | null;
@@ -240,6 +242,9 @@ export interface AssetPriceHistoryResult {
   definition: string;
   daily: PriceHistoryPoint[];
   hourly: PriceHistoryPoint[];
+  /** Same-pool GeckoTerminal OHLCV volume (6th tuple). Missing volume stays missing. */
+  dailyVolume: VolumeHistoryPoint[];
+  hourlyVolume: VolumeHistoryPoint[];
   generatedAt: string;
   emptyReason: string | null;
 }

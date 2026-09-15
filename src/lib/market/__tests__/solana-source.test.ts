@@ -904,6 +904,11 @@ describe("SolanaMarketDataSource", () => {
     expect(history.daily.map((point) => point.priceUsd)).toEqual([100.5, 108]);
     expect(history.hourly).toEqual([{ t: 1_700_086_400, priceUsd: 108.2 }]);
     expect(history.daily.some((point) => point.priceUsd === 9_999)).toBe(false);
+    expect(history.dailyVolume).toEqual([
+      { t: 1_700_000_000, volumeUsd: 9_999 },
+      { t: 1_700_086_400, volumeUsd: 40 },
+    ]);
+    expect(history.hourlyVolume).toEqual([{ t: 1_700_086_400, volumeUsd: 12 }]);
     expect(urls.some((url) => url.includes("/ohlcv/day") && url.includes("pair-1"))).toBe(true);
     expect(urls.some((url) => url.includes("/ohlcv/hour") && url.includes("pair-1"))).toBe(true);
   });
@@ -925,6 +930,8 @@ describe("SolanaMarketDataSource", () => {
     expect(history.available).toBe(false);
     expect(history.daily).toEqual([]);
     expect(history.hourly).toEqual([]);
+    expect(history.dailyVolume).toEqual([]);
+    expect(history.hourlyVolume).toEqual([]);
     expect(history.emptyReason).toMatch(/did not return usable USD closes/i);
   });
 });

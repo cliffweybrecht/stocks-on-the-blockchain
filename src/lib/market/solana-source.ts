@@ -53,7 +53,7 @@ import {
 import {
   buildAssetPriceHistory,
   emptyAssetPriceHistory,
-  parseGeckoTerminalPriceOhlcv,
+  parseGeckoTerminalOhlcvSeries,
   selectPrimaryPricePool,
 } from "./asset-price-history";
 import { chainCombinedVolume24h } from "./aggregate";
@@ -1032,6 +1032,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
 
   private async buildAssetPriceHistory(symbol: string): Promise<AssetPriceHistoryResult> {
     let pairAddress: string | null = null;
+    let mint: string | null = null;
     try {
       const snapshot = await this.loadCached("full");
       const asset = findAssetByKey(
@@ -1041,6 +1042,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
       if (!asset) {
         return emptyAssetPriceHistory("That mint is not in this Solana snapshot.");
       }
+      mint = asset.contractAddress;
       pairAddress = selectPrimaryPricePool(asset.pools);
       if (!pairAddress) {
         return emptyAssetPriceHistory(
@@ -1072,17 +1074,22 @@ export class SolanaMarketDataSource implements MarketDataSource {
       ),
     ]);
 
-    const daily =
-      dailySettled.status === "fulfilled" ? parseGeckoTerminalPriceOhlcv(dailySettled.value) : [];
-    const hourly =
-      hourlySettled.status === "fulfilled" ? parseGeckoTerminalPriceOhlcv(hourlySettled.value) : [];
+    const dailySeries =
+      dailySettled.status === "fulfilled" ? parseGeckoTerminalOhlcvSeries(dailySettled.value) : { prices: [], volumes: [] };
+    const hourlySeries =
+      hourlySettled.status === "fulfilled"
+        ? parseGeckoTerminalOhlcvSeries(hourlySettled.value)
+        : { prices: [], volumes: [] };
 
     return buildAssetPriceHistory({
       pairAddress,
-      daily,
-      hourly,
+      daily: dailySeries.prices,
+      hourly: hourlySeries.prices,
+      dailyVolume: dailySeries.volumes,
+      hourlyVolume: hourlySeries.volumes,
+      fallbackDailyVolume: mint ? this.volumeHistoryCache?.result.seriesByMint[mint] : undefined,
       emptyReason:
-        daily.length === 0 && hourly.length === 0
+        dailySeries.prices.length === 0 && hourlySeries.prices.length === 0
           ? "GeckoTerminal did not return usable USD closes for this mint’s primary pool."
           : undefined,
     });

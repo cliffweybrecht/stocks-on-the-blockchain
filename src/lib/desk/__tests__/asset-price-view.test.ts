@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   displayPriceChangePct,
   filterPriceRange,
+  filterVolumeRange,
   priceRangeChangePct,
   scalePricePoints,
+  scaleVolumePoints,
 } from "../asset-price-view";
 import type { AssetPriceHistoryResult, PriceHistoryPoint } from "@/lib/market/types";
 
@@ -17,6 +19,8 @@ function history(partial: Partial<AssetPriceHistoryResult> = {}): AssetPriceHist
     definition: "test",
     daily: [],
     hourly: [],
+    dailyVolume: [],
+    hourlyVolume: [],
     generatedAt: new Date(NOW * 1000).toISOString(),
     emptyReason: null,
     ...partial,
@@ -41,6 +45,25 @@ describe("filterPriceRange", () => {
       NOW - 86_400,
     ]);
     expect(filterPriceRange(series, "30d", NOW)).toEqual(daily);
+  });
+
+  it("filters pool volume independently and does not invent $0 gap days", () => {
+    const series = history({
+      hourlyVolume: [
+        { t: NOW - 2 * 3_600, volumeUsd: 4 },
+        { t: NOW - 3_600, volumeUsd: 0 },
+      ],
+      dailyVolume: [
+        { t: NOW - 10 * 86_400, volumeUsd: 80 },
+        { t: NOW - 86_400, volumeUsd: 12 },
+      ],
+    });
+    expect(filterVolumeRange(series, "24h", NOW)).toEqual([
+      { t: NOW - 2 * 3_600, volumeUsd: 4 },
+      { t: NOW - 3_600, volumeUsd: 0 },
+    ]);
+    expect(filterVolumeRange(series, "7d", NOW)).toEqual([{ t: NOW - 86_400, volumeUsd: 12 }]);
+    expect(filterVolumeRange(history({ dailyVolume: [] }), "30d", NOW)).toEqual([]);
   });
 
   it("does not invent points when the window is empty", () => {
@@ -92,6 +115,17 @@ describe("displayPriceChangePct", () => {
         priceChange24hPct: 0.32,
       }),
     ).toBeNull();
+  });
+});
+
+describe("scaleVolumePoints", () => {
+  it("pins the volume y-axis at $0", () => {
+    const map = scaleVolumePoints([
+      { t: 1, volumeUsd: 20 },
+      { t: 2, volumeUsd: 40 },
+    ]);
+    expect(map.minY).toBe(0);
+    expect(map.y(0)).toBeGreaterThan(map.y(40));
   });
 });
 

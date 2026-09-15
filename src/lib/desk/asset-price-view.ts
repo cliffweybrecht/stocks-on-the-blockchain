@@ -1,5 +1,16 @@
 import { formatChartClock, formatChartDay } from "@/lib/market/format";
-import type { AssetPriceHistoryResult, PriceChartRangeId, PriceHistoryPoint } from "@/lib/market/types";
+import type {
+  AssetChartMode,
+  AssetPriceHistoryResult,
+  PriceChartRangeId,
+  PriceHistoryPoint,
+  VolumeHistoryPoint,
+} from "@/lib/market/types";
+
+export const ASSET_CHART_MODES = [
+  { id: "price", label: "Price" },
+  { id: "volume", label: "Volume" },
+] as const satisfies readonly { id: AssetChartMode; label: string }[];
 
 export const PRICE_CHART_RANGES = [
   { id: "24h", label: "24H", seconds: 24 * 60 * 60, series: "hourly" },
@@ -19,12 +30,16 @@ export const PRICE_CHART_PAD = { top: 16, right: 56, bottom: 28, left: 56 };
 export const PRICE_CHART_INNER_W = PRICE_CHART_WIDTH - PRICE_CHART_PAD.left - PRICE_CHART_PAD.right;
 export const PRICE_CHART_INNER_H = PRICE_CHART_HEIGHT - PRICE_CHART_PAD.top - PRICE_CHART_PAD.bottom;
 
-export function priceHistoryNowT(history: Pick<AssetPriceHistoryResult, "generatedAt" | "daily" | "hourly">): number {
+export function priceHistoryNowT(
+  history: Pick<AssetPriceHistoryResult, "generatedAt" | "daily" | "hourly" | "dailyVolume" | "hourlyVolume">,
+): number {
   const parsed = Date.parse(history.generatedAt);
   if (Number.isFinite(parsed) && parsed > 0) return parsed / 1000;
   const lastDaily = history.daily[history.daily.length - 1]?.t ?? 0;
   const lastHourly = history.hourly[history.hourly.length - 1]?.t ?? 0;
-  return Math.max(lastDaily, lastHourly);
+  const lastDailyVol = history.dailyVolume[history.dailyVolume.length - 1]?.t ?? 0;
+  const lastHourlyVol = history.hourlyVolume[history.hourlyVolume.length - 1]?.t ?? 0;
+  return Math.max(lastDaily, lastHourly, lastDailyVol, lastHourlyVol);
 }
 
 /** Observed closes inside the selected window. Never fills gaps or invents prices. */
@@ -38,6 +53,43 @@ export function filterPriceRange(
   const source = spec.series === "hourly" ? history.hourly : history.daily;
   const cutoff = nowT - spec.seconds;
   return source.filter((point) => point.t >= cutoff && point.t <= nowT);
+}
+
+/** Observed pool USD volume inside the selected window. Never fills gaps or invents $0. */
+export function filterVolumeRange(
+  history: Pick<AssetPriceHistoryResult, "dailyVolume" | "hourlyVolume">,
+  range: PriceChartRangeId,
+  nowT: number,
+): VolumeHistoryPoint[] {
+  const spec = PRICE_CHART_RANGES.find((row) => row.id === range);
+  if (!spec || !Number.isFinite(nowT) || nowT <= 0) return [];
+  const source = spec.series === "hourly" ? history.hourlyVolume : history.dailyVolume;
+  const cutoff = nowT - spec.seconds;
+  return source.filter(
+    (point) =>
+      point.t >= cutoff &&
+      point.t <= nowT &&
+      Number.isFinite(point.volumeUsd) &&
+      point.volumeUsd >= 0,
+  );
+}
+
+/** Volume y-axis starts at $0 so USD volume is not exaggerated. */
+export function scaleVolumePoints(points: readonly VolumeHistoryPoint[]) {
+  const minT = points[0]?.t ?? 0;
+  const maxT = points[points.length - 1]?.t ?? 1;
+  const values = points.map((point) => point.volumeUsd);
+  const rawMax = values.length > 0 ? Math.max(...values, 0) : 1;
+  const maxY = rawMax > 0 ? rawMax * 1.08 : 1;
+  const spanT = Math.max(maxT - minT, 1);
+  return {
+    minT,
+    maxT,
+    minY: 0,
+    maxY,
+    x: (t: number) => PRICE_CHART_PAD.left + ((t - minT) / spanT) * PRICE_CHART_INNER_W,
+    y: (value: number) => PRICE_CHART_PAD.top + PRICE_CHART_INNER_H - (value / maxY) * PRICE_CHART_INNER_H,
+  };
 }
 
 /** First→last observed close in the visible window. Needs two real prices. */
@@ -72,6 +124,24 @@ export function scalePricePoints(points: readonly PriceHistoryPoint[]) {
 }
 
 export type PriceChartScale = ReturnType<typeof scalePricePoints>;
+
+export function nearestVolumePoint(
+  points: readonly VolumeHistoryPoint[],
+  map: PriceChartScale,
+  svgX: number,
+): VolumeHistoryPoint | null {
+  if (points.length === 0) return null;
+  let best = points[0];
+  let bestDist = Number.POSITIVE_INFINITY;
+  for (const point of points) {
+    const dist = Math.abs(map.x(point.t) - svgX);
+    if (dist < bestDist) {
+      best = point;
+      bestDist = dist;
+    }
+  }
+  return best ?? null;
+}
 
 export function nearestPricePoint(
   points: readonly PriceHistoryPoint[],
