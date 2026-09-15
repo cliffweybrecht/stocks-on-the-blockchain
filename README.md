@@ -85,7 +85,7 @@ GeckoTerminal ZeroFi / HumidiFi / Byreal pools exist for some stock mints, but m
 | CoinGecko tokenized-stock / `coins/list` | Not a live candidate source | Public list overlaps xStocks+Ondo; extras had no additional DexScreener pools (and per-coin lookups 429) |
 | Solflare UTL search | Not a live candidate source | Public, but long-tail xStock hits were not DexScreener-indexed; would inflate classified without volume |
 | Dinari / dShares | No | Not a live public Solana source in this adapter |
-| PreStocks / private names | Separate **Private market** tab | Fail-closed (SpaceX, OpenAI, SHEIN, Anduril, …). Not mixed into public ranking or the Gecko chart series. Reported 24h is labeled on the Solana card and added to the Daily Volume headline |
+| PreStocks / private names | Separate **Private market** tab | Fail-closed (SpaceX, OpenAI, SHEIN, Anduril, …). Not mixed into public ranking. Reported 24h is labeled on the Solana card and added to the Daily Volume headline and DexScreener snapshot history |
 | ETF / index xStocks and Ondo ETFs | Separate **ETF / index** tab only | Never mixed into equity ranking |
 
 The registry schema includes `underlying.type` (`Equity` vs `ETF`); live payloads often leave that field null, so name/symbol rules remain the working ETF/commodity filter, and the type is used when present. If discovery or classification yields zero verifiable stocks, the adapter **fails closed** — no invented volume. If the xStocks registry, Ondo list, Tessera docs, or Sunrise list are down, discovery continues from whatever sources still work.
@@ -113,9 +113,8 @@ SOLANA_SUNRISE_REGISTRY_ENABLED=true
 SOLANA_SUNRISE_REGISTRY_URL=https://api.sunrise.xyz
 SOLANA_GECKOTERMINAL_ENABLED=true
 SOLANA_GECKOTERMINAL_BASE_URL=https://api.geckoterminal.com/api/v2
-SOLANA_VOLUME_HISTORY_BUDGET_MS=45000
+SOLANA_VOLUME_SNAPSHOT_DIR=data/volume-snapshots
 SOLANA_VOLUME_HISTORY_CACHE_MS=1800000
-SOLANA_VOLUME_HISTORY_MAX_POOLS=64
 ```
 
 Set `SOLANA_XSTOCKS_REGISTRY_ENABLED=false`, `SOLANA_ONDO_REGISTRY_ENABLED=false`, `SOLANA_TESSERA_REGISTRY_ENABLED=false`, or `SOLANA_SUNRISE_REGISTRY_ENABLED=false` to disable those candidate sources.
@@ -169,7 +168,7 @@ Search queries (probes, not an admission list): `xStock`, `xStocks`, `tokenized 
 
 **Admitted as ETF / index** (separate tab, not the equity ranking) when the same issuer conventions hold and the product is an ETF/index (`SPYx`, `QQQx`, `SPYon`, iShares/Vanguard/VanEck wrappers, leveraged 2x/3x, …).
 
-**Admitted as private market** (separate tab, not the public-equity ranking or Gecko chart series; reported 24h is in the Daily Volume headline) when a private / pre-IPO / PreStocks-style name has a verifiable issuer convention, for example:
+**Admitted as private market** (separate tab, not the public-equity ranking; reported 24h is in the Daily Volume headline and DexScreener snapshot history) when a private / pre-IPO / PreStocks-style name has a verifiable issuer convention, for example:
 
 - `OpenAI PreStocks` / `SpaceX PreStocks` on a `Pre…` mint
 - Private-company xStocks or Ondo wrappers (`SHEINx`, `SPCXx`, `SPCXon`) with the matching mint convention
@@ -201,11 +200,11 @@ Robinhood marks stay null on Solana. Off-Solana pairs are ignored.
 
 | | |
 | --- | --- |
-| **Definition** | Historical days: same-day sum of **GeckoTerminal daily USD volume** (`/networks/solana/pools/{pool}/ohlcv/day?currency=usd`) across Solana pools of **classified public equities**. Latest chart point: the **DexScreener 24h public-equity rollup** (rolling 24h, not a UTC calendar day). Headline / Solana card: **public + private + ETF/index** DexScreener 24h (`sumNullable`; null omitted, not zero) |
-| **Universe** | Same fail-closed classifier as the rest of the desk. Headline and Solana card include **public + private + ETF/index** 24h. Chart series and public ranking stay public-equity only — the headline universe is broader than the chart |
-| **Why two sources** | DexScreener’s public API is snapshot-only (no pair history). Calendar-day GeckoTerminal candles cannot equal a rolling 24h desk total, so the latest point is the desk number on purpose |
-| **Honesty** | Missing calendar days are plotted as **$0** (no candle / no activity). A source-reported `0` is kept. Null DexScreener 24h is never coerced to zero. A 429 / disabled GeckoTerminal / seed adapter with no desk 24h yields an **empty chart**, never invented nonzero points |
-| **Coverage** | Highest-volume classified equity pools with a reported DexScreener 24h first, capped (`SOLANA_VOLUME_HISTORY_MAX_POOLS`, default 64) with concurrency ≤ 2 and ≥ 400ms pacing. The muted line under the chart states how many fetched pools have a series vs classified equity pools in the snapshot |
+| **Definition** | Historical days: this desk’s persisted **DexScreener 24h snapshots** (public + private + ETF/index, `sumNullable`; null omitted, not zero). Latest chart point: the live DexScreener combined 24h when reported (rolling 24h, not a UTC calendar day). Headline / Solana card use the same combined 24h |
+| **Universe** | Same fail-closed classifier as the rest of the desk. Public ranking stays public-equity only. The Daily Volume series is the combined public + private + ETF/index 24h |
+| **Why snapshots** | DexScreener’s public API is snapshot-only (no pair history). The desk records each UTC day’s combined 24h. Days before snapshots began have **no series** — past DexScreener totals are not invented from GeckoTerminal |
+| **Honesty** | Gap days are omitted, not plotted as **$0**. A source-reported `0` is kept. Null DexScreener 24h is never coerced to zero. A seed adapter with no snapshots yields an **empty chart**, never invented nonzero points |
+| **Coverage** | One combined point per UTC day this desk recorded (`data/volume-snapshots/solana.json` by default). GeckoTerminal remains a candidate source and per-asset **price** candles only |
 
 The seed adapter does **not** draw a demo series.
 

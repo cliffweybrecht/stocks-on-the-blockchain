@@ -43,7 +43,7 @@ export class MockMarketDataSource implements MarketDataSource {
 
   async getEquityVolumeHistory(): Promise<EquityVolumeHistoryResult> {
     return emptyEquityVolumeHistory(
-      "Seed adapter does not invent a historical volume series. Enable live Solana to load GeckoTerminal pool OHLCV.",
+      "Seed adapter does not invent a historical volume series. Enable live Solana to record DexScreener 24h snapshots.",
     );
   }
 

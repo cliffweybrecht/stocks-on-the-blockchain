@@ -56,13 +56,15 @@ import {
   parseGeckoTerminalPriceOhlcv,
   selectPrimaryPricePool,
 } from "./asset-price-history";
+import { chainCombinedVolume24h } from "./aggregate";
+import { emptyEquityVolumeHistory } from "./volume-history";
+import { FileDeskVolumeSnapshotStore } from "./volume-snapshot-store";
 import {
-  buildEquityVolumeHistory,
-  collectEquityVolumeTargets,
-  emptyEquityVolumeHistory,
-  parseGeckoTerminalOhlcv,
-  selectEquityVolumeFetchTargets,
-} from "./volume-history";
+  buildSnapshotEquityVolumeHistory,
+  deskVolumeSnapshotFromChain,
+  upsertDeskVolumeSnapshot,
+  type DeskVolumeSnapshotStore,
+} from "./volume-snapshots";
 import type { TokenIdentity } from "./solana-classifier";
 
 export const SOLANA_DEFAULTS = {
@@ -78,11 +80,8 @@ export const SOLANA_DEFAULTS = {
   enrichBudgetMs: 180_000,
   /** Skip re-previewing mints confirmed to have zero DexScreener pools. */
   emptyCacheMs: 30 * 60_000,
-  /** GeckoTerminal daily OHLCV budget after the Solana snapshot is available. */
-  volumeHistoryBudgetMs: 45_000,
+  /** Cache TTL for Daily Volume snapshot history and per-mint GeckoTerminal price candles. */
   volumeHistoryCacheMs: 30 * 60_000,
-  /** Highest-volume classified equity pools to ask GeckoTerminal for. */
-  volumeHistoryMaxPools: 64,
 } as const;
 
 const DEFAULT_BASE_URL = "https://api.dexscreener.com";
@@ -130,9 +129,9 @@ export interface SolanaMarketDataSourceOptions {
   retries?: number;
   backgroundEnrichment?: boolean;
   fetchImpl?: FetchLike;
-  volumeHistoryBudgetMs?: number;
   volumeHistoryCacheMs?: number;
-  volumeHistoryMaxPools?: number;
+  volumeSnapshotStore?: DeskVolumeSnapshotStore;
+  volumeSnapshotDir?: string;
 }
 
 export class SolanaMarketDataSource implements MarketDataSource {
@@ -143,6 +142,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
   private inflightMode: SnapshotMode | null = null;
   private backgroundWork: Promise<void> | null = null;
   private readonly memory: SolanaHydrateMemory;
+  private readonly deskSnapshots: DeskVolumeSnapshotStore;
   private volumeHistoryCache: { result: EquityVolumeHistoryResult; expiresAt: number } | null = null;
   private volumeHistoryInflight: Promise<EquityVolumeHistoryResult> | null = null;
   private priceHistoryCache = new Map<string, { result: AssetPriceHistoryResult; expiresAt: number }>();
@@ -150,6 +150,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
 
   constructor(private readonly options: SolanaMarketDataSourceOptions = {}) {
     this.memory = new SolanaHydrateMemory(options.emptyCacheMs ?? SOLANA_DEFAULTS.emptyCacheMs);
+    this.deskSnapshots = options.volumeSnapshotStore ?? new FileDeskVolumeSnapshotStore(options.volumeSnapshotDir);
   }
 
   private get baseUrl() {
@@ -240,16 +241,8 @@ export class SolanaMarketDataSource implements MarketDataSource {
     return this.options.backgroundEnrichment !== false;
   }
 
-  private get volumeHistoryBudgetMs() {
-    return this.options.volumeHistoryBudgetMs ?? SOLANA_DEFAULTS.volumeHistoryBudgetMs;
-  }
-
   private get volumeHistoryCacheMs() {
     return this.options.volumeHistoryCacheMs ?? SOLANA_DEFAULTS.volumeHistoryCacheMs;
-  }
-
-  private get volumeHistoryMaxPools() {
-    return this.options.volumeHistoryMaxPools ?? SOLANA_DEFAULTS.volumeHistoryMaxPools;
   }
 
   private gate() {
@@ -470,6 +463,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
     const merged = this.preferRicherCache(next);
     this.cache = merged;
     this.scheduleEnrichment();
+    void this.persistDeskVolume(merged);
     return merged;
   }
 
@@ -799,6 +793,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
             refreshDurationMs: snapshot.mapped.provenance.refreshDurationMs ?? 0,
           });
           this.cache = this.preferRicherCache(next);
+          void this.persistDeskVolume(this.cache);
         }
         return;
       }
@@ -846,6 +841,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
         refreshDurationMs: snapshot.mapped.provenance.refreshDurationMs ?? 0,
       });
       this.cache = this.preferRicherCache(next);
+      void this.persistDeskVolume(this.cache);
       const remaining = this.cache.pendingPreviewMints.length + this.cache.pendingFullMints.length;
       if (remaining === 0 || remaining >= startedPending) break;
       passes += 1;
@@ -958,65 +954,45 @@ export class SolanaMarketDataSource implements MarketDataSource {
     return this.volumeHistoryInflight;
   }
 
-  private async buildEquityVolumeHistory(): Promise<EquityVolumeHistoryResult> {
-    if (!this.geckoEnabled) {
-      return emptyEquityVolumeHistory(
-        "GeckoTerminal is disabled, so there is no historical pool volume series to load.",
-      );
+  private async persistDeskVolume(snapshot: CachedSnapshot): Promise<void> {
+    try {
+      const generatedAt = snapshot.mapped.provenance.generatedAt ?? snapshot.mapped.provenance.fetchedAt;
+      const incoming = deskVolumeSnapshotFromChain(snapshot.mapped.chain, generatedAt);
+      const existing = await this.deskSnapshots.load();
+      const next = upsertDeskVolumeSnapshot(existing, incoming);
+      if (JSON.stringify(existing) === JSON.stringify(next)) return;
+      await this.deskSnapshots.save(next);
+      this.volumeHistoryCache = null;
+    } catch {
+      // Disk failures must not take down the live desk.
     }
+  }
 
-    let assets;
-    let volume24hUsd: number | null = null;
+  private async buildEquityVolumeHistory(): Promise<EquityVolumeHistoryResult> {
+    let chain;
+    let generatedAt: string;
     try {
       const mode = this.cache?.aggregation === "all-pools" ? "full" : "light";
       const snapshot = await this.loadCached(mode);
-      assets = snapshot.mapped.assets;
-      volume24hUsd = snapshot.mapped.chain.volume24hUsd;
+      chain = snapshot.mapped.chain;
+      generatedAt = snapshot.mapped.provenance.generatedAt ?? snapshot.mapped.provenance.fetchedAt;
+      await this.persistDeskVolume(snapshot);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Solana snapshot failed.";
       return emptyEquityVolumeHistory(message);
     }
 
-    const allTargets = collectEquityVolumeTargets(assets);
-    const targets = selectEquityVolumeFetchTargets(allTargets, this.volumeHistoryMaxPools);
-    const mintCount = new Set(allTargets.map((target) => target.mint)).size;
-    if (targets.length === 0) {
-      return emptyEquityVolumeHistory(
-        "No classified Solana public-equity pools are in this snapshot, so there is no historical series.",
-      );
-    }
-
-    const deadline = Date.now() + this.volumeHistoryBudgetMs;
-    const gate = createRequestGate({
-      maxConcurrent: Math.min(2, this.maxConcurrent),
-      minGapMs: Math.max(this.requestGapMs, 400),
-    });
-    const seriesByPool = await mapWithConcurrency(targets, Math.min(2, this.maxConcurrent), async (target) => {
-      if (Date.now() >= deadline) {
-        return { pairAddress: target.pairAddress, mint: target.mint, candles: [] };
-      }
-      try {
-        const payload = await gate.run(() =>
-          this.fetchSource(
-            `${this.geckoTerminalBaseUrl}${geckoTerminalOhlcvPath(target.pairAddress)}`,
-            "GeckoTerminal",
-          ),
-        );
-        return { pairAddress: target.pairAddress, mint: target.mint, candles: parseGeckoTerminalOhlcv(payload) };
-      } catch {
-        return { pairAddress: target.pairAddress, mint: target.mint, candles: [] };
-      }
-    });
-
-    const volume24hByMint = Object.fromEntries(assets.map((asset) => [asset.contractAddress, asset.volume24hUsd]));
-
-    return buildEquityVolumeHistory({
-      seriesByPool,
-      attemptedPoolCount: targets.length,
-      universePoolCount: allTargets.length,
-      mintCount,
-      volume24hUsd,
-      volume24hByMint,
+    const records = await this.deskSnapshots.load();
+    const parsed = Date.parse(generatedAt);
+    const nowT = Number.isFinite(parsed) && parsed > 0 ? parsed / 1000 : Date.now() / 1000;
+    return buildSnapshotEquityVolumeHistory({
+      snapshots: records,
+      liveCombined24hUsd: chainCombinedVolume24h(chain),
+      livePublic24hUsd: chain.volume24hUsd,
+      nowT,
+      generatedAt,
+      mintCount: chain.assetCount,
+      poolCount: chain.reportedPoolCount,
     });
   }
 

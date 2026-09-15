@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { BACKPACK_SUNRISE_BATCH_TICKERS, DEFAULT_SOLANA_DISCOVERY_QUERIES } from "../solana-discover";
 import { SolanaMarketDataSource, type SolanaMarketDataSourceOptions } from "../solana-source";
+import { MemoryDeskVolumeSnapshotStore } from "../volume-snapshots";
 
 const tslaMint = "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB";
 const hoodMint = "XsNotAllowlisted1111111111111111111111111";
@@ -25,6 +26,7 @@ function testSource(options: SolanaMarketDataSourceOptions) {
     enableSunriseRegistry: false,
     enableGeckoTerminal: false,
     backgroundEnrichment: false,
+    volumeSnapshotStore: new MemoryDeskVolumeSnapshotStore(),
     ...options,
   });
 }
@@ -765,14 +767,14 @@ describe("SolanaMarketDataSource", () => {
     expect(hood?.volumeCoverage).toBe("reported");
   });
 
-  it("builds a daily equity volume series from GeckoTerminal OHLCV and skips ETFs", async () => {
+  it("builds daily volume from DexScreener desk snapshots and never fetches GeckoTerminal OHLCV", async () => {
     const urls: string[] = [];
+    const snapshots = new MemoryDeskVolumeSnapshotStore();
     const source = testSource({
       requestGapMs: 0,
       enableGeckoTerminal: true,
       geckoTerminalBaseUrl: "https://api.geckoterminal.com/api/v2",
-      volumeHistoryBudgetMs: 5_000,
-      volumeHistoryMaxPools: 8,
+      volumeSnapshotStore: snapshots,
       fetchImpl: async (input) => {
         const url = String(input);
         urls.push(url);
@@ -792,19 +794,7 @@ describe("SolanaMarketDataSource", () => {
             ],
           });
         }
-        if (url.includes("/ohlcv/day") && url.includes("pair-1")) {
-          return jsonResponse({
-            data: {
-              attributes: {
-                ohlcv_list: [
-                  [1_700_086_400, 1, 1, 1, 1, 40],
-                  [1_700_000_000, 1, 1, 1, 1, 10],
-                ],
-              },
-            },
-          });
-        }
-        if (url.includes("/ohlcv/day")) return jsonResponse({ unexpected: true }, 404);
+        if (url.includes("/ohlcv/")) return jsonResponse({ unexpected: true }, 500);
         if (url.includes("/tokens/v1/solana/")) return jsonResponse([tslaPair()]);
         if (url.includes("/token-pairs/v1/solana/")) return jsonResponse([tslaPair()]);
         return jsonResponse({ unexpected: true }, 404);
@@ -813,44 +803,62 @@ describe("SolanaMarketDataSource", () => {
 
     const history = await source.getEquityVolumeHistory();
     expect(history.available).toBe(true);
+    expect(urls.some((url) => url.includes("/ohlcv/"))).toBe(false);
+    expect(history.seriesByMint).toEqual({});
+    expect(history.definition).toMatch(/DexScreener 24h snapshots/);
+    expect(history.definition).not.toMatch(/GeckoTerminal USD volume/i);
+    expect(history.points).toHaveLength(1);
+    expect(history.points[0]?.kind).toBe("rolling_24h");
+    expect(history.points[0]?.volumeUsd).toBeCloseTo(10_250.25);
     expect(history.volume24hUsd).toBeCloseTo(1_250.25);
-    expect(history.points[0]).toEqual({ t: 1_699_920_000, volumeUsd: 10, kind: "calendar_day" });
-    expect(history.points[1]?.kind).toBe("calendar_day");
-    expect(history.points[1]?.volumeUsd).toBe(40);
-    const latest = history.points[history.points.length - 1];
-    expect(latest?.kind).toBe("rolling_24h");
-    expect(latest?.volumeUsd).toBeCloseTo(1_250.25);
-    expect(history.points.some((point) => point.kind === "calendar_day" && point.volumeUsd === 0)).toBe(true);
-    expect(history.mintCount).toBe(1);
-    expect(history.poolCount).toBe(1);
-    expect(urls.some((url) => url.includes("/ohlcv/day") && url.includes("pair-spy"))).toBe(false);
-    expect(history.definition).toMatch(/Per-day GeckoTerminal USD volume/i);
-    expect(history.definition).toMatch(/Missing calendar days are plotted as \$0/);
-    expect(history.definition).toMatch(/DexScreener 24h public-equity rollup/);
-    expect(history.definition).toMatch(/fetched highest-volume/);
-    expect(history.seriesByMint[tslaMint]?.length).toBeGreaterThanOrEqual(2);
-    expect(history.seriesByMint[spyMint]).toBeUndefined();
+    expect(history.points.some((point) => point.volumeUsd === 0)).toBe(false);
+    const stored = await snapshots.load();
+    expect(stored).toHaveLength(1);
+    expect(stored[0]?.combined24hUsd).toBeCloseTo(10_250.25);
+    expect(stored[0]?.publicEquity24hUsd).toBeCloseTo(1_250.25);
+    expect(stored[0]?.etfIndex24hUsd).toBe(9_000);
   });
 
-  it("fails closed when GeckoTerminal history is unavailable", async () => {
+  it("keeps prior DexScreener snapshot days and does not invent Gecko history when OHLCV fails", async () => {
+    const priorT = Date.UTC(2026, 8, 14) / 1000;
+    const snapshots = new MemoryDeskVolumeSnapshotStore([
+      {
+        date: "2026-09-14",
+        t: priorT,
+        publicEquity24hUsd: 10,
+        private24hUsd: null,
+        etfIndex24hUsd: null,
+        combined24hUsd: 10,
+        publicMintCount: 1,
+        publicPoolCount: 1,
+        generatedAt: "2026-09-14T12:00:00.000Z",
+      },
+    ]);
+    const urls: string[] = [];
     const source = testSource({
       requestGapMs: 0,
       enableGeckoTerminal: true,
       geckoTerminalBaseUrl: "https://api.geckoterminal.com/api/v2",
+      volumeSnapshotStore: snapshots,
       fetchImpl: async (input) => {
         const url = String(input);
+        urls.push(url);
         if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [tslaPair()] });
-        if (url.includes("/ohlcv/day")) return jsonResponse({ error: "nope" }, 429);
+        if (url.includes("/ohlcv/")) return jsonResponse({ error: "nope" }, 429);
         if (url.includes("/tokens/v1/solana/")) return jsonResponse([tslaPair()]);
         return jsonResponse({ unexpected: true }, 404);
       },
     });
     const history = await source.getEquityVolumeHistory();
+    expect(urls.some((url) => url.includes("/ohlcv/"))).toBe(false);
     expect(history.available).toBe(true);
-    expect(history.points).toHaveLength(1);
-    expect(history.points[0]?.kind).toBe("rolling_24h");
-    expect(history.points[0]?.volumeUsd).toBeCloseTo(1_250.25);
-    expect(history.definition).toMatch(/No GeckoTerminal daily candles/);
+    expect(history.points[0]).toEqual({ t: priorT, volumeUsd: 10, kind: "calendar_day" });
+    const latest = history.points[history.points.length - 1];
+    expect(latest?.kind).toBe("rolling_24h");
+    expect(latest?.volumeUsd).toBeCloseTo(1_250.25);
+    expect(history.points.some((point) => point.kind === "calendar_day" && point.volumeUsd === 0)).toBe(false);
+    expect(history.definition).toMatch(/DexScreener 24h snapshots/);
+    expect(history.definition).not.toMatch(/No GeckoTerminal daily candles/);
   });
 
   it("loads per-mint price closes from GeckoTerminal and never treats volume as price", async () => {

@@ -128,7 +128,7 @@ describe("deskVolumeHeadline", () => {
     expect(publicOnly.volumeUsd).toBe(1_250.25);
   });
 
-  it("keeps hover on the public chart series and labels the universe split", () => {
+  it("keeps hover on the DexScreener snapshot series", () => {
     const hoverDay = deskVolumeHeadline({
       publicVolume24hUsd: 1_250.25,
       privateVolume24hUsd: 88_000,
@@ -138,8 +138,9 @@ describe("deskVolumeHeadline", () => {
     });
     expect(hoverDay.volumeUsd).toBe(9);
     expect(hoverDay.kind).toBe("calendar_day");
-    expect(hoverDay.caption).toMatch(/public history/);
-    expect(hoverDay.caption).toMatch(/headline universe is broader/);
+    expect(hoverDay.caption).toMatch(/DexScreener snapshot/);
+    expect(hoverDay.caption).not.toMatch(/public history/);
+    expect(hoverDay.caption).not.toMatch(/headline universe is broader/);
 
     const hover24h = deskVolumeHeadline({
       publicVolume24hUsd: 1_250.25,
@@ -149,7 +150,8 @@ describe("deskVolumeHeadline", () => {
       latest,
     });
     expect(hover24h.volumeUsd).toBe(1_250.25);
-    expect(hover24h.caption).toMatch(/headline is public \+ private \+ ETF\/index/);
+    expect(hover24h.caption).toMatch(/DexScreener snapshot/);
+    expect(hover24h.caption).toMatch(/public \+ private \+ ETF\/index/);
   });
 });
 
