@@ -68,7 +68,7 @@ function emptyCopy(input: {
     return "Nothing is still hydrating. DexScreener lookup finished for this snapshot.";
   }
   if (input.coverageFilter === "no-pools") {
-    return "No confirmed-empty mints in this lane. Still-hydrating names live under Still hydrating, not here.";
+    return "No confirmed-empty mints in this lane. Unfinished DexScreener lookups are not listed here.";
   }
   if (input.issuerFilter === UNKNOWN_ISSUER) {
     return "No stocks with an unknown issuer in this view. Choose All issuers, or another named issuer chip.";
@@ -87,7 +87,6 @@ export function AssetTable({
   equityCount,
   etfCount = 0,
   privateCount = 0,
-  hydratingCount = 0,
   lane = "equity",
   coverageFilter = "all",
   defaultCoverage = "all",
@@ -120,7 +119,6 @@ export function AssetTable({
   equityCount: number;
   etfCount?: number;
   privateCount?: number;
-  hydratingCount?: number;
   lane?: InstrumentKind;
   coverageFilter?: CoverageFilter;
   defaultCoverage?: CoverageFilter;
@@ -186,8 +184,6 @@ export function AssetTable({
   const coverageChips: Array<[CoverageFilter, string]> = [
     ["all", "All"],
     ["with-volume", "With volume"],
-    ["with-pools", "With pools"],
-    ["hydrating", hydratingCount > 0 ? `Still hydrating (${hydratingCount})` : "Still hydrating"],
     ["no-pools", "Confirmed no pools"],
   ];
 

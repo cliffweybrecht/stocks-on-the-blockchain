@@ -17,7 +17,7 @@ import { toPinCompareAsset } from "@/lib/desk/pin-compare";
 import { parseDeskLane } from "@/lib/desk/desk-lane";
 import { parsePinnedFilter } from "@/lib/desk/solana-chain-href";
 import { selectEquityPriceTicker } from "@/lib/desk/price-ticker";
-import { chainCombinedVolume24h, parseAssetSortKey, sortAssets } from "@/lib/market/aggregate";
+import { parseAssetSortKey, sortAssets } from "@/lib/market/aggregate";
 import { toJumpAsset } from "@/lib/market/asset-search";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { SOLANA_CHAIN_ID } from "@/lib/market/types";
@@ -79,7 +79,6 @@ export default async function ChainPage({
     ),
     sortKey,
   );
-  const hydratingCount = laneAssets.filter((asset) => asset.volumeCoverage === "hydrate_incomplete").length;
   const jumpAssets = isSolana ? [...assets, ...etfAssets, ...privateAssets].map(toJumpAsset) : [];
   const catalogRows = [...assets, ...etfAssets, ...privateAssets].map(toPinCompareAsset);
 
@@ -108,43 +107,33 @@ export default async function ChainPage({
             privateVolume24hUsd={chain.privateVolume24hUsd}
             etfVolume24hUsd={chain.etfVolume24hUsd}
           />
-        ) : null}
-        <ProvenanceBar provenance={provenance} compact />
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Metric
-            label="24h volume"
-            value={formatUsdCompact(isSolana ? chainCombinedVolume24h(chain) : chain.volume24hUsd)}
-            hint={
-              isSolana
-                ? `Public + private + ETF/index · ${chain.sourceLabel}. Null is unknown, not $0.`
-                : `Sum of reported 24h volume · ${chain.sourceLabel}`
-            }
-          />
-          <Metric
-            label="Displayed liquidity"
-            value={formatUsdCompact(chain.displayedLiquidityUsd)}
-            hint="Provider-reported, not executable"
-          />
-          <Metric
-            label="Classified equities"
-            value={formatCount(chain.assetCount)}
-            hint={`${formatCount(chain.assetsWithVolume)} with volume so far · ${formatCount(chain.assetsWithPools)} with pools · ${formatCount(chain.assetsWithNoIndexedPools)} no DexScreener pools${chain.assetsStillHydrating > 0 ? ` · ${formatCount(chain.assetsStillHydrating)} still hydrating` : ""}`}
-          />
-          <Metric
-            label="Reported pools"
-            value={formatCount(chain.reportedPoolCount)}
-            hint={
-              chain.etfCount > 0 || chain.privateCount > 0
-                ? [
-                    chain.etfCount > 0 ? `${formatCount(chain.etfCount)} ETF/index` : null,
-                    chain.privateCount > 0 ? `${formatCount(chain.privateCount)} private-market` : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ") + " in separate tabs"
-                : `Peak DEX count on one stock: ${formatCount(chain.peakDexCount)}`
-            }
-          />
-        </div>
+        ) : (
+          <>
+            <ProvenanceBar provenance={provenance} compact />
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <Metric
+                label="24h volume"
+                value={formatUsdCompact(chain.volume24hUsd)}
+                hint={`Sum of reported 24h volume · ${chain.sourceLabel}`}
+              />
+              <Metric
+                label="Displayed liquidity"
+                value={formatUsdCompact(chain.displayedLiquidityUsd)}
+                hint="Provider-reported, not executable"
+              />
+              <Metric
+                label="Classified equities"
+                value={formatCount(chain.assetCount)}
+                hint={`${formatCount(chain.assetsWithVolume)} with volume so far · ${formatCount(chain.assetsWithPools)} with pools`}
+              />
+              <Metric
+                label="Reported pools"
+                value={formatCount(chain.reportedPoolCount)}
+                hint={`Peak DEX count on one stock: ${formatCount(chain.peakDexCount)}`}
+              />
+            </div>
+          </>
+        )}
         {assets.length === 0 && etfAssets.length === 0 && privateAssets.length === 0 ? (
           <EmptyState
             title="No stocks on this chain snapshot"
@@ -158,7 +147,6 @@ export default async function ChainPage({
             equityCount={assets.length}
             etfCount={etfAssets.length}
             privateCount={privateAssets.length}
-            hydratingCount={hydratingCount}
             lane={lane}
             coverageFilter={coverageFilter}
             defaultCoverage={defaultCoverage}
