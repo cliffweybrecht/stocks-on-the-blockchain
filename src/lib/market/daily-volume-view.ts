@@ -1,6 +1,7 @@
 import { combinedPublicPrivateVolume24h } from "./aggregate";
-import { formatChartDate } from "./format";
+import { formatChartDate, formatChartDay, formatChartTick } from "./format";
 import type { VolumeHistoryPoint } from "./types";
+import { utcDayStart } from "./volume-history";
 
 export const VOLUME_CHART_RANGES = [
   { id: "7d", label: "7D", days: 7 },
@@ -134,7 +135,7 @@ export function deskVolumeHeadline(input: {
   if (combined !== null) {
     return {
       volumeUsd: combined,
-      caption: "24h · public + private + ETF/index · chart is public history",
+      caption: "24h · public + private + ETF/index",
       kind: "combined_24h",
     };
   }
@@ -153,4 +154,40 @@ export function deskVolumeHeadline(input: {
     caption: "24h · no reported public, private, or ETF/index volume",
     kind: "combined_24h",
   };
+}
+
+/** Evenly spaced unique UTC days from the visible series, oldest first. */
+export function volumeChartXTicks(
+  points: readonly VolumeHistoryPoint[],
+  count = 4,
+): number[] {
+  if (points.length === 0) return [];
+  const byDay = new Map<number, number>();
+  for (const point of points) {
+    const day = utcDayStart(point.t);
+    if (day <= 0) continue;
+    if (!byDay.has(day)) byDay.set(day, point.t);
+  }
+  const days = [...byDay.keys()].sort((a, b) => a - b);
+  if (days.length === 0) return [];
+  if (days.length === 1) return [byDay.get(days[0]!)!];
+  const n = Math.min(count, days.length);
+  const ticks: number[] = [];
+  for (let i = 0; i < n; i++) {
+    const idx = Math.round((i / (n - 1)) * (days.length - 1));
+    const t = byDay.get(days[idx]!)!;
+    if (ticks[ticks.length - 1] !== t) ticks.push(t);
+  }
+  return ticks;
+}
+
+/**
+ * Month+year when those labels are unique across the ticks (All / 180D).
+ * Month+day when month+year would collide (7D in one month).
+ */
+export function formatVolumeChartTick(unixSeconds: number, allTicks: readonly number[]): string {
+  if (!Number.isFinite(unixSeconds)) return "";
+  const monthYear = allTicks.map(formatChartTick);
+  if (new Set(monthYear).size === allTicks.length) return formatChartTick(unixSeconds);
+  return formatChartDay(unixSeconds);
 }

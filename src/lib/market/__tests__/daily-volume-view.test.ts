@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   filterVolumeRange,
+  formatVolumeChartTick,
   nearestVolumePoint,
   pointerToSvgX,
   pointerToViewBoxX,
   scaleVolumePoints,
   deskVolumeHeadline,
+  volumeChartXTicks,
   volumeHeadlineCopy,
   VOLUME_CHART_PAD,
   VOLUME_CHART_RANGES,
@@ -92,7 +94,7 @@ describe("volumeHeadlineCopy", () => {
 describe("deskVolumeHeadline", () => {
   const latest = { t: DAY0, volumeUsd: 1_250.25, kind: "rolling_24h" as const };
 
-  it("uses public + private + ETF/index 24h for the rest-state headline and labels the chart as public history", () => {
+  it("uses public + private + ETF/index 24h for the rest-state headline", () => {
     const headline = deskVolumeHeadline({
       publicVolume24hUsd: 1_250.25,
       privateVolume24hUsd: 88_000,
@@ -102,8 +104,8 @@ describe("deskVolumeHeadline", () => {
     });
     expect(headline.volumeUsd).toBeCloseTo(13_089_250.25);
     expect(headline.kind).toBe("combined_24h");
-    expect(headline.caption).toMatch(/public \+ private \+ ETF\/index/);
-    expect(headline.caption).toMatch(/chart is public history/);
+    expect(headline.caption).toBe("24h · public + private + ETF/index");
+    expect(headline.caption).not.toMatch(/chart is public history/);
   });
 
   it("omits unreported private or ETF volume instead of treating it as zero", () => {
@@ -150,3 +152,42 @@ describe("deskVolumeHeadline", () => {
     expect(hover24h.caption).toMatch(/headline is public \+ private \+ ETF\/index/);
   });
 });
+
+describe("volumeChartXTicks", () => {
+  it("picks unique ordered UTC days across a 7-day window", () => {
+    const start = Date.UTC(2026, 8, 19) / 1000;
+    const points = Array.from({ length: 8 }, (_, index) => ({
+      t: start + index * UTC_DAY_SECONDS,
+      volumeUsd: 1,
+      kind: "calendar_day" as const,
+    }));
+    const ticks = volumeChartXTicks(points);
+    expect(ticks).toHaveLength(4);
+    expect(ticks[0]).toBe(points[0]?.t);
+    expect(ticks[ticks.length - 1]).toBe(points[7]?.t);
+    expect(new Set(ticks).size).toBe(4);
+    expect(ticks).toEqual([...ticks].sort((a, b) => a - b));
+  });
+});
+
+describe("formatVolumeChartTick", () => {
+  it("uses month+day when month+year would collapse a 7-day window", () => {
+    const start = Date.UTC(2026, 8, 19) / 1000;
+    const ticks = [0, 2, 5, 7].map((offset) => start + offset * UTC_DAY_SECONDS);
+    const labels = ticks.map((t) => formatVolumeChartTick(t, ticks));
+    expect(labels).toEqual(["Sep 19", "Sep 21", "Sep 24", "Sep 26"]);
+    expect(new Set(labels).size).toBe(4);
+  });
+
+  it("keeps month+year when those labels are already unique (All / 180D)", () => {
+    const ticks = [
+      Date.UTC(2026, 2, 26) / 1000,
+      Date.UTC(2026, 4, 26) / 1000,
+      Date.UTC(2026, 6, 26) / 1000,
+      Date.UTC(2026, 8, 26) / 1000,
+    ];
+    const labels = ticks.map((t) => formatVolumeChartTick(t, ticks));
+    expect(labels).toEqual(["Mar 26", "May 26", "Jul 26", "Sep 26"]);
+  });
+});
+

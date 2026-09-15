@@ -3,10 +3,12 @@
 import { useMemo, useState, type PointerEvent } from "react";
 import {
   filterVolumeRange,
+  formatVolumeChartTick,
   nearestVolumePoint,
   pointerToSvgX,
   scaleVolumePoints,
   deskVolumeHeadline,
+  volumeChartXTicks,
   VOLUME_CHART_HEIGHT,
   VOLUME_CHART_INNER_H,
   VOLUME_CHART_PAD,
@@ -14,7 +16,7 @@ import {
   VOLUME_CHART_WIDTH,
   type VolumeChartRangeId,
 } from "@/lib/market/daily-volume-view";
-import { formatChartTick, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
+import { formatUsdCompact, formatUsdFull } from "@/lib/market/format";
 import type { EquityVolumeHistoryResult, VolumeHistoryPoint } from "@/lib/market/types";
 import { alignLatestDayWithDesk24h } from "@/lib/market/volume-history";
 
@@ -83,16 +85,7 @@ export function DailyVolumeChart({
   const hasSeries = points.length > 0;
   const showHeadline = headline.volumeUsd !== null;
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((frac) => map.maxY * frac);
-  const xTicks =
-    visible.length > 1
-      ? [0, 0.33, 0.66, 1].map((frac) => {
-          const t = map.minT + (map.maxT - map.minT) * frac;
-          const closest = nearestVolumePoint(visible, map, map.x(t));
-          return closest?.t ?? t;
-        })
-      : visible[0]
-        ? [visible[0].t]
-        : [];
+  const xTicks = volumeChartXTicks(visible);
 
   function setHoverFromClient(plot: Element, clientX: number, clientY: number) {
     const svg = plot.querySelector("svg");
@@ -208,7 +201,7 @@ export function DailyVolumeChart({
                 className="fill-muted-foreground"
                 fontSize="10"
               >
-                {formatChartTick(tick)}
+                {formatVolumeChartTick(tick, xTicks)}
               </text>
             ))}
             <path d={areaPath(visible, map)} fill="url(#volume-area)" pointerEvents="none" />
@@ -255,12 +248,6 @@ export function DailyVolumeChart({
           </p>
         </div>
       )}
-      {showHeadline ? (
-        <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
-          Headline is reported public + private + ETF/index DexScreener 24h (null omitted, not $0). Chart
-          series is public-equity GeckoTerminal history — the headline universe is broader than the chart.
-        </p>
-      ) : null}
     </section>
   );
 }
