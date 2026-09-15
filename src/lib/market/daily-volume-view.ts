@@ -3,6 +3,7 @@ import { formatChartDate } from "./format";
 import type { VolumeHistoryPoint } from "./types";
 
 export const VOLUME_CHART_RANGES = [
+  { id: "7d", label: "7D", days: 7 },
   { id: "30d", label: "30D", days: 30 },
   { id: "90d", label: "90D", days: 90 },
   { id: "180d", label: "180D", days: 180 },

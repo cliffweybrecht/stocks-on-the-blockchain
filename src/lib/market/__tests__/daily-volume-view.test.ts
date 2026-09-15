@@ -8,6 +8,7 @@ import {
   deskVolumeHeadline,
   volumeHeadlineCopy,
   VOLUME_CHART_PAD,
+  VOLUME_CHART_RANGES,
   VOLUME_CHART_WIDTH,
 } from "../daily-volume-view";
 import { UTC_DAY_SECONDS } from "../volume-history";
@@ -23,6 +24,18 @@ function days(count: number) {
 }
 
 describe("filterVolumeRange", () => {
+  it("lists 7D leftmost, then 30D, 90D, 180D, All", () => {
+    expect(VOLUME_CHART_RANGES.map((row) => row.label)).toEqual(["7D", "30D", "90D", "180D", "All"]);
+  });
+
+  it("keeps a continuous 7-day window ending on the latest point", () => {
+    const points = days(40);
+    const visible = filterVolumeRange(points, "7d");
+    expect(visible).toHaveLength(8);
+    expect(visible[0]?.t).toBe(points[32]?.t);
+    expect(visible[visible.length - 1]?.kind).toBe("rolling_24h");
+  });
+
   it("keeps a continuous 30-day window ending on the latest point", () => {
     const points = days(40);
     const visible = filterVolumeRange(points, "30d");
