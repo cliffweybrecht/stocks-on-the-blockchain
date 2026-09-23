@@ -11,12 +11,12 @@ export const EQUITY_CARD_DAY_VOLUME_SERIES_MAX = 32;
  * Steady gap between card OHLCV calls.
  * A 4-wide burst at 200ms trips GeckoTerminal (429, often `Retry-After: 0`)
  * after a handful of pools, which is why most cards lost their sparkline.
- * 2.5s stays under a 30/min cap; the slow gap below is for after a 429.
+ * The public cap is about 10 calls/minute, so the steady pace stays under that.
  */
-export const EQUITY_CARD_VOLUME_SERIES_MIN_GAP_MS = 2_500;
+export const EQUITY_CARD_VOLUME_SERIES_MIN_GAP_MS = 6_500;
 
-/** After a 429, stay under the documented ~10 public calls/minute. */
-export const EQUITY_CARD_VOLUME_SERIES_SLOW_GAP_MS = 6_500;
+/** After a 429, leave a little more room than the steady pace. */
+export const EQUITY_CARD_VOLUME_SERIES_SLOW_GAP_MS = 7_500;
 
 /**
  * `Retry-After: 0` is not a usable hint. Wait out the public minute window

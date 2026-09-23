@@ -1363,8 +1363,8 @@ export class SolanaMarketDataSource implements MarketDataSource {
               this.cardVolumeSeriesCooldownMs,
             );
             if (wait > 0) await sleep(wait);
-          } else if (this.cardVolumeSeriesTransientRetryMs > 0) {
-            await sleep(this.cardVolumeSeriesTransientRetryMs);
+          } else if (gapMs > 0) {
+            await sleep(gapMs);
           }
           continue;
         }

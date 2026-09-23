@@ -62,8 +62,9 @@ describe("sliceEquityCardDayVolumeSeries", () => {
 
 describe("equity card volume gecko pacing", () => {
   it("stays under the public per-minute cap and slows further after a 429", () => {
-    expect(60_000 / EQUITY_CARD_VOLUME_SERIES_MIN_GAP_MS).toBeLessThanOrEqual(30);
-    expect(EQUITY_CARD_VOLUME_SERIES_MIN_GAP_MS).toBeGreaterThanOrEqual(2_000);
+    expect(60_000 / EQUITY_CARD_VOLUME_SERIES_MIN_GAP_MS).toBeLessThan(10);
+    expect(EQUITY_CARD_VOLUME_SERIES_MIN_GAP_MS).toBeGreaterThanOrEqual(6_000);
+    expect(EQUITY_CARD_VOLUME_SERIES_SLOW_GAP_MS).toBeGreaterThan(EQUITY_CARD_VOLUME_SERIES_MIN_GAP_MS);
     expect(60_000 / EQUITY_CARD_VOLUME_SERIES_SLOW_GAP_MS).toBeLessThan(10);
     expect(EQUITY_CARD_VOLUME_SERIES_RATE_LIMIT_COOLDOWN_MS).toBeGreaterThanOrEqual(30_000);
   });
