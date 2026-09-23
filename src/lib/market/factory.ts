@@ -1,4 +1,5 @@
 import { CompositeMarketDataSource } from "./composite-source";
+import { EQUITY_CARD_DAY_VOLUME_SERIES_MAX } from "./equity-card-volume";
 import { MockMarketDataSource } from "./mock-source";
 import {
   SOLANA_DEFAULTS,
@@ -56,6 +57,7 @@ export function solanaSourceOptionsFromEnv(env: MarketEnv = process.env): Solana
     enrichBudgetMs: envNumber(env, "SOLANA_ENRICH_BUDGET_MS", SOLANA_DEFAULTS.enrichBudgetMs),
     emptyCacheMs: envNumber(env, "SOLANA_EMPTY_CACHE_MS", SOLANA_DEFAULTS.emptyCacheMs),
     volumeHistoryCacheMs: envNumber(env, "SOLANA_VOLUME_HISTORY_CACHE_MS", SOLANA_DEFAULTS.volumeHistoryCacheMs),
+    cardVolumeSeriesMax: envNumber(env, "SOLANA_CARD_VOLUME_SERIES_MAX", EQUITY_CARD_DAY_VOLUME_SERIES_MAX),
     volumeSnapshotDir: env.SOLANA_VOLUME_SNAPSHOT_DIR?.trim() || undefined,
   };
 }

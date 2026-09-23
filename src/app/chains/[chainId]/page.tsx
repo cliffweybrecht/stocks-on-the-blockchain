@@ -64,6 +64,9 @@ export default async function ChainPage({
   const volumeHistory = isSolana
     ? await source.getEquityVolumeHistory()
     : emptyEquityVolumeHistory("This chart is Solana tokenized public equities only.");
+  if (isSolana) {
+    void source.getEquityCardDayVolumeSeries();
+  }
   const lane = parseDeskLane(query.lane, { etf: etfAssets.length > 0, private: privateAssets.length > 0 });
   const defaultCoverage = isSolana ? "with-volume" : "all";
   const coverageFilter = parseCoverageFilter(query.coverage, defaultCoverage);

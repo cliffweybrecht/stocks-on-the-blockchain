@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DeskCsvButton } from "@/components/desk-csv-button";
 import { EquityCard } from "@/components/equity-card";
 import { PinCompareStrip } from "@/components/pin-compare-strip";
@@ -17,7 +17,8 @@ import {
   type IssuerFilter,
 } from "@/lib/desk/issuer-filter";
 import { assetRouteKey } from "@/lib/market/identity";
-import type { AssetSummary, InstrumentKind } from "@/lib/market/types";
+import type { AssetSummary, InstrumentKind, VolumeHistoryPoint } from "@/lib/market/types";
+import { SOLANA_CHAIN_ID } from "@/lib/market/types";
 import { PIN_COMPARE_MAX, selectPinnedCompareRows, shouldShowPinCompare } from "@/lib/desk/pin-compare";
 import { type CoverageFilter } from "@/lib/market/volume-coverage";
 
@@ -130,8 +131,24 @@ export function AssetTable({
   enableFavorites?: boolean;
 }) {
   const [query, setQuery] = useState("");
+  const [dayVolumeByMint, setDayVolumeByMint] = useState<Record<string, VolumeHistoryPoint[]>>({});
   const favorites = useSolanaFavorites();
   const catalog = catalogAssets ?? assets;
+
+  useEffect(() => {
+    if (chainId !== SOLANA_CHAIN_ID) return;
+    let cancelled = false;
+    void fetch("/api/solana/card-volume-series")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload: { series?: Record<string, VolumeHistoryPoint[]> } | null) => {
+        if (cancelled || !payload?.series || typeof payload.series !== "object") return;
+        setDayVolumeByMint(payload.series);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [chainId]);
 
   const hrefFor = (
     next: Partial<{
@@ -313,6 +330,7 @@ export function AssetTable({
               key={asset.contractAddress}
               asset={asset}
               href={`/chains/${chainId}/assets/${encodeURIComponent(assetRouteKey(asset, catalog))}`}
+              dayVolumeSeries={dayVolumeByMint[asset.contractAddress]}
               enableFavorites={enableFavorites}
               pinned={favorites.isFavorite(asset.contractAddress)}
               onTogglePin={() => favorites.toggle(asset.contractAddress)}

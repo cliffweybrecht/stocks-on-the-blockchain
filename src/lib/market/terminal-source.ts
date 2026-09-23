@@ -6,7 +6,7 @@ import {
   type TerminalAssetLiquidityProfile,
   type TerminalPriceComparison,
 } from "./map-terminal";
-import { ROBINHOOD_CHAIN_ID, type AssetDetailResult, type AssetPriceHistoryResult, type ChainDetailResult, type ChainListResult, type EquityVolumeHistoryResult, type MarketDataSource } from "./types";
+import { ROBINHOOD_CHAIN_ID, type AssetDetailResult, type AssetPriceHistoryResult, type ChainDetailResult, type ChainListResult, type EquityVolumeHistoryResult, type MarketDataSource, type VolumeHistoryPoint } from "./types";
 import { emptyAssetPriceHistory } from "./asset-price-history";
 import { emptyEquityVolumeHistory } from "./volume-history";
 
@@ -125,6 +125,10 @@ export class TerminalMarketDataSource implements MarketDataSource {
     return emptyAssetPriceHistory(
       "Robinhood Terminal has no GeckoTerminal price candles. This series is pool USD closes for Solana mints only.",
     );
+  }
+
+  async getEquityCardDayVolumeSeries(): Promise<Record<string, VolumeHistoryPoint[]>> {
+    return {};
   }
 
   private async tryAssetEndpoint<T>(path: string): Promise<T | null> {

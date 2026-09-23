@@ -7,6 +7,7 @@ import type {
   ChainListResult,
   EquityVolumeHistoryResult,
   MarketDataSource,
+  VolumeHistoryPoint,
 } from "./types";
 import { emptyAssetPriceHistory } from "./asset-price-history";
 import { emptyEquityVolumeHistory } from "./volume-history";
@@ -51,5 +52,9 @@ export class MockMarketDataSource implements MarketDataSource {
     return emptyAssetPriceHistory(
       "Seed adapter does not invent a price series. Enable live Solana to load GeckoTerminal pool closes.",
     );
+  }
+
+  async getEquityCardDayVolumeSeries(): Promise<Record<string, VolumeHistoryPoint[]>> {
+    return {};
   }
 }

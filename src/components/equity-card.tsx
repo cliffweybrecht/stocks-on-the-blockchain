@@ -4,14 +4,14 @@ import Link from "next/link";
 import { AssetLogo } from "@/components/asset-logo";
 import { CopyAddressIcon } from "@/components/copy-address";
 import { PinButton } from "@/components/pin-button";
-import { PriceSparkline } from "@/components/price-sparkline";
+import { VolumeSparkline } from "@/components/volume-sparkline";
 import {
   equityCardDayMovePct,
-  equityCardDayPriceSeries,
+  equityCardDayVolumeSeries,
   equityCardSpotPriceUsd,
 } from "@/lib/desk/equity-card-view";
 import { formatPct, formatPrice, formatUsdCompact } from "@/lib/market/format";
-import type { AssetSummary, PriceHistoryPoint } from "@/lib/market/types";
+import type { AssetSummary, VolumeHistoryPoint } from "@/lib/market/types";
 
 function DayMove({ value }: { value: number | null }) {
   const move = equityCardDayMovePct(value);
@@ -27,20 +27,20 @@ function DayMove({ value }: { value: number | null }) {
 export function EquityCard({
   asset,
   href,
-  dayPriceSeries,
+  dayVolumeSeries,
   enableFavorites,
   pinned,
   onTogglePin,
 }: {
   asset: AssetSummary;
   href: string;
-  dayPriceSeries?: readonly PriceHistoryPoint[];
+  dayVolumeSeries?: readonly VolumeHistoryPoint[];
   enableFavorites?: boolean;
   pinned?: boolean;
   onTogglePin?: () => void;
 }) {
   const priceUsd = equityCardSpotPriceUsd(asset);
-  const sparklinePoints = equityCardDayPriceSeries(dayPriceSeries);
+  const sparklinePoints = equityCardDayVolumeSeries(dayVolumeSeries);
 
   return (
     <article className="group relative flex min-h-[176px] flex-col overflow-hidden rounded-2xl bg-[#141414] px-4 py-3.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] transition-colors hover:bg-[#1a1a1a]">
@@ -73,7 +73,7 @@ export function EquityCard({
         <DayMove value={asset.priceChange24hPct} />
         <span className="ml-auto shrink-0">
           {sparklinePoints ? (
-            <PriceSparkline points={sparklinePoints} label={`${asset.symbol} day price trend`} />
+            <VolumeSparkline points={sparklinePoints} label={`${asset.symbol} 24h volume trend`} />
           ) : null}
         </span>
       </div>

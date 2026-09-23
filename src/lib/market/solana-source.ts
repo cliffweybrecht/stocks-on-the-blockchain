@@ -59,7 +59,13 @@ import {
   type EquityVolumeHistoryResult,
   type MarketDataSource,
   type VolumeAggregation,
+  type VolumeHistoryPoint,
 } from "./types";
+import {
+  EQUITY_CARD_DAY_VOLUME_SERIES_MAX,
+  selectEquityCardVolumeTargets,
+  sliceEquityCardDayVolumeSeries,
+} from "./equity-card-volume";
 import {
   buildAssetPriceHistory,
   emptyAssetPriceHistory,
@@ -139,6 +145,7 @@ export interface SolanaMarketDataSourceOptions {
   backgroundEnrichment?: boolean;
   fetchImpl?: FetchLike;
   volumeHistoryCacheMs?: number;
+  cardVolumeSeriesMax?: number;
   volumeSnapshotStore?: DeskVolumeSnapshotStore;
   volumeSnapshotDir?: string;
   enableJupiterTokenLogos?: boolean;
@@ -157,6 +164,9 @@ export class SolanaMarketDataSource implements MarketDataSource {
   private readonly deskSnapshots: DeskVolumeSnapshotStore;
   private volumeHistoryCache: { result: EquityVolumeHistoryResult; expiresAt: number } | null = null;
   private volumeHistoryInflight: Promise<EquityVolumeHistoryResult> | null = null;
+  private cardVolumeSeriesCache: { result: Record<string, VolumeHistoryPoint[]>; expiresAt: number } | null =
+    null;
+  private cardVolumeSeriesInflight: Promise<Record<string, VolumeHistoryPoint[]>> | null = null;
   private priceHistoryCache = new Map<string, { result: AssetPriceHistoryResult; expiresAt: number }>();
   private priceHistoryInflight = new Map<string, Promise<AssetPriceHistoryResult>>();
   private readonly mintLogoCatalog: MintLogoCatalog = new Map();
@@ -269,6 +279,11 @@ export class SolanaMarketDataSource implements MarketDataSource {
 
   private get volumeHistoryCacheMs() {
     return this.options.volumeHistoryCacheMs ?? SOLANA_DEFAULTS.volumeHistoryCacheMs;
+  }
+
+  private get cardVolumeSeriesMax() {
+    const value = this.options.cardVolumeSeriesMax ?? EQUITY_CARD_DAY_VOLUME_SERIES_MAX;
+    return Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
   }
 
   private gate() {
@@ -1102,6 +1117,75 @@ export class SolanaMarketDataSource implements MarketDataSource {
       mintCount: chain.assetCount,
       poolCount: chain.reportedPoolCount,
     });
+  }
+
+  async getEquityCardDayVolumeSeries(): Promise<Record<string, VolumeHistoryPoint[]>> {
+    const now = Date.now();
+    if (this.cardVolumeSeriesCache && this.cardVolumeSeriesCache.expiresAt > now) {
+      return this.cardVolumeSeriesCache.result;
+    }
+    if (this.cardVolumeSeriesInflight) return this.cardVolumeSeriesInflight;
+
+    const pending = this.buildEquityCardDayVolumeSeries()
+      .then((result) => {
+        this.cardVolumeSeriesCache = {
+          result,
+          expiresAt: Date.now() + this.volumeHistoryCacheMs,
+        };
+        return result;
+      })
+      .finally(() => {
+        this.cardVolumeSeriesInflight = null;
+      });
+    this.cardVolumeSeriesInflight = pending;
+    return pending;
+  }
+
+  private async buildEquityCardDayVolumeSeries(): Promise<Record<string, VolumeHistoryPoint[]>> {
+    if (!this.geckoEnabled || this.cardVolumeSeriesMax === 0) return {};
+
+    let targets;
+    try {
+      const snapshot = await this.loadCached("full");
+      const assets = [
+        ...snapshot.mapped.assets,
+        ...snapshot.mapped.etfAssets,
+        ...snapshot.mapped.privateAssets,
+      ];
+      targets = selectEquityCardVolumeTargets(assets, this.cardVolumeSeriesMax);
+    } catch {
+      return {};
+    }
+    if (targets.length === 0) return {};
+
+    const gate = createRequestGate({
+      maxConcurrent: Math.min(4, this.maxConcurrent),
+      minGapMs: Math.max(this.requestGapMs, 200),
+    });
+    const nowT = Date.now() / 1000;
+    const series: Record<string, VolumeHistoryPoint[]> = {};
+
+    await Promise.all(
+      targets.map((target) =>
+        gate.run(async () => {
+          try {
+            const payload = await this.fetchSource(
+              `${this.geckoTerminalBaseUrl}${geckoTerminalOhlcvPath(target.pairAddress, {
+                timeframe: "hour",
+                limit: 24,
+              })}`,
+              "GeckoTerminal",
+            );
+            const day = sliceEquityCardDayVolumeSeries(parseGeckoTerminalOhlcvSeries(payload).volumes, nowT);
+            if (day) series[target.mint] = day;
+          } catch {
+            // One pool failing must not invent a line or fail the rest.
+          }
+        }),
+      ),
+    );
+
+    return series;
   }
 
   async getAssetPriceHistory(chainId: string, symbol: string): Promise<AssetPriceHistoryResult> {

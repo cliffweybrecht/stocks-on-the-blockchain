@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   equityCardDayMovePct,
   equityCardDayPriceSeries,
+  equityCardDayVolumeSeries,
   equityCardPriceSparklineDirection,
   equityCardSpotPriceUsd,
 } from "../equity-card-view";
@@ -58,6 +59,21 @@ describe("equityCardDayPriceSeries", () => {
         NOW,
       ),
     ).toBeNull();
+  });
+});
+
+describe("equityCardDayVolumeSeries", () => {
+  it("needs two hourly volume buckets inside the last 24h", () => {
+    expect(
+      equityCardDayVolumeSeries(
+        [
+          { t: NOW - 2 * 3600, volumeUsd: 12 },
+          { t: NOW - 3600, volumeUsd: 8 },
+        ],
+        NOW,
+      ),
+    ).toHaveLength(2);
+    expect(equityCardDayVolumeSeries([{ t: NOW - 3600, volumeUsd: 12 }], NOW)).toBeNull();
   });
 });
 

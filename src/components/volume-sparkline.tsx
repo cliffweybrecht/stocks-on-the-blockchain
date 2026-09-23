@@ -1,13 +1,15 @@
 import { useId } from "react";
-import { sparklineGeometry, SPARKLINE_HEIGHT, SPARKLINE_WIDTH } from "@/lib/desk/sparkline-path";
-import type { VolumeHistoryPoint } from "@/lib/market/types";
+import { sparklineGeometryFromValues } from "@/lib/desk/sparkline-path";
 import { volumeSparklineDirection, type VolumeSparklineDirection } from "@/lib/market/volume-history";
+import type { VolumeHistoryPoint } from "@/lib/market/types";
 
 const DIRECTION_COLOR: Record<VolumeSparklineDirection, string> = {
   up: "#22c55e",
   down: "#ef4444",
   flat: "#737373",
 };
+
+const CARD = { width: 88, height: 28, className: "h-7 w-[88px]", stroke: 1.6, dot: 2 } as const;
 
 export function VolumeSparkline({
   points,
@@ -16,25 +18,28 @@ export function VolumeSparkline({
   points: readonly VolumeHistoryPoint[];
   label?: string;
 }) {
-  const glowId = `spark-glow-${useId().replace(/:/g, "")}`;
+  const glowId = `vol-spark-${useId().replace(/:/g, "")}`;
   const direction = volumeSparklineDirection(points);
-  const geometry = sparklineGeometry(points);
+  const geometry = sparklineGeometryFromValues(
+    points.map((point) => point.volumeUsd),
+    CARD.width,
+    CARD.height,
+  );
   if (!direction || !geometry) return null;
 
   const color = DIRECTION_COLOR[direction];
 
   return (
     <svg
-      viewBox={`0 0 ${SPARKLINE_WIDTH} ${SPARKLINE_HEIGHT}`}
+      viewBox={`0 0 ${CARD.width} ${CARD.height}`}
       preserveAspectRatio="none"
-      className="h-14 w-full"
+      className={CARD.className}
       role="img"
-      aria-label={label ?? `Week volume trend ${direction}`}
+      aria-label={label ?? `24h volume trend ${direction}`}
     >
       <defs>
         <linearGradient id={glowId} x1="0" x2="0" y1="1" y2="0">
-          <stop offset="0%" stopColor={color} stopOpacity="0.28" />
-          <stop offset="70%" stopColor={color} stopOpacity="0.08" />
+          <stop offset="0%" stopColor={color} stopOpacity="0.2" />
           <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
       </defs>
@@ -43,11 +48,11 @@ export function VolumeSparkline({
         d={geometry.line}
         fill="none"
         stroke={color}
-        strokeWidth="2"
+        strokeWidth={CARD.stroke}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <circle cx={geometry.lastX} cy={geometry.lastY} r="3.2" fill={color} />
+      <circle cx={geometry.lastX} cy={geometry.lastY} r={CARD.dot} fill={color} />
     </svg>
   );
 }

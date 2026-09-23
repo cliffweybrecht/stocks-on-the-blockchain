@@ -1,5 +1,6 @@
 import { deskSpotPriceUsd } from "./price-ticker";
-import type { AssetSummary, PriceHistoryPoint } from "@/lib/market/types";
+import { sliceEquityCardDayVolumeSeries } from "@/lib/market/equity-card-volume";
+import type { AssetSummary, PriceHistoryPoint, VolumeHistoryPoint } from "@/lib/market/types";
 
 const DAY_SECONDS = 24 * 60 * 60;
 
@@ -36,6 +37,14 @@ export function equityCardDayPriceSeries(
     )
     .sort((a, b) => a.t - b.t);
   return day.length >= 2 ? day : null;
+}
+
+/** Intra-day volume buckets for the card sparkline. Missing series stays missing. */
+export function equityCardDayVolumeSeries(
+  points: readonly VolumeHistoryPoint[] | null | undefined,
+  nowT = Date.now() / 1000,
+): VolumeHistoryPoint[] | null {
+  return sliceEquityCardDayVolumeSeries(points, nowT);
 }
 
 export function equityCardPriceSparklineDirection(

@@ -257,6 +257,8 @@ export interface MarketDataSource {
   getAsset(chainId: string, symbol: string): Promise<AssetDetailResult | null>;
   getEquityVolumeHistory(): Promise<EquityVolumeHistoryResult>;
   getAssetPriceHistory(chainId: string, symbol: string): Promise<AssetPriceHistoryResult>;
+  /** Primary-pool Gecko hourly volume for card sparklines. Missing mints are omitted. */
+  getEquityCardDayVolumeSeries(): Promise<Record<string, VolumeHistoryPoint[]>>;
 }
 
 export const ROBINHOOD_CHAIN_ID = "robinhood-chain";

@@ -10,6 +10,7 @@ import {
   type EquityVolumeHistoryResult,
   type MarketDataSource,
   type SourceFailure,
+  type VolumeHistoryPoint,
 } from "./types";
 import { emptyAssetPriceHistory } from "./asset-price-history";
 import { emptyEquityVolumeHistory } from "./volume-history";
@@ -132,6 +133,12 @@ export class CompositeMarketDataSource implements MarketDataSource {
       );
     }
     return solana.getEquityVolumeHistory();
+  }
+
+  async getEquityCardDayVolumeSeries(): Promise<Record<string, VolumeHistoryPoint[]>> {
+    const solana = this.adapters.find((adapter) => adapter.id === "solana");
+    if (!solana) return {};
+    return solana.getEquityCardDayVolumeSeries();
   }
 
   async getAssetPriceHistory(chainId: string, symbol: string): Promise<AssetPriceHistoryResult> {

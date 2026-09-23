@@ -1000,4 +1000,56 @@ describe("SolanaMarketDataSource", () => {
     expect(urls.some((url) => url.includes("/tokens/v2/search"))).toBe(true);
     expect(urls.some((url) => url.includes("example.com/sol.png"))).toBe(false);
   });
+
+  it("loads hourly Gecko volume for card sparklines and omits a one-point series", async () => {
+    const now = Math.floor(Date.now() / 1000);
+    const urls: string[] = [];
+    const source = testSource({
+      requestGapMs: 0,
+      enableGeckoTerminal: true,
+      geckoTerminalBaseUrl: "https://api.geckoterminal.com/api/v2",
+      fetchImpl: async (input) => {
+        const url = String(input);
+        urls.push(url);
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [tslaPair()] });
+        if (url.includes("/tokens/v1/solana/")) return jsonResponse([tslaPair()]);
+        if (url.includes("/token-pairs/v1/solana/")) return jsonResponse([tslaPair()]);
+        if (url.includes("/ohlcv/hour") && url.includes("pair-1")) {
+          return jsonResponse({
+            data: {
+              attributes: {
+                ohlcv_list: [
+                  [now - 7200, 100, 101, 99, 100.5, 40],
+                  [now - 3600, 100, 102, 99, 101, 18],
+                  [now - 60, 101, 103, 100, 102, 22],
+                ],
+              },
+            },
+          });
+        }
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    const series = await source.getEquityCardDayVolumeSeries();
+    expect(series[tslaMint]?.map((point) => point.volumeUsd)).toEqual([40, 18, 22]);
+    expect(urls.some((url) => url.includes("/ohlcv/hour") && url.includes("pair-1"))).toBe(true);
+    expect(urls.some((url) => url.includes("/ohlcv/day"))).toBe(false);
+  });
+
+  it("omits card volume sparklines when Gecko hourly candles are missing", async () => {
+    const source = testSource({
+      requestGapMs: 0,
+      enableGeckoTerminal: true,
+      geckoTerminalBaseUrl: "https://api.geckoterminal.com/api/v2",
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [tslaPair()] });
+        if (url.includes("/tokens/v1/solana/")) return jsonResponse([tslaPair()]);
+        if (url.includes("/ohlcv/")) return jsonResponse({ error: "nope" }, 429);
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+    await expect(source.getEquityCardDayVolumeSeries()).resolves.toEqual({});
+  });
 });

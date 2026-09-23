@@ -101,6 +101,10 @@ class FakeSource implements MarketDataSource {
       emptyAssetPriceHistory(`No price history on ${this.id}.`),
     );
   }
+
+  getEquityCardDayVolumeSeries() {
+    return Promise.resolve({});
+  }
 }
 
 describe("CompositeMarketDataSource", () => {
