@@ -9,7 +9,7 @@ const DIRECTION_COLOR: Record<VolumeSparklineDirection, string> = {
   flat: "#737373",
 };
 
-const CARD = { width: 88, height: 28, className: "h-7 w-[88px]", stroke: 1.6, dot: 2 } as const;
+const CARD = { width: 104, height: 32, className: "h-8 w-[104px]", stroke: 1.7, dot: 2.1 } as const;
 
 export function VolumeSparkline({
   points,
