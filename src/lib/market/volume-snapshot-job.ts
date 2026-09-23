@@ -4,6 +4,7 @@ import type { MarketDataSource } from "./types";
 import { FileDeskVolumeSnapshotStore } from "./volume-snapshot-store";
 import {
   DEFAULT_VOLUME_SNAPSHOT_DIR,
+  MemoryDeskVolumeSnapshotStore,
   recordDeskVolumeFromChain,
   SOLANA_VOLUME_SNAPSHOT_FILE,
   type DeskVolumeSnapshotStore,
@@ -68,7 +69,8 @@ export async function runDeskVolumeSnapshotCli(options: {
     options.source ??
     createSolanaMarketDataSource(env, {
       backgroundEnrichment: false,
-      volumeSnapshotStore: store,
+      // Fire-and-forget UI persist must not race the awaited CLI write.
+      volumeSnapshotStore: new MemoryDeskVolumeSnapshotStore(),
     });
   try {
     const result = await runDeskVolumeSnapshotJob({ source, store });

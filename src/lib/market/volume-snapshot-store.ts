@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import {
@@ -28,7 +29,7 @@ export class FileDeskVolumeSnapshotStore implements DeskVolumeSnapshotStore {
 
   async save(records: readonly DeskVolumeSnapshot[]): Promise<void> {
     await mkdir(dirname(this.filePath), { recursive: true });
-    const tmp = `${this.filePath}.${process.pid}.tmp`;
+    const tmp = `${this.filePath}.${process.pid}.${randomUUID()}.tmp`;
     await writeFile(tmp, serializeDeskVolumeSnapshots(records), "utf8");
     await rename(tmp, this.filePath);
   }

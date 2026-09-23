@@ -242,4 +242,18 @@ describe("FileDeskVolumeSnapshotStore", () => {
     const raw = await readFile(join(dir, "solana.json"), "utf8");
     expect(parseDeskVolumeSnapshotRecords(JSON.parse(raw))).toHaveLength(1);
   });
+
+  it("uses unique temp files so overlapping saves do not throw ENOENT", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "sotb-vol-"));
+    const store = new FileDeskVolumeSnapshotStore(dir);
+    const first = deskVolumeSnapshotFromChain(chain({ volume24hUsd: 5 }), "2026-09-15T12:00:00.000Z", DAY1);
+    const second = deskVolumeSnapshotFromChain(chain({ volume24hUsd: 9 }), "2026-09-14T12:00:00.000Z", DAY0);
+    await Promise.all([
+      store.save(upsertDeskVolumeSnapshot([], first)),
+      store.save(upsertDeskVolumeSnapshot([], second)),
+    ]);
+    const loaded = await store.load();
+    expect(loaded.length).toBeGreaterThan(0);
+    expect(loaded.every((row) => row.combined24hUsd !== null)).toBe(true);
+  });
 });
