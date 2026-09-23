@@ -410,6 +410,7 @@ const solanaAssets: AssetDetail[] = [
     dexCount: 3,
     robinhoodReferencePriceUsd: null,
     dexMedianPriceUsd: 215.9,
+    priceChange24hPct: -2.14,
     premiumDiscountPct: null,
     top3ConcentrationPct: 82.0,
     liquidityCoverageComplete: true,
@@ -489,6 +490,7 @@ const solanaAssets: AssetDetail[] = [
     dexCount: 2,
     robinhoodReferencePriceUsd: null,
     dexMedianPriceUsd: 247.8,
+    priceChange24hPct: 1.36,
     premiumDiscountPct: null,
     top3ConcentrationPct: 90.2,
     liquidityCoverageComplete: true,
@@ -1025,6 +1027,7 @@ function toSummaries(details: AssetDetail[]): AssetSummary[] {
       instrumentKind: detail.instrumentKind,
       volumeCoverage: detail.volumeCoverage,
       coverageNote: detail.coverageNote,
+      priceChange24hPct: detail.priceChange24hPct,
     })),
   );
 }

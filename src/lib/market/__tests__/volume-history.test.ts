@@ -45,6 +45,7 @@ function equity(partial: Partial<AssetSummary> & Pick<AssetSummary, "symbol" | "
     instrumentKind: "equity",
     volumeCoverage: "reported",
     coverageNote: null,
+    priceChange24hPct: null,
     ...partial,
   };
 }

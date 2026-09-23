@@ -30,7 +30,7 @@ export function CopyAddressIcon({
       aria-label={status === "copied" ? "Copied contract address" : `Copy contract address ${formatAddress(address)}`}
       className={`relative z-20 inline-flex h-7 items-center gap-1 rounded-md px-1.5 text-[11px] text-neutral-500 hover:bg-white/5 hover:text-neutral-200 ${className}`}
     >
-      <span className="num max-w-[4.5rem] truncate">{formatAddress(address)}</span>
+      <span className="num whitespace-nowrap">{formatAddress(address)}</span>
       {status === "copied" ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
     </button>
   );

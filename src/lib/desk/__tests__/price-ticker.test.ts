@@ -25,6 +25,7 @@ function row(
     instrumentKind: "equity",
     volumeCoverage: "reported",
     coverageNote: null,
+    priceChange24hPct: null,
     ...partial,
   };
 }

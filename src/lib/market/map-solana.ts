@@ -323,6 +323,7 @@ export function mapDexScreenerPairsToSolanaAssets(
       instrumentKind: bucket.kind,
       volumeCoverage,
       coverageNote: null,
+      priceChange24hPct: pickPrimaryReported(bucket.pairStats, "priceChange24hPct"),
     };
 
     summaries.push(summary);
@@ -458,6 +459,7 @@ export function unpairedSolanaAsset(
       volume24hUsd: null,
       aggregation: options.aggregation ?? "all-pools",
     }),
+    priceChange24hPct: null,
   };
   return {
     ...summary,

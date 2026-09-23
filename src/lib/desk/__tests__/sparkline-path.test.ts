@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sparklineGeometry, SPARKLINE_HEIGHT, SPARKLINE_PAD_X } from "../sparkline-path";
+import { sparklineGeometry, sparklineGeometryFromValues, SPARKLINE_HEIGHT, SPARKLINE_PAD_X } from "../sparkline-path";
 
 describe("sparklineGeometry", () => {
   it("returns null without two points", () => {
@@ -18,5 +18,10 @@ describe("sparklineGeometry", () => {
     expect(geometry?.lastY).toBeLessThan(SPARKLINE_HEIGHT / 2);
     expect(geometry?.line.startsWith("M ")).toBe(true);
     expect(geometry?.area.endsWith("Z")).toBe(true);
+  });
+
+  it("rejects a non-finite price series instead of drawing a fake line", () => {
+    expect(sparklineGeometryFromValues([10, Number.NaN, 12])).toBeNull();
+    expect(sparklineGeometryFromValues([10])).toBeNull();
   });
 });

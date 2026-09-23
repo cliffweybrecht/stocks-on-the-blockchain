@@ -171,6 +171,7 @@ export function mapTerminalRowToAsset(row: TerminalMarketRow): AssetSummary | nu
       volume24hUsd: asFiniteNumber(row.observedVolume24h),
       poolCount: asFiniteNumber(row.poolCount) ?? 0,
     }),
+    priceChange24hPct: null,
   };
 }
 

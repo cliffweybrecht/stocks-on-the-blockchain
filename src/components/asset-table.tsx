@@ -17,7 +17,7 @@ import {
   type IssuerFilter,
 } from "@/lib/desk/issuer-filter";
 import { assetRouteKey } from "@/lib/market/identity";
-import type { AssetSummary, InstrumentKind, VolumeHistoryPoint } from "@/lib/market/types";
+import type { AssetSummary, InstrumentKind } from "@/lib/market/types";
 import { PIN_COMPARE_MAX, selectPinnedCompareRows, shouldShowPinCompare } from "@/lib/desk/pin-compare";
 import { type CoverageFilter } from "@/lib/market/volume-coverage";
 
@@ -97,7 +97,6 @@ export function AssetTable({
   unknownIssuerCount = 0,
   showRobinhoodMarks = true,
   enableFavorites = false,
-  weekVolumeByMint = {},
 }: {
   assets: AssetSummary[];
   catalogAssets?: Array<
@@ -129,7 +128,6 @@ export function AssetTable({
   unknownIssuerCount?: number;
   showRobinhoodMarks?: boolean;
   enableFavorites?: boolean;
-  weekVolumeByMint?: Readonly<Record<string, readonly VolumeHistoryPoint[]>>;
 }) {
   const [query, setQuery] = useState("");
   const favorites = useSolanaFavorites();
@@ -315,7 +313,6 @@ export function AssetTable({
               key={asset.contractAddress}
               asset={asset}
               href={`/chains/${chainId}/assets/${encodeURIComponent(assetRouteKey(asset, catalog))}`}
-              weekSeries={weekVolumeByMint[asset.contractAddress]}
               enableFavorites={enableFavorites}
               pinned={favorites.isFavorite(asset.contractAddress)}
               onTogglePin={() => favorites.toggle(asset.contractAddress)}

@@ -114,6 +114,8 @@ export interface AssetSummary {
   instrumentKind: InstrumentKind;
   volumeCoverage: VolumeCoverage;
   coverageNote: string | null;
+  /** DexScreener `priceChange.h24` from the highest-volume pair that reported it. */
+  priceChange24hPct: number | null;
 }
 
 export interface LargestPoolMark {
@@ -170,8 +172,6 @@ export interface AssetDetail extends AssetSummary {
   marketCapUsd: number | null;
   /** DexScreener pair `fdv` when reported. Never computed from supply × price. */
   fdvUsd: number | null;
-  /** DexScreener `priceChange.h24` from the highest-volume pair that reported it. */
-  priceChange24hPct: number | null;
   /** Source-reported holder count. Unknown stays null — this desk has no holder indexer. */
   holderCount: number | null;
   /** Source-reported circulating supply. Never inferred from market cap / price. */

@@ -12,14 +12,14 @@ export function AssetLogo({
   logoUrl: string | null;
   name: string;
   symbol: string;
-  size?: "sm" | "lg";
+  size?: "sm" | "md" | "lg";
 }) {
   const safeUrl = isHttpLogoUrl(logoUrl) ? logoUrl : null;
   const [failed, setFailed] = useState(false);
   const monogram = assetMonogram(name, symbol);
   const showImage = Boolean(safeUrl) && !failed;
-  const box = size === "sm" ? "size-8" : "size-14 sm:size-16";
-  const type = size === "sm" ? "text-[10px] font-semibold" : "text-sm font-semibold sm:text-base";
+  const box = size === "sm" ? "size-8" : size === "md" ? "size-10" : "size-14 sm:size-16";
+  const type = size === "sm" ? "text-[10px] font-semibold" : size === "md" ? "text-[11px] font-semibold" : "text-sm font-semibold sm:text-base";
   const ring = size === "sm" ? "ring-2 ring-background" : "ring-1 ring-border";
 
   return (
