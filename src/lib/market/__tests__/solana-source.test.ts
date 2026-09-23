@@ -19,6 +19,12 @@ function testSource(options: SolanaMarketDataSourceOptions) {
   return new SolanaMarketDataSource({
     requestGapMs: 0,
     retries: 0,
+    cardVolumeSeriesGapMs: 0,
+    cardVolumeSeriesSlowGapMs: 0,
+    cardVolumeSeriesCooldownMs: 0,
+    cardVolumeSeriesRetries: 0,
+    cardVolumeSeriesSparseCacheMs: 0,
+    cardVolumeSeriesTransientRetryMs: 0,
     discoveryQueries: ["xStock"],
     enableRegistry: false,
     enableOndoRegistry: false,
@@ -1035,6 +1041,111 @@ describe("SolanaMarketDataSource", () => {
     expect(series[tslaMint]?.map((point) => point.volumeUsd)).toEqual([40, 18, 22]);
     expect(urls.some((url) => url.includes("/ohlcv/hour") && url.includes("pair-1"))).toBe(true);
     expect(urls.some((url) => url.includes("/ohlcv/day"))).toBe(false);
+    const hourCalls = urls.filter((url) => url.includes("/ohlcv/hour")).length;
+    await source.getEquityCardDayVolumeSeries();
+    expect(urls.filter((url) => url.includes("/ohlcv/hour")).length).toBe(hourCalls);
+  });
+
+  it("retries a Gecko 429 for the card sparkline instead of dropping the pool", async () => {
+    const now = Math.floor(Date.now() / 1000);
+    let hourCalls = 0;
+    const source = testSource({
+      enableGeckoTerminal: true,
+      geckoTerminalBaseUrl: "https://api.geckoterminal.com/api/v2",
+      cardVolumeSeriesRetries: 2,
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [tslaPair()] });
+        if (url.includes("/tokens/v1/solana/") || url.includes("/token-pairs/v1/solana/")) {
+          return jsonResponse([tslaPair()]);
+        }
+        if (url.includes("/ohlcv/hour") && url.includes("pair-1")) {
+          hourCalls += 1;
+          if (hourCalls === 1) {
+            return new Response(JSON.stringify({ error: "slow down" }), {
+              status: 429,
+              headers: { "content-type": "application/json", "retry-after": "0" },
+            });
+          }
+          return jsonResponse({
+            data: {
+              attributes: {
+                ohlcv_list: [
+                  [now - 7200, 100, 101, 99, 100.5, 40],
+                  [now - 3600, 100, 102, 99, 101, 18],
+                ],
+              },
+            },
+          });
+        }
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    const series = await source.getEquityCardDayVolumeSeries();
+    expect(series[tslaMint]?.map((point) => point.volumeUsd)).toEqual([40, 18]);
+    expect(hourCalls).toBe(2);
+  });
+
+  it("does not freeze an empty card-volume build after a rate-limited miss", async () => {
+    const now = Math.floor(Date.now() / 1000);
+    let hourCalls = 0;
+    const source = testSource({
+      enableGeckoTerminal: true,
+      geckoTerminalBaseUrl: "https://api.geckoterminal.com/api/v2",
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [tslaPair()] });
+        if (url.includes("/tokens/v1/solana/") || url.includes("/token-pairs/v1/solana/")) {
+          return jsonResponse([tslaPair()]);
+        }
+        if (url.includes("/ohlcv/hour")) {
+          hourCalls += 1;
+          if (hourCalls === 1) return jsonResponse({ error: "nope" }, 429);
+          return jsonResponse({
+            data: {
+              attributes: {
+                ohlcv_list: [
+                  [now - 7200, 1, 1, 1, 1, 4],
+                  [now - 3600, 1, 1, 1, 1, 9],
+                ],
+              },
+            },
+          });
+        }
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    await expect(source.getEquityCardDayVolumeSeries()).resolves.toEqual({});
+    const series = await source.getEquityCardDayVolumeSeries();
+    expect(series[tslaMint]?.map((point) => point.volumeUsd)).toEqual([4, 9]);
+    expect(hourCalls).toBe(2);
+  });
+
+  it("remembers a missing pool and does not refetch it for the card sparkline", async () => {
+    let hourCalls = 0;
+    const source = testSource({
+      enableGeckoTerminal: true,
+      geckoTerminalBaseUrl: "https://api.geckoterminal.com/api/v2",
+      cardVolumeSeriesRetries: 2,
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [tslaPair()] });
+        if (url.includes("/tokens/v1/solana/") || url.includes("/token-pairs/v1/solana/")) {
+          return jsonResponse([tslaPair()]);
+        }
+        if (url.includes("/ohlcv/")) {
+          hourCalls += 1;
+          return jsonResponse({ error: "missing" }, 404);
+        }
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    await expect(source.getEquityCardDayVolumeSeries()).resolves.toEqual({});
+    await expect(source.getEquityCardDayVolumeSeries()).resolves.toEqual({});
+    expect(hourCalls).toBe(1);
   });
 
   it("omits card volume sparklines when Gecko hourly candles are missing", async () => {

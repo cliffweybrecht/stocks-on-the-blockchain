@@ -18,7 +18,7 @@ function DayMove({ value }: { value: number | null }) {
   if (move === null) return null;
   const tone = move > 0 ? "text-price-up" : move < 0 ? "text-price-down" : "text-neutral-500";
   return (
-    <span className={`num text-xs font-medium ${tone}`} data-price-change={move > 0 ? "up" : move < 0 ? "down" : "flat"}>
+    <span className={`num shrink-0 text-xs font-medium ${tone}`} data-price-change={move > 0 ? "up" : move < 0 ? "down" : "flat"}>
       {formatPct(move)}
     </span>
   );
@@ -71,9 +71,11 @@ export function EquityCard({
         </span>
         <span className="shrink-0 text-sm font-normal leading-none text-neutral-200">Vol</span>
       </p>
-      <div className="relative z-10 mt-auto flex items-end gap-2 pt-4 pointer-events-none">
-        <p className="num shrink-0 text-sm text-neutral-200">{formatPrice(priceUsd)}</p>
-        <DayMove value={asset.priceChange24hPct} />
+      <div className="relative z-10 mt-auto flex min-w-0 items-end gap-2 pt-4 pointer-events-none">
+        <div className="flex min-w-0 items-baseline gap-2">
+          <p className="num min-w-0 truncate text-sm text-neutral-200">{formatPrice(priceUsd)}</p>
+          <DayMove value={asset.priceChange24hPct} />
+        </div>
         <span className="ml-auto shrink-0">
           {sparklinePoints ? (
             <VolumeSparkline points={sparklinePoints} label={`${asset.symbol} 24h volume trend`} />

@@ -1,4 +1,4 @@
-import { createRequestGate, mapWithConcurrency } from "./async-pool";
+import { createRequestGate, mapWithConcurrency, sleep } from "./async-pool";
 import { findAssetByKey } from "./identity";
 import { buildSolanaSnapshot, unwrapDexScreenerPairs, unwrapDexScreenerSearch, type DexScreenerPair } from "./map-solana";
 import {
@@ -34,7 +34,13 @@ import {
   parseGeckoTerminalSearch,
 } from "./solana-geckoterminal";
 import { SolanaHydrateMemory } from "./solana-hydrate-memory";
-import { fetchJsonOrText, type FetchLike } from "./solana-http";
+import {
+  fetchJsonOrText,
+  isDefinitiveFetchMiss,
+  responseStatusFromError,
+  SourceRequestError,
+  type FetchLike,
+} from "./solana-http";
 import { DEFAULT_ONDO_REGISTRY_URL, parseOndoGmConstants } from "./solana-ondo";
 import {
   DEFAULT_SUNRISE_REGISTRY_BASE_URL,
@@ -56,6 +62,7 @@ import {
   type AssetPriceHistoryResult,
   type ChainDetailResult,
   type ChainListResult,
+  type EquityCardDayVolumeSeriesSnapshot,
   type EquityVolumeHistoryResult,
   type MarketDataSource,
   type VolumeAggregation,
@@ -63,8 +70,16 @@ import {
 } from "./types";
 import {
   EQUITY_CARD_DAY_VOLUME_SERIES_MAX,
+  EQUITY_CARD_VOLUME_SERIES_MIN_GAP_MS,
+  EQUITY_CARD_VOLUME_SERIES_RATE_LIMIT_COOLDOWN_MS,
+  EQUITY_CARD_VOLUME_SERIES_RETRIES,
+  EQUITY_CARD_VOLUME_SERIES_SLOW_GAP_MS,
+  EQUITY_CARD_VOLUME_SERIES_SPARSE_CACHE_MS,
+  equityCardVolumeRateLimitDelayMs,
+  equityCardVolumeSeriesCacheTtlMs,
   selectEquityCardVolumeTargets,
   sliceEquityCardDayVolumeSeries,
+  type EquityCardVolumeTarget,
 } from "./equity-card-volume";
 import {
   buildAssetPriceHistory,
@@ -146,6 +161,18 @@ export interface SolanaMarketDataSourceOptions {
   fetchImpl?: FetchLike;
   volumeHistoryCacheMs?: number;
   cardVolumeSeriesMax?: number;
+  /** Steady gap between card OHLCV calls. Tests pass 0. */
+  cardVolumeSeriesGapMs?: number;
+  /** Gap used after GeckoTerminal returns 429. */
+  cardVolumeSeriesSlowGapMs?: number;
+  /** Wait when Retry-After is missing or 0. */
+  cardVolumeSeriesCooldownMs?: number;
+  /** Extra attempts per pool inside one build. */
+  cardVolumeSeriesRetries?: number;
+  /** How long a build with failed fetches stays warm before another pass. */
+  cardVolumeSeriesSparseCacheMs?: number;
+  /** Short pause between non-429 retries (timeouts, 5xx). */
+  cardVolumeSeriesTransientRetryMs?: number;
   volumeSnapshotStore?: DeskVolumeSnapshotStore;
   volumeSnapshotDir?: string;
   enableJupiterTokenLogos?: boolean;
@@ -164,9 +191,14 @@ export class SolanaMarketDataSource implements MarketDataSource {
   private readonly deskSnapshots: DeskVolumeSnapshotStore;
   private volumeHistoryCache: { result: EquityVolumeHistoryResult; expiresAt: number } | null = null;
   private volumeHistoryInflight: Promise<EquityVolumeHistoryResult> | null = null;
-  private cardVolumeSeriesCache: { result: Record<string, VolumeHistoryPoint[]>; expiresAt: number } | null =
-    null;
+  private cardVolumeResolved = new Map<string, { points: VolumeHistoryPoint[] | null; expiresAt: number }>();
   private cardVolumeSeriesInflight: Promise<Record<string, VolumeHistoryPoint[]>> | null = null;
+  private cardVolumeTargetMints: string[] = [];
+  private cardVolumeTargetsLoadedAt = 0;
+  private cardVolumeTargetsKnown = false;
+  private cardVolumeRetryNotBefore = 0;
+  private cardVolumeAutoRetries = 0;
+  private cardVolumeTimer: ReturnType<typeof setTimeout> | null = null;
   private priceHistoryCache = new Map<string, { result: AssetPriceHistoryResult; expiresAt: number }>();
   private priceHistoryInflight = new Map<string, Promise<AssetPriceHistoryResult>>();
   private readonly mintLogoCatalog: MintLogoCatalog = new Map();
@@ -286,12 +318,57 @@ export class SolanaMarketDataSource implements MarketDataSource {
     return Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
   }
 
+  private nonNegativeOption(value: number | undefined, fallback: number): number {
+    return Number.isFinite(value) && value !== undefined && value >= 0 ? value : fallback;
+  }
+
+  private get cardVolumeSeriesGapMs() {
+    return this.nonNegativeOption(this.options.cardVolumeSeriesGapMs, EQUITY_CARD_VOLUME_SERIES_MIN_GAP_MS);
+  }
+
+  private get cardVolumeSeriesSlowGapMs() {
+    return Math.max(
+      this.cardVolumeSeriesGapMs,
+      this.nonNegativeOption(this.options.cardVolumeSeriesSlowGapMs, EQUITY_CARD_VOLUME_SERIES_SLOW_GAP_MS),
+    );
+  }
+
+  private get cardVolumeSeriesCooldownMs() {
+    return this.nonNegativeOption(
+      this.options.cardVolumeSeriesCooldownMs,
+      EQUITY_CARD_VOLUME_SERIES_RATE_LIMIT_COOLDOWN_MS,
+    );
+  }
+
+  private get cardVolumeSeriesRetries() {
+    return Math.floor(
+      this.nonNegativeOption(this.options.cardVolumeSeriesRetries, EQUITY_CARD_VOLUME_SERIES_RETRIES),
+    );
+  }
+
+  private get cardVolumeSeriesSparseCacheMs() {
+    return this.nonNegativeOption(
+      this.options.cardVolumeSeriesSparseCacheMs,
+      EQUITY_CARD_VOLUME_SERIES_SPARSE_CACHE_MS,
+    );
+  }
+
+  private get cardVolumeSeriesTransientRetryMs() {
+    return this.nonNegativeOption(this.options.cardVolumeSeriesTransientRetryMs, 1_500);
+  }
+
   private gate() {
     return createRequestGate({ maxConcurrent: this.maxConcurrent, minGapMs: this.requestGapMs });
   }
 
-  private async fetchSource(url: string, label: string): Promise<unknown> {
-    return fetchJsonOrText(url, this.timeoutMs, this.fetchImpl, label, this.options.retries ?? 2);
+  private async fetchSource(url: string, label: string, retry?: { retries?: number }): Promise<unknown> {
+    return fetchJsonOrText(
+      url,
+      this.timeoutMs,
+      this.fetchImpl,
+      label,
+      retry?.retries ?? this.options.retries ?? 2,
+    );
   }
 
   private async loadSearchIdentities(): Promise<{
@@ -1120,31 +1197,116 @@ export class SolanaMarketDataSource implements MarketDataSource {
   }
 
   async getEquityCardDayVolumeSeries(): Promise<Record<string, VolumeHistoryPoint[]>> {
-    const now = Date.now();
-    if (this.cardVolumeSeriesCache && this.cardVolumeSeriesCache.expiresAt > now) {
-      return this.cardVolumeSeriesCache.result;
-    }
-    if (this.cardVolumeSeriesInflight) return this.cardVolumeSeriesInflight;
+    return this.ensureCardVolumeSeriesBuild();
+  }
 
-    const pending = this.buildEquityCardDayVolumeSeries()
-      .then((result) => {
-        this.cardVolumeSeriesCache = {
-          result,
-          expiresAt: Date.now() + this.volumeHistoryCacheMs,
-        };
-        return result;
-      })
-      .finally(() => {
-        this.cardVolumeSeriesInflight = null;
-      });
+  async getEquityCardDayVolumeSeriesSnapshot(): Promise<EquityCardDayVolumeSeriesSnapshot> {
+    if (!this.isCardVolumeSeriesReady()) void this.ensureCardVolumeSeriesBuild();
+    return {
+      series: this.snapshotCardSeries(),
+      pending:
+        this.cardVolumeSeriesInflight !== null ||
+        this.cardVolumeTimer !== null ||
+        !this.isCardVolumeSeriesReady(),
+    };
+  }
+
+  private ensureCardVolumeSeriesBuild(): Promise<Record<string, VolumeHistoryPoint[]>> {
+    if (this.cardVolumeSeriesInflight) return this.cardVolumeSeriesInflight;
+    if (this.isCardVolumeSeriesReady()) return Promise.resolve(this.snapshotCardSeries());
+    const pending = this.buildEquityCardDayVolumeSeries().finally(() => {
+      this.cardVolumeSeriesInflight = null;
+    });
     this.cardVolumeSeriesInflight = pending;
     return pending;
   }
 
-  private async buildEquityCardDayVolumeSeries(): Promise<Record<string, VolumeHistoryPoint[]>> {
-    if (!this.geckoEnabled || this.cardVolumeSeriesMax === 0) return {};
+  private isCardVolumeSeriesReady(now = Date.now()): boolean {
+    if (!this.cardVolumeTargetsKnown) return now < this.cardVolumeRetryNotBefore;
+    if (now < this.cardVolumeRetryNotBefore) return true;
+    if (now - this.cardVolumeTargetsLoadedAt > this.volumeHistoryCacheMs) return false;
+    return this.cardVolumeTargetMints.every((mint) => {
+      const row = this.cardVolumeResolved.get(mint);
+      return Boolean(row && row.expiresAt > now);
+    });
+  }
 
-    let targets;
+  private snapshotCardSeries(now = Date.now()): Record<string, VolumeHistoryPoint[]> {
+    const series: Record<string, VolumeHistoryPoint[]> = {};
+    const allowed = new Set(this.cardVolumeTargetMints);
+    for (const [mint, row] of this.cardVolumeResolved) {
+      if (row.expiresAt <= now || !row.points || row.points.length === 0) continue;
+      if (this.cardVolumeTargetsKnown && !allowed.has(mint)) continue;
+      series[mint] = row.points;
+    }
+    return series;
+  }
+
+  private rememberCardVolume(mint: string, points: VolumeHistoryPoint[] | null, now = Date.now()) {
+    this.cardVolumeResolved.set(mint, {
+      points,
+      expiresAt: now + this.volumeHistoryCacheMs,
+    });
+  }
+
+  private unresolvedCardTargets(targets: readonly EquityCardVolumeTarget[], now = Date.now()) {
+    return targets.filter((target) => {
+      const row = this.cardVolumeResolved.get(target.mint);
+      return !row || row.expiresAt <= now;
+    });
+  }
+
+  private markCardVolumeTargets(mints: readonly string[], now = Date.now()) {
+    this.cardVolumeTargetsKnown = true;
+    this.cardVolumeTargetMints = [...mints];
+    this.cardVolumeTargetsLoadedAt = now;
+  }
+
+  private clearCardVolumeTimer() {
+    if (!this.cardVolumeTimer) return;
+    clearTimeout(this.cardVolumeTimer);
+    this.cardVolumeTimer = null;
+  }
+
+  private scheduleCardVolumeRetry(waitMs: number) {
+    this.clearCardVolumeTimer();
+    const timer = setTimeout(() => {
+      if (this.cardVolumeTimer === timer) this.cardVolumeTimer = null;
+      this.cardVolumeRetryNotBefore = 0;
+      void this.getEquityCardDayVolumeSeries();
+    }, waitMs);
+    if (typeof timer.unref === "function") timer.unref();
+    this.cardVolumeTimer = timer;
+  }
+
+  /**
+   * Failures are not stored, so the next pass retries only those pools.
+   * A near-empty result uses the short window instead of the 30-minute history TTL.
+   */
+  private armCardVolumeRetry(targetCount: number, failedCount: number) {
+    const ttl = equityCardVolumeSeriesCacheTtlMs({
+      targetCount,
+      failedCount,
+      fullTtlMs: this.volumeHistoryCacheMs,
+      sparseTtlMs: this.cardVolumeSeriesSparseCacheMs,
+    });
+    this.cardVolumeRetryNotBefore = Date.now() + ttl;
+    if (ttl > 0 && failedCount > 0 && this.cardVolumeAutoRetries < 1) {
+      this.cardVolumeAutoRetries += 1;
+      this.scheduleCardVolumeRetry(ttl);
+    }
+  }
+
+  private async buildEquityCardDayVolumeSeries(): Promise<Record<string, VolumeHistoryPoint[]>> {
+    this.clearCardVolumeTimer();
+    if (!this.geckoEnabled || this.cardVolumeSeriesMax === 0) {
+      this.markCardVolumeTargets([]);
+      this.cardVolumeRetryNotBefore = 0;
+      this.cardVolumeAutoRetries = 0;
+      return {};
+    }
+
+    let targets: EquityCardVolumeTarget[];
     try {
       const snapshot = await this.loadCached("full");
       const assets = [
@@ -1154,38 +1316,93 @@ export class SolanaMarketDataSource implements MarketDataSource {
       ];
       targets = selectEquityCardVolumeTargets(assets, this.cardVolumeSeriesMax);
     } catch {
+      this.cardVolumeTargetsKnown = false;
+      this.armCardVolumeRetry(1, 1);
+      return this.snapshotCardSeries();
+    }
+
+    this.markCardVolumeTargets(targets.map((target) => target.mint));
+    if (targets.length === 0) {
+      this.cardVolumeRetryNotBefore = 0;
+      this.cardVolumeAutoRetries = 0;
       return {};
     }
-    if (targets.length === 0) return {};
 
-    const gate = createRequestGate({
-      maxConcurrent: Math.min(4, this.maxConcurrent),
-      minGapMs: Math.max(this.requestGapMs, 200),
-    });
     const nowT = Date.now() / 1000;
-    const series: Record<string, VolumeHistoryPoint[]> = {};
+    await this.fetchEquityCardVolumeTargets(this.unresolvedCardTargets(targets), nowT);
+    const failed = this.unresolvedCardTargets(targets).length;
+    if (failed === 0) {
+      this.cardVolumeRetryNotBefore = 0;
+      this.cardVolumeAutoRetries = 0;
+    } else {
+      this.armCardVolumeRetry(targets.length, failed);
+    }
+    return this.snapshotCardSeries();
+  }
 
-    await Promise.all(
-      targets.map((target) =>
-        gate.run(async () => {
-          try {
-            const payload = await this.fetchSource(
-              `${this.geckoTerminalBaseUrl}${geckoTerminalOhlcvPath(target.pairAddress, {
-                timeframe: "hour",
-                limit: 24,
-              })}`,
-              "GeckoTerminal",
+  private async fetchEquityCardVolumeTargets(targets: readonly EquityCardVolumeTarget[], nowT: number) {
+    let gapMs = this.cardVolumeSeriesGapMs;
+    let cooled = false;
+    const maxAttempts = 1 + this.cardVolumeSeriesRetries;
+
+    for (let index = 0; index < targets.length; index += 1) {
+      const target = targets[index];
+      if (!target) continue;
+      if (index > 0 && gapMs > 0) await sleep(gapMs);
+
+      for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        const result = await this.tryFetchEquityCardVolume(target, nowT);
+        if (result.kind === "ok") break;
+        if (attempt >= maxAttempts - 1) break;
+        if (result.kind === "rate_limited") {
+          gapMs = Math.max(gapMs, this.cardVolumeSeriesSlowGapMs);
+          if (!cooled) {
+            cooled = true;
+            const wait = equityCardVolumeRateLimitDelayMs(
+              result.retryAfterHeader,
+              this.cardVolumeSeriesCooldownMs,
             );
-            const day = sliceEquityCardDayVolumeSeries(parseGeckoTerminalOhlcvSeries(payload).volumes, nowT);
-            if (day) series[target.mint] = day;
-          } catch {
-            // One pool failing must not invent a line or fail the rest.
+            if (wait > 0) await sleep(wait);
+          } else if (this.cardVolumeSeriesTransientRetryMs > 0) {
+            await sleep(this.cardVolumeSeriesTransientRetryMs);
           }
-        }),
-      ),
-    );
+          continue;
+        }
+        if (this.cardVolumeSeriesTransientRetryMs > 0) await sleep(this.cardVolumeSeriesTransientRetryMs);
+      }
+    }
+  }
 
-    return series;
+  private async tryFetchEquityCardVolume(
+    target: EquityCardVolumeTarget,
+    nowT: number,
+  ): Promise<{ kind: "ok" } | { kind: "rate_limited"; retryAfterHeader: string | null } | { kind: "failed" }> {
+    try {
+      const payload = await this.fetchSource(
+        `${this.geckoTerminalBaseUrl}${geckoTerminalOhlcvPath(target.pairAddress, {
+          timeframe: "hour",
+          limit: 24,
+        })}`,
+        "GeckoTerminal",
+        { retries: 0 },
+      );
+      const day = sliceEquityCardDayVolumeSeries(parseGeckoTerminalOhlcvSeries(payload).volumes, nowT);
+      this.rememberCardVolume(target.mint, day);
+      return { kind: "ok" };
+    } catch (error) {
+      // A missing pool is a real omission. A 429 is not — leave it unresolved and retry.
+      if (isDefinitiveFetchMiss(error)) {
+        this.rememberCardVolume(target.mint, null);
+        return { kind: "ok" };
+      }
+      if (responseStatusFromError(error) === 429) {
+        return {
+          kind: "rate_limited",
+          retryAfterHeader: error instanceof SourceRequestError ? error.retryAfterHeader : null,
+        };
+      }
+      return { kind: "failed" };
+    }
   }
 
   async getAssetPriceHistory(chainId: string, symbol: string): Promise<AssetPriceHistoryResult> {

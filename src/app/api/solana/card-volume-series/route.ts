@@ -5,16 +5,13 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const source = createMarketDataSource();
-    const series = await source.getEquityCardDayVolumeSeries();
-    return Response.json(
-      { series },
-      {
-        headers: {
-          "Cache-Control": "private, max-age=30",
-        },
+    const snapshot = await source.getEquityCardDayVolumeSeriesSnapshot();
+    return Response.json(snapshot, {
+      headers: {
+        "Cache-Control": "no-store",
       },
-    );
+    });
   } catch {
-    return Response.json({ series: {} }, { status: 200 });
+    return Response.json({ series: {}, pending: false }, { status: 200, headers: { "Cache-Control": "no-store" } });
   }
 }

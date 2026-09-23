@@ -7,6 +7,62 @@ const DAY_SECONDS = 24 * 60 * 60;
 /** Cap Gecko hourly fetches so the list does not request a candle series per mint. */
 export const EQUITY_CARD_DAY_VOLUME_SERIES_MAX = 32;
 
+/**
+ * Steady gap between card OHLCV calls.
+ * A 4-wide burst at 200ms trips GeckoTerminal (429, often `Retry-After: 0`)
+ * after a handful of pools, which is why most cards lost their sparkline.
+ * 2.5s stays under a 30/min cap; the slow gap below is for after a 429.
+ */
+export const EQUITY_CARD_VOLUME_SERIES_MIN_GAP_MS = 2_500;
+
+/** After a 429, stay under the documented ~10 public calls/minute. */
+export const EQUITY_CARD_VOLUME_SERIES_SLOW_GAP_MS = 6_500;
+
+/**
+ * `Retry-After: 0` is not a usable hint. Wait out the public minute window
+ * once, then continue on the slow gap.
+ */
+export const EQUITY_CARD_VOLUME_SERIES_RATE_LIMIT_COOLDOWN_MS = 60_000;
+
+/** Extra attempts per pool after the first try. One shared cooldown, not per pool. */
+export const EQUITY_CARD_VOLUME_SERIES_RETRIES = 2;
+
+/**
+ * Near-empty builds must not sit in the 30-minute history cache.
+ * Successes are kept; unresolved pools are retried on this shorter window.
+ */
+export const EQUITY_CARD_VOLUME_SERIES_SPARSE_CACHE_MS = 60_000;
+
+/**
+ * Header `0` or a missing header uses `fallbackMs`.
+ * A positive Retry-After is seconds, converted to ms.
+ */
+export function equityCardVolumeRateLimitDelayMs(
+  retryAfterHeader: string | null | undefined,
+  fallbackMs: number,
+): number {
+  const retryAfter = Number(retryAfterHeader);
+  if (Number.isFinite(retryAfter) && retryAfter > 0) return Math.round(retryAfter * 1000);
+  return Math.max(0, fallbackMs);
+}
+
+/** Long TTL only when every selected target resolved. Failures use the short window. */
+export function equityCardVolumeSeriesCacheTtlMs(input: {
+  targetCount: number;
+  failedCount: number;
+  fullTtlMs: number;
+  sparseTtlMs?: number;
+}): number {
+  if (input.targetCount <= 0 || input.failedCount <= 0) return input.fullTtlMs;
+  const sparseTtlMs = input.sparseTtlMs ?? EQUITY_CARD_VOLUME_SERIES_SPARSE_CACHE_MS;
+  return Math.min(Math.max(0, sparseTtlMs), input.fullTtlMs);
+}
+
+/** Targets were selected, but at least half the pool fetches failed. */
+export function equityCardVolumeSeriesIsSparse(targetCount: number, failedCount: number): boolean {
+  return targetCount > 0 && failedCount / targetCount >= 0.5;
+}
+
 export interface EquityCardVolumeTarget {
   mint: string;
   pairAddress: string;

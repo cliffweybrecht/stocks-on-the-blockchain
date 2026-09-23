@@ -57,4 +57,8 @@ export class MockMarketDataSource implements MarketDataSource {
   async getEquityCardDayVolumeSeries(): Promise<Record<string, VolumeHistoryPoint[]>> {
     return {};
   }
+
+  async getEquityCardDayVolumeSeriesSnapshot() {
+    return { series: {}, pending: false };
+  }
 }

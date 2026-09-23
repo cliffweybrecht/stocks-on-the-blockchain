@@ -22,6 +22,9 @@ import { SOLANA_CHAIN_ID } from "@/lib/market/types";
 import { PIN_COMPARE_MAX, selectPinnedCompareRows, shouldShowPinCompare } from "@/lib/desk/pin-compare";
 import { type CoverageFilter } from "@/lib/market/volume-coverage";
 
+const CARD_VOLUME_POLL_MS = 4_000;
+const CARD_VOLUME_POLL_ATTEMPTS = 100;
+
 const SORT_LABELS: Record<AssetSortKey, string> = {
   volume24hUsd: "24h volume",
   displayedLiquidityUsd: "Displayed liq",
@@ -138,15 +141,29 @@ export function AssetTable({
   useEffect(() => {
     if (chainId !== SOLANA_CHAIN_ID) return;
     let cancelled = false;
-    void fetch("/api/solana/card-volume-series")
-      .then((response) => (response.ok ? response.json() : null))
-      .then((payload: { series?: Record<string, VolumeHistoryPoint[]> } | null) => {
-        if (cancelled || !payload?.series || typeof payload.series !== "object") return;
-        setDayVolumeByMint(payload.series);
-      })
-      .catch(() => undefined);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const poll = (attempt: number) => {
+      void fetch("/api/solana/card-volume-series", { cache: "no-store" })
+        .then((response) => (response.ok ? response.json() : null))
+        .then((payload: { series?: Record<string, VolumeHistoryPoint[]>; pending?: boolean } | null) => {
+          if (cancelled || !payload?.series || typeof payload.series !== "object" || Array.isArray(payload.series)) {
+            return;
+          }
+          setDayVolumeByMint(payload.series);
+          if (payload.pending && attempt < CARD_VOLUME_POLL_ATTEMPTS) {
+            timer = setTimeout(() => poll(attempt + 1), CARD_VOLUME_POLL_MS);
+          }
+        })
+        .catch(() => {
+          if (!cancelled && attempt < CARD_VOLUME_POLL_ATTEMPTS) {
+            timer = setTimeout(() => poll(attempt + 1), CARD_VOLUME_POLL_MS);
+          }
+        });
+    };
+    poll(0);
     return () => {
       cancelled = true;
+      if (timer) clearTimeout(timer);
     };
   }, [chainId]);
 

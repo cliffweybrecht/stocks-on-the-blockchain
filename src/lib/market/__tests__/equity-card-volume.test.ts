@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  EQUITY_CARD_VOLUME_SERIES_MIN_GAP_MS,
+  EQUITY_CARD_VOLUME_SERIES_RATE_LIMIT_COOLDOWN_MS,
+  EQUITY_CARD_VOLUME_SERIES_SLOW_GAP_MS,
+  equityCardVolumeRateLimitDelayMs,
+  equityCardVolumeSeriesCacheTtlMs,
+  equityCardVolumeSeriesIsSparse,
   selectEquityCardVolumeTargets,
   sliceEquityCardDayVolumeSeries,
 } from "../equity-card-volume";
@@ -51,6 +57,38 @@ describe("sliceEquityCardDayVolumeSeries", () => {
         NOW,
       ),
     ).toBeNull();
+  });
+});
+
+describe("equity card volume gecko pacing", () => {
+  it("stays under the public per-minute cap and slows further after a 429", () => {
+    expect(60_000 / EQUITY_CARD_VOLUME_SERIES_MIN_GAP_MS).toBeLessThanOrEqual(30);
+    expect(EQUITY_CARD_VOLUME_SERIES_MIN_GAP_MS).toBeGreaterThanOrEqual(2_000);
+    expect(60_000 / EQUITY_CARD_VOLUME_SERIES_SLOW_GAP_MS).toBeLessThan(10);
+    expect(EQUITY_CARD_VOLUME_SERIES_RATE_LIMIT_COOLDOWN_MS).toBeGreaterThanOrEqual(30_000);
+  });
+
+  it("treats Retry-After 0 as missing", () => {
+    expect(equityCardVolumeRateLimitDelayMs("0", 60_000)).toBe(60_000);
+    expect(equityCardVolumeRateLimitDelayMs(null, 60_000)).toBe(60_000);
+    expect(equityCardVolumeRateLimitDelayMs("5", 60_000)).toBe(5_000);
+  });
+
+  it("does not keep a near-empty build for the 30 minute history ttl", () => {
+    const fullTtlMs = 30 * 60_000;
+    expect(
+      equityCardVolumeSeriesCacheTtlMs({
+        targetCount: 32,
+        failedCount: 24,
+        fullTtlMs,
+        sparseTtlMs: 60_000,
+      }),
+    ).toBe(60_000);
+    expect(equityCardVolumeSeriesIsSparse(32, 24)).toBe(true);
+    expect(
+      equityCardVolumeSeriesCacheTtlMs({ targetCount: 32, failedCount: 0, fullTtlMs, sparseTtlMs: 60_000 }),
+    ).toBe(fullTtlMs);
+    expect(equityCardVolumeSeriesCacheTtlMs({ targetCount: 0, failedCount: 0, fullTtlMs })).toBe(fullTtlMs);
   });
 });
 

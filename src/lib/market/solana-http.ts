@@ -3,10 +3,35 @@ import { sleep } from "./async-pool";
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
 const RETRYABLE_STATUS = new Set([408, 425, 429, 500, 502, 503, 504]);
+const DEFINITIVE_MISS_STATUS = new Set([400, 404, 410, 422]);
 
-function errorStatus(error: Error): number | null {
+export class SourceRequestError extends Error {
+  readonly status: number | null;
+  readonly retryAfterHeader: string | null;
+
+  constructor(message: string, status: number | null, retryAfterHeader: string | null) {
+    super(message);
+    this.name = "SourceRequestError";
+    this.status = status;
+    this.retryAfterHeader = retryAfterHeader;
+  }
+}
+
+export function responseStatusFromError(error: unknown): number | null {
+  if (error instanceof SourceRequestError && error.status !== null) return error.status;
+  if (!(error instanceof Error)) return null;
   const match = error.message.match(/ (\d{3})$/);
   return match ? Number(match[1]) : null;
+}
+
+/** Pool is gone or the path is rejected. Not a rate-limit miss to retry later. */
+export function isDefinitiveFetchMiss(error: unknown): boolean {
+  const status = responseStatusFromError(error);
+  return status !== null && DEFINITIVE_MISS_STATUS.has(status);
+}
+
+function errorStatus(error: Error): number | null {
+  return responseStatusFromError(error);
 }
 
 export async function fetchJsonOrText(
@@ -31,7 +56,11 @@ export async function fetchJsonOrText(
         cache: "no-store",
       });
       if (!response.ok) {
-        const error = new Error(`${sourceLabel} ${response.status}`);
+        const error = new SourceRequestError(
+          `${sourceLabel} ${response.status}`,
+          response.status,
+          response.headers.get("retry-after"),
+        );
         if (RETRYABLE_STATUS.has(response.status) && attempt < retries) {
           lastError = error;
           const retryAfter = Number(response.headers.get("retry-after"));

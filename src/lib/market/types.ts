@@ -259,6 +259,16 @@ export interface MarketDataSource {
   getAssetPriceHistory(chainId: string, symbol: string): Promise<AssetPriceHistoryResult>;
   /** Primary-pool Gecko hourly volume for card sparklines. Missing mints are omitted. */
   getEquityCardDayVolumeSeries(): Promise<Record<string, VolumeHistoryPoint[]>>;
+  /**
+   * Current card series without waiting out the remaining Gecko pool calls.
+   * `pending` stays true while fetches are in flight or a rate-limit retry is scheduled.
+   */
+  getEquityCardDayVolumeSeriesSnapshot(): Promise<EquityCardDayVolumeSeriesSnapshot>;
+}
+
+export interface EquityCardDayVolumeSeriesSnapshot {
+  series: Record<string, VolumeHistoryPoint[]>;
+  pending: boolean;
 }
 
 export const ROBINHOOD_CHAIN_ID = "robinhood-chain";

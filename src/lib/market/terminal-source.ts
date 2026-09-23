@@ -131,6 +131,10 @@ export class TerminalMarketDataSource implements MarketDataSource {
     return {};
   }
 
+  async getEquityCardDayVolumeSeriesSnapshot() {
+    return { series: {}, pending: false };
+  }
+
   private async tryAssetEndpoint<T>(path: string): Promise<T | null> {
     try {
       const payload = await fetchJson(joinUrl(this.baseUrl, path), Math.min(this.timeoutMs, 20_000));
