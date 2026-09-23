@@ -65,22 +65,22 @@ export function EquityCard({
           ) : null}
         </div>
       </div>
-      <div className="relative z-10 mt-5 flex min-h-0 flex-1 flex-col pointer-events-none">
-        <p className="flex items-baseline gap-1.5">
-          <span className="num text-[28px] leading-none font-semibold tracking-tight text-white">
-            {formatUsdCompact(asset.volume24hUsd)}
-          </span>
-          <span className="shrink-0 text-sm font-normal leading-none text-neutral-200">Vol</span>
-        </p>
-        <div className="flex min-h-10 flex-1 items-center justify-end">
-          {sparklinePoints ? (
-            <VolumeSparkline points={sparklinePoints} label={`${asset.symbol} 24h volume trend`} />
-          ) : null}
-        </div>
+      <p className="relative z-10 mt-5 flex items-baseline gap-1.5 pointer-events-none">
+        <span className="num text-[28px] leading-none font-semibold tracking-tight text-white">
+          {formatUsdCompact(asset.volume24hUsd)}
+        </span>
+        <span className="shrink-0 text-sm font-normal leading-none text-neutral-200">Vol</span>
+      </p>
+      <div className="relative z-10 mt-auto flex min-w-0 items-end gap-2 pt-4 pointer-events-none">
         <div className="flex min-w-0 items-baseline gap-2">
           <p className="num min-w-0 truncate text-sm text-neutral-200">{formatPrice(priceUsd)}</p>
           <DayMove value={asset.priceChange24hPct} />
         </div>
+        <span className="ml-auto shrink-0">
+          {sparklinePoints ? (
+            <VolumeSparkline points={sparklinePoints} label={`${asset.symbol} 24h volume trend`} />
+          ) : null}
+        </span>
       </div>
     </article>
   );
