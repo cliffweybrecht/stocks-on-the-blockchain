@@ -51,9 +51,12 @@ export function EquityCard({
         aria-label={`${asset.symbol} ${asset.name}`}
       />
       <div className="relative z-10 flex items-start justify-between gap-2">
-        <div className="min-w-0 pointer-events-none">
-          <p className="truncate text-[15px] font-semibold tracking-tight text-white">{asset.symbol}</p>
-          <p className="truncate text-xs text-neutral-500">{asset.name}</p>
+        <div className="flex min-w-0 items-start gap-2.5 pointer-events-none">
+          <AssetLogo logoUrl={asset.logoUrl} name={asset.name} symbol={asset.symbol} size="md" />
+          <div className="min-w-0 pt-0.5">
+            <p className="truncate text-[15px] font-semibold tracking-tight text-white">{asset.symbol}</p>
+            <p className="truncate text-xs text-neutral-500">{asset.name}</p>
+          </div>
         </div>
         <div className="flex shrink-0 items-center gap-0.5">
           <CopyAddressIcon address={asset.contractAddress} />
@@ -62,26 +65,17 @@ export function EquityCard({
           ) : null}
         </div>
       </div>
-      <div className="relative z-10 mt-5 pointer-events-none">
-        <p className="text-[11px] font-medium text-neutral-500">24h vol</p>
-        <p className="mt-1 text-[28px] leading-none font-semibold tracking-tight text-white">
-          <span className="num">{formatUsdCompact(asset.volume24hUsd)}</span>
-        </p>
-      </div>
+      <p className="relative z-10 mt-5 text-[28px] leading-none font-semibold tracking-tight text-white pointer-events-none">
+        <span className="num">{formatUsdCompact(asset.volume24hUsd)}</span>
+      </p>
       <div className="relative z-10 mt-auto flex items-end gap-2 pt-4 pointer-events-none">
-        <div className="min-w-0">
-          <p className="text-[11px] font-medium text-neutral-500">Price</p>
-          <div className="mt-0.5 flex items-baseline gap-1.5">
-            <p className="num shrink-0 text-sm text-neutral-200">{formatPrice(priceUsd)}</p>
-            <DayMove value={asset.priceChange24hPct} />
-          </div>
-        </div>
-        <div className="ml-auto flex shrink-0 items-end gap-2">
+        <p className="num shrink-0 text-sm text-neutral-200">{formatPrice(priceUsd)}</p>
+        <DayMove value={asset.priceChange24hPct} />
+        <span className="ml-auto shrink-0">
           {sparklinePoints ? (
             <PriceSparkline points={sparklinePoints} label={`${asset.symbol} day price trend`} />
           ) : null}
-          <AssetLogo logoUrl={asset.logoUrl} name={asset.name} symbol={asset.symbol} size="md" />
-        </div>
+        </span>
       </div>
     </article>
   );
