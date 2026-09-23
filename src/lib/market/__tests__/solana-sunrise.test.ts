@@ -80,6 +80,28 @@ describe("parseSunriseTokensPage", () => {
     expect(parsed.identities.map((row) => row.symbol)).toEqual(["NKE", "SHOP", "BA"]);
     expect(parsed.identities[0]?.address).toBe(nkeMint);
     expect(parsed.identities[0]?.name).toBe("NIKE - Backpack Securities");
+    expect(parsed.logos).toEqual({});
+  });
+
+  it("keeps a Sunrise HTTPS icon for that mint and rejects non-http", () => {
+    const parsed = parseSunriseTokensPage({
+      success: true,
+      data: {
+        tokens: [
+          {
+            ...stockRow({ symbol: "NKE", name: "NIKE - Backpack Securities", address: nkeMint }),
+            icon: "https://backpack.exchange/api/stock-logo/NKE",
+          },
+          {
+            ...stockRow({ symbol: "SHOP", name: "Shopify - Backpack Securities", address: shopMint }),
+            icon: "data:image/png;base64,aaaa",
+          },
+        ],
+        pagination: { nextCursor: null },
+      },
+    });
+    expect(parsed.logos).toEqual({ [nkeMint]: "https://backpack.exchange/api/stock-logo/NKE" });
+    expect(parsed.logos[shopMint]).toBeUndefined();
   });
 
   it("keeps the official Sunrise Backpack batch and drops crypto, pumps, and the DexScreener IBM lookalike", () => {

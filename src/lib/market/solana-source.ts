@@ -2,6 +2,16 @@ import { createRequestGate, mapWithConcurrency } from "./async-pool";
 import { findAssetByKey } from "./identity";
 import { buildSolanaSnapshot, unwrapDexScreenerPairs, unwrapDexScreenerSearch, type DexScreenerPair } from "./map-solana";
 import {
+  applyMintLogoFallbacks,
+  DEFAULT_JUPITER_TOKEN_BASE_URL,
+  JUPITER_TOKEN_SEARCH_BATCH,
+  jupiterTokenSearchPath,
+  MINT_LOGO_CACHE_MS,
+  parseJupiterTokenIcons,
+  rememberMintLogo,
+  type MintLogoCatalog,
+} from "./solana-token-logos";
+import {
   chunkValues,
   collectSolanaCandidateTokens,
   DEFAULT_SOLANA_DISCOVERY_QUERIES,
@@ -131,6 +141,9 @@ export interface SolanaMarketDataSourceOptions {
   volumeHistoryCacheMs?: number;
   volumeSnapshotStore?: DeskVolumeSnapshotStore;
   volumeSnapshotDir?: string;
+  enableJupiterTokenLogos?: boolean;
+  jupiterTokenBaseUrl?: string;
+  mintLogoCacheMs?: number;
 }
 
 export class SolanaMarketDataSource implements MarketDataSource {
@@ -146,6 +159,8 @@ export class SolanaMarketDataSource implements MarketDataSource {
   private volumeHistoryInflight: Promise<EquityVolumeHistoryResult> | null = null;
   private priceHistoryCache = new Map<string, { result: AssetPriceHistoryResult; expiresAt: number }>();
   private priceHistoryInflight = new Map<string, Promise<AssetPriceHistoryResult>>();
+  private readonly mintLogoCatalog: MintLogoCatalog = new Map();
+  private jupiterLogoCache = new Map<string, { url: string | null; expiresAt: number }>();
 
   constructor(private readonly options: SolanaMarketDataSourceOptions = {}) {
     this.memory = new SolanaHydrateMemory(options.emptyCacheMs ?? SOLANA_DEFAULTS.emptyCacheMs);
@@ -210,6 +225,18 @@ export class SolanaMarketDataSource implements MarketDataSource {
 
   private get geckoTerminalBaseUrl() {
     return (this.options.geckoTerminalBaseUrl ?? DEFAULT_GECKOTERMINAL_BASE_URL).replace(/\/+$/, "");
+  }
+
+  private get jupiterTokenLogosEnabled() {
+    return this.options.enableJupiterTokenLogos !== false;
+  }
+
+  private get jupiterTokenBaseUrl() {
+    return (this.options.jupiterTokenBaseUrl ?? DEFAULT_JUPITER_TOKEN_BASE_URL).replace(/\/+$/, "");
+  }
+
+  private get mintLogoCacheMs() {
+    return this.options.mintLogoCacheMs ?? MINT_LOGO_CACHE_MS;
   }
 
   private get fetchImpl() {
@@ -289,6 +316,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
     );
     const parsed = parseXStocksAssetsPage(first);
     identities.push(...parsed.identities);
+    this.rememberCatalogLogos(parsed.logos);
     let hasNextPage = parsed.hasNextPage;
     let page = 1;
     while (hasNextPage && page < XSTOCKS_REGISTRY_MAX_PAGES) {
@@ -301,10 +329,11 @@ export class SolanaMarketDataSource implements MarketDataSource {
           this.fetchSource(`${this.registryBaseUrl}${xStocksAssetsPath(pageNumber)}`, "xStocks registry"),
         );
         const next = parseXStocksAssetsPage(payload);
-        return { identities: next.identities, hasNextPage: next.hasNextPage, page: pageNumber };
+        return { identities: next.identities, logos: next.logos, hasNextPage: next.hasNextPage, page: pageNumber };
       });
       for (const row of [...pages].sort((a, b) => a.page - b.page)) {
         identities.push(...row.identities);
+        this.rememberCatalogLogos(row.logos);
         if (!row.hasNextPage) {
           hasNextPage = false;
           break;
@@ -335,6 +364,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
         "Sunrise token list",
       );
       const parsed = parseSunriseTokensPage(payload);
+      this.rememberCatalogLogos(parsed.logos);
       for (const identity of parsed.identities) {
         if (seen.has(identity.address)) continue;
         seen.add(identity.address);
@@ -356,6 +386,84 @@ export class SolanaMarketDataSource implements MarketDataSource {
       identities.push(...parseGeckoTerminalSearch(payload));
     }
     return identities;
+  }
+
+  private rememberCatalogLogos(logos: Record<string, string>): void {
+    for (const [mint, url] of Object.entries(logos)) {
+      rememberMintLogo(this.mintLogoCatalog, mint, url);
+    }
+  }
+
+  private mappedLogoRows(mapped: ReturnType<typeof buildSolanaSnapshot>) {
+    return [
+      ...mapped.assets,
+      ...mapped.details,
+      ...mapped.etfAssets,
+      ...mapped.etfDetails,
+      ...mapped.privateAssets,
+      ...mapped.privateDetails,
+    ];
+  }
+
+  private applyCatalogLogos(mapped: ReturnType<typeof buildSolanaSnapshot>): void {
+    applyMintLogoFallbacks(this.mappedLogoRows(mapped), this.mintLogoCatalog);
+  }
+
+  private async hydrateMintLogos(mapped: ReturnType<typeof buildSolanaSnapshot>): Promise<void> {
+    this.applyCatalogLogos(mapped);
+    if (!this.jupiterTokenLogosEnabled) return;
+    try {
+      await this.fillJupiterMintLogos(mapped);
+    } catch {
+      // Catalog miss stays monogram. DexScreener snapshot must not fail.
+    }
+    this.applyCatalogLogos(mapped);
+  }
+
+  private async fillJupiterMintLogos(mapped: ReturnType<typeof buildSolanaSnapshot>): Promise<void> {
+    const now = Date.now();
+    const missing = [
+      ...new Set(
+        this.mappedLogoRows(mapped)
+          .filter((row) => !row.logoUrl)
+          .map((row) => row.contractAddress)
+          .filter((mint) => mint && !this.mintLogoCatalog.has(mint)),
+      ),
+    ];
+    const toFetch: string[] = [];
+    for (const mint of missing) {
+      const cached = this.jupiterLogoCache.get(mint);
+      if (cached && cached.expiresAt > now) {
+        if (cached.url) rememberMintLogo(this.mintLogoCatalog, mint, cached.url);
+        continue;
+      }
+      toFetch.push(mint);
+    }
+    if (toFetch.length === 0) return;
+
+    const expiresAt = now + this.mintLogoCacheMs;
+    const gate = this.gate();
+    const batches = chunkValues(toFetch, JUPITER_TOKEN_SEARCH_BATCH);
+    await mapWithConcurrency(batches, Math.min(2, this.maxConcurrent), async (batch) => {
+      const requested = new Set(batch);
+      try {
+        const payload = await gate.run(() =>
+          this.fetchSource(`${this.jupiterTokenBaseUrl}${jupiterTokenSearchPath(batch)}`, "Jupiter token logos"),
+        );
+        const found = parseJupiterTokenIcons(payload, requested);
+        for (const mint of batch) {
+          const url = found[mint] ?? null;
+          this.jupiterLogoCache.set(mint, { url, expiresAt });
+          if (url) rememberMintLogo(this.mintLogoCatalog, mint, url);
+        }
+      } catch {
+        for (const mint of batch) {
+          if (!this.jupiterLogoCache.has(mint)) {
+            this.jupiterLogoCache.set(mint, { url: null, expiresAt });
+          }
+        }
+      }
+    });
   }
 
   private rememberHydrateOutcome(
@@ -500,6 +608,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
         "Discovery returned candidates but none classified as verifiable tokenized equities. Nothing was invented.",
       );
     }
+    this.applyCatalogLogos(mapped);
     return {
       mapped,
       aggregation: snapshot.aggregation,
@@ -728,7 +837,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
       );
     }
 
-    return this.rebuildSnapshot({
+    const snapshot = this.rebuildSnapshot({
       aggregation,
       discovered,
       discoveredEtfs,
@@ -740,6 +849,8 @@ export class SolanaMarketDataSource implements MarketDataSource {
       failedMints: [...failedMints],
       refreshDurationMs: Date.now() - started,
     });
+    await this.hydrateMintLogos(snapshot.mapped);
+    return snapshot;
   }
 
   private scheduleEnrichment(): void {

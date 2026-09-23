@@ -1,5 +1,6 @@
 import { asNonEmptyString } from "./numbers";
 import { isPumpFunMint, tokenIdentityFromFields, type TokenIdentity } from "./solana-classifier";
+import { httpMintLogoUrl } from "./solana-token-logos";
 
 /** Public Sunrise token list (no API key). Candidate source, not an admission list. */
 export const DEFAULT_SUNRISE_REGISTRY_BASE_URL = "https://api.sunrise.xyz";
@@ -31,6 +32,7 @@ function isBackpackStockCandidate(row: {
  */
 export function parseSunriseTokensPage(payload: unknown): {
   identities: TokenIdentity[];
+  logos: Record<string, string>;
   nextCursor: string | null;
 } {
   if (!payload || typeof payload !== "object") {
@@ -45,6 +47,7 @@ export function parseSunriseTokensPage(payload: unknown): {
   }
 
   const identities: TokenIdentity[] = [];
+  const logos: Record<string, string> = {};
   const seen = new Set<string>();
   for (const node of body.data.tokens) {
     if (!node || typeof node !== "object") continue;
@@ -55,6 +58,7 @@ export function parseSunriseTokensPage(payload: unknown): {
       name?: unknown;
       assetClass?: unknown;
       issuer?: unknown;
+      icon?: unknown;
     };
     const address = asNonEmptyString(row.address);
     const name = asNonEmptyString(row.name);
@@ -80,8 +84,10 @@ export function parseSunriseTokensPage(payload: unknown): {
     if (!identity) continue;
     seen.add(address);
     identities.push(identity);
+    const icon = httpMintLogoUrl(row.icon);
+    if (icon) logos[address] = icon;
   }
 
   const nextCursor = asNonEmptyString(body.data.pagination?.nextCursor) ?? null;
-  return { identities, nextCursor };
+  return { identities, logos, nextCursor };
 }

@@ -25,6 +25,7 @@ function testSource(options: SolanaMarketDataSourceOptions) {
     enableTesseraRegistry: false,
     enableSunriseRegistry: false,
     enableGeckoTerminal: false,
+    enableJupiterTokenLogos: false,
     backgroundEnrichment: false,
     volumeSnapshotStore: new MemoryDeskVolumeSnapshotStore(),
     ...options,
@@ -933,5 +934,70 @@ describe("SolanaMarketDataSource", () => {
     expect(history.dailyVolume).toEqual([]);
     expect(history.hourlyVolume).toEqual([]);
     expect(history.emptyReason).toMatch(/did not return usable USD closes/i);
+  });
+
+  it("prefers DexScreener base imageUrl and falls back to mint-keyed Jupiter/xStocks logos", async () => {
+    const urls: string[] = [];
+    const pairLogo = "https://dd.dexscreener.com/ds-data/tokens/solana/tsla.png";
+    const catalogLogo = "https://xstocks-metadata.backed.fi/logos/tokens/NFLXx.png";
+    const jupiterLogo = "https://xstocks-metadata.backed.fi/logos/tokens/HOODx.png";
+    const hoodPair = {
+      chainId: "solana",
+      dexId: "raydium",
+      pairAddress: "pair-hood",
+      baseToken: { address: hoodMint, name: "Robinhood xStock", symbol: "HOODx" },
+      quoteToken: { address: "usdc", name: "USDC", symbol: "USDC" },
+      volume: { h24: 40 },
+      liquidity: { usd: 12 },
+    };
+    const source = testSource({
+      requestGapMs: 0,
+      enableRegistry: true,
+      enableJupiterTokenLogos: true,
+      jupiterTokenBaseUrl: "https://lite-api.jup.ag/tokens/v2",
+      registryBaseUrl: "https://api.xstocks.fi/api/v2",
+      fetchImpl: async (input) => {
+        const url = String(input);
+        urls.push(url);
+        if (url.includes("/latest/dex/search")) {
+          return jsonResponse({
+            pairs: [{ ...tslaPair(), info: { imageUrl: pairLogo } }, hoodPair],
+          });
+        }
+        if (url.includes("/public/assets")) {
+          return jsonResponse({
+            nodes: [
+              {
+                name: "Netflix xStock",
+                symbol: "NFLXx",
+                logo: catalogLogo,
+                deployments: [{ network: "Solana", address: unpairedMint }],
+              },
+            ],
+            page: { hasNextPage: false },
+          });
+        }
+        if (url.includes("/tokens/v2/search")) {
+          expect(decodeURIComponent(url)).toContain(hoodMint);
+          return jsonResponse([
+            { id: hoodMint, symbol: "HOODx", icon: jupiterLogo },
+            { id: "So11111111111111111111111111111111111111112", symbol: "SOL", icon: "https://example.com/sol.png" },
+            { id: tslaMint, symbol: "TSLAx", icon: "https://example.com/should-not-override.png" },
+          ]);
+        }
+        if (url.includes("/tokens/v1/solana/") || url.includes("/token-pairs/v1/solana/")) {
+          if (url.includes(hoodMint)) return jsonResponse([hoodPair]);
+          return jsonResponse([{ ...tslaPair(), info: { imageUrl: pairLogo } }]);
+        }
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    const chain = await source.getChain("solana");
+    expect(chain?.assets.find((asset) => asset.contractAddress === tslaMint)?.logoUrl).toBe(pairLogo);
+    expect(chain?.assets.find((asset) => asset.contractAddress === unpairedMint)?.logoUrl).toBe(catalogLogo);
+    expect(chain?.assets.find((asset) => asset.contractAddress === hoodMint)?.logoUrl).toBe(jupiterLogo);
+    expect(urls.some((url) => url.includes("/tokens/v2/search"))).toBe(true);
+    expect(urls.some((url) => url.includes("example.com/sol.png"))).toBe(false);
   });
 });

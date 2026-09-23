@@ -24,6 +24,34 @@ describe("xStocks public registry parser", () => {
     expect(parsed.hasNextPage).toBe(true);
     expect(parsed.identities.map((row) => row.symbol)).toEqual(["TSLAx", "SPYx"]);
     expect(parsed.identities[0]?.address).toBe("XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB");
+    expect(parsed.logos).toEqual({});
+  });
+
+  it("maps an HTTPS logo only to the Solana deployment mint", () => {
+    const parsed = parseXStocksAssetsPage({
+      nodes: [
+        {
+          name: "Tesla xStock",
+          symbol: "TSLAx",
+          logo: "https://xstocks-metadata.backed.fi/logos/tokens/TSLAx.png",
+          deployments: [
+            { network: "Ethereum", address: "0xnope" },
+            { network: "Solana", address: "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB" },
+          ],
+        },
+        {
+          name: "Bad logo",
+          symbol: "BADx",
+          logo: "javascript:alert(1)",
+          deployments: [{ network: "Solana", address: "XsBadLogoMint11111111111111111111111111" }],
+        },
+      ],
+      page: { hasNextPage: false },
+    });
+    expect(parsed.logos).toEqual({
+      XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB: "https://xstocks-metadata.backed.fi/logos/tokens/TSLAx.png",
+    });
+    expect(parsed.logos["0xnope"]).toBeUndefined();
   });
 
   it("captures issuer underlying type for the classifier", () => {

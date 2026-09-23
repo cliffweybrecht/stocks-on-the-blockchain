@@ -51,6 +51,8 @@ export function solanaSourceOptionsFromEnv(env: MarketEnv = process.env): Solana
     sunriseRegistryUrl: env.SOLANA_SUNRISE_REGISTRY_URL?.trim() || undefined,
     enableGeckoTerminal: env.SOLANA_GECKOTERMINAL_ENABLED?.trim().toLowerCase() !== "false",
     geckoTerminalBaseUrl: env.SOLANA_GECKOTERMINAL_BASE_URL?.trim() || undefined,
+    enableJupiterTokenLogos: env.SOLANA_JUPITER_TOKEN_LOGOS_ENABLED?.trim().toLowerCase() !== "false",
+    jupiterTokenBaseUrl: env.SOLANA_JUPITER_TOKEN_URL?.trim() || undefined,
     enrichBudgetMs: envNumber(env, "SOLANA_ENRICH_BUDGET_MS", SOLANA_DEFAULTS.enrichBudgetMs),
     emptyCacheMs: envNumber(env, "SOLANA_EMPTY_CACHE_MS", SOLANA_DEFAULTS.emptyCacheMs),
     volumeHistoryCacheMs: envNumber(env, "SOLANA_VOLUME_HISTORY_CACHE_MS", SOLANA_DEFAULTS.volumeHistoryCacheMs),
@@ -114,6 +116,8 @@ function envFingerprint(env: MarketEnv): string {
     env.SOLANA_SUNRISE_REGISTRY_URL,
     env.SOLANA_GECKOTERMINAL_ENABLED,
     env.SOLANA_GECKOTERMINAL_BASE_URL,
+    env.SOLANA_JUPITER_TOKEN_LOGOS_ENABLED,
+    env.SOLANA_JUPITER_TOKEN_URL,
     env.SOLANA_VOLUME_HISTORY_CACHE_MS,
     env.SOLANA_VOLUME_SNAPSHOT_DIR,
   ].join("|");
