@@ -65,8 +65,11 @@ export function EquityCard({
           ) : null}
         </div>
       </div>
-      <p className="relative z-10 mt-5 text-[28px] leading-none font-semibold tracking-tight text-white pointer-events-none">
-        <span className="num">{formatUsdCompact(asset.volume24hUsd)}</span>
+      <p className="relative z-10 mt-5 flex items-baseline gap-1.5 pointer-events-none">
+        <span className="num text-[28px] leading-none font-semibold tracking-tight text-white">
+          {formatUsdCompact(asset.volume24hUsd)}
+        </span>
+        <span className="shrink-0 text-sm font-normal leading-none text-neutral-300">Vol</span>
       </p>
       <div className="relative z-10 mt-auto flex items-end gap-2 pt-4 pointer-events-none">
         <p className="num shrink-0 text-sm text-neutral-200">{formatPrice(priceUsd)}</p>
