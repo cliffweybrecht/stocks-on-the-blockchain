@@ -4,6 +4,8 @@ import {
   emptyAssetPriceHistory,
   parseGeckoTerminalOhlcvSeries,
   parseGeckoTerminalPriceOhlcv,
+  rankPoolsForMintPrice,
+  readGeckoOhlcvBaseAddress,
   selectPrimaryPricePool,
 } from "../asset-price-history";
 
@@ -86,6 +88,46 @@ describe("selectPrimaryPricePool", () => {
   it("returns null when no pair address exists", () => {
     expect(selectPrimaryPricePool([{ pairAddress: "", volume24hUsd: 10 }])).toBeNull();
     expect(selectPrimaryPricePool([])).toBeNull();
+  });
+
+  it("prefers the highest-volume pool where this mint is the base token", () => {
+    expect(
+      selectPrimaryPricePool(
+        [
+          { pairAddress: "meme", volume24hUsd: 9_000, baseAddress: "other" },
+          { pairAddress: "real", volume24hUsd: 100, baseAddress: "mint-a" },
+        ],
+        "mint-a",
+      ),
+    ).toBe("real");
+  });
+});
+
+describe("rankPoolsForMintPrice", () => {
+  it("asks base-token pools before quote-side pools and drops blanks", () => {
+    expect(
+      rankPoolsForMintPrice(
+        [
+          { pairAddress: " meme ", volume24hUsd: 9_000, baseAddress: "other" },
+          { pairAddress: "", volume24hUsd: 99_000, baseAddress: "mint-a" },
+          { pairAddress: "real-b", volume24hUsd: 50, baseAddress: "mint-a" },
+          { pairAddress: "real-a", volume24hUsd: 80, baseAddress: "mint-a" },
+        ],
+        "mint-a",
+      ),
+    ).toEqual(["real-a", "real-b", "meme"]);
+  });
+});
+
+describe("readGeckoOhlcvBaseAddress", () => {
+  it("reads meta.base.address and ignores a missing base", () => {
+    expect(
+      readGeckoOhlcvBaseAddress({
+        meta: { base: { address: " mint-a " } },
+      }),
+    ).toBe("mint-a");
+    expect(readGeckoOhlcvBaseAddress({ data: { attributes: { ohlcv_list: [] } } })).toBeNull();
+    expect(readGeckoOhlcvBaseAddress(null)).toBeNull();
   });
 });
 

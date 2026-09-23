@@ -4,7 +4,7 @@ import type { AssetPoolMark, AssetPriceHistoryResult, PriceHistoryPoint, VolumeH
 export const ASSET_PRICE_HISTORY_SOURCE_LABEL = "GeckoTerminal pool OHLCV close (USD)";
 
 export const ASSET_PRICE_HISTORY_DEFINITION =
-  "Price candles are GeckoTerminal USD closes for the highest-volume DexScreener pool on this mint. Close is the fifth OHLCV element — volume is the sixth. Volume is never treated as a price. Missing candles stay missing; the desk does not interpolate or invent points.";
+  "Price candles are GeckoTerminal USD closes for the highest-volume DexScreener pool on this mint. A pool is skipped when Gecko names a different token as the OHLCV base. Close is the fifth OHLCV element — volume is the sixth. Volume is never treated as a price. Missing candles stay missing; the desk does not interpolate or invent points.";
 
 export const ASSET_VOLUME_HISTORY_EMPTY_REASON =
   "GeckoTerminal did not return usable USD volume for this mint’s primary pool. The desk does not invent volume points.";
@@ -27,14 +27,55 @@ export function emptyAssetPriceHistory(
   };
 }
 
+/** How many volume-ranked pools to ask Gecko before giving up on a mint. */
+export const ASSET_PRICE_POOL_ATTEMPTS = 3;
+
+function rankByVolume<T extends Pick<AssetPoolMark, "volume24hUsd">>(pools: readonly T[]): T[] {
+  return [...pools].sort((a, b) => compareNullableDesc(a.volume24hUsd, b.volume24hUsd));
+}
+
 /** Highest-volume pool with a real pair address. Empty address is not a pool. */
 export function selectPrimaryPricePool(
-  pools: readonly Pick<AssetPoolMark, "pairAddress" | "volume24hUsd">[],
+  pools: readonly Pick<AssetPoolMark, "pairAddress" | "volume24hUsd" | "baseAddress">[],
+  mint?: string | null,
 ): string | null {
+  return rankPoolsForMintPrice(pools, mint ?? null)[0] ?? null;
+}
+
+/**
+ * Pools to ask for this mint's USD closes, highest volume first.
+ * Pools where the mint is the DexScreener base come first. Other pools stay
+ * in line because Gecko sometimes names this mint as base anyway.
+ * Duplicate addresses are dropped. Empty address is not a pool.
+ */
+export function rankPoolsForMintPrice(
+  pools: readonly Pick<AssetPoolMark, "pairAddress" | "volume24hUsd" | "baseAddress">[],
+  mint: string | null,
+): string[] {
   const usable = pools.filter((pool) => pool.pairAddress.trim().length > 0);
-  if (usable.length === 0) return null;
-  const ranked = [...usable].sort((a, b) => compareNullableDesc(a.volume24hUsd, b.volume24hUsd));
-  return ranked[0]?.pairAddress.trim() ?? null;
+  if (usable.length === 0) return [];
+  const needle = mint?.trim() ?? "";
+  const baseSide = needle ? usable.filter((pool) => (pool.baseAddress ?? "").trim() === needle) : [];
+  const quoteSide = usable.filter((pool) => !baseSide.includes(pool));
+  const ordered = baseSide.length > 0 ? [...rankByVolume(baseSide), ...rankByVolume(quoteSide)] : rankByVolume(usable);
+  const seen = new Set<string>();
+  const ranked: string[] = [];
+  for (const pool of ordered) {
+    const pairAddress = pool.pairAddress.trim();
+    if (seen.has(pairAddress)) continue;
+    seen.add(pairAddress);
+    ranked.push(pairAddress);
+  }
+  return ranked;
+}
+
+/** Gecko OHLCV `meta.base.address` when the payload names one. Missing stays null. */
+export function readGeckoOhlcvBaseAddress(payload: unknown): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const address = (payload as { meta?: { base?: { address?: unknown } } }).meta?.base?.address;
+  if (typeof address !== "string") return null;
+  const trimmed = address.trim();
+  return trimmed.length > 0 ? trimmed : null;
 }
 
 /**

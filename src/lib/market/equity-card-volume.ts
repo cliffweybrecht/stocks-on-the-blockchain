@@ -89,7 +89,7 @@ export function selectEquityCardVolumeTargets(
   for (const asset of ranked) {
     const mint = asset.contractAddress.trim();
     if (!mint || seen.has(mint)) continue;
-    const pairAddress = selectPrimaryPricePool(asset.pools);
+    const pairAddress = selectPrimaryPricePool(asset.pools, asset.contractAddress);
     if (!pairAddress) continue;
     seen.add(mint);
     targets.push({ mint, pairAddress });

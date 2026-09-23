@@ -196,15 +196,17 @@ function addPairToBucket(bucket: MintAccumulator, pair: DexScreenerPair, tokenAd
   const buys = asFiniteNumber(pair.txns?.h24?.buys);
   const sells = asFiniteNumber(pair.txns?.h24?.sells);
   const dexId = asNonEmptyString(pair.dexId) ?? "unknown";
+  const baseAddress = asNonEmptyString(pair.baseToken?.address);
+  const quoteAddress = asNonEmptyString(pair.quoteToken?.address);
+  // DexScreener priceUsd / marketCap / h24 change describe the base token.
+  // A pair that only quotes this mint must not move the equity's median.
+  const mintIsBase = baseAddress === tokenAddress;
 
   if (volume !== null) bucket.volumes.push(volume);
   if (liquidity !== null) bucket.liquidities.push(liquidity);
-  if (price !== null && price > 0) bucket.prices.push(price);
+  if (mintIsBase && price !== null && price > 0) bucket.prices.push(price);
   if (buys !== null) bucket.buys.push(buys);
   if (sells !== null) bucket.sells.push(sells);
-
-  const baseAddress = asNonEmptyString(pair.baseToken?.address);
-  const quoteAddress = asNonEmptyString(pair.quoteToken?.address);
 
   bucket.pools.push({
     pairAddress: pairAddress ?? "",
@@ -228,9 +230,9 @@ function addPairToBucket(bucket: MintAccumulator, pair: DexScreenerPair, tokenAd
   });
   bucket.pairStats.push({
     volume24hUsd: volume,
-    marketCapUsd: asNonNegativeNumber(pair.marketCap),
-    fdvUsd: asNonNegativeNumber(pair.fdv),
-    priceChange24hPct: asReportedNumber(pair.priceChange?.h24),
+    marketCapUsd: mintIsBase ? asNonNegativeNumber(pair.marketCap) : null,
+    fdvUsd: mintIsBase ? asNonNegativeNumber(pair.fdv) : null,
+    priceChange24hPct: mintIsBase ? asReportedNumber(pair.priceChange?.h24) : null,
   });
 
   const dex = bucket.dexes.get(dexId) ?? { liquidity: [], poolCount: 0 };

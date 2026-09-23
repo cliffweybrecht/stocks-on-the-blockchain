@@ -169,6 +169,31 @@ describe("mapDexScreenerPairsToSolanaAssets", () => {
     expect(details[0]?.priceChange24hPct).toBeNull();
   });
 
+  it("does not let a quote-side pair set this mint's median, change, or market cap", () => {
+    const { assets, details } = mapDexScreenerPairsToSolanaAssets([
+      fixturePairs[0]!,
+      {
+        chainId: "solana",
+        dexId: "raydium",
+        pairAddress: "pair-meme-quoted-in-tsla",
+        baseToken: { address: "memeMint111111111111111111111111111111111", name: "Meme", symbol: "MEME" },
+        quoteToken: { address: tslaMint, name: "Tesla xStock", symbol: "TSLAx" },
+        priceUsd: "0.0000531",
+        volume: { h24: 9_000_000 },
+        liquidity: { usd: 20_000 },
+        marketCap: 12,
+        fdv: 12,
+        priceChange: { h24: -40 },
+      },
+    ]);
+    const tsla = assets.find((asset) => asset.contractAddress === tslaMint);
+    expect(tsla?.dexMedianPriceUsd).toBeCloseTo(355.64);
+    expect(tsla?.priceChange24hPct).toBeNull();
+    expect(tsla?.volume24hUsd).toBeGreaterThan(9_000_000);
+    expect(details.find((asset) => asset.contractAddress === tslaMint)?.marketCapUsd).toBeNull();
+    expect(details.find((asset) => asset.contractAddress === tslaMint)?.fdvUsd).toBeNull();
+  });
+
   it("ignores non-positive DexScreener prices when computing the DEX median", () => {
     const { assets } = mapDexScreenerPairsToSolanaAssets([
       fixturePairs[0]!,

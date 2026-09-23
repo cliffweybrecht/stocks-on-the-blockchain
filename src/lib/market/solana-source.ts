@@ -82,9 +82,12 @@ import {
   type EquityCardVolumeTarget,
 } from "./equity-card-volume";
 import {
+  ASSET_PRICE_POOL_ATTEMPTS,
   buildAssetPriceHistory,
   emptyAssetPriceHistory,
   parseGeckoTerminalOhlcvSeries,
+  rankPoolsForMintPrice,
+  readGeckoOhlcvBaseAddress,
   selectPrimaryPricePool,
 } from "./asset-price-history";
 import { chainCombinedVolume24h } from "./aggregate";
@@ -201,6 +204,9 @@ export class SolanaMarketDataSource implements MarketDataSource {
   private cardVolumeTimer: ReturnType<typeof setTimeout> | null = null;
   private priceHistoryCache = new Map<string, { result: AssetPriceHistoryResult; expiresAt: number }>();
   private priceHistoryInflight = new Map<string, Promise<AssetPriceHistoryResult>>();
+  /** Serializes GeckoTerminal calls. A 429 sets `geckoCooldownUntil` for every caller. */
+  private geckoTail: Promise<unknown> = Promise.resolve();
+  private geckoCooldownUntil = 0;
   private readonly mintLogoCatalog: MintLogoCatalog = new Map();
   private jupiterLogoCache = new Map<string, { url: string | null; expiresAt: number }>();
 
@@ -470,14 +476,87 @@ export class SolanaMarketDataSource implements MarketDataSource {
 
   private async loadGeckoTerminalIdentities(): Promise<TokenIdentity[]> {
     const identities: TokenIdentity[] = [];
-    const gate = this.gate();
     for (const query of DEFAULT_GECKOTERMINAL_QUERIES) {
-      const payload = await gate.run(() =>
-        this.fetchSource(`${this.geckoTerminalBaseUrl}${geckoTerminalSearchPath(query)}`, "GeckoTerminal"),
-      );
-      identities.push(...parseGeckoTerminalSearch(payload));
+      let stop = false;
+      try {
+        const payload = await this.enqueueGecko(async () => {
+          try {
+            return await this.fetchSource(
+              `${this.geckoTerminalBaseUrl}${geckoTerminalSearchPath(query)}`,
+              "GeckoTerminal",
+              { retries: 0 },
+            );
+          } catch (error) {
+            if (responseStatusFromError(error) === 429) {
+              this.armGeckoCooldown(error instanceof SourceRequestError ? error.retryAfterHeader : null);
+              stop = true;
+            }
+            throw error;
+          }
+        });
+        identities.push(...parseGeckoTerminalSearch(payload));
+      } catch (error) {
+        if (stop || responseStatusFromError(error) === 429) break;
+        throw error;
+      }
     }
     return identities;
+  }
+
+  /**
+   * One Gecko lane for search, card sparklines, and the detail chart.
+   * Callers that 429 arm a shared cooldown; the next caller waits it out.
+   * `Retry-After: 0` is not a reason to retry in a few hundred milliseconds.
+   */
+  private enqueueGecko<T>(task: () => Promise<T>): Promise<T> {
+    const run = this.geckoTail.then(async () => {
+      const wait = this.geckoCooldownUntil - Date.now();
+      if (wait > 0) await sleep(wait);
+      return task();
+    });
+    this.geckoTail = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
+  }
+
+  private armGeckoCooldown(retryAfterHeader: string | null): void {
+    const wait = equityCardVolumeRateLimitDelayMs(retryAfterHeader, this.cardVolumeSeriesCooldownMs);
+    if (wait <= 0) return;
+    this.geckoCooldownUntil = Math.max(this.geckoCooldownUntil, Date.now() + wait);
+  }
+
+  /**
+   * One OHLCV GET. 429s wait on the shared cooldown and retry.
+   * A missing pool or other error is null — the caller does not invent candles.
+   */
+  private async fetchGeckoOhlcvPayload(url: string): Promise<unknown | null> {
+    const maxAttempts = 1 + this.cardVolumeSeriesRetries;
+    let cooled = false;
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      const result = await this.enqueueGecko(async () => {
+        try {
+          const payload = await this.fetchSource(url, "GeckoTerminal", { retries: 0 });
+          return { payload, rateLimited: false, retryAfter: null as string | null, done: false };
+        } catch (error) {
+          if (responseStatusFromError(error) !== 429) {
+            return { payload: null, rateLimited: false, retryAfter: null, done: true };
+          }
+          const retryAfter = error instanceof SourceRequestError ? error.retryAfterHeader : null;
+          if (!cooled) {
+            cooled = true;
+            this.armGeckoCooldown(retryAfter);
+          } else if (this.cardVolumeSeriesSlowGapMs > 0) {
+            this.geckoCooldownUntil = Math.max(this.geckoCooldownUntil, Date.now() + this.cardVolumeSeriesSlowGapMs);
+          }
+          return { payload: null, rateLimited: true, retryAfter, done: attempt >= maxAttempts - 1 };
+        }
+      });
+      if (result.payload) return result.payload;
+      if (result.done || !result.rateLimited) return null;
+    }
+    return null;
   }
 
   private rememberCatalogLogos(logos: Record<string, string>): void {
@@ -1377,32 +1456,33 @@ export class SolanaMarketDataSource implements MarketDataSource {
     target: EquityCardVolumeTarget,
     nowT: number,
   ): Promise<{ kind: "ok" } | { kind: "rate_limited"; retryAfterHeader: string | null } | { kind: "failed" }> {
-    try {
-      const payload = await this.fetchSource(
-        `${this.geckoTerminalBaseUrl}${geckoTerminalOhlcvPath(target.pairAddress, {
-          timeframe: "hour",
-          limit: 24,
-        })}`,
-        "GeckoTerminal",
-        { retries: 0 },
-      );
-      const day = sliceEquityCardDayVolumeSeries(parseGeckoTerminalOhlcvSeries(payload).volumes, nowT);
-      this.rememberCardVolume(target.mint, day);
-      return { kind: "ok" };
-    } catch (error) {
-      // A missing pool is a real omission. A 429 is not — leave it unresolved and retry.
-      if (isDefinitiveFetchMiss(error)) {
-        this.rememberCardVolume(target.mint, null);
-        return { kind: "ok" };
+    return this.enqueueGecko(async () => {
+      try {
+        const payload = await this.fetchSource(
+          `${this.geckoTerminalBaseUrl}${geckoTerminalOhlcvPath(target.pairAddress, {
+            timeframe: "hour",
+            limit: 24,
+          })}`,
+          "GeckoTerminal",
+          { retries: 0 },
+        );
+        const day = sliceEquityCardDayVolumeSeries(parseGeckoTerminalOhlcvSeries(payload).volumes, nowT);
+        this.rememberCardVolume(target.mint, day);
+        return { kind: "ok" as const };
+      } catch (error) {
+        // A missing pool is a real omission. A 429 is not — leave it unresolved and retry.
+        if (isDefinitiveFetchMiss(error)) {
+          this.rememberCardVolume(target.mint, null);
+          return { kind: "ok" as const };
+        }
+        if (responseStatusFromError(error) === 429) {
+          const retryAfterHeader = error instanceof SourceRequestError ? error.retryAfterHeader : null;
+          this.armGeckoCooldown(retryAfterHeader);
+          return { kind: "rate_limited" as const, retryAfterHeader };
+        }
+        return { kind: "failed" as const };
       }
-      if (responseStatusFromError(error) === 429) {
-        return {
-          kind: "rate_limited",
-          retryAfterHeader: error instanceof SourceRequestError ? error.retryAfterHeader : null,
-        };
-      }
-      return { kind: "failed" };
-    }
+    });
   }
 
   async getAssetPriceHistory(chainId: string, symbol: string): Promise<AssetPriceHistoryResult> {
@@ -1440,8 +1520,8 @@ export class SolanaMarketDataSource implements MarketDataSource {
   }
 
   private async buildAssetPriceHistory(symbol: string): Promise<AssetPriceHistoryResult> {
-    let pairAddress: string | null = null;
     let mint: string | null = null;
+    let pools: Parameters<typeof rankPoolsForMintPrice>[0] = [];
     try {
       const snapshot = await this.loadCached("full");
       const asset = findAssetByKey(
@@ -1452,8 +1532,8 @@ export class SolanaMarketDataSource implements MarketDataSource {
         return emptyAssetPriceHistory("That mint is not in this Solana snapshot.");
       }
       mint = asset.contractAddress;
-      pairAddress = selectPrimaryPricePool(asset.pools);
-      if (!pairAddress) {
+      pools = asset.pools;
+      if (!selectPrimaryPricePool(pools, mint)) {
         return emptyAssetPriceHistory(
           "This mint has no DexScreener pair address, so there is no GeckoTerminal close series to load.",
         );
@@ -1463,44 +1543,64 @@ export class SolanaMarketDataSource implements MarketDataSource {
       return emptyAssetPriceHistory(message);
     }
 
-    const gate = createRequestGate({
-      maxConcurrent: Math.min(2, this.maxConcurrent),
-      minGapMs: Math.max(this.requestGapMs, 400),
-    });
+    const poolsToAsk = rankPoolsForMintPrice(pools, mint).slice(0, ASSET_PRICE_POOL_ATTEMPTS);
+    let lastPair = poolsToAsk[0] ?? null;
 
-    const [dailySettled, hourlySettled] = await Promise.allSettled([
-      gate.run(() =>
-        this.fetchSource(
-          `${this.geckoTerminalBaseUrl}${geckoTerminalOhlcvPath(pairAddress, { timeframe: "day", limit: 90 })}`,
-          "GeckoTerminal",
-        ),
-      ),
-      gate.run(() =>
-        this.fetchSource(
-          `${this.geckoTerminalBaseUrl}${geckoTerminalOhlcvPath(pairAddress, { timeframe: "hour", limit: 24 })}`,
-          "GeckoTerminal",
-        ),
-      ),
-    ]);
-
-    const dailySeries =
-      dailySettled.status === "fulfilled" ? parseGeckoTerminalOhlcvSeries(dailySettled.value) : { prices: [], volumes: [] };
-    const hourlySeries =
-      hourlySettled.status === "fulfilled"
-        ? parseGeckoTerminalOhlcvSeries(hourlySettled.value)
-        : { prices: [], volumes: [] };
+    for (const candidate of poolsToAsk) {
+      lastPair = candidate;
+      const loaded = await this.loadMintPoolCloses(candidate, mint);
+      if (loaded.kind === "stop") break;
+      if (loaded.kind === "skip") continue;
+      return buildAssetPriceHistory({
+        pairAddress: candidate,
+        daily: loaded.daily.prices,
+        hourly: loaded.hourly.prices,
+        dailyVolume: loaded.daily.volumes,
+        hourlyVolume: loaded.hourly.volumes,
+        fallbackDailyVolume: mint ? this.volumeHistoryCache?.result.seriesByMint[mint] : undefined,
+      });
+    }
 
     return buildAssetPriceHistory({
-      pairAddress,
-      daily: dailySeries.prices,
-      hourly: hourlySeries.prices,
-      dailyVolume: dailySeries.volumes,
-      hourlyVolume: hourlySeries.volumes,
+      pairAddress: lastPair,
+      daily: [],
+      hourly: [],
+      dailyVolume: [],
+      hourlyVolume: [],
       fallbackDailyVolume: mint ? this.volumeHistoryCache?.result.seriesByMint[mint] : undefined,
-      emptyReason:
-        dailySeries.prices.length === 0 && hourlySeries.prices.length === 0
-          ? "GeckoTerminal did not return usable USD closes for this mint’s primary pool."
-          : undefined,
+      emptyReason: "GeckoTerminal did not return usable USD closes for this mint’s primary pool.",
     });
+  }
+
+  /**
+   * Day + hour closes for one pool.
+   * `skip` means Gecko named a different base token — those closes are not this mint.
+   * `stop` means the request failed (often 429 after retries); the next pool would fail the same way.
+   */
+  private async loadMintPoolCloses(
+    pairAddress: string,
+    mint: string | null,
+  ): Promise<
+    | { kind: "use"; daily: ReturnType<typeof parseGeckoTerminalOhlcvSeries>; hourly: ReturnType<typeof parseGeckoTerminalOhlcvSeries> }
+    | { kind: "skip" }
+    | { kind: "stop" }
+  > {
+    const dailyPayload = await this.fetchGeckoOhlcvPayload(
+      `${this.geckoTerminalBaseUrl}${geckoTerminalOhlcvPath(pairAddress, { timeframe: "day", limit: 90 })}`,
+    );
+    const hourlyPayload = await this.fetchGeckoOhlcvPayload(
+      `${this.geckoTerminalBaseUrl}${geckoTerminalOhlcvPath(pairAddress, { timeframe: "hour", limit: 24 })}`,
+    );
+    if (!dailyPayload && !hourlyPayload) return { kind: "stop" };
+
+    const base = readGeckoOhlcvBaseAddress(dailyPayload) ?? readGeckoOhlcvBaseAddress(hourlyPayload);
+    if (mint && base && base !== mint) return { kind: "skip" };
+
+    const daily = dailyPayload ? parseGeckoTerminalOhlcvSeries(dailyPayload) : { prices: [], volumes: [] };
+    const hourly = hourlyPayload ? parseGeckoTerminalOhlcvSeries(hourlyPayload) : { prices: [], volumes: [] };
+    if (daily.prices.length === 0 && hourly.prices.length === 0) {
+      return dailyPayload === null || hourlyPayload === null ? { kind: "stop" } : { kind: "skip" };
+    }
+    return { kind: "use", daily, hourly };
   }
 }

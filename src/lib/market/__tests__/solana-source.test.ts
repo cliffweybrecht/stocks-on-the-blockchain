@@ -920,6 +920,148 @@ describe("SolanaMarketDataSource", () => {
     expect(urls.some((url) => url.includes("/ohlcv/hour") && url.includes("pair-1"))).toBe(true);
   });
 
+  it("retries a Gecko 429 for the detail chart instead of treating it as missing closes", async () => {
+    let ohlcvCalls = 0;
+    const source = testSource({
+      requestGapMs: 0,
+      enableGeckoTerminal: true,
+      geckoTerminalBaseUrl: "https://api.geckoterminal.com/api/v2",
+      cardVolumeSeriesRetries: 2,
+      cardVolumeSeriesCooldownMs: 0,
+      cardVolumeSeriesSlowGapMs: 0,
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [tslaPair()] });
+        if (url.includes("/tokens/v1/solana/") || url.includes("/token-pairs/v1/solana/")) {
+          return jsonResponse([tslaPair()]);
+        }
+        if (url.includes("/ohlcv/")) {
+          ohlcvCalls += 1;
+          if (ohlcvCalls <= 2) {
+            return new Response(JSON.stringify({ error: "slow down" }), {
+              status: 429,
+              headers: { "content-type": "application/json", "retry-after": "0" },
+            });
+          }
+          const close = url.includes("/ohlcv/hour") ? 108.2 : 100.5;
+          return jsonResponse({
+            meta: { base: { address: tslaMint, symbol: "TSLAx" } },
+            data: {
+              attributes: {
+                ohlcv_list: [[1_700_000_000, close, close, close, close, 40]],
+              },
+            },
+          });
+        }
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    const history = await source.getAssetPriceHistory("solana", "TSLAx");
+    expect(history.available).toBe(true);
+    expect(history.pairAddress).toBe("pair-1");
+    expect(history.emptyReason).toBeNull();
+    expect(history.daily.map((point) => point.priceUsd)).toEqual([100.5]);
+    expect(history.hourly.map((point) => point.priceUsd)).toEqual([108.2]);
+    expect(ohlcvCalls).toBeGreaterThan(2);
+  });
+
+  it("does not chart a pool whose Gecko OHLCV base is a different token", async () => {
+    const memeMint = "memeMint111111111111111111111111111111111";
+    const source = testSource({
+      requestGapMs: 0,
+      enableGeckoTerminal: true,
+      geckoTerminalBaseUrl: "https://api.geckoterminal.com/api/v2",
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("/latest/dex/search")) {
+          return jsonResponse({
+            pairs: [
+              tslaPair(),
+              {
+                ...tslaPair(),
+                pairAddress: "pair-meme",
+                baseToken: { address: memeMint, name: "Meme", symbol: "MEME" },
+                quoteToken: { address: tslaMint, name: "Tesla xStock", symbol: "TSLAx" },
+                volume: { h24: 9_000_000 },
+                priceUsd: "0.00005",
+              },
+            ],
+          });
+        }
+        if (url.includes("/tokens/v1/solana/") || url.includes("/token-pairs/v1/solana/")) {
+          return jsonResponse([
+            tslaPair(),
+            {
+              ...tslaPair(),
+              pairAddress: "pair-meme",
+              baseToken: { address: memeMint, name: "Meme", symbol: "MEME" },
+              quoteToken: { address: tslaMint, name: "Tesla xStock", symbol: "TSLAx" },
+              volume: { h24: 9_000_000 },
+              priceUsd: "0.00005",
+            },
+          ]);
+        }
+        if (url.includes("/ohlcv/") && url.includes("pair-1")) {
+          return jsonResponse({
+            meta: { base: { address: memeMint, symbol: "MEME" } },
+            data: { attributes: { ohlcv_list: [[1_700_000_000, 1, 1, 1, 0.00002, 10]] } },
+          });
+        }
+        if (url.includes("/ohlcv/") && url.includes("pair-meme")) {
+          const close = url.includes("/ohlcv/hour") ? 101 : 100.5;
+          return jsonResponse({
+            meta: { base: { address: tslaMint, symbol: "TSLAx" } },
+            data: { attributes: { ohlcv_list: [[1_700_000_000, close, close, close, close, 12]] } },
+          });
+        }
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    const history = await source.getAssetPriceHistory("solana", "TSLAx");
+    expect(history.available).toBe(true);
+    expect(history.pairAddress).toBe("pair-meme");
+    expect(history.hourly.map((point) => point.priceUsd)).toEqual([101]);
+    expect(history.daily.some((point) => point.priceUsd === 0.00002)).toBe(false);
+  });
+
+  it("stops Gecko search on a 429 instead of retrying it into the detail chart", async () => {
+    const geckoStatus: number[] = [];
+    const source = testSource({
+      requestGapMs: 0,
+      enableGeckoTerminal: true,
+      geckoTerminalBaseUrl: "https://api.geckoterminal.com/api/v2",
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [tslaPair()] });
+        if (url.includes("geckoterminal.com") && url.includes("search/pools")) {
+          geckoStatus.push(geckoStatus.length === 0 ? 200 : 429);
+          if (geckoStatus.length === 1) {
+            return jsonResponse({
+              data: [],
+              included: [
+                { type: "token", attributes: { address: tslaMint, name: "Tesla xStock", symbol: "TSLAx" } },
+              ],
+            });
+          }
+          return new Response(JSON.stringify({ error: "slow down" }), {
+            status: 429,
+            headers: { "content-type": "application/json", "retry-after": "0" },
+          });
+        }
+        if (url.includes("/tokens/v1/solana/") || url.includes("/token-pairs/v1/solana/")) {
+          return jsonResponse([tslaPair()]);
+        }
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    const chain = await source.getChain("solana");
+    expect(chain?.assets.some((asset) => asset.symbol === "TSLAx")).toBe(true);
+    expect(geckoStatus.filter((status) => status === 429)).toEqual([429]);
+  });
+
   it("fails closed when GeckoTerminal price candles are missing", async () => {
     const source = testSource({
       requestGapMs: 0,
