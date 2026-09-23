@@ -63,14 +63,14 @@ export function EquityCard({
         </div>
       </div>
       <div className="relative z-10 mt-5 pointer-events-none">
-        <p className="text-[11px] font-medium text-neutral-500">24h vol</p>
+        <p className="text-xs font-medium text-neutral-500">24h volume</p>
         <p className="mt-1 text-[28px] leading-none font-semibold tracking-tight text-white">
           <span className="num">{formatUsdCompact(asset.volume24hUsd)}</span>
         </p>
       </div>
       <div className="relative z-10 mt-auto flex items-end gap-2 pt-4 pointer-events-none">
         <div className="min-w-0">
-          <p className="text-[11px] font-medium text-neutral-500">Price</p>
+          <p className="text-xs font-medium text-neutral-500">Price</p>
           <div className="mt-0.5 flex items-baseline gap-1.5">
             <p className="num shrink-0 text-sm text-neutral-200">{formatPrice(priceUsd)}</p>
             <DayMove value={asset.priceChange24hPct} />
