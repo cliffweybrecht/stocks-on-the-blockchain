@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { CompositeMarketDataSource } from "../composite-source";
-import { createLiveAdapters, createMarketDataSource, isSolanaMarketEnabled } from "../factory";
+import {
+  createLiveAdapters,
+  createMarketDataSource,
+  createSolanaMarketDataSource,
+  isSolanaMarketEnabled,
+  solanaSourceOptionsFromEnv,
+} from "../factory";
 import { MockMarketDataSource } from "../mock-source";
 import { SolanaMarketDataSource } from "../solana-source";
 import { TerminalMarketDataSource } from "../terminal-source";
@@ -260,5 +266,21 @@ describe("createMarketDataSource", () => {
   it("does not treat an unset Solana flag as enabled", () => {
     expect(isSolanaMarketEnabled({})).toBe(false);
     expect(createLiveAdapters({ TERMINAL_BASE_URL: "http://t" })).toHaveLength(1);
+  });
+
+  it("builds Solana from the same env knobs the desk uses", () => {
+    const options = solanaSourceOptionsFromEnv({
+      SOLANA_DEXSCREENER_BASE_URL: "https://dex.example",
+      SOLANA_TIMEOUT_MS: "9000",
+      SOLANA_VOLUME_SNAPSHOT_DIR: "/tmp/snaps",
+      SOLANA_GECKOTERMINAL_ENABLED: "false",
+    });
+    expect(options.baseUrl).toBe("https://dex.example");
+    expect(options.timeoutMs).toBe(9000);
+    expect(options.volumeSnapshotDir).toBe("/tmp/snaps");
+    expect(options.enableGeckoTerminal).toBe(false);
+    expect(createSolanaMarketDataSource({ SOLANA_DEXSCREENER_BASE_URL: "https://dex.example" })).toBeInstanceOf(
+      SolanaMarketDataSource,
+    );
   });
 });

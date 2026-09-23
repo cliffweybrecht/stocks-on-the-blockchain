@@ -206,6 +206,8 @@ Robinhood marks stay null on Solana. Off-Solana pairs are ignored.
 | **Honesty** | Gap days are omitted, not plotted as **$0**. A source-reported `0` is kept. Null DexScreener 24h is never coerced to zero. A seed adapter with no snapshots yields an **empty chart**, never invented nonzero points |
 | **Coverage** | One combined point per UTC day this desk recorded (`data/volume-snapshots/solana.json` by default). GeckoTerminal remains a candidate source and per-asset **price** candles only |
 
+Daily cron / agent should run `SOLANA_MARKET_ENABLED=true npm run snapshot:volume` (same DexScreener all-pools desk 24h; no Gecko backfill).
+
 The seed adapter does **not** draw a demo series.
 
 ## Trust labeling

@@ -1,6 +1,10 @@
 import { CompositeMarketDataSource } from "./composite-source";
 import { MockMarketDataSource } from "./mock-source";
-import { SOLANA_DEFAULTS, SolanaMarketDataSource } from "./solana-source";
+import {
+  SOLANA_DEFAULTS,
+  SolanaMarketDataSource,
+  type SolanaMarketDataSourceOptions,
+} from "./solana-source";
 import { TerminalMarketDataSource } from "./terminal-source";
 import type { MarketDataSource } from "./types";
 
@@ -27,34 +31,47 @@ export function getSolanaDexScreenerBaseUrl(env: MarketEnv = process.env): strin
   return env.SOLANA_DEXSCREENER_BASE_URL?.trim() || "https://api.dexscreener.com";
 }
 
+/** Same DexScreener / registry / snapshot-dir knobs the live desk uses. */
+export function solanaSourceOptionsFromEnv(env: MarketEnv = process.env): SolanaMarketDataSourceOptions {
+  return {
+    baseUrl: getSolanaDexScreenerBaseUrl(env),
+    timeoutMs: envNumber(env, "SOLANA_TIMEOUT_MS", SOLANA_DEFAULTS.timeoutMs),
+    requestGapMs: envNumber(env, "SOLANA_REQUEST_GAP_MS", SOLANA_DEFAULTS.requestGapMs),
+    cacheMs: envNumber(env, "SOLANA_CACHE_MS", SOLANA_DEFAULTS.cacheMs),
+    maxConcurrent: envNumber(env, "SOLANA_MAX_CONCURRENT", SOLANA_DEFAULTS.maxConcurrent),
+    homeBudgetMs: envNumber(env, "SOLANA_HOME_BUDGET_MS", SOLANA_DEFAULTS.homeBudgetMs),
+    fullBudgetMs: envNumber(env, "SOLANA_FULL_BUDGET_MS", SOLANA_DEFAULTS.fullBudgetMs),
+    enableRegistry: env.SOLANA_XSTOCKS_REGISTRY_ENABLED?.trim().toLowerCase() !== "false",
+    registryBaseUrl: env.SOLANA_XSTOCKS_REGISTRY_URL?.trim() || undefined,
+    enableOndoRegistry: env.SOLANA_ONDO_REGISTRY_ENABLED?.trim().toLowerCase() !== "false",
+    ondoRegistryUrl: env.SOLANA_ONDO_REGISTRY_URL?.trim() || undefined,
+    enableTesseraRegistry: env.SOLANA_TESSERA_REGISTRY_ENABLED?.trim().toLowerCase() !== "false",
+    tesseraRegistryUrl: env.SOLANA_TESSERA_REGISTRY_URL?.trim() || undefined,
+    enableSunriseRegistry: env.SOLANA_SUNRISE_REGISTRY_ENABLED?.trim().toLowerCase() !== "false",
+    sunriseRegistryUrl: env.SOLANA_SUNRISE_REGISTRY_URL?.trim() || undefined,
+    enableGeckoTerminal: env.SOLANA_GECKOTERMINAL_ENABLED?.trim().toLowerCase() !== "false",
+    geckoTerminalBaseUrl: env.SOLANA_GECKOTERMINAL_BASE_URL?.trim() || undefined,
+    enrichBudgetMs: envNumber(env, "SOLANA_ENRICH_BUDGET_MS", SOLANA_DEFAULTS.enrichBudgetMs),
+    emptyCacheMs: envNumber(env, "SOLANA_EMPTY_CACHE_MS", SOLANA_DEFAULTS.emptyCacheMs),
+    volumeHistoryCacheMs: envNumber(env, "SOLANA_VOLUME_HISTORY_CACHE_MS", SOLANA_DEFAULTS.volumeHistoryCacheMs),
+    volumeSnapshotDir: env.SOLANA_VOLUME_SNAPSHOT_DIR?.trim() || undefined,
+  };
+}
+
+export function createSolanaMarketDataSource(
+  env: MarketEnv = process.env,
+  overrides: Partial<SolanaMarketDataSourceOptions> = {},
+): SolanaMarketDataSource {
+  return new SolanaMarketDataSource({
+    ...solanaSourceOptionsFromEnv(env),
+    ...overrides,
+  });
+}
+
 function buildLiveAdapters(env: MarketEnv): MarketDataSource[] {
   const adapters: MarketDataSource[] = [];
   if (isSolanaMarketEnabled(env)) {
-    adapters.push(
-      new SolanaMarketDataSource({
-        baseUrl: getSolanaDexScreenerBaseUrl(env),
-        timeoutMs: envNumber(env, "SOLANA_TIMEOUT_MS", SOLANA_DEFAULTS.timeoutMs),
-        requestGapMs: envNumber(env, "SOLANA_REQUEST_GAP_MS", SOLANA_DEFAULTS.requestGapMs),
-        cacheMs: envNumber(env, "SOLANA_CACHE_MS", SOLANA_DEFAULTS.cacheMs),
-        maxConcurrent: envNumber(env, "SOLANA_MAX_CONCURRENT", SOLANA_DEFAULTS.maxConcurrent),
-        homeBudgetMs: envNumber(env, "SOLANA_HOME_BUDGET_MS", SOLANA_DEFAULTS.homeBudgetMs),
-        fullBudgetMs: envNumber(env, "SOLANA_FULL_BUDGET_MS", SOLANA_DEFAULTS.fullBudgetMs),
-        enableRegistry: env.SOLANA_XSTOCKS_REGISTRY_ENABLED?.trim().toLowerCase() !== "false",
-        registryBaseUrl: env.SOLANA_XSTOCKS_REGISTRY_URL?.trim() || undefined,
-        enableOndoRegistry: env.SOLANA_ONDO_REGISTRY_ENABLED?.trim().toLowerCase() !== "false",
-        ondoRegistryUrl: env.SOLANA_ONDO_REGISTRY_URL?.trim() || undefined,
-        enableTesseraRegistry: env.SOLANA_TESSERA_REGISTRY_ENABLED?.trim().toLowerCase() !== "false",
-        tesseraRegistryUrl: env.SOLANA_TESSERA_REGISTRY_URL?.trim() || undefined,
-        enableSunriseRegistry: env.SOLANA_SUNRISE_REGISTRY_ENABLED?.trim().toLowerCase() !== "false",
-        sunriseRegistryUrl: env.SOLANA_SUNRISE_REGISTRY_URL?.trim() || undefined,
-        enableGeckoTerminal: env.SOLANA_GECKOTERMINAL_ENABLED?.trim().toLowerCase() !== "false",
-        geckoTerminalBaseUrl: env.SOLANA_GECKOTERMINAL_BASE_URL?.trim() || undefined,
-        enrichBudgetMs: envNumber(env, "SOLANA_ENRICH_BUDGET_MS", SOLANA_DEFAULTS.enrichBudgetMs),
-        emptyCacheMs: envNumber(env, "SOLANA_EMPTY_CACHE_MS", SOLANA_DEFAULTS.emptyCacheMs),
-        volumeHistoryCacheMs: envNumber(env, "SOLANA_VOLUME_HISTORY_CACHE_MS", SOLANA_DEFAULTS.volumeHistoryCacheMs),
-        volumeSnapshotDir: env.SOLANA_VOLUME_SNAPSHOT_DIR?.trim() || undefined,
-      }),
-    );
+    adapters.push(createSolanaMarketDataSource(env));
   }
   const terminalUrl = getTerminalBaseUrl(env);
   if (terminalUrl) {

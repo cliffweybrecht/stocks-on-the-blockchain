@@ -10,7 +10,9 @@ import {
   overlayLiveDesk24h,
   parseDeskVolumeSnapshotRecords,
   pointsFromDeskVolumeSnapshots,
+  recordDeskVolumeFromChain,
   upsertDeskVolumeSnapshot,
+  MemoryDeskVolumeSnapshotStore,
   type DeskVolumeSnapshot,
 } from "../volume-snapshots";
 
@@ -164,6 +166,66 @@ describe("buildSnapshotEquityVolumeHistory", () => {
     expect(history.available).toBe(false);
     expect(history.points).toEqual([]);
     expect(history.emptyReason).toMatch(/not invented from GeckoTerminal/);
+  });
+});
+
+describe("recordDeskVolumeFromChain", () => {
+  it("upserts public / private / ETF legs and refuses an all-null day", async () => {
+    const store = new MemoryDeskVolumeSnapshotStore();
+    const written = await recordDeskVolumeFromChain(
+      store,
+      chain({ volume24hUsd: 86_200_000, privateVolume24hUsd: 8_700_000, etfVolume24hUsd: 32_100_000 }),
+      "2026-09-15T12:00:00.000Z",
+      DAY1,
+    );
+    expect(written.ok).toBe(true);
+    if (written.ok) {
+      expect(written.written).toBe(true);
+      expect(written.snapshot.combined24hUsd).toBeCloseTo(127_000_000);
+      expect(written.snapshot.publicEquity24hUsd).toBe(86_200_000);
+      expect(written.snapshot.private24hUsd).toBe(8_700_000);
+      expect(written.snapshot.etfIndex24hUsd).toBe(32_100_000);
+    }
+
+    const richer = await recordDeskVolumeFromChain(
+      store,
+      chain({ volume24hUsd: 90_000_000, privateVolume24hUsd: 8_700_000, etfVolume24hUsd: 32_100_000 }),
+      "2026-09-15T18:00:00.000Z",
+      DAY1,
+    );
+    expect(richer.ok).toBe(true);
+    if (richer.ok) {
+      expect(richer.written).toBe(true);
+      expect(richer.snapshot.combined24hUsd).toBeCloseTo(130_800_000);
+    }
+    expect(await store.load()).toHaveLength(1);
+
+    const refused = await recordDeskVolumeFromChain(store, chain({}), "2026-09-15T20:00:00.000Z", DAY1);
+    expect(refused.ok).toBe(false);
+    if (!refused.ok) {
+      expect(refused.reason).toMatch(/all-null/);
+      expect(refused.reason).toMatch(/not \$0/);
+    }
+    expect((await store.load())[0]?.combined24hUsd).toBeCloseTo(130_800_000);
+  });
+
+  it("treats an identical same-day write as success without rewriting", async () => {
+    const store = new MemoryDeskVolumeSnapshotStore();
+    const first = await recordDeskVolumeFromChain(
+      store,
+      chain({ volume24hUsd: 10 }),
+      "2026-09-15T12:00:00.000Z",
+      DAY1,
+    );
+    const again = await recordDeskVolumeFromChain(
+      store,
+      chain({ volume24hUsd: 10 }),
+      "2026-09-15T12:00:00.000Z",
+      DAY1,
+    );
+    expect(first.ok && first.written).toBe(true);
+    expect(again.ok && again.unchanged).toBe(true);
+    expect(await store.load()).toHaveLength(1);
   });
 });
 

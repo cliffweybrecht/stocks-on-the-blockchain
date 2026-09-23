@@ -103,6 +103,53 @@ export function upsertDeskVolumeSnapshot(
   return next;
 }
 
+export type RecordDeskVolumeResult =
+  | { ok: true; written: boolean; unchanged: boolean; snapshot: DeskVolumeSnapshot }
+  | { ok: false; reason: string };
+
+/**
+ * Awaited persist of today’s DexScreener desk 24h. Same upsert rules as the
+ * live desk: null omitted not $0; all-null days are refused; same UTC day is
+ * replaced. Callers that must fail closed (CLI) should treat `ok: false` as
+ * a hard error. The UI persist path still swallows this.
+ */
+export async function recordDeskVolumeFromChain(
+  store: DeskVolumeSnapshotStore,
+  chain: Pick<
+    ChainVolume,
+    | "volume24hUsd"
+    | "privateVolume24hUsd"
+    | "etfVolume24hUsd"
+    | "assetCount"
+    | "reportedPoolCount"
+  >,
+  generatedAt: string,
+  nowT?: number,
+): Promise<RecordDeskVolumeResult> {
+  const incoming = deskVolumeSnapshotFromChain(chain, generatedAt, nowT);
+  if (incoming.t <= 0 || !incoming.date) {
+    return { ok: false, reason: "DexScreener desk snapshot has no UTC day — snapshot not written." };
+  }
+  if (incoming.combined24hUsd === null) {
+    return {
+      ok: false,
+      reason: "DexScreener desk 24h is all-null (null omitted, not $0) — snapshot not written.",
+    };
+  }
+  try {
+    const existing = await store.load();
+    const next = upsertDeskVolumeSnapshot(existing, incoming);
+    if (JSON.stringify(existing) === JSON.stringify(next)) {
+      return { ok: true, written: false, unchanged: true, snapshot: incoming };
+    }
+    await store.save(next);
+    return { ok: true, written: true, unchanged: false, snapshot: incoming };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "desk volume snapshot write failed.";
+    return { ok: false, reason: `DexScreener desk snapshot persist failed: ${message}` };
+  }
+}
+
 export function pointsFromDeskVolumeSnapshots(
   snapshots: readonly DeskVolumeSnapshot[],
 ): VolumeHistoryPoint[] {

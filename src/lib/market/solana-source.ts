@@ -61,8 +61,7 @@ import { emptyEquityVolumeHistory } from "./volume-history";
 import { FileDeskVolumeSnapshotStore } from "./volume-snapshot-store";
 import {
   buildSnapshotEquityVolumeHistory,
-  deskVolumeSnapshotFromChain,
-  upsertDeskVolumeSnapshot,
+  recordDeskVolumeFromChain,
   type DeskVolumeSnapshotStore,
 } from "./volume-snapshots";
 import type { TokenIdentity } from "./solana-classifier";
@@ -957,12 +956,10 @@ export class SolanaMarketDataSource implements MarketDataSource {
   private async persistDeskVolume(snapshot: CachedSnapshot): Promise<void> {
     try {
       const generatedAt = snapshot.mapped.provenance.generatedAt ?? snapshot.mapped.provenance.fetchedAt;
-      const incoming = deskVolumeSnapshotFromChain(snapshot.mapped.chain, generatedAt);
-      const existing = await this.deskSnapshots.load();
-      const next = upsertDeskVolumeSnapshot(existing, incoming);
-      if (JSON.stringify(existing) === JSON.stringify(next)) return;
-      await this.deskSnapshots.save(next);
-      this.volumeHistoryCache = null;
+      const result = await recordDeskVolumeFromChain(this.deskSnapshots, snapshot.mapped.chain, generatedAt);
+      if (result.ok && result.written) {
+        this.volumeHistoryCache = null;
+      }
     } catch {
       // Disk failures must not take down the live desk.
     }
