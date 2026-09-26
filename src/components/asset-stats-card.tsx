@@ -38,7 +38,7 @@ const STATS: readonly {
   {
     key: "holders",
     label: "Holder(s)",
-    hint: "Shown only when a source reports a holder count. This desk has no holder indexer.",
+    hint: "Jupiter Tokens V2 holderCount for this mint. Not a 24h figure. Missing stays a dash.",
     value: (asset) => formatCount(asset.holderCount),
   },
   {

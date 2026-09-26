@@ -224,6 +224,7 @@ function addPairToBucket(bucket: MintAccumulator, pair: DexScreenerPair, tokenAd
     url: pairHref(pairAddress, pair.url),
     trades24h: pairTrades24h(buys, sells),
     wallets24h: null,
+    holderCount: null,
     tradesChange24hPct: null,
     walletsChange24hPct: null,
   });

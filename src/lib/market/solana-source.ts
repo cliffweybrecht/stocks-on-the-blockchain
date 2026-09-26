@@ -2,6 +2,13 @@ import { createRequestGate, mapWithConcurrency, sleep } from "./async-pool";
 import { findAssetByKey } from "./identity";
 import { buildSolanaSnapshot, unwrapDexScreenerPairs, unwrapDexScreenerSearch, type DexScreenerPair } from "./map-solana";
 import {
+  applyMintHolderCount,
+  HOLDER_FETCH_TIMEOUT_MS,
+  MINT_HOLDER_CACHE_MS,
+  MINT_HOLDER_MISS_CACHE_MS,
+  parseJupiterHolderCount,
+} from "./solana-holders";
+import {
   applyMintLogoFallbacks,
   DEFAULT_JUPITER_TOKEN_BASE_URL,
   JUPITER_TOKEN_SEARCH_BATCH,
@@ -207,6 +214,10 @@ export interface SolanaMarketDataSourceOptions {
   enableJupiterTokenLogos?: boolean;
   jupiterTokenBaseUrl?: string;
   mintLogoCacheMs?: number;
+  /** Jupiter Tokens V2 holderCount for the asset page. Default on. */
+  enableJupiterHolders?: boolean;
+  /** Cache TTL after Jupiter returns a holder payload, including a real null. */
+  holderCacheMs?: number;
   /** Solana JSON-RPC for `getTokenSupply`. Default: public mainnet-beta. */
   rpcUrl?: string;
   /** When false, asset stats leave supply, market cap, and FDV blank. */
@@ -274,6 +285,8 @@ export class SolanaMarketDataSource implements MarketDataSource {
   private readonly mintLogoCatalog: MintLogoCatalog = new Map();
   private jupiterLogoCache = new Map<string, { url: string | null; expiresAt: number }>();
   private mintSupplyCache = new Map<string, { uiSupply: number; expiresAt: number }>();
+  private holderCache = new Map<string, { count: number | null; expiresAt: number }>();
+  private holderInflight = new Map<string, Promise<number | null>>();
 
   constructor(private readonly options: SolanaMarketDataSourceOptions = {}) {
     this.memory = new SolanaHydrateMemory(options.emptyCacheMs ?? SOLANA_DEFAULTS.emptyCacheMs);
@@ -342,6 +355,14 @@ export class SolanaMarketDataSource implements MarketDataSource {
 
   private get jupiterTokenLogosEnabled() {
     return this.options.enableJupiterTokenLogos !== false;
+  }
+
+  private get jupiterHoldersEnabled() {
+    return this.options.enableJupiterHolders !== false;
+  }
+
+  private get holderCacheMs() {
+    return this.nonNegativeOption(this.options.holderCacheMs, MINT_HOLDER_CACHE_MS);
   }
 
   private get jupiterTokenBaseUrl() {
@@ -1287,6 +1308,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
       symbol,
     );
     if (!asset) return null;
+    await this.stampAssetHolderCount(asset);
     const uiSupply = await this.readMintUiSupply(asset.contractAddress);
     return {
       chain: cached.mapped.chain,
@@ -1314,6 +1336,52 @@ export class SolanaMarketDataSource implements MarketDataSource {
       this.mintSupplyCache.set(mint, { uiSupply, expiresAt: now + this.cacheMs });
     }
     return uiSupply;
+  }
+
+  /**
+   * Holders are the viewed mint's Jupiter `holderCount`, copied onto every pool.
+   * A quote-side pair still shows this asset, not the other token's holders.
+   * Chain snapshots do not pay for this lookup.
+   */
+  private async stampAssetHolderCount(asset: {
+    contractAddress: string;
+    holderCount: number | null;
+    pools: readonly { holderCount?: number | null }[];
+  }): Promise<void> {
+    if (!this.jupiterHoldersEnabled) return;
+    const mint = asset.contractAddress.trim();
+    if (!mint) return;
+    const holderCount = await this.holderCountForMint(mint);
+    applyMintHolderCount(asset, holderCount);
+  }
+
+  private async holderCountForMint(mint: string): Promise<number | null> {
+    const now = Date.now();
+    const cached = this.holderCache.get(mint);
+    if (cached && cached.expiresAt > now) return cached.count;
+    const pending = this.holderInflight.get(mint);
+    if (pending) return pending;
+    const task = this.fetchHolderCount(mint).finally(() => {
+      this.holderInflight.delete(mint);
+    });
+    this.holderInflight.set(mint, task);
+    return task;
+  }
+
+  private async fetchHolderCount(mint: string): Promise<number | null> {
+    const url = `${this.jupiterTokenBaseUrl}${jupiterTokenSearchPath([mint])}`;
+    const timeoutMs = Math.min(this.timeoutMs, HOLDER_FETCH_TIMEOUT_MS);
+    try {
+      const payload = await this.gate().run(() =>
+        fetchJsonOrText(url, timeoutMs, this.fetchImpl, "Jupiter holder count", 0),
+      );
+      const count = parseJupiterHolderCount(payload, mint);
+      this.holderCache.set(mint, { count, expiresAt: Date.now() + this.holderCacheMs });
+      return count;
+    } catch {
+      this.holderCache.set(mint, { count: null, expiresAt: Date.now() + MINT_HOLDER_MISS_CACHE_MS });
+      return null;
+    }
   }
 
   async getEquityVolumeHistory(): Promise<EquityVolumeHistoryResult> {

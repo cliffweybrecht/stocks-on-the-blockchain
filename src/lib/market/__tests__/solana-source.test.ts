@@ -53,6 +53,7 @@ function testSource(options: SolanaMarketDataSourceOptions) {
     enableSunriseRegistry: false,
     enableGeckoTerminal: false,
     enableJupiterTokenLogos: false,
+    enableJupiterHolders: false,
     backgroundEnrichment: false,
     volumeSnapshotStore: new MemoryDeskVolumeSnapshotStore(),
     allMarketsVolumeCacheDir: null,
@@ -2416,5 +2417,108 @@ describe("SolanaMarketDataSource", () => {
     expect(asset?.asset.marketCapUsd).toBeNull();
     expect(asset?.asset.fdvUsd).toBeNull();
     expect(asset?.asset.holderCount).toBeNull();
+  });
+
+  it("stamps the asset mint holder count onto every pool and caches the Jupiter response", async () => {
+    const urls: string[] = [];
+    const memeMint = "memeMint111111111111111111111111111111111";
+    const quoteSidePair = {
+      ...tslaPair(),
+      pairAddress: "pair-meme-quoted-in-tsla",
+      dexId: "orca",
+      baseToken: { address: memeMint, name: "Meme", symbol: "MEME" },
+      quoteToken: { address: tslaMint, name: "Tesla xStock", symbol: "TSLAx" },
+      volume: { h24: 5 },
+    };
+    const source = testSource({
+      enableJupiterHolders: true,
+      jupiterTokenBaseUrl: "https://lite-api.jup.ag/tokens/v2",
+      fetchImpl: async (input) => {
+        const url = String(input);
+        urls.push(url);
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [tslaPair(), quoteSidePair] });
+        if (url.includes("/tokens/v1/solana/") || url.includes("/token-pairs/v1/solana/")) {
+          return jsonResponse([tslaPair(), quoteSidePair]);
+        }
+        if (url.includes("/tokens/v2/search")) {
+          return jsonResponse([
+            { id: memeMint, holderCount: 9, stats24h: { numTraders: 100 } },
+            { id: tslaMint, symbol: "TSLAx", holderCount: 40386, stats24h: { numTraders: 1655 } },
+          ]);
+        }
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    const first = await source.getAsset("solana", "tslax");
+    expect(first?.asset.holderCount).toBe(40386);
+    expect(first?.asset.pools.length).toBeGreaterThan(1);
+    expect(first?.asset.pools.every((pool) => pool.holderCount === 40386)).toBe(true);
+    const holderUrls = urls.filter((url) => url.includes("/tokens/v2/search"));
+    expect(holderUrls).toHaveLength(1);
+    expect(decodeURIComponent(holderUrls[0] ?? "")).toContain(tslaMint);
+    expect(decodeURIComponent(holderUrls[0] ?? "")).not.toContain(memeMint);
+
+    const second = await source.getAsset("solana", tslaMint);
+    expect(second?.asset.holderCount).toBe(40386);
+    expect(urls.filter((url) => url.includes("/tokens/v2/search"))).toHaveLength(1);
+  });
+
+  it("leaves holder counts null when Jupiter omits the field or the request fails", async () => {
+    async function load(mode: "omit" | "fail") {
+      const urls: string[] = [];
+      const source = testSource({
+        enableJupiterHolders: true,
+        jupiterTokenBaseUrl: "https://lite-api.jup.ag/tokens/v2",
+        fetchImpl: async (input) => {
+          const url = String(input);
+          urls.push(url);
+          if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [tslaPair()] });
+          if (url.includes("/tokens/v1/solana/") || url.includes("/token-pairs/v1/solana/")) {
+            return jsonResponse([tslaPair()]);
+          }
+          if (url.includes("/tokens/v2/search")) {
+            if (mode === "fail") return jsonResponse({ message: "unavailable" }, 503);
+            return jsonResponse([{ id: tslaMint, symbol: "TSLAx", stats24h: { numTraders: 1655 } }]);
+          }
+          return jsonResponse({ unexpected: true }, 404);
+        },
+      });
+      const first = await source.getAsset("solana", "tslax");
+      const second = await source.getAsset("solana", "tslax");
+      return { first, second, holderCalls: urls.filter((url) => url.includes("/tokens/v2/search")).length };
+    }
+
+    const omitted = await load("omit");
+    expect(omitted.first?.asset.holderCount).toBeNull();
+    expect(omitted.first?.asset.pools[0]?.holderCount).toBeNull();
+    expect(omitted.second?.asset.holderCount).toBeNull();
+    expect(omitted.holderCalls).toBe(1);
+
+    const failed = await load("fail");
+    expect(failed.first?.asset.symbol).toBe("TSLAx");
+    expect(failed.first?.asset.holderCount).toBeNull();
+    expect(failed.first?.asset.pools[0]?.holderCount).toBeNull();
+    expect(failed.second?.asset.holderCount).toBeNull();
+    expect(failed.holderCalls).toBe(1);
+  });
+
+  it("does not call Jupiter for holders when the flag is off", async () => {
+    const urls: string[] = [];
+    const source = testSource({
+      fetchImpl: async (input) => {
+        const url = String(input);
+        urls.push(url);
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [tslaPair()] });
+        if (url.includes("/tokens/v1/solana/") || url.includes("/token-pairs/v1/solana/")) {
+          return jsonResponse([tslaPair()]);
+        }
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+    const asset = await source.getAsset("solana", "tslax");
+    expect(asset?.asset.holderCount).toBeNull();
+    expect(asset?.asset.pools[0]?.holderCount).toBeNull();
+    expect(urls.some((url) => url.includes("/tokens/v2/search"))).toBe(false);
   });
 });

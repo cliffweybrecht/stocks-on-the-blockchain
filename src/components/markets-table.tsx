@@ -77,7 +77,7 @@ export function MarketsTable({
   asset,
   pools,
 }: {
-  asset: Pick<AssetDetail, "contractAddress" | "logoUrl" | "chainId">;
+  asset: Pick<AssetDetail, "contractAddress" | "logoUrl" | "chainId" | "holderCount">;
   pools: readonly AssetPoolMark[];
 }) {
   return (
@@ -92,7 +92,12 @@ export function MarketsTable({
               <TableHead className="text-right font-normal text-muted-foreground">Liquidity</TableHead>
               <TableHead className="text-right font-normal text-muted-foreground">24h Volume</TableHead>
               <TableHead className="text-right font-normal text-muted-foreground">24h Trades</TableHead>
-              <TableHead className="text-right font-normal text-muted-foreground">24h Wallets</TableHead>
+              <TableHead
+                className="text-right font-normal text-muted-foreground"
+                title="Holders of this asset's mint. The same count on every pool."
+              >
+                Holders
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -105,7 +110,7 @@ export function MarketsTable({
               });
               const address = pool.pairAddress.trim();
               const trades = pool.trades24h ?? null;
-              const wallets = pool.wallets24h ?? null;
+              const holders = pool.holderCount ?? asset.holderCount ?? null;
 
               return (
                 <TableRow
@@ -151,12 +156,8 @@ export function MarketsTable({
                       format={formatCountCompact}
                     />
                   </TableCell>
-                  <TableCell className="py-3.5">
-                    <MarketsMetric
-                      value={wallets}
-                      change={pool.walletsChange24hPct ?? null}
-                      format={formatCountCompact}
-                    />
+                  <TableCell className="py-3.5" data-holders={holders === null ? "missing" : String(holders)}>
+                    <MarketsMetric value={holders} change={null} format={formatCountCompact} />
                   </TableCell>
                 </TableRow>
               );
