@@ -38,10 +38,11 @@ function MarketsMetric({
   change: number | null;
   format: (value: number | null) => string;
 }) {
+  const showChange = change !== null && Number.isFinite(change);
   return (
     <div className="text-right">
       <div className="num text-sm text-foreground">{format(value)}</div>
-      {value !== null || change !== null ? <MarketsChange value={change} /> : null}
+      {showChange ? <MarketsChange value={change} /> : null}
     </div>
   );
 }
