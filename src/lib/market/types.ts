@@ -82,6 +82,8 @@ export interface AssetPoolMark {
   quoteLogoUrl?: string | null;
   /** DexScreener pair `url` when reported, else a constructed Solana pair href. */
   url?: string | null;
+  /** DexScreener pair `labels` when reported (CLMM, DLMM, wp, …). */
+  labels?: readonly string[] | null;
   /** buys + sells when DexScreener reported both `txns.h24` sides. */
   trades24h?: number | null;
   /** Unique wallets are not on the DexScreener pair payload we fetch. */

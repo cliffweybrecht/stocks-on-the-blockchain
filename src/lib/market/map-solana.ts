@@ -124,6 +124,17 @@ function pairHref(pairAddress: string | null, reportedUrl: unknown): string | nu
   return `https://dexscreener.com/solana/${pairAddress}`;
 }
 
+/** DexScreener pair labels. Missing field stays null; a present array keeps only real strings. */
+function pairLabels(value: unknown): string[] | null {
+  if (!Array.isArray(value)) return null;
+  const labels: string[] = [];
+  for (const item of value) {
+    const label = asNonEmptyString(item);
+    if (label) labels.push(label);
+  }
+  return labels;
+}
+
 interface PairReportedStats {
   volume24hUsd: number | null;
   priceChange24hPct: number | null;
@@ -222,6 +233,7 @@ function addPairToBucket(bucket: MintAccumulator, pair: DexScreenerPair, tokenAd
     baseLogoUrl: baseAddress ? pairTokenLogoUrl(pair, baseAddress) : null,
     quoteLogoUrl: quoteAddress ? pairTokenLogoUrl(pair, quoteAddress) : null,
     url: pairHref(pairAddress, pair.url),
+    labels: pairLabels(pair.labels),
     trades24h: pairTrades24h(buys, sells),
     wallets24h: null,
     holderCount: null,
