@@ -67,6 +67,61 @@ export function volumePointsInWindow(
   return kept;
 }
 
+function poolAddressSet(addresses: readonly string[]): Set<string> {
+  return new Set(addresses.map((address) => address.trim()).filter((address) => address.length > 0));
+}
+
+/**
+ * A DexScreener pool list may gain or drop a few pairs between refreshes.
+ * That wobble is not a new asset. A much smaller list is a partial payload and is not compatible.
+ * Exact membership is compatible. A handful of adds and removals is compatible when most pools are shared.
+ */
+export function allMarketsPoolSetCompatible(saved: readonly string[], live: readonly string[]): boolean {
+  const savedSet = poolAddressSet(saved);
+  const liveSet = poolAddressSet(live);
+  if (savedSet.size === 0 || liveSet.size === 0) return false;
+  let shared = 0;
+  for (const address of liveSet) {
+    if (savedSet.has(address)) shared += 1;
+  }
+  if (shared === savedSet.size && shared === liveSet.size) return true;
+  const added = liveSet.size - shared;
+  const removed = savedSet.size - shared;
+  const larger = Math.max(savedSet.size, liveSet.size);
+  const allowance = Math.max(2, Math.round(larger * 0.1));
+  if (added > allowance || removed > allowance) return false;
+  return shared * 2 >= larger;
+}
+
+/**
+ * The live list is too small to replace a saved fill.
+ * A partial DexScreener payload must not restart or hide that fill.
+ * A compatible wobble is not partial — the fill reconciles onto the live list.
+ */
+export function allMarketsLiveSetIsPartial(saved: readonly string[], live: readonly string[]): boolean {
+  if (allMarketsPoolSetCompatible(saved, live)) return false;
+  const savedSize = poolAddressSet(saved).size;
+  const liveSize = poolAddressSet(live).size;
+  return savedSize > liveSize && liveSize > 0;
+}
+
+/** Add candle volumes that share a timestamp. Missing timestamps stay missing. */
+export function mergeVolumeSeries(
+  base: readonly Pick<VolumeHistoryPoint, "t" | "volumeUsd">[],
+  extra: readonly Pick<VolumeHistoryPoint, "t" | "volumeUsd">[],
+): VolumeHistoryPoint[] {
+  const merged = new Map<number, number>();
+  for (const point of [...base, ...extra]) {
+    const volumeUsd = reportedVolumeUsd(point.volumeUsd);
+    if (volumeUsd === null || !Number.isFinite(point.t) || point.t <= 0) continue;
+    const t = Math.trunc(point.t);
+    merged.set(t, (merged.get(t) ?? 0) + volumeUsd);
+  }
+  return [...merged.entries()]
+    .map(([t, volumeUsd]) => ({ t, volumeUsd }))
+    .sort((a, b) => a.t - b.t);
+}
+
 /**
  * One row per pair address. Empty addresses are not pools.
  * Duplicate addresses keep the higher reported 24h volume.

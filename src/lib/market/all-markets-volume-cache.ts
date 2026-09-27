@@ -1,6 +1,6 @@
 import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { reportedVolumeUsd } from "./asset-volume-headline";
+import { allMarketsLiveSetIsPartial, allMarketsPoolSetCompatible, reportedVolumeUsd } from "./asset-volume-headline";
 import type { VolumeHistoryPoint } from "./types";
 
 export const DEFAULT_ALL_MARKETS_VOLUME_DIR = "data/cache/all-markets-volume";
@@ -11,6 +11,11 @@ export const ALL_MARKETS_VOLUME_TTL_MS = 30 * 60_000;
 /** Hourly fill progress. Daily progress stays on `.progress.json`. */
 export const ALL_MARKETS_HOURLY_PROGRESS_SUFFIX = ".hourly.progress.json";
 
+export interface AllMarketsStoredPool {
+  pairAddress: string;
+  points: VolumeHistoryPoint[];
+}
+
 interface StoredAllMarketsVolume {
   mint: string;
   pairAddresses: string[];
@@ -18,11 +23,18 @@ interface StoredAllMarketsVolume {
   daily: VolumeHistoryPoint[];
   /** Absent until the hourly fill completes. Empty means a completed series with no candles. */
   hourly?: VolumeHistoryPoint[];
+  /** Per-pool daily candles so a later wobble can reassemble instead of restarting. */
+  dailyPools?: AllMarketsStoredPool[];
+  hourlyPools?: AllMarketsStoredPool[];
 }
 
 export interface StoredAllMarketsSeries {
   daily: VolumeHistoryPoint[];
   hourly: VolumeHistoryPoint[] | null;
+  pairAddresses: string[];
+  /** Null when this file was written before per-pool candles were stored. */
+  dailyPools: AllMarketsStoredPool[] | null;
+  hourlyPools: AllMarketsStoredPool[] | null;
 }
 
 export function allMarketsPairKey(pairAddresses: readonly string[]): string {
@@ -43,6 +55,23 @@ function cacheFilePath(directory: string, mint: string): string | null {
   return mintCachePath(directory, mint, ".json");
 }
 
+/** One read-modify-write at a time per cache file so a daily rewrite cannot drop hourly. */
+const cacheWriteTail = new Map<string, Promise<void>>();
+
+function enqueueCacheWrite(path: string, write: () => Promise<boolean>): Promise<boolean> {
+  const previous = cacheWriteTail.get(path) ?? Promise.resolve();
+  const run = previous.then(write, write);
+  const tail = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  cacheWriteTail.set(path, tail);
+  void tail.finally(() => {
+    if (cacheWriteTail.get(path) === tail) cacheWriteTail.delete(path);
+  });
+  return run;
+}
+
 function progressFilePath(directory: string, mint: string, suffix = ".progress.json"): string | null {
   return mintCachePath(directory, mint, suffix);
 }
@@ -61,10 +90,22 @@ function parseVolumePoints(raw: unknown): VolumeHistoryPoint[] {
   return points;
 }
 
+function parseStoredPools(raw: unknown): AllMarketsStoredPool[] | null {
+  if (!Array.isArray(raw)) return null;
+  const pools: AllMarketsStoredPool[] = [];
+  for (const row of raw) {
+    if (!row || typeof row !== "object") continue;
+    const pairAddress = (row as { pairAddress?: unknown }).pairAddress;
+    if (typeof pairAddress !== "string" || pairAddress.trim().length === 0) continue;
+    pools.push({ pairAddress: pairAddress.trim(), points: parseVolumePoints((row as { points?: unknown }).points) });
+  }
+  return pools;
+}
+
 function parseStored(
   payload: unknown,
   mint: string,
-  pairKey: string,
+  liveAddresses: readonly string[],
   nowMs: number,
   ttlMs: number,
 ): StoredAllMarketsSeries | null {
@@ -72,13 +113,21 @@ function parseStored(
   const row = payload as Partial<StoredAllMarketsVolume>;
   if (row.mint !== mint) return null;
   if (!Array.isArray(row.pairAddresses)) return null;
-  if (allMarketsPairKey(row.pairAddresses) !== pairKey) return null;
+  if (
+    !allMarketsPoolSetCompatible(row.pairAddresses, liveAddresses) &&
+    !allMarketsLiveSetIsPartial(row.pairAddresses, liveAddresses)
+  ) {
+    return null;
+  }
   if (typeof row.fetchedAt !== "number" || !Number.isFinite(row.fetchedAt)) return null;
   if (ttlMs >= 0 && nowMs - row.fetchedAt > ttlMs) return null;
   if (!Array.isArray(row.daily)) return null;
   return {
     daily: parseVolumePoints(row.daily),
     hourly: Array.isArray(row.hourly) ? parseVolumePoints(row.hourly) : null,
+    pairAddresses: row.pairAddresses.map((address) => address.trim()).filter((address) => address.length > 0),
+    dailyPools: parseStoredPools(row.dailyPools),
+    hourlyPools: parseStoredPools(row.hourlyPools),
   };
 }
 
@@ -97,7 +146,7 @@ async function readStoredFile(input: {
     return parseStored(
       JSON.parse(raw) as unknown,
       input.mint.trim(),
-      allMarketsPairKey(input.pairAddresses),
+      input.pairAddresses,
       input.nowMs ?? Date.now(),
       input.ttlMs ?? ALL_MARKETS_VOLUME_TTL_MS,
     );
@@ -106,7 +155,11 @@ async function readStoredFile(input: {
   }
 }
 
-/** Fresh complete daily series for this mint and pool set. Missing, stale, or mismatched pools are null. */
+/**
+ * Fresh complete daily series for this mint.
+ * A small pool-list wobble still matches. A much smaller live list still returns the saved series.
+ * Missing, stale, or a disjoint pool set is null.
+ */
 export async function readCompleteAllMarketsDaily(input: {
   directory: string | null;
   mint: string;
@@ -120,7 +173,9 @@ export async function readCompleteAllMarketsDaily(input: {
 
 /**
  * Fresh daily series plus hourly when that fill has finished.
- * `hourly` is null until the hourly series is stored. Missing, stale, or mismatched pools are null.
+ * `hourly` is null until the hourly series is stored.
+ * A small pool-list wobble still matches. A much smaller live list still returns the saved series.
+ * Missing, stale, or a disjoint pool set is null.
  */
 export async function readStoredAllMarketsVolume(input: {
   directory: string | null;
@@ -139,16 +194,56 @@ export async function writeCompleteAllMarketsDaily(input: {
   pairAddresses: readonly string[];
   daily: readonly VolumeHistoryPoint[];
   fetchedAt?: number;
+  /** Per-pool candles. Omit for a legacy sum that cannot be reassembled. */
+  dailyPools?: readonly AllMarketsStoredPool[];
 }): Promise<boolean> {
   if (!input.directory) return false;
   const mint = input.mint.trim();
   const path = cacheFilePath(input.directory, mint);
   if (!path) return false;
+  return enqueueCacheWrite(path, () => writeCompleteAllMarketsDailyBody({ ...input, mint, path }));
+}
+
+async function writeCompleteAllMarketsDailyBody(input: {
+  mint: string;
+  path: string;
+  pairAddresses: readonly string[];
+  daily: readonly VolumeHistoryPoint[];
+  fetchedAt?: number;
+  dailyPools?: readonly AllMarketsStoredPool[];
+}): Promise<boolean> {
+  const { mint, path } = input;
+  let preservedHourly: VolumeHistoryPoint[] | undefined;
+  let preservedHourlyPools: AllMarketsStoredPool[] | undefined;
+  try {
+    const parsed = JSON.parse(await readFile(path, "utf8")) as Partial<StoredAllMarketsVolume>;
+    if (
+      parsed.mint === mint &&
+      Array.isArray(parsed.pairAddresses) &&
+      allMarketsPoolSetCompatible(parsed.pairAddresses, input.pairAddresses)
+    ) {
+      if (Array.isArray(parsed.hourly)) preservedHourly = parseVolumePoints(parsed.hourly);
+      const hourlyPools = parseStoredPools(parsed.hourlyPools);
+      if (hourlyPools) preservedHourlyPools = hourlyPools;
+    }
+  } catch {
+    // First write for this mint.
+  }
   const stored: StoredAllMarketsVolume = {
     mint,
     pairAddresses: input.pairAddresses.map((address) => address.trim()).filter((address) => address.length > 0).sort(),
     fetchedAt: input.fetchedAt ?? Date.now(),
     daily: input.daily.map((point) => ({ t: point.t, volumeUsd: point.volumeUsd })),
+    ...(input.dailyPools
+      ? {
+          dailyPools: input.dailyPools.map((pool) => ({
+            pairAddress: pool.pairAddress.trim(),
+            points: pool.points.map((point) => ({ t: point.t, volumeUsd: point.volumeUsd })),
+          })),
+        }
+      : {}),
+    ...(preservedHourly ? { hourly: preservedHourly } : {}),
+    ...(preservedHourlyPools ? { hourlyPools: preservedHourlyPools } : {}),
   };
   try {
     await mkdir(dirname(path), { recursive: true });
@@ -171,22 +266,35 @@ export async function writeCompleteAllMarketsHourly(input: {
   mint: string;
   pairAddresses: readonly string[];
   hourly: readonly VolumeHistoryPoint[];
+  hourlyPools?: readonly AllMarketsStoredPool[];
 }): Promise<boolean> {
   if (!input.directory) return false;
   const mint = input.mint.trim();
   const path = cacheFilePath(input.directory, mint);
   if (!path) return false;
+  return enqueueCacheWrite(path, () => writeCompleteAllMarketsHourlyBody({ ...input, mint, path }));
+}
+
+async function writeCompleteAllMarketsHourlyBody(input: {
+  mint: string;
+  path: string;
+  pairAddresses: readonly string[];
+  hourly: readonly VolumeHistoryPoint[];
+  hourlyPools?: readonly AllMarketsStoredPool[];
+}): Promise<boolean> {
+  const { mint, path } = input;
   let existing: StoredAllMarketsVolume;
   try {
     const parsed = JSON.parse(await readFile(path, "utf8")) as Partial<StoredAllMarketsVolume>;
     if (parsed.mint !== mint || !Array.isArray(parsed.pairAddresses) || !Array.isArray(parsed.daily)) return false;
-    if (allMarketsPairKey(parsed.pairAddresses) !== allMarketsPairKey(input.pairAddresses)) return false;
+    if (!allMarketsPoolSetCompatible(parsed.pairAddresses, input.pairAddresses)) return false;
     if (typeof parsed.fetchedAt !== "number" || !Number.isFinite(parsed.fetchedAt)) return false;
     existing = {
       mint,
-      pairAddresses: parsed.pairAddresses,
+      pairAddresses: input.pairAddresses.map((address) => address.trim()).filter((address) => address.length > 0).sort(),
       fetchedAt: parsed.fetchedAt,
       daily: parsed.daily,
+      ...(Array.isArray(parsed.dailyPools) ? { dailyPools: parseStoredPools(parsed.dailyPools) ?? [] } : {}),
     };
   } catch {
     return false;
@@ -194,6 +302,14 @@ export async function writeCompleteAllMarketsHourly(input: {
   const stored: StoredAllMarketsVolume = {
     ...existing,
     hourly: input.hourly.map((point) => ({ t: point.t, volumeUsd: point.volumeUsd })),
+    ...(input.hourlyPools
+      ? {
+          hourlyPools: input.hourlyPools.map((pool) => ({
+            pairAddress: pool.pairAddress.trim(),
+            points: pool.points.map((point) => ({ t: point.t, volumeUsd: point.volumeUsd })),
+          })),
+        }
+      : {}),
   };
   try {
     await mkdir(dirname(path), { recursive: true });
@@ -212,6 +328,11 @@ export interface AllMarketsProgressPool {
   points: VolumeHistoryPoint[];
 }
 
+export interface AllMarketsProgressRecord {
+  pairAddresses: string[];
+  pools: AllMarketsProgressPool[];
+}
+
 interface StoredAllMarketsProgress {
   mint: string;
   pairAddresses: string[];
@@ -222,15 +343,13 @@ interface StoredAllMarketsProgress {
 function parseProgress(
   payload: unknown,
   mint: string,
-  pairKey: string,
   nowMs: number,
   ttlMs: number,
-): AllMarketsProgressPool[] | null {
+): AllMarketsProgressRecord | null {
   if (!payload || typeof payload !== "object") return null;
   const row = payload as Partial<StoredAllMarketsProgress>;
   if (row.mint !== mint) return null;
   if (!Array.isArray(row.pairAddresses)) return null;
-  if (allMarketsPairKey(row.pairAddresses) !== pairKey) return null;
   if (typeof row.fetchedAt !== "number" || !Number.isFinite(row.fetchedAt)) return null;
   if (ttlMs >= 0 && nowMs - row.fetchedAt > ttlMs) return null;
   if (!Array.isArray(row.pools)) return null;
@@ -255,10 +374,17 @@ function parseProgress(
     points.sort((a, b) => a.t - b.t);
     pools.push({ pairAddress: pairAddress.trim(), status, points });
   }
-  return pools;
+  return {
+    pairAddresses: row.pairAddresses.map((address) => address.trim()).filter((address) => address.length > 0),
+    pools,
+  };
 }
 
-/** Resolved pools from an in-progress fill. Stale or mismatched pool sets are null. */
+/**
+ * Resolved pools from an in-progress fill. Stale files are null.
+ * The saved pair list does not have to equal the live list — callers keep the overlapping pools
+ * so one DexScreener membership change does not throw the fill away.
+ */
 export async function readAllMarketsProgress(input: {
   directory: string | null;
   mint: string;
@@ -267,7 +393,7 @@ export async function readAllMarketsProgress(input: {
   ttlMs?: number;
   /** Defaults to the daily progress file. */
   suffix?: string;
-}): Promise<AllMarketsProgressPool[] | null> {
+}): Promise<AllMarketsProgressRecord | null> {
   if (!input.directory) return null;
   const path = progressFilePath(input.directory, input.mint, input.suffix);
   if (!path) return null;
@@ -276,7 +402,6 @@ export async function readAllMarketsProgress(input: {
     return parseProgress(
       JSON.parse(raw) as unknown,
       input.mint.trim(),
-      allMarketsPairKey(input.pairAddresses),
       input.nowMs ?? Date.now(),
       input.ttlMs ?? ALL_MARKETS_VOLUME_TTL_MS,
     );

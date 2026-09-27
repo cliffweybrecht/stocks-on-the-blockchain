@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  allMarketsLiveSetIsPartial,
+  allMarketsPoolSetCompatible,
   assembleAllMarketsDaily,
+  mergeVolumeSeries,
   selectAssetVolumeHeadline,
   selectAssetVolumeSeries,
   sumObservedVolumeUsd,
@@ -274,6 +277,45 @@ describe("assembleAllMarketsDaily", () => {
     ).toEqual([
       ["pool-a", 5],
       ["pool-b", null],
+    ]);
+  });
+});
+
+describe("all-markets pool set wobble", () => {
+  const many = Array.from({ length: 37 }, (_, index) => `pool-${index}`);
+
+  it("treats a one-pool swap on a large set as the same fill", () => {
+    const swapped = [...many.slice(0, 36), "pool-new"];
+    expect(allMarketsPoolSetCompatible(many, swapped)).toBe(true);
+    expect(allMarketsLiveSetIsPartial(many, swapped)).toBe(false);
+    expect(allMarketsPoolSetCompatible(many, many)).toBe(true);
+  });
+
+  it("treats a 3-pool one-swap as compatible and a shrink to one pool as partial", () => {
+    expect(allMarketsPoolSetCompatible(["a", "b", "c"], ["a", "b", "d"])).toBe(true);
+    expect(allMarketsPoolSetCompatible(["a", "b", "c"], ["a"])).toBe(false);
+    expect(allMarketsLiveSetIsPartial(["a", "b", "c"], ["a"])).toBe(true);
+    expect(allMarketsLiveSetIsPartial(many, many.slice(0, 5))).toBe(true);
+    expect(allMarketsPoolSetCompatible(["a", "b"], ["c", "d"])).toBe(false);
+    expect(allMarketsLiveSetIsPartial(["a", "b"], ["c", "d"])).toBe(false);
+  });
+
+  it("adds candles that share a timestamp and leaves missing timestamps missing", () => {
+    expect(
+      mergeVolumeSeries(
+        [
+          { t: 100, volumeUsd: 1_000 },
+          { t: 200, volumeUsd: 50 },
+        ],
+        [
+          { t: 100, volumeUsd: 4_000 },
+          { t: 300, volumeUsd: 7 },
+        ],
+      ),
+    ).toEqual([
+      { t: 100, volumeUsd: 5_000 },
+      { t: 200, volumeUsd: 50 },
+      { t: 300, volumeUsd: 7 },
     ]);
   });
 });
