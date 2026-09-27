@@ -58,6 +58,7 @@ import {
 import { SOLANA_SOURCE_LABEL } from "./trust";
 import {
   SOLANA_CHAIN_ID,
+  type AssetAllMarketsVolumeSnapshot,
   type AssetDetailResult,
   type AssetPriceHistoryResult,
   type ChainDetailResult,
@@ -81,6 +82,17 @@ import {
   sliceEquityCardDayVolumeSeries,
   type EquityCardVolumeTarget,
 } from "./equity-card-volume";
+import {
+  allMarketsPairKey,
+  readCompleteAllMarketsDaily,
+  writeCompleteAllMarketsDaily,
+  DEFAULT_ALL_MARKETS_VOLUME_DIR,
+} from "./all-markets-volume-cache";
+import {
+  assembleAllMarketsDaily,
+  uniqueAllMarketsPools,
+  type AllMarketsPoolResult,
+} from "./asset-volume-headline";
 import {
   ASSET_PRICE_POOL_ATTEMPTS,
   buildAssetPriceHistory,
@@ -178,6 +190,8 @@ export interface SolanaMarketDataSourceOptions {
   cardVolumeSeriesTransientRetryMs?: number;
   volumeSnapshotStore?: DeskVolumeSnapshotStore;
   volumeSnapshotDir?: string;
+  /** `null` keeps all-markets volume in memory. Omitted uses the desk cache directory. */
+  allMarketsVolumeCacheDir?: string | null;
   enableJupiterTokenLogos?: boolean;
   jupiterTokenBaseUrl?: string;
   mintLogoCacheMs?: number;
@@ -204,6 +218,11 @@ export class SolanaMarketDataSource implements MarketDataSource {
   private cardVolumeTimer: ReturnType<typeof setTimeout> | null = null;
   private priceHistoryCache = new Map<string, { result: AssetPriceHistoryResult; expiresAt: number }>();
   private priceHistoryInflight = new Map<string, Promise<AssetPriceHistoryResult>>();
+  private allMarketsMemory = new Map<
+    string,
+    { pairKey: string; expiresAt: number; complete: boolean; daily: VolumeHistoryPoint[] }
+  >();
+  private allMarketsInflight = new Map<string, Promise<void>>();
   /** Serializes GeckoTerminal calls. A 429 sets `geckoCooldownUntil` for every caller. */
   private geckoTail: Promise<unknown> = Promise.resolve();
   private geckoCooldownUntil = 0;
@@ -317,6 +336,11 @@ export class SolanaMarketDataSource implements MarketDataSource {
 
   private get volumeHistoryCacheMs() {
     return this.options.volumeHistoryCacheMs ?? SOLANA_DEFAULTS.volumeHistoryCacheMs;
+  }
+
+  private get allMarketsVolumeCacheDir(): string | null {
+    if (this.options.allMarketsVolumeCacheDir === null) return null;
+    return this.options.allMarketsVolumeCacheDir ?? DEFAULT_ALL_MARKETS_VOLUME_DIR;
   }
 
   private get cardVolumeSeriesMax() {
@@ -1602,5 +1626,178 @@ export class SolanaMarketDataSource implements MarketDataSource {
       return dailyPayload === null || hourlyPayload === null ? { kind: "stop" } : { kind: "skip" };
     }
     return { kind: "use", daily, hourly };
+  }
+
+  /**
+   * Cached cross-pool daily volume. Returns the memory or disk hit immediately.
+   * A miss starts one background fill and does not wait for Gecko.
+   * The detail chart's primary-pool fetch is not part of this path.
+   */
+  async getAssetAllMarketsVolumeSnapshot(chainId: string, symbol: string): Promise<AssetAllMarketsVolumeSnapshot> {
+    const unavailable = { pending: false, complete: false, daily: [] as VolumeHistoryPoint[] };
+    if (chainId !== SOLANA_CHAIN_ID || !this.geckoEnabled) return unavailable;
+
+    let mint = "";
+    let pools: { pairAddress: string; volume24hUsd: number | null }[] = [];
+    try {
+      const snapshot = await this.loadCached("full");
+      const asset = findAssetByKey(
+        [...snapshot.mapped.details, ...snapshot.mapped.etfDetails, ...snapshot.mapped.privateDetails],
+        symbol,
+      );
+      if (!asset) return unavailable;
+      mint = asset.contractAddress.trim();
+      pools = uniqueAllMarketsPools(asset.pools);
+    } catch {
+      return unavailable;
+    }
+    if (!mint) return unavailable;
+
+    const pairKey = allMarketsPairKey(pools.map((pool) => pool.pairAddress));
+    const now = Date.now();
+    const memory = this.lookupAllMarkets(mint, pairKey, now);
+    if (memory) return memory;
+
+    const disk = await readCompleteAllMarketsDaily({
+      directory: this.allMarketsVolumeCacheDir,
+      mint,
+      pairAddresses: pools.map((pool) => pool.pairAddress),
+      nowMs: now,
+      ttlMs: this.volumeHistoryCacheMs,
+    });
+    if (disk) {
+      this.rememberAllMarkets(mint, pairKey, disk, true, now);
+      return { pending: false, complete: true, daily: disk };
+    }
+    if (pools.length === 0) return unavailable;
+
+    this.startAllMarketsFill(mint, pairKey, pools);
+    return { pending: true, complete: false, daily: [] };
+  }
+
+  private lookupAllMarkets(mint: string, pairKey: string, now: number): AssetAllMarketsVolumeSnapshot | null {
+    const row = this.allMarketsMemory.get(mint);
+    if (!row || row.pairKey !== pairKey || row.expiresAt <= now) return null;
+    if (!row.complete) return { pending: false, complete: false, daily: [] };
+    return { pending: false, complete: true, daily: row.daily };
+  }
+
+  private rememberAllMarkets(
+    mint: string,
+    pairKey: string,
+    daily: VolumeHistoryPoint[],
+    complete: boolean,
+    now: number,
+  ) {
+    const ttl = complete ? this.volumeHistoryCacheMs : Math.min(this.volumeHistoryCacheMs, 60_000);
+    this.allMarketsMemory.set(mint, {
+      pairKey,
+      daily: complete ? daily : [],
+      complete,
+      expiresAt: now + ttl,
+    });
+  }
+
+  private startAllMarketsFill(
+    mint: string,
+    pairKey: string,
+    pools: readonly { pairAddress: string; volume24hUsd: number | null }[],
+  ) {
+    if (this.allMarketsInflight.has(mint)) return;
+    const job = this.fillAllMarketsVolume(mint, pairKey, pools);
+    this.allMarketsInflight.set(mint, job);
+    void job.finally(() => {
+      if (this.allMarketsInflight.get(mint) === job) this.allMarketsInflight.delete(mint);
+    });
+  }
+
+  private async fillAllMarketsVolume(
+    mint: string,
+    pairKey: string,
+    pools: readonly { pairAddress: string; volume24hUsd: number | null }[],
+  ) {
+    const results: AllMarketsPoolResult[] = [];
+    for (let index = 0; index < pools.length; index += 1) {
+      const pool = pools[index];
+      if (!pool) continue;
+      if (index > 0 && this.cardVolumeSeriesGapMs > 0) await sleep(this.cardVolumeSeriesGapMs);
+      await this.waitUntilChartGeckoIdle();
+      const fetched = await this.fetchPoolDailyVolume(pool.pairAddress);
+      if (fetched.kind === "points") {
+        results.push({
+          pairAddress: pool.pairAddress,
+          volume24hUsd: pool.volume24hUsd,
+          points: fetched.points,
+          definitiveMiss: false,
+        });
+        continue;
+      }
+      results.push({
+        pairAddress: pool.pairAddress,
+        volume24hUsd: pool.volume24hUsd,
+        points: null,
+        definitiveMiss: fetched.kind === "definitive_miss",
+      });
+    }
+
+    const assembled = assembleAllMarketsDaily(results);
+    const now = Date.now();
+    this.rememberAllMarkets(mint, pairKey, assembled.daily, assembled.complete, now);
+    if (!assembled.complete) return;
+    await writeCompleteAllMarketsDaily({
+      directory: this.allMarketsVolumeCacheDir,
+      mint,
+      pairAddresses: pools.map((pool) => pool.pairAddress),
+      daily: assembled.daily,
+      fetchedAt: now,
+    });
+  }
+
+  /** Let an open detail chart or card sparkline use the Gecko lane first. */
+  private async waitUntilChartGeckoIdle() {
+    const deadline = Date.now() + 15_000;
+    while (
+      Date.now() < deadline &&
+      (this.priceHistoryInflight.size > 0 || this.cardVolumeSeriesInflight !== null)
+    ) {
+      await sleep(25);
+    }
+  }
+
+  private async fetchPoolDailyVolume(pairAddress: string): Promise<
+    | { kind: "points"; points: VolumeHistoryPoint[] }
+    | { kind: "definitive_miss" }
+    | { kind: "failed" }
+  > {
+    const url = `${this.geckoTerminalBaseUrl}${geckoTerminalOhlcvPath(pairAddress, {
+      timeframe: "day",
+      limit: 60,
+    })}`;
+    const maxAttempts = 1 + this.cardVolumeSeriesRetries;
+    let cooled = false;
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      const result = await this.enqueueGecko(async () => {
+        try {
+          const payload = await this.fetchSource(url, "GeckoTerminal", { retries: 0 });
+          return { kind: "points" as const, points: parseGeckoTerminalOhlcvSeries(payload).volumes };
+        } catch (error) {
+          if (isDefinitiveFetchMiss(error)) return { kind: "definitive_miss" as const };
+          if (responseStatusFromError(error) === 429) {
+            const retryAfter = error instanceof SourceRequestError ? error.retryAfterHeader : null;
+            if (!cooled) {
+              cooled = true;
+              this.armGeckoCooldown(retryAfter);
+            } else if (this.cardVolumeSeriesSlowGapMs > 0) {
+              this.geckoCooldownUntil = Math.max(this.geckoCooldownUntil, Date.now() + this.cardVolumeSeriesSlowGapMs);
+            }
+            return { kind: "rate_limited" as const };
+          }
+          return { kind: "failed" as const };
+        }
+      });
+      if (result.kind === "points" || result.kind === "definitive_miss" || result.kind === "failed") return result;
+      if (attempt >= maxAttempts - 1) return { kind: "failed" };
+    }
+    return { kind: "failed" };
   }
 }

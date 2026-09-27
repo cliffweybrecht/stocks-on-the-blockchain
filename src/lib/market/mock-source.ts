@@ -61,4 +61,8 @@ export class MockMarketDataSource implements MarketDataSource {
   async getEquityCardDayVolumeSeriesSnapshot() {
     return { series: {}, pending: false };
   }
+
+  async getAssetAllMarketsVolumeSnapshot() {
+    return { pending: false, complete: false, daily: [] };
+  }
 }

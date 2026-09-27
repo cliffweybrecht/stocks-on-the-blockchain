@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useState, type PointerEvent, type ReactNode } from "react";
 import {
   ASSET_CHART_MODES,
+  ASSET_PANEL_RANGE_IDS,
   displayPriceChangePct,
   filterPriceRange,
   filterVolumeRange,
@@ -18,6 +19,8 @@ import {
   scalePricePoints,
   scaleVolumePoints,
 } from "@/lib/desk/asset-price-view";
+import { DESK_CHART_STROKE, monotoneAreaPath, monotoneLinePath } from "@/lib/desk/chart-curve";
+import { selectAssetVolumeHeadline } from "@/lib/market/asset-volume-headline";
 import { ASSET_VOLUME_HISTORY_EMPTY_REASON } from "@/lib/market/asset-price-history";
 import { formatChartDate, formatPct, formatPrice, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
 import type {
@@ -29,14 +32,9 @@ import type {
 } from "@/lib/market/types";
 import { pointerToSvgX } from "@/lib/market/daily-volume-view";
 
-function linePath(
-  points: readonly { t: number }[],
-  map: ReturnType<typeof scalePricePoints>,
-  yOf: (point: { t: number }) => number,
-): string {
-  if (points.length === 0) return "";
-  return `M ${points.map((point) => `${map.x(point.t).toFixed(2)},${yOf(point).toFixed(2)}`).join(" L ")}`;
-}
+const PANEL_RANGES = PRICE_CHART_RANGES.filter((row) =>
+  (ASSET_PANEL_RANGE_IDS as readonly string[]).includes(row.id),
+);
 
 function changeTone(value: number | null): "up" | "down" | "flat" {
   if (value === null || !Number.isFinite(value) || value === 0) return "flat";
@@ -46,7 +44,7 @@ function changeTone(value: number | null): "up" | "down" | "flat" {
 function pillClass(active: boolean): string {
   return `rounded-full px-2.5 py-1 text-xs ${
     active
-      ? "bg-muted text-foreground ring-1 ring-border"
+      ? "bg-[#B7FF3C]/15 text-[#B7FF3C] ring-1 ring-[#B7FF3C]"
       : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
   }`;
 }
@@ -73,16 +71,76 @@ export function AssetMarketPanel({
   priceUsd,
   priceChange24hPct,
   history,
+  allMarkets24hUsd = null,
+  allMarketsSymbol = null,
+  initialAllMarketsDaily = null,
 }: {
   header?: ReactNode;
   priceUsd: number | null;
   priceChange24hPct: number | null;
   history: AssetPriceHistoryResult;
+  /** DexScreener sum of every pool's volume.h24. Null keeps the 24H label off all-markets. */
+  allMarkets24hUsd?: number | null;
+  /** Set for Solana so 7D/30D can fill from the background cache. */
+  allMarketsSymbol?: string | null;
+  /** Warm cache from disk. Null means the client may poll. */
+  initialAllMarketsDaily?: VolumeHistoryPoint[] | null;
 }) {
   const [range, setRange] = useState<PriceChartRangeId>("24h");
-  const [mode, setMode] = useState<AssetChartMode>("price");
+  const [mode, setMode] = useState<AssetChartMode>("volume");
   const [hoverPrice, setHoverPrice] = useState<PriceHistoryPoint | null>(null);
   const [hoverVolume, setHoverVolume] = useState<VolumeHistoryPoint | null>(null);
+  const [allMarketsDaily, setAllMarketsDaily] = useState<VolumeHistoryPoint[] | null>(initialAllMarketsDaily);
+
+  useEffect(() => {
+    if (!allMarketsSymbol || allMarketsDaily !== null) return;
+    let cancelled = false;
+    let timer = 0;
+    let attempts = 0;
+
+    const tick = async () => {
+      if (cancelled) return;
+      attempts += 1;
+      try {
+        const response = await fetch(
+          `/api/solana/asset-all-markets-volume?symbol=${encodeURIComponent(allMarketsSymbol)}`,
+          { cache: "no-store" },
+        );
+        if (!response.ok) throw new Error("all-markets volume unavailable");
+        const body = (await response.json()) as {
+          pending?: boolean;
+          complete?: boolean;
+          daily?: { t: number; volumeUsd: number }[];
+        };
+        if (cancelled) return;
+        if (body.complete === true && Array.isArray(body.daily)) {
+          setAllMarketsDaily(
+            body.daily.filter(
+              (point) =>
+                Number.isFinite(point.t) &&
+                point.t > 0 &&
+                Number.isFinite(point.volumeUsd) &&
+                point.volumeUsd >= 0,
+            ),
+          );
+          return;
+        }
+        if (body.pending !== true || attempts >= 160) return;
+      } catch {
+        if (cancelled || attempts >= 160) return;
+      }
+      if (cancelled) return;
+      timer = window.setTimeout(() => {
+        void tick();
+      }, 3_000);
+    };
+
+    void tick();
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [allMarketsSymbol, allMarketsDaily]);
 
   const nowT = useMemo(() => priceHistoryNowT(history), [history]);
   const visiblePrice = useMemo(() => filterPriceRange(history, range, nowT), [history, range, nowT]);
@@ -94,15 +152,25 @@ export function AssetMarketPanel({
   const map = isVolume ? volumeMap : priceMap;
   const latestPrice = visiblePrice[visiblePrice.length - 1] ?? null;
   const latestVolume = visibleVolume[visibleVolume.length - 1] ?? null;
+  const rangeSpec = PRICE_CHART_RANGES.find((row) => row.id === range);
+  const volumeHeadline = useMemo(
+    () =>
+      selectAssetVolumeHeadline({
+        range,
+        nowT,
+        windowSeconds: rangeSpec?.seconds ?? 0,
+        allMarkets24hUsd,
+        primaryPoolPoints: visibleVolume,
+        allMarketsDaily,
+      }),
+    [allMarkets24hUsd, allMarketsDaily, nowT, range, rangeSpec?.seconds, visibleVolume],
+  );
   const changePct = displayPriceChangePct({ range, visible: visiblePrice, priceChange24hPct });
-  const tone = changeTone(changePct);
-  const stroke = isVolume
-    ? "var(--volume)"
-    : tone === "up"
-      ? "var(--price-up)"
-      : tone === "down"
-        ? "var(--price-down)"
-        : "var(--muted-foreground)";
+  const areaGradientId = `assetChartArea${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
+  const yOf = (point: { t: number }) =>
+    isVolume
+      ? volumeMap.y((point as VolumeHistoryPoint).volumeUsd)
+      : priceMap.y((point as PriceHistoryPoint).priceUsd);
   const hasSeries = visible.length > 0;
   const yTicks = isVolume
     ? [0, 0.33, 0.66, 1].map((frac) => volumeMap.maxY * frac)
@@ -154,6 +222,7 @@ export function AssetMarketPanel({
     : latestPrice
       ? priceMap.y(latestPrice.priceUsd)
       : null;
+  const curve = visible.map((point) => ({ x: map.x(point.t), y: yOf(point) }));
 
   const emptyCopy = isVolume
     ? history.dailyVolume.length === 0 && history.hourlyVolume.length === 0
@@ -170,7 +239,7 @@ export function AssetMarketPanel({
         <div className="min-w-0 flex-1">{header}</div>
         <div className="flex flex-col items-end gap-1">
           <div className="flex flex-wrap justify-end gap-1" role="tablist" aria-label="Price range">
-            {PRICE_CHART_RANGES.map((row) => {
+            {PANEL_RANGES.map((row) => {
               const active = range === row.id;
               return (
                 <button
@@ -218,10 +287,12 @@ export function AssetMarketPanel({
       <div className="mt-4 flex flex-wrap items-end gap-x-3 gap-y-1">
         {isVolume ? (
           <>
-            <p className="num text-3xl font-medium tracking-tight sm:text-4xl" data-asset-volume>
-              {latestVolume ? formatUsdCompact(latestVolume.volumeUsd) : "—"}
+            <p className="num text-3xl font-medium tracking-tight text-foreground sm:text-4xl" data-asset-volume>
+              {volumeHeadline.volumeUsd !== null ? formatUsdCompact(volumeHeadline.volumeUsd) : "—"}
             </p>
-            <p className="text-sm text-muted-foreground">Pool USD volume</p>
+            <p className="text-sm text-muted-foreground" data-volume-label data-volume-scope={volumeHeadline.scope}>
+              {volumeHeadline.label}
+            </p>
           </>
         ) : (
           <>
@@ -258,11 +329,25 @@ export function AssetMarketPanel({
             role="img"
             aria-label={
               isVolume
-                ? "Observed USD volume for this mint’s primary pool."
+                ? "Observed USD volume for this mint’s primary pool. The headline is separate from this line."
                 : "Observed USD close prices for this mint’s primary pool."
             }
           >
+            <defs>
+              <linearGradient id={areaGradientId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={DESK_CHART_STROKE} stopOpacity="0.38" />
+                <stop offset="55%" stopColor={DESK_CHART_STROKE} stopOpacity="0.12" />
+                <stop offset="100%" stopColor={DESK_CHART_STROKE} stopOpacity="0" />
+              </linearGradient>
+            </defs>
             <rect x={0} y={0} width={PRICE_CHART_WIDTH} height={PRICE_CHART_HEIGHT} fill="transparent" />
+            {visible.length > 1 ? (
+              <path
+                d={monotoneAreaPath(curve, PRICE_CHART_PAD.top + PRICE_CHART_INNER_H)}
+                fill={`url(#${areaGradientId})`}
+                stroke="none"
+              />
+            ) : null}
             {yTicks.map((tick) => (
               <g key={tick}>
                 <line
@@ -313,13 +398,9 @@ export function AssetMarketPanel({
             ) : null}
             {visible.length > 1 ? (
               <path
-                d={linePath(visible, map, (point) =>
-                  isVolume
-                    ? volumeMap.y((point as VolumeHistoryPoint).volumeUsd)
-                    : priceMap.y((point as PriceHistoryPoint).priceUsd),
-                )}
+                d={monotoneLinePath(curve)}
                 fill="none"
-                stroke={stroke}
+                stroke={DESK_CHART_STROKE}
                 strokeWidth="2"
                 strokeLinejoin="round"
                 strokeLinecap="round"
@@ -330,7 +411,7 @@ export function AssetMarketPanel({
                 cx={map.x(isVolume ? latestVolume!.t : latestPrice!.t)}
                 cy={latestY}
                 r="3.5"
-                fill={stroke}
+                fill={DESK_CHART_STROKE}
               />
             ) : null}
             {hoverT !== undefined && hoverY !== null ? (
@@ -340,11 +421,11 @@ export function AssetMarketPanel({
                   x2={map.x(hoverT)}
                   y1={PRICE_CHART_PAD.top}
                   y2={PRICE_CHART_PAD.top + PRICE_CHART_INNER_H}
-                  stroke={stroke}
+                  stroke={DESK_CHART_STROKE}
                   strokeOpacity="0.45"
                   strokeDasharray="3 3"
                 />
-                <circle cx={map.x(hoverT)} cy={hoverY} r="3.5" fill={stroke} />
+                <circle cx={map.x(hoverT)} cy={hoverY} r="3.5" fill={DESK_CHART_STROKE} />
               </g>
             ) : null}
           </svg>

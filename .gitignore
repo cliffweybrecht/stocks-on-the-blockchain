@@ -43,3 +43,6 @@ next-env.d.ts
 
 # Desk DexScreener 24h snapshots written at runtime
 /data/volume-snapshots/*.json
+
+# Cached cross-pool Gecko daily volume. Rebuilt in the background.
+/data/cache/
