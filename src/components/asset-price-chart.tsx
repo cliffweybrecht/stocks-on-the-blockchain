@@ -91,16 +91,15 @@ export function AssetMarketPanel({
   const [hoverPrice, setHoverPrice] = useState<PriceHistoryPoint | null>(null);
   const [hoverVolume, setHoverVolume] = useState<VolumeHistoryPoint | null>(null);
   const [allMarketsDaily, setAllMarketsDaily] = useState<VolumeHistoryPoint[] | null>(initialAllMarketsDaily);
+  const [allMarketsFill, setAllMarketsFill] = useState<{ resolvedPools: number; totalPools: number } | null>(null);
 
   useEffect(() => {
     if (!allMarketsSymbol || allMarketsDaily !== null) return;
     let cancelled = false;
     let timer = 0;
-    let attempts = 0;
 
     const tick = async () => {
       if (cancelled) return;
-      attempts += 1;
       try {
         const response = await fetch(
           `/api/solana/asset-all-markets-volume?symbol=${encodeURIComponent(allMarketsSymbol)}`,
@@ -111,6 +110,8 @@ export function AssetMarketPanel({
           pending?: boolean;
           complete?: boolean;
           daily?: { t: number; volumeUsd: number }[];
+          resolvedPools?: number;
+          totalPools?: number;
         };
         if (cancelled) return;
         if (body.complete === true && Array.isArray(body.daily)) {
@@ -123,11 +124,24 @@ export function AssetMarketPanel({
                 point.volumeUsd >= 0,
             ),
           );
+          setAllMarketsFill(null);
           return;
         }
-        if (body.pending !== true || attempts >= 160) return;
+        if (body.pending !== true) {
+          setAllMarketsFill(null);
+          return;
+        }
+        const resolvedPools =
+          typeof body.resolvedPools === "number" && Number.isFinite(body.resolvedPools)
+            ? Math.max(0, Math.trunc(body.resolvedPools))
+            : 0;
+        const totalPools =
+          typeof body.totalPools === "number" && Number.isFinite(body.totalPools)
+            ? Math.max(0, Math.trunc(body.totalPools))
+            : 0;
+        setAllMarketsFill({ resolvedPools, totalPools });
       } catch {
-        if (cancelled || attempts >= 160) return;
+        if (cancelled) return;
       }
       if (cancelled) return;
       timer = window.setTimeout(() => {
@@ -165,6 +179,14 @@ export function AssetMarketPanel({
       }),
     [allMarkets24hUsd, allMarketsDaily, nowT, range, rangeSpec?.seconds, visibleVolume],
   );
+  const allMarketsProgressLabel =
+    isVolume &&
+    (range === "7d" || range === "30d") &&
+    allMarketsDaily === null &&
+    allMarketsFill !== null &&
+    allMarketsFill.totalPools > 0
+      ? `${allMarketsFill.resolvedPools}/${allMarketsFill.totalPools} markets`
+      : null;
   const changePct = displayPriceChangePct({ range, visible: visiblePrice, priceChange24hPct });
   const areaGradientId = `assetChartArea${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   const yOf = (point: { t: number }) =>
@@ -293,6 +315,11 @@ export function AssetMarketPanel({
             <p className="text-sm text-muted-foreground" data-volume-label data-volume-scope={volumeHeadline.scope}>
               {volumeHeadline.label}
             </p>
+            {allMarketsProgressLabel ? (
+              <p className="w-full text-xs text-muted-foreground" data-all-markets-progress>
+                {allMarketsProgressLabel}
+              </p>
+            ) : null}
           </>
         ) : (
           <>

@@ -1,9 +1,9 @@
 import { createMarketDataSource } from "@/lib/market/factory";
-import type { AssetAllMarketsVolumeSnapshot } from "@/lib/market/types";
+import { emptyAllMarketsVolumeSnapshot, type AssetAllMarketsVolumeSnapshot } from "@/lib/market/types";
 
 export const dynamic = "force-dynamic";
 
-const EMPTY: AssetAllMarketsVolumeSnapshot = { pending: false, complete: false, daily: [] };
+const EMPTY: AssetAllMarketsVolumeSnapshot = emptyAllMarketsVolumeSnapshot();
 
 export async function GET(request: Request) {
   const symbol = new URL(request.url).searchParams.get("symbol")?.trim() ?? "";

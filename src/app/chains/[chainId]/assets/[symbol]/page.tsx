@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/table";
 import { formatCount, formatPct, formatPrice, formatRelativeTime, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
 import { readCompleteAllMarketsDaily, DEFAULT_ALL_MARKETS_VOLUME_DIR } from "@/lib/market/all-markets-volume-cache";
+import { uniqueAllMarketsPools } from "@/lib/market/asset-volume-headline";
 import { emptyAssetPriceHistory } from "@/lib/market/asset-price-history";
 import { deskSpotPriceUsd, selectEquityPriceTicker } from "@/lib/desk/price-ticker";
 import { sortPoolsByVolume } from "@/lib/desk/pool-sort";
@@ -83,7 +84,7 @@ export default async function AssetPage({
     ? await readCompleteAllMarketsDaily({
         directory: DEFAULT_ALL_MARKETS_VOLUME_DIR,
         mint: asset.contractAddress,
-        pairAddresses: asset.pools.map((pool) => pool.pairAddress),
+        pairAddresses: uniqueAllMarketsPools(asset.pools).map((pool) => pool.pairAddress),
       })
     : null;
 

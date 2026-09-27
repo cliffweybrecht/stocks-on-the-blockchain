@@ -6,7 +6,7 @@ import {
   type TerminalAssetLiquidityProfile,
   type TerminalPriceComparison,
 } from "./map-terminal";
-import { ROBINHOOD_CHAIN_ID, type AssetDetailResult, type AssetPriceHistoryResult, type ChainDetailResult, type ChainListResult, type EquityVolumeHistoryResult, type MarketDataSource, type VolumeHistoryPoint } from "./types";
+import { ROBINHOOD_CHAIN_ID, emptyAllMarketsVolumeSnapshot, type AssetDetailResult, type AssetPriceHistoryResult, type ChainDetailResult, type ChainListResult, type EquityVolumeHistoryResult, type MarketDataSource, type VolumeHistoryPoint } from "./types";
 import { emptyAssetPriceHistory } from "./asset-price-history";
 import { emptyEquityVolumeHistory } from "./volume-history";
 
@@ -136,7 +136,7 @@ export class TerminalMarketDataSource implements MarketDataSource {
   }
 
   async getAssetAllMarketsVolumeSnapshot() {
-    return { pending: false, complete: false, daily: [] };
+    return emptyAllMarketsVolumeSnapshot();
   }
 
   private async tryAssetEndpoint<T>(path: string): Promise<T | null> {

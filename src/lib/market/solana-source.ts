@@ -58,6 +58,7 @@ import {
 import { SOLANA_SOURCE_LABEL } from "./trust";
 import {
   SOLANA_CHAIN_ID,
+  emptyAllMarketsVolumeSnapshot,
   type AssetAllMarketsVolumeSnapshot,
   type AssetDetailResult,
   type AssetPriceHistoryResult,
@@ -84,9 +85,13 @@ import {
 } from "./equity-card-volume";
 import {
   allMarketsPairKey,
+  deleteAllMarketsProgress,
+  readAllMarketsProgress,
   readCompleteAllMarketsDaily,
+  writeAllMarketsProgress,
   writeCompleteAllMarketsDaily,
   DEFAULT_ALL_MARKETS_VOLUME_DIR,
+  type AllMarketsProgressPool,
 } from "./all-markets-volume-cache";
 import {
   assembleAllMarketsDaily,
@@ -197,6 +202,30 @@ export interface SolanaMarketDataSourceOptions {
   mintLogoCacheMs?: number;
 }
 
+type AllMarketsSlotStatus = "open" | "points" | "definitive_miss";
+
+interface AllMarketsSlot {
+  pairAddress: string;
+  volume24hUsd: number | null;
+  status: AllMarketsSlotStatus;
+  points: VolumeHistoryPoint[] | null;
+}
+
+interface AllMarketsJob {
+  mint: string;
+  pairKey: string;
+  pairAddresses: string[];
+  slots: AllMarketsSlot[];
+  timer: ReturnType<typeof setTimeout> | null;
+  running: boolean;
+  hydrated: boolean;
+  hydratePromise: Promise<void> | null;
+  finished: boolean;
+  complete: boolean;
+  daily: VolumeHistoryPoint[];
+  expiresAt: number;
+}
+
 export class SolanaMarketDataSource implements MarketDataSource {
   readonly id = "solana" as const;
   readonly label = SOLANA_SOURCE_LABEL;
@@ -218,11 +247,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
   private cardVolumeTimer: ReturnType<typeof setTimeout> | null = null;
   private priceHistoryCache = new Map<string, { result: AssetPriceHistoryResult; expiresAt: number }>();
   private priceHistoryInflight = new Map<string, Promise<AssetPriceHistoryResult>>();
-  private allMarketsMemory = new Map<
-    string,
-    { pairKey: string; expiresAt: number; complete: boolean; daily: VolumeHistoryPoint[] }
-  >();
-  private allMarketsInflight = new Map<string, Promise<void>>();
+  private allMarketsJobs = new Map<string, AllMarketsJob>();
   /** Serializes GeckoTerminal calls. A 429 sets `geckoCooldownUntil` for every caller. */
   private geckoTail: Promise<unknown> = Promise.resolve();
   private geckoCooldownUntil = 0;
@@ -1629,13 +1654,14 @@ export class SolanaMarketDataSource implements MarketDataSource {
   }
 
   /**
-   * Cached cross-pool daily volume. Returns the memory or disk hit immediately.
-   * A miss starts one background fill and does not wait for Gecko.
+   * Cached cross-pool daily volume. A hit returns immediately.
+   * A miss resumes a background job and does not wait for Gecko.
+   * One pool is attempted per turn. A 429 leaves that pool open, arms the
+   * shared cooldown, and schedules the next turn outside the Gecko queue.
    * The detail chart's primary-pool fetch is not part of this path.
    */
   async getAssetAllMarketsVolumeSnapshot(chainId: string, symbol: string): Promise<AssetAllMarketsVolumeSnapshot> {
-    const unavailable = { pending: false, complete: false, daily: [] as VolumeHistoryPoint[] };
-    if (chainId !== SOLANA_CHAIN_ID || !this.geckoEnabled) return unavailable;
+    if (chainId !== SOLANA_CHAIN_ID || !this.geckoEnabled) return emptyAllMarketsVolumeSnapshot();
 
     let mint = "";
     let pools: { pairAddress: string; volume24hUsd: number | null }[] = [];
@@ -1645,159 +1671,319 @@ export class SolanaMarketDataSource implements MarketDataSource {
         [...snapshot.mapped.details, ...snapshot.mapped.etfDetails, ...snapshot.mapped.privateDetails],
         symbol,
       );
-      if (!asset) return unavailable;
+      if (!asset) return emptyAllMarketsVolumeSnapshot();
       mint = asset.contractAddress.trim();
       pools = uniqueAllMarketsPools(asset.pools);
     } catch {
-      return unavailable;
+      return emptyAllMarketsVolumeSnapshot();
     }
-    if (!mint) return unavailable;
+    if (!mint || pools.length === 0) return emptyAllMarketsVolumeSnapshot();
 
-    const pairKey = allMarketsPairKey(pools.map((pool) => pool.pairAddress));
+    const pairAddresses = pools.map((pool) => pool.pairAddress);
+    const pairKey = allMarketsPairKey(pairAddresses);
     const now = Date.now();
-    const memory = this.lookupAllMarkets(mint, pairKey, now);
-    if (memory) return memory;
+    const current = this.allMarketsJobs.get(mint);
+    if (current && current.pairKey !== pairKey) this.stopAllMarketsJob(current);
+    const active = this.allMarketsJobs.get(mint);
+    if (active && active.pairKey === pairKey && (!active.finished || active.expiresAt > now)) {
+      return this.ensureAllMarketsJob(active);
+    }
 
     const disk = await readCompleteAllMarketsDaily({
       directory: this.allMarketsVolumeCacheDir,
       mint,
-      pairAddresses: pools.map((pool) => pool.pairAddress),
+      pairAddresses,
       nowMs: now,
       ttlMs: this.volumeHistoryCacheMs,
     });
     if (disk) {
-      this.rememberAllMarkets(mint, pairKey, disk, true, now);
-      return { pending: false, complete: true, daily: disk };
+      const remembered = this.rememberCompleteAllMarkets(mint, pairKey, pools, disk, now);
+      return this.allMarketsSnapshot(remembered);
     }
-    if (pools.length === 0) return unavailable;
 
-    this.startAllMarketsFill(mint, pairKey, pools);
-    return { pending: true, complete: false, daily: [] };
+    const raced = this.allMarketsJobs.get(mint);
+    if (raced && raced.pairKey === pairKey && !raced.finished) return this.ensureAllMarketsJob(raced);
+
+    const created = this.createAllMarketsJob(mint, pairKey, pools);
+    this.allMarketsJobs.set(mint, created);
+    return this.ensureAllMarketsJob(created);
   }
 
-  private lookupAllMarkets(mint: string, pairKey: string, now: number): AssetAllMarketsVolumeSnapshot | null {
-    const row = this.allMarketsMemory.get(mint);
-    if (!row || row.pairKey !== pairKey || row.expiresAt <= now) return null;
-    if (!row.complete) return { pending: false, complete: false, daily: [] };
-    return { pending: false, complete: true, daily: row.daily };
-  }
-
-  private rememberAllMarkets(
+  private createAllMarketsJob(
     mint: string,
     pairKey: string,
-    daily: VolumeHistoryPoint[],
-    complete: boolean,
-    now: number,
-  ) {
-    const ttl = complete ? this.volumeHistoryCacheMs : Math.min(this.volumeHistoryCacheMs, 60_000);
-    this.allMarketsMemory.set(mint, {
+    pools: readonly { pairAddress: string; volume24hUsd: number | null }[],
+  ): AllMarketsJob {
+    return {
+      mint,
       pairKey,
-      daily: complete ? daily : [],
-      complete,
-      expiresAt: now + ttl,
-    });
-  }
-
-  private startAllMarketsFill(
-    mint: string,
-    pairKey: string,
-    pools: readonly { pairAddress: string; volume24hUsd: number | null }[],
-  ) {
-    if (this.allMarketsInflight.has(mint)) return;
-    const job = this.fillAllMarketsVolume(mint, pairKey, pools);
-    this.allMarketsInflight.set(mint, job);
-    void job.finally(() => {
-      if (this.allMarketsInflight.get(mint) === job) this.allMarketsInflight.delete(mint);
-    });
-  }
-
-  private async fillAllMarketsVolume(
-    mint: string,
-    pairKey: string,
-    pools: readonly { pairAddress: string; volume24hUsd: number | null }[],
-  ) {
-    const results: AllMarketsPoolResult[] = [];
-    for (let index = 0; index < pools.length; index += 1) {
-      const pool = pools[index];
-      if (!pool) continue;
-      if (index > 0 && this.cardVolumeSeriesGapMs > 0) await sleep(this.cardVolumeSeriesGapMs);
-      await this.waitUntilChartGeckoIdle();
-      const fetched = await this.fetchPoolDailyVolume(pool.pairAddress);
-      if (fetched.kind === "points") {
-        results.push({
-          pairAddress: pool.pairAddress,
-          volume24hUsd: pool.volume24hUsd,
-          points: fetched.points,
-          definitiveMiss: false,
-        });
-        continue;
-      }
-      results.push({
+      pairAddresses: pools.map((pool) => pool.pairAddress),
+      slots: pools.map((pool) => ({
         pairAddress: pool.pairAddress,
         volume24hUsd: pool.volume24hUsd,
+        status: "open",
         points: null,
-        definitiveMiss: fetched.kind === "definitive_miss",
+      })),
+      timer: null,
+      running: false,
+      hydrated: false,
+      hydratePromise: null,
+      finished: false,
+      complete: false,
+      daily: [],
+      expiresAt: 0,
+    };
+  }
+
+  private rememberCompleteAllMarkets(
+    mint: string,
+    pairKey: string,
+    pools: readonly { pairAddress: string; volume24hUsd: number | null }[],
+    daily: VolumeHistoryPoint[],
+    now: number,
+  ): AllMarketsJob {
+    const job = this.createAllMarketsJob(mint, pairKey, pools);
+    for (const slot of job.slots) {
+      slot.status = "points";
+      slot.points = [];
+    }
+    job.hydrated = true;
+    job.finished = true;
+    job.complete = true;
+    job.daily = daily;
+    job.expiresAt = now + this.volumeHistoryCacheMs;
+    this.allMarketsJobs.set(mint, job);
+    return job;
+  }
+
+  private async ensureAllMarketsJob(job: AllMarketsJob): Promise<AssetAllMarketsVolumeSnapshot> {
+    if (!job.hydrated) {
+      job.hydratePromise ??= this.hydrateAllMarketsJob(job).then(() => {
+        job.hydrated = true;
+      });
+      await job.hydratePromise;
+    }
+    if (!job.finished && job.slots.every((slot) => slot.status !== "open")) {
+      await this.finishAllMarketsJob(job);
+    }
+    if (!job.finished) this.kickAllMarkets(job);
+    return this.allMarketsSnapshot(job);
+  }
+
+  private allMarketsSnapshot(job: AllMarketsJob): AssetAllMarketsVolumeSnapshot {
+    const totalPools = job.slots.length;
+    const resolvedPools = job.slots.filter((slot) => slot.status !== "open").length;
+    if (job.complete) {
+      return { pending: false, complete: true, daily: job.daily, resolvedPools: totalPools, totalPools };
+    }
+    if (job.finished) {
+      return { pending: false, complete: false, daily: [], resolvedPools, totalPools };
+    }
+    return { pending: true, complete: false, daily: [], resolvedPools, totalPools };
+  }
+
+  private stopAllMarketsJob(job: AllMarketsJob) {
+    job.finished = true;
+    if (job.timer) {
+      clearTimeout(job.timer);
+      job.timer = null;
+    }
+    if (this.allMarketsJobs.get(job.mint) === job) this.allMarketsJobs.delete(job.mint);
+  }
+
+  private kickAllMarkets(job: AllMarketsJob) {
+    if (job.finished || job.running || job.timer) return;
+    this.scheduleAllMarkets(job, 0);
+  }
+
+  private scheduleAllMarkets(job: AllMarketsJob, delayMs: number) {
+    if (job.finished) return;
+    if (job.timer) clearTimeout(job.timer);
+    const timer = setTimeout(() => {
+      job.timer = null;
+      void this.pumpAllMarkets(job);
+    }, Math.max(0, delayMs));
+    timer.unref?.();
+    job.timer = timer;
+  }
+
+  /** Chart and card fetches own the lane. A cooldown is waited outside the queue. */
+  private allMarketsLaneBlocked(): boolean {
+    return (
+      this.priceHistoryInflight.size > 0 ||
+      this.cardVolumeSeriesInflight !== null ||
+      this.geckoCooldownUntil > Date.now()
+    );
+  }
+
+  private allMarketsDeferDelayMs(): number {
+    const cooldown = this.geckoCooldownUntil - Date.now();
+    if (cooldown > 0) return cooldown;
+    return 250;
+  }
+
+  private async hydrateAllMarketsJob(job: AllMarketsJob) {
+    const saved = await readAllMarketsProgress({
+      directory: this.allMarketsVolumeCacheDir,
+      mint: job.mint,
+      pairAddresses: job.pairAddresses,
+      ttlMs: this.volumeHistoryCacheMs,
+    });
+    if (!saved) return;
+    const byPair = new Map(saved.map((pool) => [pool.pairAddress, pool]));
+    for (const slot of job.slots) {
+      const row = byPair.get(slot.pairAddress);
+      if (!row) continue;
+      if (row.status === "points") {
+        slot.status = "points";
+        slot.points = row.points;
+        continue;
+      }
+      slot.status = "definitive_miss";
+      slot.points = null;
+    }
+  }
+
+  private async persistAllMarketsProgress(job: AllMarketsJob) {
+    if (job.finished) return;
+    const pools: AllMarketsProgressPool[] = [];
+    for (const slot of job.slots) {
+      if (slot.status === "open") continue;
+      pools.push({
+        pairAddress: slot.pairAddress,
+        status: slot.status,
+        points: slot.status === "points" ? (slot.points ?? []) : [],
       });
     }
+    await writeAllMarketsProgress({
+      directory: this.allMarketsVolumeCacheDir,
+      mint: job.mint,
+      pairAddresses: job.pairAddresses,
+      pools,
+    });
+  }
 
+  private async pumpAllMarkets(job: AllMarketsJob) {
+    if (job.finished || job.running) return;
+    job.running = true;
+    try {
+      await this.pumpAllMarketsTurn(job);
+    } catch {
+      if (!job.finished && !job.timer) {
+        const retry = this.cardVolumeSeriesTransientRetryMs;
+        this.scheduleAllMarkets(job, retry > 0 ? retry : 1_000);
+      }
+    } finally {
+      job.running = false;
+    }
+  }
+
+  private async pumpAllMarketsTurn(job: AllMarketsJob) {
+    for (;;) {
+      if (job.finished) return;
+      const open = job.slots.find((slot) => slot.status === "open");
+      if (!open) {
+        await this.finishAllMarketsJob(job);
+        return;
+      }
+      if (this.allMarketsLaneBlocked()) {
+        this.scheduleAllMarkets(job, this.allMarketsDeferDelayMs());
+        return;
+      }
+      const outcome = await this.fetchPoolDailyVolumeOnce(open.pairAddress);
+      if (job.finished) return;
+      if (outcome.kind === "deferred") {
+        this.scheduleAllMarkets(job, this.allMarketsDeferDelayMs());
+        return;
+      }
+      if (outcome.kind === "points") {
+        open.status = "points";
+        open.points = outcome.points;
+        await this.persistAllMarketsProgress(job);
+        if (this.cardVolumeSeriesGapMs > 0) {
+          this.scheduleAllMarkets(job, this.cardVolumeSeriesGapMs);
+          return;
+        }
+        continue;
+      }
+      if (outcome.kind === "definitive_miss") {
+        open.status = "definitive_miss";
+        open.points = null;
+        await this.persistAllMarketsProgress(job);
+        continue;
+      }
+      if (outcome.kind === "rate_limited") {
+        const wait = this.geckoCooldownUntil - Date.now();
+        this.scheduleAllMarkets(job, wait > 0 ? wait : 0);
+        return;
+      }
+      const retry = this.cardVolumeSeriesTransientRetryMs;
+      this.scheduleAllMarkets(job, retry > 0 ? retry : 0);
+      return;
+    }
+  }
+
+  private async finishAllMarketsJob(job: AllMarketsJob) {
+    const results: AllMarketsPoolResult[] = job.slots.map((slot) => ({
+      pairAddress: slot.pairAddress,
+      volume24hUsd: slot.volume24hUsd,
+      points: slot.status === "points" ? (slot.points ?? []) : null,
+      definitiveMiss: slot.status === "definitive_miss",
+    }));
     const assembled = assembleAllMarketsDaily(results);
     const now = Date.now();
-    this.rememberAllMarkets(mint, pairKey, assembled.daily, assembled.complete, now);
+    job.finished = true;
+    job.complete = assembled.complete;
+    job.daily = assembled.complete ? assembled.daily : [];
+    job.expiresAt = now + (assembled.complete ? this.volumeHistoryCacheMs : Math.min(this.volumeHistoryCacheMs, 60_000));
+    if (job.timer) {
+      clearTimeout(job.timer);
+      job.timer = null;
+    }
     if (!assembled.complete) return;
-    await writeCompleteAllMarketsDaily({
+    const wrote = await writeCompleteAllMarketsDaily({
       directory: this.allMarketsVolumeCacheDir,
-      mint,
-      pairAddresses: pools.map((pool) => pool.pairAddress),
+      mint: job.mint,
+      pairAddresses: job.pairAddresses,
       daily: assembled.daily,
       fetchedAt: now,
     });
-  }
-
-  /** Let an open detail chart or card sparkline use the Gecko lane first. */
-  private async waitUntilChartGeckoIdle() {
-    const deadline = Date.now() + 15_000;
-    while (
-      Date.now() < deadline &&
-      (this.priceHistoryInflight.size > 0 || this.cardVolumeSeriesInflight !== null)
-    ) {
-      await sleep(25);
+    if (wrote) {
+      await deleteAllMarketsProgress({ directory: this.allMarketsVolumeCacheDir, mint: job.mint });
     }
   }
 
-  private async fetchPoolDailyVolume(pairAddress: string): Promise<
+  /**
+   * One daily OHLCV attempt. A 429 arms the shared cooldown and returns.
+   * The wait happens on the job timer, not inside the Gecko queue.
+   */
+  private async fetchPoolDailyVolumeOnce(pairAddress: string): Promise<
     | { kind: "points"; points: VolumeHistoryPoint[] }
     | { kind: "definitive_miss" }
+    | { kind: "rate_limited" }
     | { kind: "failed" }
+    | { kind: "deferred" }
   > {
     const url = `${this.geckoTerminalBaseUrl}${geckoTerminalOhlcvPath(pairAddress, {
       timeframe: "day",
       limit: 60,
     })}`;
-    const maxAttempts = 1 + this.cardVolumeSeriesRetries;
-    let cooled = false;
-    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-      const result = await this.enqueueGecko(async () => {
-        try {
-          const payload = await this.fetchSource(url, "GeckoTerminal", { retries: 0 });
-          return { kind: "points" as const, points: parseGeckoTerminalOhlcvSeries(payload).volumes };
-        } catch (error) {
-          if (isDefinitiveFetchMiss(error)) return { kind: "definitive_miss" as const };
-          if (responseStatusFromError(error) === 429) {
-            const retryAfter = error instanceof SourceRequestError ? error.retryAfterHeader : null;
-            if (!cooled) {
-              cooled = true;
-              this.armGeckoCooldown(retryAfter);
-            } else if (this.cardVolumeSeriesSlowGapMs > 0) {
-              this.geckoCooldownUntil = Math.max(this.geckoCooldownUntil, Date.now() + this.cardVolumeSeriesSlowGapMs);
-            }
-            return { kind: "rate_limited" as const };
-          }
-          return { kind: "failed" as const };
+    return this.enqueueGecko(async () => {
+      if (this.priceHistoryInflight.size > 0 || this.cardVolumeSeriesInflight !== null) {
+        return { kind: "deferred" as const };
+      }
+      try {
+        const payload = await this.fetchSource(url, "GeckoTerminal", { retries: 0 });
+        return { kind: "points" as const, points: parseGeckoTerminalOhlcvSeries(payload).volumes };
+      } catch (error) {
+        if (isDefinitiveFetchMiss(error)) return { kind: "definitive_miss" as const };
+        if (responseStatusFromError(error) === 429) {
+          const retryAfter = error instanceof SourceRequestError ? error.retryAfterHeader : null;
+          this.armGeckoCooldown(retryAfter);
+          return { kind: "rate_limited" as const };
         }
-      });
-      if (result.kind === "points" || result.kind === "definitive_miss" || result.kind === "failed") return result;
-      if (attempt >= maxAttempts - 1) return { kind: "failed" };
-    }
-    return { kind: "failed" };
+        return { kind: "failed" as const };
+      }
+    });
   }
 }
