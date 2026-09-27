@@ -250,10 +250,12 @@ export interface AssetPriceHistoryResult {
 }
 
 /**
- * Cross-pool daily USD volume for one mint.
- * `daily` is set only when every pool resolved. `pending` means pools are still
- * open, including across Gecko 429 cooldowns, and the page must not wait on them.
- * `resolvedPools` counts candles or a definitive miss. It is not a partial sum.
+ * Cross-pool USD volume for one mint.
+ * `daily` / `hourly` are set only when every pool resolved for that candle size.
+ * `pending` means daily pools are still open, including across Gecko 429 cooldowns.
+ * The page must not wait on them. `hourlyPending` is the same for the 24H series
+ * and stays independent so a finished daily total can paint before hourly does.
+ * Resolved counts are candles or a definitive miss. They are not a partial sum.
  */
 export interface AssetAllMarketsVolumeSnapshot {
   pending: boolean;
@@ -261,10 +263,27 @@ export interface AssetAllMarketsVolumeSnapshot {
   daily: VolumeHistoryPoint[];
   resolvedPools: number;
   totalPools: number;
+  /** Summed hourly candles. Empty unless `hourlyComplete`. */
+  hourly: VolumeHistoryPoint[];
+  hourlyPending: boolean;
+  hourlyComplete: boolean;
+  hourlyResolvedPools: number;
+  hourlyTotalPools: number;
 }
 
 export function emptyAllMarketsVolumeSnapshot(): AssetAllMarketsVolumeSnapshot {
-  return { pending: false, complete: false, daily: [], resolvedPools: 0, totalPools: 0 };
+  return {
+    pending: false,
+    complete: false,
+    daily: [],
+    resolvedPools: 0,
+    totalPools: 0,
+    hourly: [],
+    hourlyPending: false,
+    hourlyComplete: false,
+    hourlyResolvedPools: 0,
+    hourlyTotalPools: 0,
+  };
 }
 
 export interface MarketDataSource {
@@ -283,7 +302,8 @@ export interface MarketDataSource {
    */
   getEquityCardDayVolumeSeriesSnapshot(): Promise<EquityCardDayVolumeSeriesSnapshot>;
   /**
-   * Cached sum of Gecko daily volume across every pool for the mint.
+   * Cached sum of Gecko volume across every pool for the mint.
+   * Daily candles feed 7D/30D. Hourly candles feed the 24H series.
    * A cold cache returns immediately and fills in the background.
    */
   getAssetAllMarketsVolumeSnapshot(chainId: string, symbol: string): Promise<AssetAllMarketsVolumeSnapshot>;

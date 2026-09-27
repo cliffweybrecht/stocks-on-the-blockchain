@@ -185,3 +185,42 @@ export function selectAssetVolumeHeadline(input: {
     scope: "primary_pool",
   };
 }
+
+export interface AssetVolumeSeries {
+  points: VolumeHistoryPoint[];
+  scope: AssetVolumeHeadlineScope;
+}
+
+/**
+ * Plotted volume candles.
+ * 24H uses summed hourly Gecko volume once every pool has resolved.
+ * 7D and 30D use summed daily Gecko volume once that series is complete.
+ * Until then the line stays the primary pool. A complete series with nothing
+ * in the window stays empty — it does not fall back to the primary pool.
+ * `primaryPoolPoints` are already inside the chart window.
+ */
+export function selectAssetVolumeSeries(input: {
+  range: PriceChartRangeId;
+  nowT: number;
+  windowSeconds: number;
+  primaryPoolPoints: readonly VolumeHistoryPoint[];
+  allMarketsDaily: readonly Pick<VolumeHistoryPoint, "t" | "volumeUsd">[] | null;
+  allMarketsHourly: readonly Pick<VolumeHistoryPoint, "t" | "volumeUsd">[] | null;
+}): AssetVolumeSeries {
+  if (input.range === "24h" && input.allMarketsHourly !== null) {
+    return {
+      points: volumePointsInWindow(input.allMarketsHourly, input.nowT, input.windowSeconds),
+      scope: "all_markets",
+    };
+  }
+  if ((input.range === "7d" || input.range === "30d") && input.allMarketsDaily !== null) {
+    return {
+      points: volumePointsInWindow(input.allMarketsDaily, input.nowT, input.windowSeconds),
+      scope: "all_markets",
+    };
+  }
+  return {
+    points: input.primaryPoolPoints.map((point) => ({ t: point.t, volumeUsd: point.volumeUsd })),
+    scope: "primary_pool",
+  };
+}

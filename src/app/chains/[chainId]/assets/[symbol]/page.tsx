@@ -17,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatCount, formatPct, formatPrice, formatRelativeTime, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
-import { readCompleteAllMarketsDaily, DEFAULT_ALL_MARKETS_VOLUME_DIR } from "@/lib/market/all-markets-volume-cache";
+import { readStoredAllMarketsVolume, DEFAULT_ALL_MARKETS_VOLUME_DIR } from "@/lib/market/all-markets-volume-cache";
 import { uniqueAllMarketsPools } from "@/lib/market/asset-volume-headline";
 import { emptyAssetPriceHistory } from "@/lib/market/asset-price-history";
 import { deskSpotPriceUsd, selectEquityPriceTicker } from "@/lib/desk/price-ticker";
@@ -80,13 +80,15 @@ export default async function AssetPage({
   const jumpAssets = catalog
     ? [...catalog.assets, ...(catalog.etfAssets ?? []), ...(catalog.privateAssets ?? [])].map(toJumpAsset)
     : [];
-  const initialAllMarketsDaily: VolumeHistoryPoint[] | null = isSolana
-    ? await readCompleteAllMarketsDaily({
+  const storedAllMarkets = isSolana
+    ? await readStoredAllMarketsVolume({
         directory: DEFAULT_ALL_MARKETS_VOLUME_DIR,
         mint: asset.contractAddress,
         pairAddresses: uniqueAllMarketsPools(asset.pools).map((pool) => pool.pairAddress),
       })
     : null;
+  const initialAllMarketsDaily: VolumeHistoryPoint[] | null = storedAllMarkets?.daily ?? null;
+  const initialAllMarketsHourly: VolumeHistoryPoint[] | null = storedAllMarkets?.hourly ?? null;
 
     return (
       <PageShell
@@ -105,6 +107,7 @@ export default async function AssetPage({
             allMarkets24hUsd={isSolana ? asset.volume24hUsd : null}
             allMarketsSymbol={isSolana ? asset.symbol : null}
             initialAllMarketsDaily={initialAllMarketsDaily}
+            initialAllMarketsHourly={initialAllMarketsHourly}
           />
           <AssetStatsCard asset={asset} />
 

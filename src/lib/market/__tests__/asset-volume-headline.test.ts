@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   assembleAllMarketsDaily,
   selectAssetVolumeHeadline,
+  selectAssetVolumeSeries,
   sumObservedVolumeUsd,
   uniqueAllMarketsPools,
 } from "../asset-volume-headline";
@@ -136,6 +137,81 @@ describe("selectAssetVolumeHeadline", () => {
     expect(headline.label).toBe("7D volume (all markets)");
     expect(headline.scope).toBe("all_markets");
     expect(sumObservedVolumeUsd([])).toBeNull();
+  });
+});
+
+describe("selectAssetVolumeSeries", () => {
+  const hour = NOW - 3_600;
+
+  it("keeps the 24H line on the primary pool until hourly candles are complete", () => {
+    const series = selectAssetVolumeSeries({
+      range: "24h",
+      nowT: NOW,
+      windowSeconds: DAY,
+      primaryPoolPoints: [{ t: hour, volumeUsd: 187_000 }],
+      allMarketsDaily: [{ t: hour, volumeUsd: 9_000_000 }],
+      allMarketsHourly: null,
+    });
+    expect(series.scope).toBe("primary_pool");
+    expect(series.points).toEqual([{ t: hour, volumeUsd: 187_000 }]);
+  });
+
+  it("plots summed hourly candles for 24H once every pool has resolved", () => {
+    const series = selectAssetVolumeSeries({
+      range: "24h",
+      nowT: NOW,
+      windowSeconds: DAY,
+      primaryPoolPoints: [{ t: hour, volumeUsd: 187_000 }],
+      allMarketsDaily: null,
+      allMarketsHourly: [
+        { t: hour, volumeUsd: 4_200_000 },
+        { t: NOW - 2 * DAY, volumeUsd: 9_999 },
+      ],
+    });
+    expect(series).toEqual({
+      scope: "all_markets",
+      points: [{ t: hour, volumeUsd: 4_200_000 }],
+    });
+  });
+
+  it("plots summed daily candles for 7D and 30D and does not fall back when the window is empty", () => {
+    const complete = selectAssetVolumeSeries({
+      range: "7d",
+      nowT: NOW,
+      windowSeconds: 7 * DAY,
+      primaryPoolPoints: [{ t: NOW - DAY, volumeUsd: 187_000 }],
+      allMarketsDaily: [
+        { t: NOW - 2 * DAY, volumeUsd: 5_000_000 },
+        { t: NOW - DAY, volumeUsd: 1_000_000 },
+      ],
+      allMarketsHourly: [{ t: hour, volumeUsd: 12 }],
+    });
+    expect(complete.scope).toBe("all_markets");
+    expect(complete.points).toEqual([
+      { t: NOW - 2 * DAY, volumeUsd: 5_000_000 },
+      { t: NOW - DAY, volumeUsd: 1_000_000 },
+    ]);
+
+    const emptyWindow = selectAssetVolumeSeries({
+      range: "30d",
+      nowT: NOW,
+      windowSeconds: 30 * DAY,
+      primaryPoolPoints: [{ t: NOW - DAY, volumeUsd: 187_000 }],
+      allMarketsDaily: [{ t: NOW - 40 * DAY, volumeUsd: 8_000_000 }],
+      allMarketsHourly: null,
+    });
+    expect(emptyWindow).toEqual({ scope: "all_markets", points: [] });
+
+    const pending = selectAssetVolumeSeries({
+      range: "30d",
+      nowT: NOW,
+      windowSeconds: 30 * DAY,
+      primaryPoolPoints: [{ t: NOW - DAY, volumeUsd: 187_000 }],
+      allMarketsDaily: null,
+      allMarketsHourly: [{ t: hour, volumeUsd: 4_200_000 }],
+    });
+    expect(pending.scope).toBe("primary_pool");
+    expect(pending.points).toEqual([{ t: NOW - DAY, volumeUsd: 187_000 }]);
   });
 });
 

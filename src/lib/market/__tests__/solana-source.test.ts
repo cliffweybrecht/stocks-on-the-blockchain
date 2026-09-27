@@ -12,6 +12,19 @@ const hoodMint = "XsNotAllowlisted1111111111111111111111111";
 const spyMint = "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W";
 const unpairedMint = "XsUnpairedHood111111111111111111111111111";
 
+async function removeCacheDir(directory: string) {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    try {
+      await rm(directory, { recursive: true, force: true });
+      return;
+    } catch (error) {
+      const code = error && typeof error === "object" && "code" in error ? (error as { code?: string }).code : undefined;
+      if (code !== "ENOTEMPTY" || attempt === 7) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+  }
+}
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -992,7 +1005,211 @@ describe("SolanaMarketDataSource", () => {
       { t: day + 86_400, volumeUsd: 1_000 },
     ]);
     expect(urls.some((url) => url.includes("/ohlcv/day") && url.includes("pair-2"))).toBe(true);
-    expect(urls.some((url) => url.includes("/ohlcv/hour") && url.includes("pair-2"))).toBe(false);
+    expect(done.hourlyComplete).toBe(false);
+    expect(done.hourly).toEqual([]);
+  });
+
+  it("sums hourly candles into the 24H series after the daily snapshot is already complete", async () => {
+    const day = 1_700_000_000;
+    const hour = day + 3_600;
+    const source = testSource({
+      requestGapMs: 0,
+      enableGeckoTerminal: true,
+      geckoTerminalBaseUrl: "https://api.geckoterminal.com/api/v2",
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("/latest/dex/search") || url.includes("/tokens/v1/solana/") || url.includes("/token-pairs/v1/solana/")) {
+          return jsonResponse([
+            tslaPair(),
+            { ...tslaPair(), dexId: "orca", pairAddress: "pair-2", volume: { h24: 4_000_000 }, liquidity: { usd: 100 } },
+          ]);
+        }
+        if (url.includes("/ohlcv/day") && url.includes("limit=60") && url.includes("pair-1")) {
+          return jsonResponse({
+            data: { attributes: { ohlcv_list: [[day, 1, 1, 1, 100, 1_000]] } },
+          });
+        }
+        if (url.includes("/ohlcv/day") && url.includes("limit=60") && url.includes("pair-2")) {
+          return jsonResponse({
+            data: { attributes: { ohlcv_list: [[day, 1, 1, 1, 100, 7_000]] } },
+          });
+        }
+        if (url.includes("/ohlcv/hour") && url.includes("limit=24") && url.includes("pair-1")) {
+          return jsonResponse({
+            data: { attributes: { ohlcv_list: [[day, 1, 1, 1, 100, 100_000], [hour, 1, 1, 1, 100, 50_000]] } },
+          });
+        }
+        if (url.includes("/ohlcv/hour") && url.includes("limit=24") && url.includes("pair-2")) {
+          return jsonResponse({
+            data: { attributes: { ohlcv_list: [[day, 1, 1, 1, 100, 4_000_000]] } },
+          });
+        }
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    const first = await source.getAssetAllMarketsVolumeSnapshot("solana", "TSLAx");
+    expect(first.hourlyComplete).toBe(false);
+    expect(first.hourly).toEqual([]);
+
+    const done = await vi.waitFor(async () => {
+      const snap = await source.getAssetAllMarketsVolumeSnapshot("solana", "TSLAx");
+      expect(snap.hourlyComplete).toBe(true);
+      return snap;
+    });
+    expect(done.pending).toBe(false);
+    expect(done.complete).toBe(true);
+    expect(done.hourlyPending).toBe(false);
+    expect(done.daily).toEqual([{ t: day, volumeUsd: 8_000 }]);
+    expect(done.hourly).toEqual([
+      { t: day, volumeUsd: 4_100_000 },
+      { t: hour, volumeUsd: 50_000 },
+    ]);
+  });
+
+  it("does not label hourly all-markets when a live pool 404s, and keeps the daily total", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "all-markets-hour-miss-"));
+    const day = 1_700_000_000;
+    const source = testSource({
+      requestGapMs: 0,
+      enableGeckoTerminal: true,
+      geckoTerminalBaseUrl: "https://api.geckoterminal.com/api/v2",
+      allMarketsVolumeCacheDir: directory,
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("/latest/dex/search") || url.includes("/tokens/v1/solana/") || url.includes("/token-pairs/v1/solana/")) {
+          return jsonResponse([
+            tslaPair(),
+            { ...tslaPair(), dexId: "orca", pairAddress: "pair-2", volume: { h24: 10 }, liquidity: { usd: 100 } },
+          ]);
+        }
+        if (url.includes("/ohlcv/day") && url.includes("limit=60")) {
+          return jsonResponse({
+            data: { attributes: { ohlcv_list: [[day, 1, 1, 1, 100, url.includes("pair-2") ? 7_000 : 4_000]] } },
+          });
+        }
+        if (url.includes("/ohlcv/hour") && url.includes("pair-1")) {
+          return jsonResponse({
+            data: { attributes: { ohlcv_list: [[day, 1, 1, 1, 100, 100]] } },
+          });
+        }
+        if (url.includes("/ohlcv/hour") && url.includes("pair-2")) {
+          return jsonResponse({ error: "missing" }, 404);
+        }
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    try {
+      const done = await vi.waitFor(async () => {
+        const snap = await source.getAssetAllMarketsVolumeSnapshot("solana", "TSLAx");
+        expect(snap.complete).toBe(true);
+        expect(snap.hourlyPending).toBe(false);
+        return snap;
+      });
+      expect(done.hourlyComplete).toBe(false);
+      expect(done.hourly).toEqual([]);
+      expect(done.daily).toEqual([{ t: day, volumeUsd: 11_000 }]);
+      const cached = JSON.parse(await readFile(join(directory, `${tslaMint}.json`), "utf8")) as {
+        hourly?: unknown;
+      };
+      expect(cached.hourly).toBeUndefined();
+    } finally {
+      await removeCacheDir(directory);
+    }
+  });
+
+  it("resumes the hourly series across a Gecko 429 without refetching resolved pools", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "all-markets-hour-429-"));
+    const day = 1_700_000_000;
+    let pair2HourCalls = 0;
+    let pair1HourCalls = 0;
+    const pair2Hold: { release: (() => void) | null } = { release: null };
+    const pair2Gate = new Promise<void>((resolve) => {
+      pair2Hold.release = resolve;
+    });
+    const source = testSource({
+      requestGapMs: 0,
+      enableGeckoTerminal: true,
+      geckoTerminalBaseUrl: "https://api.geckoterminal.com/api/v2",
+      allMarketsVolumeCacheDir: directory,
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("/latest/dex/search") || url.includes("/tokens/v1/solana/") || url.includes("/token-pairs/v1/solana/")) {
+          return jsonResponse([
+            tslaPair(),
+            { ...tslaPair(), dexId: "orca", pairAddress: "pair-2", volume: { h24: 10 }, liquidity: { usd: 100 } },
+          ]);
+        }
+        if (url.includes("/ohlcv/day") && url.includes("limit=60")) {
+          return jsonResponse({
+            data: { attributes: { ohlcv_list: [[day, 1, 1, 1, 100, url.includes("pair-2") ? 7_000 : 4_000]] } },
+          });
+        }
+        if (url.includes("/ohlcv/hour") && url.includes("limit=24") && url.includes("pair-1")) {
+          pair1HourCalls += 1;
+          return jsonResponse({
+            data: { attributes: { ohlcv_list: [[day, 1, 1, 1, 100, 100_000]] } },
+          });
+        }
+        if (url.includes("/ohlcv/hour") && url.includes("limit=24") && url.includes("pair-2")) {
+          pair2HourCalls += 1;
+          if (pair2HourCalls === 1) {
+            return new Response(JSON.stringify({ error: "slow down" }), {
+              status: 429,
+              headers: { "content-type": "application/json", "retry-after": "0" },
+            });
+          }
+          await pair2Gate;
+          return jsonResponse({
+            data: { attributes: { ohlcv_list: [[day, 1, 1, 1, 100, 4_000_000]] } },
+          });
+        }
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    try {
+      const mid = await vi.waitFor(async () => {
+        const snap = await source.getAssetAllMarketsVolumeSnapshot("solana", "TSLAx");
+        expect(snap.complete).toBe(true);
+        expect(snap.hourlyPending).toBe(true);
+        expect(snap.hourlyComplete).toBe(false);
+        expect(snap.hourlyResolvedPools).toBe(1);
+        expect(snap.daily).toEqual([{ t: day, volumeUsd: 11_000 }]);
+        expect(pair2HourCalls).toBeGreaterThanOrEqual(1);
+        return snap;
+      });
+      expect(mid.hourly).toEqual([]);
+      expect(pair1HourCalls).toBe(1);
+      const progress = JSON.parse(await readFile(join(directory, `${tslaMint}.hourly.progress.json`), "utf8")) as {
+        pools: { pairAddress: string }[];
+      };
+      expect(progress.pools.map((pool) => pool.pairAddress)).toEqual(["pair-1"]);
+      const before = JSON.parse(await readFile(join(directory, `${tslaMint}.json`), "utf8")) as { hourly?: unknown };
+      expect(before.hourly).toBeUndefined();
+
+      pair2Hold.release?.();
+      const done = await vi.waitFor(
+        async () => {
+          const snap = await source.getAssetAllMarketsVolumeSnapshot("solana", "TSLAx");
+          expect(snap.hourlyComplete).toBe(true);
+          return snap;
+        },
+        { timeout: 3_000 },
+      );
+      expect(done.hourly).toEqual([{ t: day, volumeUsd: 4_100_000 }]);
+      expect(done.daily).toEqual([{ t: day, volumeUsd: 11_000 }]);
+      expect(pair1HourCalls).toBe(1);
+      const cached = JSON.parse(await readFile(join(directory, `${tslaMint}.json`), "utf8")) as {
+        hourly: { t: number; volumeUsd: number }[];
+      };
+      expect(cached.hourly).toEqual(done.hourly);
+      await expect(readFile(join(directory, `${tslaMint}.hourly.progress.json`), "utf8")).rejects.toThrow();
+    } finally {
+      pair2Hold.release?.();
+      await removeCacheDir(directory);
+    }
   });
 
   it("resumes an all-markets fill across a Gecko 429 and writes the cache when every pool resolves", async () => {
@@ -1086,7 +1303,7 @@ describe("SolanaMarketDataSource", () => {
       await expect(readFile(join(directory, `${tslaMint}.progress.json`), "utf8")).rejects.toThrow();
     } finally {
       pair2Hold.release?.();
-      await rm(directory, { recursive: true, force: true });
+      await removeCacheDir(directory);
     }
   });
 
@@ -1129,7 +1346,7 @@ describe("SolanaMarketDataSource", () => {
       expect(done.resolvedPools).toBe(2);
       await expect(readFile(join(directory, `${tslaMint}.json`), "utf8")).rejects.toThrow();
     } finally {
-      await rm(directory, { recursive: true, force: true });
+      await removeCacheDir(directory);
     }
   });
 
@@ -1195,7 +1412,7 @@ describe("SolanaMarketDataSource", () => {
       expect(urls.some((url) => url.includes("limit=60") && url.includes("pair-2"))).toBe(true);
       await expect(readFile(join(directory, `${tslaMint}.json`), "utf8")).resolves.toContain("\"volumeUsd\":11000");
     } finally {
-      await rm(directory, { recursive: true, force: true });
+      await removeCacheDir(directory);
     }
   });
 
