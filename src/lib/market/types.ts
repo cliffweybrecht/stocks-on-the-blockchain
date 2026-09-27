@@ -89,11 +89,11 @@ export interface AssetPoolMark {
   /** Unique wallets are not on the DexScreener pair payload we fetch. */
   wallets24h?: number | null;
   /**
-   * Holder count for the asset mint this pool belongs to.
-   * Jupiter Tokens V2 `holderCount` — a mint metric, copied onto every pool of that asset.
-   * Not a per-pool count and not a 24h wallet count. Unknown stays null.
+   * Jupiter Tokens V2 holderCount for the other mint in this pair (not the asset-page mint).
+   * SI-NVDAx shows SI, NVDAx-USDC shows USDC. Unknown stays null.
+   * Not a pool LP count and not a 24h wallet count.
    */
-  holderCount?: number | null;
+  otherHolderCount?: number | null;
   tradesChange24hPct?: number | null;
   walletsChange24hPct?: number | null;
 }

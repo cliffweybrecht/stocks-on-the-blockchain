@@ -107,7 +107,7 @@ describe("mapDexScreenerPairsToSolanaAssets", () => {
       labels: ["CLMM"],
       trades24h: 2703,
       wallets24h: null,
-      holderCount: null,
+      otherHolderCount: null,
       tradesChange24hPct: null,
       walletsChange24hPct: null,
       url: "https://dexscreener.com/solana/pair-tsla-usdc",
@@ -420,13 +420,13 @@ describe("mapDexScreenerPairsToSolanaAssets", () => {
       url: "https://dexscreener.com/solana/custom-tsla",
       trades24h: 14,
       wallets24h: null,
-      holderCount: null,
+      otherHolderCount: null,
       tradesChange24hPct: null,
       walletsChange24hPct: null,
     });
     expect(pools[1]?.trades24h).toBeNull();
     expect(pools[1]?.wallets24h).toBeNull();
-    expect(pools[1]?.holderCount).toBeNull();
+    expect(pools[1]?.otherHolderCount).toBeNull();
   });
 
   it("keeps classified registry mints with no DexScreener pools as null-volume rows", () => {

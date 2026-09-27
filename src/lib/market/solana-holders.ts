@@ -18,36 +18,79 @@ export function asHolderCount(value: unknown): number | null {
 }
 
 /**
- * Read `holderCount` only from the row whose id is the requested mint.
+ * Read `holderCount` for each requested mint.
  * `stats24h.numTraders` is a different metric and is ignored.
- * A matching row with no usable count stays null — we do not scan later rows for a substitute.
+ * The first matching row wins. A later row does not fill in a missing count.
+ * Mints absent from the payload are omitted — the caller decides how to cache that miss.
  */
-export function parseJupiterHolderCount(payload: unknown, mint: string): number | null {
-  const requested = asNonEmptyString(mint);
-  if (!requested || !Array.isArray(payload)) return null;
+export function parseJupiterHolderCounts(
+  payload: unknown,
+  requestedMints: ReadonlySet<string>,
+): Map<string, number | null> {
+  const counts = new Map<string, number | null>();
+  if (!Array.isArray(payload) || requestedMints.size === 0) return counts;
   for (const row of payload) {
     if (!row || typeof row !== "object") continue;
     const rec = row as { id?: unknown; address?: unknown; holderCount?: unknown };
     const id = asNonEmptyString(rec.id) ?? asNonEmptyString(rec.address);
-    if (id !== requested) continue;
-    return asHolderCount(rec.holderCount);
+    if (!id || !requestedMints.has(id) || counts.has(id)) continue;
+    counts.set(id, asHolderCount(rec.holderCount));
+  }
+  return counts;
+}
+
+/** Read `holderCount` only from the row whose id is the requested mint. */
+export function parseJupiterHolderCount(payload: unknown, mint: string): number | null {
+  const requested = asNonEmptyString(mint);
+  if (!requested) return null;
+  return parseJupiterHolderCounts(payload, new Set([requested])).get(requested) ?? null;
+}
+
+/** Set the asset-page mint holder count. Pool rows keep their own counterparty counts. */
+export function applyMintHolderCount(asset: { holderCount: number | null }, holderCount: number | null): void {
+  asset.holderCount = holderCount;
+}
+
+export interface PairHolderSide {
+  baseAddress?: string | null;
+  quoteAddress?: string | null;
+  baseSymbol?: string | null;
+  quoteSymbol?: string | null;
+}
+
+/**
+ * The mint on this pair that is not the asset page.
+ * SI-NVDAx on the NVDAx page is SI. NVDAx-USDC is USDC. WOOLLY-NVDAx is WOOLLY.
+ * A pair that does not include the page mint has no counterparty to show.
+ */
+export function counterpartyHolderSide(
+  pool: PairHolderSide,
+  assetMint: string,
+): { mint: string; symbol: string | null } | null {
+  const asset = assetMint.trim();
+  if (!asset) return null;
+  const base = asNonEmptyString(pool.baseAddress);
+  const quote = asNonEmptyString(pool.quoteAddress);
+  if (base === asset && quote && quote !== asset) {
+    return { mint: quote, symbol: asNonEmptyString(pool.quoteSymbol) };
+  }
+  if (quote === asset && base && base !== asset) {
+    return { mint: base, symbol: asNonEmptyString(pool.baseSymbol) };
   }
   return null;
 }
 
 /**
- * Copy one mint's holder count onto the asset and every pool row.
- * Holders are not a per-pool figure. Passing null clears a previous stamp; it does not become 0.
+ * Stamp each pool with the other mint's holder count.
+ * A missing mint or a missing count stays null. It is not replaced with the page asset's count.
  */
-export function applyMintHolderCount(
-  asset: {
-    holderCount: number | null;
-    pools: readonly { holderCount?: number | null }[];
-  },
-  holderCount: number | null,
+export function applyOtherHolderCounts<T extends PairHolderSide & { otherHolderCount?: number | null }>(
+  assetMint: string,
+  pools: readonly T[],
+  counts: ReadonlyMap<string, number | null>,
 ): void {
-  asset.holderCount = holderCount;
-  for (const pool of asset.pools) {
-    pool.holderCount = holderCount;
+  for (const pool of pools) {
+    const side = counterpartyHolderSide(pool, assetMint);
+    pool.otherHolderCount = side ? (counts.get(side.mint) ?? null) : null;
   }
 }
