@@ -8,10 +8,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { marketsPairLabel, marketsPoolHref, marketsTokenLogoUrl } from "@/lib/desk/markets-pool";
+import {
+  MARKETS_HOLDERS_HEADER,
+  marketsPairHolderCount,
+  marketsPairLabel,
+  marketsPoolHref,
+  marketsTokenLogoUrl,
+} from "@/lib/desk/markets-pool";
 import { marketsPoolVenues } from "@/lib/desk/venues";
 import { formatAddress, formatCountCompact, formatPct, formatUsdCompact } from "@/lib/market/format";
-import { counterpartyHolderSide } from "@/lib/market/solana-holders";
 import type { AssetDetail, AssetPoolMark } from "@/lib/market/types";
 
 function changeTone(value: number | null): "up" | "down" | "flat" | "empty" {
@@ -133,9 +138,9 @@ export function MarketsTable({
               <TableHead className="text-right font-normal text-muted-foreground">24h Trades</TableHead>
               <TableHead
                 className="text-right font-normal text-muted-foreground"
-                title="Jupiter holder count for the other mint in the pair. This asset's holders stay on the statistics card."
+                title="DexScreener LP holders for this pool. A missing count stays blank."
               >
-                Other holders
+                {MARKETS_HOLDERS_HEADER}
               </TableHead>
               <TableHead className="pl-4 text-right font-normal text-muted-foreground">Venue</TableHead>
             </TableRow>
@@ -150,8 +155,7 @@ export function MarketsTable({
               });
               const address = pool.pairAddress.trim();
               const trades = pool.trades24h ?? null;
-              const other = counterpartyHolderSide(pool, asset.contractAddress);
-              const holders = pool.otherHolderCount ?? null;
+              const holders = marketsPairHolderCount(pool);
 
               return (
                 <TableRow
@@ -200,8 +204,7 @@ export function MarketsTable({
                   <TableCell
                     className="py-3.5"
                     data-holders={holders === null ? "missing" : String(holders)}
-                    data-other-mint={other?.mint ?? ""}
-                    title={other?.symbol ? `${other.symbol} holders` : "Holder count for the other mint in this pair"}
+                    title="DexScreener LP holders for this pool"
                   >
                     <MarketsMetric value={holders} change={null} format={formatCountCompact} />
                   </TableCell>

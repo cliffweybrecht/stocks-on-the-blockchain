@@ -298,6 +298,11 @@ describe("createMarketDataSource", () => {
     );
     expect(solanaSourceOptionsFromEnv({}).enableJupiterHolders).toBe(true);
     expect(solanaSourceOptionsFromEnv({ SOLANA_JUPITER_HOLDERS_ENABLED: "false" }).enableJupiterHolders).toBe(false);
+    expect(solanaSourceOptionsFromEnv({}).enablePairHolders).toBe(true);
+    expect(solanaSourceOptionsFromEnv({ SOLANA_PAIR_HOLDERS_ENABLED: "false" }).enablePairHolders).toBe(false);
+    expect(solanaSourceOptionsFromEnv({ SOLANA_DEXSCREENER_IO_BASE_URL: "https://io.example" }).dexScreenerIoBaseUrl).toBe(
+      "https://io.example",
+    );
     expect(createSolanaMarketDataSource({ SOLANA_DEXSCREENER_BASE_URL: "https://dex.example" })).toBeInstanceOf(
       SolanaMarketDataSource,
     );

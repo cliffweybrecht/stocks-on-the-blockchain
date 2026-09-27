@@ -2,13 +2,14 @@ import { createRequestGate, mapWithConcurrency, sleep } from "./async-pool";
 import { findAssetByKey } from "./identity";
 import { buildSolanaSnapshot, unwrapDexScreenerPairs, unwrapDexScreenerSearch, type DexScreenerPair } from "./map-solana";
 import {
-  applyOtherHolderCounts,
-  counterpartyHolderSide,
+  applyPairHolderCounts,
+  DEFAULT_DEXSCREENER_IO_BASE_URL,
+  dexScreenerPairDetailsPath,
   HOLDER_FETCH_TIMEOUT_MS,
   MINT_HOLDER_CACHE_MS,
   MINT_HOLDER_MISS_CACHE_MS,
+  parseDexScreenerPairHolderCount,
   parseJupiterHolderCounts,
-  type PairHolderSide,
 } from "./solana-holders";
 import {
   applyMintLogoFallbacks,
@@ -216,9 +217,13 @@ export interface SolanaMarketDataSourceOptions {
   enableJupiterTokenLogos?: boolean;
   jupiterTokenBaseUrl?: string;
   mintLogoCacheMs?: number;
-  /** Jupiter Tokens V2 holderCount for the asset page. Default on. */
+  /** Jupiter Tokens V2 holderCount for the asset statistics card. Default on. */
   enableJupiterHolders?: boolean;
-  /** Cache TTL after Jupiter returns a holder payload, including a real null. */
+  /** DexScreener pair-details `lpHolders.count` for the Markets Holders column. Default on. */
+  enablePairHolders?: boolean;
+  /** io.dexscreener.com host. The public pair API does not return LP holders. */
+  dexScreenerIoBaseUrl?: string;
+  /** Cache TTL after a holder payload, including a real null. */
   holderCacheMs?: number;
   /** Solana JSON-RPC for `getTokenSupply`. Default: public mainnet-beta. */
   rpcUrl?: string;
@@ -289,6 +294,8 @@ export class SolanaMarketDataSource implements MarketDataSource {
   private mintSupplyCache = new Map<string, { uiSupply: number; expiresAt: number }>();
   private holderCache = new Map<string, { count: number | null; expiresAt: number }>();
   private holderInflight = new Map<string, Promise<number | null>>();
+  private pairHolderCache = new Map<string, { count: number | null; expiresAt: number }>();
+  private pairHolderInflight = new Map<string, Promise<number | null>>();
 
   constructor(private readonly options: SolanaMarketDataSourceOptions = {}) {
     this.memory = new SolanaHydrateMemory(options.emptyCacheMs ?? SOLANA_DEFAULTS.emptyCacheMs);
@@ -361,6 +368,14 @@ export class SolanaMarketDataSource implements MarketDataSource {
 
   private get jupiterHoldersEnabled() {
     return this.options.enableJupiterHolders !== false;
+  }
+
+  private get pairHoldersEnabled() {
+    return this.options.enablePairHolders !== false;
+  }
+
+  private get dexScreenerIoBaseUrl() {
+    return (this.options.dexScreenerIoBaseUrl ?? DEFAULT_DEXSCREENER_IO_BASE_URL).replace(/\/+$/, "");
   }
 
   private get holderCacheMs() {
@@ -1342,25 +1357,36 @@ export class SolanaMarketDataSource implements MarketDataSource {
 
   /**
    * Statistics use the page mint's Jupiter holderCount.
-   * Each Markets row uses the other mint in that pair, so SI-NVDAx and NVDAx-USDC can differ.
-   * Unique mints are batched into one search. Chain snapshots do not pay for this lookup.
+   * Each Markets row uses DexScreener `lpHolders.count` for that pool address.
+   * Quote-mint counts are not copied onto pools. Chain snapshots do not pay for either lookup.
    */
   private async stampHolderCounts(asset: {
     contractAddress: string;
     holderCount: number | null;
-    pools: readonly (PairHolderSide & { otherHolderCount?: number | null })[];
+    pools: readonly { pairAddress: string; pairHolderCount?: number | null }[];
   }): Promise<void> {
-    if (!this.jupiterHoldersEnabled) return;
+    await Promise.all([
+      this.jupiterHoldersEnabled ? this.stampMintHolderCount(asset) : Promise.resolve(),
+      this.pairHoldersEnabled ? this.stampPairHolderCounts(asset.pools) : Promise.resolve(),
+    ]);
+  }
+
+  private async stampMintHolderCount(asset: { contractAddress: string; holderCount: number | null }): Promise<void> {
     const assetMint = asset.contractAddress.trim();
-    const mints: string[] = [];
-    if (assetMint) mints.push(assetMint);
-    for (const pool of asset.pools) {
-      const side = counterpartyHolderSide(pool, assetMint);
-      if (side) mints.push(side.mint);
+    if (!assetMint) {
+      asset.holderCount = null;
+      return;
     }
-    const counts = await this.holderCountsForMints(mints);
-    asset.holderCount = assetMint ? (counts.get(assetMint) ?? null) : null;
-    applyOtherHolderCounts(assetMint, asset.pools, counts);
+    const counts = await this.holderCountsForMints([assetMint]);
+    asset.holderCount = counts.get(assetMint) ?? null;
+  }
+
+  private async stampPairHolderCounts(
+    pools: readonly { pairAddress: string; pairHolderCount?: number | null }[],
+  ): Promise<void> {
+    const addresses = pools.map((pool) => pool.pairAddress.trim()).filter(Boolean);
+    const counts = await this.pairHolderCountsForAddresses(addresses);
+    applyPairHolderCounts(pools, counts);
   }
 
   private async holderCountsForMints(mints: readonly string[]): Promise<Map<string, number | null>> {
@@ -1430,6 +1456,72 @@ export class SolanaMarketDataSource implements MarketDataSource {
       }
     }
     return result;
+  }
+
+  private async pairHolderCountsForAddresses(addresses: readonly string[]): Promise<Map<string, number | null>> {
+    const unique = [...new Set(addresses.map((address) => address.trim()).filter(Boolean))];
+    const out = new Map<string, number | null>();
+    const now = Date.now();
+    const toFetch: string[] = [];
+    const waiting: Promise<void>[] = [];
+    for (const address of unique) {
+      const cached = this.pairHolderCache.get(address);
+      if (cached && cached.expiresAt > now) {
+        out.set(address, cached.count);
+        continue;
+      }
+      const pending = this.pairHolderInflight.get(address);
+      if (pending) {
+        waiting.push(
+          pending.then((count) => {
+            out.set(address, count);
+          }),
+        );
+        continue;
+      }
+      toFetch.push(address);
+    }
+    if (toFetch.length > 0) {
+      const gate = this.gate();
+      const timeoutMs = Math.min(this.timeoutMs, HOLDER_FETCH_TIMEOUT_MS);
+      const tasks = toFetch.map((address) => {
+        const task = (async () => {
+          const path = dexScreenerPairDetailsPath(address);
+          if (!path) return null;
+          try {
+            const payload = await gate.run(() =>
+              fetchJsonOrText(
+                `${this.dexScreenerIoBaseUrl}${path}`,
+                timeoutMs,
+                this.fetchImpl,
+                "DexScreener pair holders",
+                0,
+              ),
+            );
+            const count = parseDexScreenerPairHolderCount(payload);
+            this.pairHolderCache.set(address, { count, expiresAt: Date.now() + this.holderCacheMs });
+            return count;
+          } catch {
+            this.pairHolderCache.set(address, {
+              count: null,
+              expiresAt: Date.now() + MINT_HOLDER_MISS_CACHE_MS,
+            });
+            return null;
+          }
+        })();
+        this.pairHolderInflight.set(address, task);
+        return task.then((count) => {
+          out.set(address, count);
+        });
+      });
+      try {
+        await Promise.all(tasks);
+      } finally {
+        for (const address of toFetch) this.pairHolderInflight.delete(address);
+      }
+    }
+    await Promise.all(waiting);
+    return out;
   }
 
   async getEquityVolumeHistory(): Promise<EquityVolumeHistoryResult> {
