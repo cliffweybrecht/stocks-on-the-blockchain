@@ -42,10 +42,13 @@ export function CopyAddress({
   address,
   compact = false,
   variant,
+  showAddress = true,
 }: {
   address: string;
   compact?: boolean;
   variant?: "default" | "compact" | "inline";
+  /** Inline header rows can keep the copy control without printing the mint. */
+  showAddress?: boolean;
 }) {
   const [status, setStatus] = useState<"idle" | "copied">("idle");
   const mode = variant ?? (compact ? "compact" : "default");
@@ -62,7 +65,7 @@ export function CopyAddress({
   if (mode === "inline") {
     return (
       <span className="inline-flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-        <span className="num truncate">{formatAddress(address)}</span>
+        {showAddress ? <span className="num truncate">{formatAddress(address)}</span> : null}
         <button
           type="button"
           onClick={onCopy}
