@@ -281,23 +281,33 @@ export function AssetTable({
           included in the Daily Volume headline.
         </p>
       ) : null}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          onInput={(event) => setQuery(event.currentTarget.value)}
-          placeholder="Filter this list · / jumps to an asset"
-          aria-label="Filter stocks in this list"
-          className="h-8 w-full max-w-md rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-        />
-        <div className="flex flex-wrap gap-2 text-xs" data-desk-sort>
+      {solanaDesk ? (
+        <div className="flex flex-wrap justify-end gap-2 text-xs" data-desk-sort>
           {sortColumns.map(([key, label]) => (
             <Link key={key} href={hrefFor({ sortKey: key })} scroll={false} className={chipClass(sortKey === key)}>
               {label}
             </Link>
           ))}
         </div>
-      </div>
+      ) : (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            onInput={(event) => setQuery(event.currentTarget.value)}
+            placeholder="Filter this list · / jumps to an asset"
+            aria-label="Filter stocks in this list"
+            className="h-8 w-full max-w-md rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+          />
+          <div className="flex flex-wrap gap-2 text-xs" data-desk-sort>
+            {sortColumns.map(([key, label]) => (
+              <Link key={key} href={hrefFor({ sortKey: key })} scroll={false} className={chipClass(sortKey === key)}>
+                {label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
       {enableFavorites ? (
         <DeskHeaderActions>
           <DeskCsvButton rows={rows} lane={lane} coverage={coverageFilter} sortKey={sortKey} />
@@ -311,26 +321,30 @@ export function AssetTable({
           hiddenCount={compareHidden}
         />
       ) : null}
-      <div className="flex flex-wrap gap-2 text-xs">
-        {coverageChips.map(([key, label]) => (
-          <Link key={key} href={hrefFor({ coverage: key })} scroll={false} className={chipClass(coverageFilter === key)}>
-            {label}
-          </Link>
-        ))}
-        {enableFavorites ? (
-          <Link href={hrefFor({ pinned: !pinnedOnly })} scroll={false} className={chipClass(pinnedOnly)}>
-            Pinned{favorites.ready && favorites.favoriteMints.length > 0 ? ` (${favorites.favoriteMints.length})` : ""}
-          </Link>
-        ) : null}
-      </div>
-      <p className="text-xs text-muted-foreground" aria-live="polite">
-        Ranked by {SORT_LABELS[sortKey]}
-        {sortKey === "volume24hUsd" ? " (coverage, then volume, liquidity, pools)" : ""}
-        {enableFavorites && !pinnedOnly ? " · pinned float to the top" : ""} · showing {rows.length} of {totalInLane}
-        {coverageFilter !== "all" ? ` · ${coverageFilter.replace("-", " ")}` : ""}
-        {activeIssuerLabel ? ` · ${activeIssuerLabel}` : ""}
-        {pinnedOnly ? " · pinned" : ""}
-      </p>
+      {solanaDesk ? null : (
+        <div className="flex flex-wrap gap-2 text-xs">
+          {coverageChips.map(([key, label]) => (
+            <Link key={key} href={hrefFor({ coverage: key })} scroll={false} className={chipClass(coverageFilter === key)}>
+              {label}
+            </Link>
+          ))}
+          {enableFavorites ? (
+            <Link href={hrefFor({ pinned: !pinnedOnly })} scroll={false} className={chipClass(pinnedOnly)}>
+              Pinned{favorites.ready && favorites.favoriteMints.length > 0 ? ` (${favorites.favoriteMints.length})` : ""}
+            </Link>
+          ) : null}
+        </div>
+      )}
+      {solanaDesk ? null : (
+        <p className="text-xs text-muted-foreground" aria-live="polite">
+          Ranked by {SORT_LABELS[sortKey]}
+          {sortKey === "volume24hUsd" ? " (coverage, then volume, liquidity, pools)" : ""}
+          {enableFavorites && !pinnedOnly ? " · pinned float to the top" : ""} · showing {rows.length} of {totalInLane}
+          {coverageFilter !== "all" ? ` · ${coverageFilter.replace("-", " ")}` : ""}
+          {activeIssuerLabel ? ` · ${activeIssuerLabel}` : ""}
+          {pinnedOnly ? " · pinned" : ""}
+        </p>
+      )}
       {hydratingVisible > 0 ? (
         <p className="text-xs text-amber-200/90">
           {hydratingVisible} {hydratingVisible === 1 ? "row is" : "rows are"} still hydrating DexScreener
@@ -338,7 +352,7 @@ export function AssetTable({
             ? " and will appear under With volume once a pair reports 24h volume. Reload to pick up background enrichment."
             : " — that is not the same as confirmed no pools. Volume is unknown, not zero."}
         </p>
-      ) : coverageFilter === "no-pools" ? (
+      ) : !solanaDesk && coverageFilter === "no-pools" ? (
         <p className="text-xs text-muted-foreground">
           Confirmed no pools means DexScreener lookup finished empty. It is not still hydrating, and it is not zero
           volume.
