@@ -51,6 +51,7 @@ export function AssetIdentityHeader({
   const meta = assetIdentityMetaParts(asset);
   const screenerUrl =
     asset.sourceId === "solana" ? dexScreenerTokenUrl(chain.id, asset.contractAddress) : null;
+  const sourceBadge = asset.sourceId === "solana" ? null : sourceRowLabel(asset.sourceId);
   const blurb = description?.trim() || null;
 
   return (
@@ -72,22 +73,7 @@ export function AssetIdentityHeader({
 
           <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
             <span className="font-medium text-foreground">{meta.symbol}</span>
-            <span aria-hidden="true">•</span>
-            <CopyAddress address={asset.contractAddress} variant="inline" />
-          </p>
-
-          {blurb ? <p className="max-w-2xl text-sm text-muted-foreground">{blurb}</p> : null}
-
-          <div className="flex flex-wrap items-center gap-2 pt-0.5">
-            <Badge variant="outline" className="text-muted-foreground">
-              {sourceRowLabel(asset.sourceId)}
-            </Badge>
-            {asset.detailEnriched ? (
-              <Badge variant="secondary" className="text-muted-foreground">
-                Enriched detail
-              </Badge>
-            ) : null}
-            {halt ? <Badge variant="destructive">Trading halt reported</Badge> : null}
+            <CopyAddress address={asset.contractAddress} variant="inline" showAddress={false} />
             {screenerUrl ? (
               <a
                 href={screenerUrl}
@@ -99,12 +85,25 @@ export function AssetIdentityHeader({
                 <ExternalLink className="size-3" />
               </a>
             ) : null}
-            {asset.instrumentKind !== "equity" ? (
-              <span className="text-xs text-muted-foreground">
-                {asset.instrumentKind === "etf" ? "ETF / index" : "Private market"}
-              </span>
-            ) : null}
-          </div>
+          </p>
+
+          {blurb ? <p className="max-w-2xl text-sm text-muted-foreground">{blurb}</p> : null}
+
+          {sourceBadge || halt || asset.instrumentKind !== "equity" ? (
+            <div className="flex flex-wrap items-center gap-2 pt-0.5">
+              {sourceBadge ? (
+                <Badge variant="outline" className="text-muted-foreground">
+                  {sourceBadge}
+                </Badge>
+              ) : null}
+              {halt ? <Badge variant="destructive">Trading halt reported</Badge> : null}
+              {asset.instrumentKind !== "equity" ? (
+                <span className="text-xs text-muted-foreground">
+                  {asset.instrumentKind === "etf" ? "ETF / index" : "Private market"}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
     </header>
