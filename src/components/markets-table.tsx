@@ -138,7 +138,7 @@ export function MarketsTable({
               <TableHead className="text-right font-normal text-muted-foreground">24h Trades</TableHead>
               <TableHead
                 className="text-right font-normal text-muted-foreground"
-                title="DexScreener LP holders for this pool. A missing count stays blank."
+                title="DexScreener holders for this pair. A missing count stays blank."
               >
                 {MARKETS_HOLDERS_HEADER}
               </TableHead>
@@ -204,7 +204,7 @@ export function MarketsTable({
                   <TableCell
                     className="py-3.5"
                     data-holders={holders === null ? "missing" : String(holders)}
-                    title="DexScreener LP holders for this pool"
+                    title="DexScreener holders for this pair"
                   >
                     <MarketsMetric value={holders} change={null} format={formatCountCompact} />
                   </TableCell>

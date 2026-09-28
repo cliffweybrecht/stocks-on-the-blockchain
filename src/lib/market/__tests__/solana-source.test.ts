@@ -2420,7 +2420,7 @@ describe("SolanaMarketDataSource", () => {
     expect(asset?.asset.holderCount).toBeNull();
   });
 
-  it("stamps the page mint from Jupiter and each pool from its own LP holder count", async () => {
+  it("stamps the page mint from Jupiter and each pool from its own pair holder count", async () => {
     const urls: string[] = [];
     const memeMint = "memeMint111111111111111111111111111111111";
     const usdcMint = "usdc";
@@ -2475,9 +2475,11 @@ describe("SolanaMarketDataSource", () => {
     const first = await source.getAsset("solana", "tslax");
     expect(first?.asset.holderCount).toBe(40386);
     const byPair = new Map((first?.asset.pools ?? []).map((pool) => [pool.pairAddress, pool.pairHolderCount]));
-    expect(byPair.get("pair-1")).toBe(18);
-    expect(byPair.get("pair-2-usdc")).toBe(41);
-    expect(byPair.get("pair-meme-quoted-in-tsla")).toBeNull();
+    expect(byPair.get("pair-1")).toBe(40386);
+    expect(byPair.get("pair-2-usdc")).toBe(40386);
+    expect(byPair.get("pair-meme-quoted-in-tsla")).toBe(9);
+    expect(byPair.get("pair-1")).not.toBe(18);
+    expect(byPair.get("pair-meme-quoted-in-tsla")).not.toBe(40386);
     expect(byPair.get("pair-1")).not.toBe(2_000_000);
     expect(byPair.get("pair-2-usdc")).not.toBe(2_000_000);
     const holderUrls = urls.filter((url) => url.includes("/tokens/v2/search"));
@@ -2491,8 +2493,8 @@ describe("SolanaMarketDataSource", () => {
 
     const second = await source.getAsset("solana", tslaMint);
     expect(second?.asset.holderCount).toBe(40386);
-    expect(second?.asset.pools.find((pool) => pool.pairAddress === "pair-2-usdc")?.pairHolderCount).toBe(41);
-    expect(second?.asset.pools.find((pool) => pool.pairAddress === "pair-meme-quoted-in-tsla")?.pairHolderCount).toBeNull();
+    expect(second?.asset.pools.find((pool) => pool.pairAddress === "pair-2-usdc")?.pairHolderCount).toBe(40386);
+    expect(second?.asset.pools.find((pool) => pool.pairAddress === "pair-meme-quoted-in-tsla")?.pairHolderCount).toBe(9);
     expect(urls.filter((url) => url.includes("/tokens/v2/search"))).toHaveLength(1);
     expect(urls.filter((url) => url.includes("/dex/pair-details/"))).toHaveLength(3);
   });

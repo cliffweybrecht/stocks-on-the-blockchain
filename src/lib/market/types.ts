@@ -89,8 +89,8 @@ export interface AssetPoolMark {
   /** Unique wallets are not on the DexScreener pair payload we fetch. */
   wallets24h?: number | null;
   /**
-   * DexScreener pair-details `lpHolders.count` for this pool.
-   * Not the asset mint's holders and not the quote mint's holders. Unknown stays null.
+   * DexScreener pair-details `holders.count` for this pool's base token.
+   * Not copied from the page mint or from another pool. Unknown stays null.
    */
   pairHolderCount?: number | null;
   tradesChange24hPct?: number | null;

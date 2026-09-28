@@ -77,21 +77,23 @@ describe("parseJupiterHolderCounts", () => {
 });
 
 describe("parseDexScreenerPairHolderCount", () => {
-  it("reads lpHolders.count and ignores the base-token holders census", () => {
+  it("reads this pair's holders.count and does not substitute the LP wallet count", () => {
     expect(
       parseDexScreenerPairHolderCount({
         holders: { count: 115946 },
         lpHolders: { count: 18, holders: [{ id: "lp-wallet", balance: "1" }] },
       }),
-    ).toBe(18);
-    expect(parseDexScreenerPairHolderCount({ lpHolders: { count: 0 } })).toBe(0);
-    expect(parseDexScreenerPairHolderCount({ lpHolders: { count: "2245" } })).toBe(2245);
+    ).toBe(115946);
+    expect(parseDexScreenerPairHolderCount({ holders: { count: 120477 }, lpHolders: null })).toBe(120477);
+    expect(parseDexScreenerPairHolderCount({ holders: { count: "20252" }, lpHolders: { count: 4 } })).toBe(20252);
+    expect(parseDexScreenerPairHolderCount({ holders: { count: 0 }, lpHolders: null })).toBe(0);
   });
 
-  it("stays null when LP holders are missing, even if the mint count is present", () => {
-    expect(parseDexScreenerPairHolderCount({ holders: { count: 5_250_000 }, lpHolders: null })).toBeNull();
-    expect(parseDexScreenerPairHolderCount({ holders: { count: 112538 } })).toBeNull();
-    expect(parseDexScreenerPairHolderCount({ lpHolders: { holders: [{ id: "only-a-row" }] } })).toBeNull();
+  it("stays null when this pair did not report holders, even if an LP count is present", () => {
+    expect(parseDexScreenerPairHolderCount({ lpHolders: { count: 4 } })).toBeNull();
+    expect(parseDexScreenerPairHolderCount({ holders: null, lpHolders: { count: 18 } })).toBeNull();
+    expect(parseDexScreenerPairHolderCount({ holders: { holders: [{ id: "only-a-row" }] } })).toBeNull();
+    expect(parseDexScreenerPairHolderCount({ holders: { count: 12.5 }, lpHolders: { count: 2 } })).toBeNull();
     expect(parseDexScreenerPairHolderCount({ lpHolders: { count: 12.5 } })).toBeNull();
     expect(parseDexScreenerPairHolderCount(null)).toBeNull();
   });

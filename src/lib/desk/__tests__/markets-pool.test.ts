@@ -15,26 +15,26 @@ describe("markets holders column", () => {
     expect(MARKETS_HOLDERS_HEADER).not.toMatch(/24h wallets/i);
   });
 
-  it("reads only that pool's LP count and ignores mint holder fields", () => {
-    const orcaUsdc = {
-      pairHolderCount: 18 as number | null,
+  it("reads only that pool's pair holder count and ignores mint holder fields", () => {
+    const nvdaUsdc = {
+      pairHolderCount: 120_477 as number | null,
       holderCount: 112_538,
       otherHolderCount: 5_250_000,
     };
-    const raydiumUsdc = {
-      pairHolderCount: 41 as number | null,
+    const siNvda = {
+      pairHolderCount: 20_252 as number | null,
       holderCount: 112_538,
       otherHolderCount: 5_250_000,
     };
-    const missingLp = {
+    const missing = {
       pairHolderCount: null as number | null,
       holderCount: 5_250_000,
       otherHolderCount: 5_250_000,
     };
-    expect(marketsPairHolderCount(orcaUsdc)).toBe(18);
-    expect(marketsPairHolderCount(raydiumUsdc)).toBe(41);
-    expect(marketsPairHolderCount(orcaUsdc)).not.toBe(marketsPairHolderCount(raydiumUsdc));
-    expect(marketsPairHolderCount(missingLp)).toBeNull();
+    expect(marketsPairHolderCount(nvdaUsdc)).toBe(120_477);
+    expect(marketsPairHolderCount(siNvda)).toBe(20_252);
+    expect(marketsPairHolderCount(nvdaUsdc)).not.toBe(marketsPairHolderCount(siNvda));
+    expect(marketsPairHolderCount(missing)).toBeNull();
     expect(marketsPairHolderCount({ pairHolderCount: 0 })).toBe(0);
   });
 });
