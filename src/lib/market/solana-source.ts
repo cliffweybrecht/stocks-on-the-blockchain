@@ -88,14 +88,20 @@ import {
   allMarketsPairKey,
   deleteAllMarketsProgress,
   readAllMarketsProgress,
-  readCompleteAllMarketsDaily,
+  readStoredAllMarketsVolume,
   writeAllMarketsProgress,
   writeCompleteAllMarketsDaily,
+  writeCompleteAllMarketsHourly,
+  ALL_MARKETS_HOURLY_PROGRESS_SUFFIX,
   DEFAULT_ALL_MARKETS_VOLUME_DIR,
   type AllMarketsProgressPool,
+  type AllMarketsStoredPool,
 } from "./all-markets-volume-cache";
 import {
+  allMarketsLiveSetIsPartial,
+  allMarketsPoolSetCompatible,
   assembleAllMarketsDaily,
+  mergeVolumeSeries,
   uniqueAllMarketsPools,
   type AllMarketsPoolResult,
 } from "./asset-volume-headline";
@@ -214,6 +220,11 @@ interface AllMarketsSlot {
   volume24hUsd: number | null;
   status: AllMarketsSlotStatus;
   points: VolumeHistoryPoint[] | null;
+  /**
+   * Volume is already inside the published series and the candles were not stored.
+   * A later reassemble must merge new pools into that series instead of summing empty candles.
+   */
+  folded?: boolean;
 }
 
 interface AllMarketsJob {
@@ -221,6 +232,8 @@ interface AllMarketsJob {
   pairKey: string;
   pairAddresses: string[];
   slots: AllMarketsSlot[];
+  /** Daily candles feed 7D/30D. Hourly candles feed the 24H line. `daily` holds that series. */
+  series: "daily" | "hourly";
   timer: ReturnType<typeof setTimeout> | null;
   running: boolean;
   hydrated: boolean;
@@ -253,6 +266,8 @@ export class SolanaMarketDataSource implements MarketDataSource {
   private priceHistoryCache = new Map<string, { result: AssetPriceHistoryResult; expiresAt: number }>();
   private priceHistoryInflight = new Map<string, Promise<AssetPriceHistoryResult>>();
   private allMarketsJobs = new Map<string, AllMarketsJob>();
+  /** Hourly series fill. Starts only after the daily series for the same pools is complete. */
+  private hourlyMarketsJobs = new Map<string, AllMarketsJob>();
   /** Serializes GeckoTerminal calls. A 429 sets `geckoCooldownUntil` for every caller. */
   private geckoTail: Promise<unknown> = Promise.resolve();
   private geckoCooldownUntil = 0;
@@ -1694,11 +1709,13 @@ export class SolanaMarketDataSource implements MarketDataSource {
   }
 
   /**
-   * Cached cross-pool daily volume. A hit returns immediately.
+   * Cached cross-pool volume. A hit returns immediately.
    * A miss resumes a background job and does not wait for Gecko.
    * One pool is attempted per turn. A 429 leaves that pool open, arms the
    * shared cooldown, and schedules the next turn outside the Gecko queue.
-   * The detail chart's primary-pool fetch is not part of this path.
+   * Daily candles finish first. Hourly candles for the 24H line start after that
+   * and do not hold the daily snapshot. The detail chart's primary-pool fetch
+   * is not part of this path.
    */
   async getAssetAllMarketsVolumeSnapshot(chainId: string, symbol: string): Promise<AssetAllMarketsVolumeSnapshot> {
     if (chainId !== SOLANA_CHAIN_ID || !this.geckoEnabled) return emptyAllMarketsVolumeSnapshot();
@@ -1722,31 +1739,148 @@ export class SolanaMarketDataSource implements MarketDataSource {
     const pairAddresses = pools.map((pool) => pool.pairAddress);
     const pairKey = allMarketsPairKey(pairAddresses);
     const now = Date.now();
-    const current = this.allMarketsJobs.get(mint);
-    if (current && current.pairKey !== pairKey) this.stopAllMarketsJob(current);
     const active = this.allMarketsJobs.get(mint);
-    if (active && active.pairKey === pairKey && (!active.finished || active.expiresAt > now)) {
-      return this.ensureAllMarketsJob(active);
+    if (active && (!active.finished || active.expiresAt > now)) {
+      this.reconcileAllMarketsJob(active, pools);
+      const hourly = this.hourlyMarketsJobs.get(mint);
+      if (hourly) this.reconcileAllMarketsJob(hourly, pools);
+      return this.withHourlySeries(await this.ensureAllMarketsJob(active), mint, this.jobPools(active));
     }
 
-    const disk = await readCompleteAllMarketsDaily({
+    const stored = await readStoredAllMarketsVolume({
       directory: this.allMarketsVolumeCacheDir,
       mint,
       pairAddresses,
       nowMs: now,
       ttlMs: this.volumeHistoryCacheMs,
     });
-    if (disk) {
-      const remembered = this.rememberCompleteAllMarkets(mint, pairKey, pools, disk, now);
-      return this.allMarketsSnapshot(remembered);
+    if (stored) {
+      const partial = allMarketsLiveSetIsPartial(stored.pairAddresses, pairAddresses);
+      const rememberedPools = partial ? this.poolsForStoredSet(stored.pairAddresses, pools) : pools;
+      const rememberedKey = allMarketsPairKey(rememberedPools.map((pool) => pool.pairAddress));
+      const remembered = this.rememberCompleteAllMarkets(
+        mint,
+        rememberedKey,
+        rememberedPools,
+        stored.daily,
+        stored.pairAddresses,
+        stored.dailyPools,
+        now,
+      );
+      if (stored.hourly !== null) {
+        this.rememberCompleteHourly(
+          mint,
+          rememberedKey,
+          rememberedPools,
+          stored.hourly,
+          stored.pairAddresses,
+          stored.hourlyPools,
+          now,
+        );
+      }
+      return this.withHourlySeries(await this.ensureAllMarketsJob(remembered), mint, this.jobPools(remembered));
     }
 
     const raced = this.allMarketsJobs.get(mint);
-    if (raced && raced.pairKey === pairKey && !raced.finished) return this.ensureAllMarketsJob(raced);
+    if (raced && !raced.finished) {
+      this.reconcileAllMarketsJob(raced, pools);
+      return this.withHourlySeries(await this.ensureAllMarketsJob(raced), mint, this.jobPools(raced));
+    }
+
+    const progress = await readAllMarketsProgress({
+      directory: this.allMarketsVolumeCacheDir,
+      mint,
+      pairAddresses,
+      nowMs: now,
+      ttlMs: this.volumeHistoryCacheMs,
+    });
+    if (progress && allMarketsLiveSetIsPartial(progress.pairAddresses, pairAddresses)) {
+      const hourlyProgress = await readAllMarketsProgress({
+        directory: this.allMarketsVolumeCacheDir,
+        mint,
+        pairAddresses,
+        nowMs: now,
+        ttlMs: this.volumeHistoryCacheMs,
+        suffix: ALL_MARKETS_HOURLY_PROGRESS_SUFFIX,
+      });
+      return {
+        pending: true,
+        complete: false,
+        daily: [],
+        resolvedPools: progress.pools.length,
+        totalPools: progress.pairAddresses.length,
+        hourly: [],
+        hourlyPending: hourlyProgress !== null && hourlyProgress.pools.length < hourlyProgress.pairAddresses.length,
+        hourlyComplete: false,
+        hourlyResolvedPools: hourlyProgress?.pools.length ?? 0,
+        hourlyTotalPools: hourlyProgress?.pairAddresses.length ?? progress.pairAddresses.length,
+      };
+    }
 
     const created = this.createAllMarketsJob(mint, pairKey, pools);
     this.allMarketsJobs.set(mint, created);
-    return this.ensureAllMarketsJob(created);
+    return this.withHourlySeries(await this.ensureAllMarketsJob(created), mint, this.jobPools(created));
+  }
+
+  private jobPools(job: AllMarketsJob): { pairAddress: string; volume24hUsd: number | null }[] {
+    return job.slots.map((slot) => ({ pairAddress: slot.pairAddress, volume24hUsd: slot.volume24hUsd }));
+  }
+
+  /** Keep the saved pair set when the live list is a partial payload. Volumes come from the live rows that overlap. */
+  private poolsForStoredSet(
+    storedAddresses: readonly string[],
+    live: readonly { pairAddress: string; volume24hUsd: number | null }[],
+  ): { pairAddress: string; volume24hUsd: number | null }[] {
+    const byPair = new Map(live.map((pool) => [pool.pairAddress, pool.volume24hUsd]));
+    return storedAddresses.map((pairAddress) => ({
+      pairAddress,
+      volume24hUsd: byPair.get(pairAddress) ?? null,
+    }));
+  }
+
+  /**
+   * Keep resolved pools when DexScreener's pair list gains or drops a few addresses.
+   * A much smaller list is ignored so a partial payload cannot restart a 30-pool fill.
+   * A published series stays published while any new pools are still fetching.
+   */
+  private reconcileAllMarketsJob(
+    job: AllMarketsJob,
+    livePools: readonly { pairAddress: string; volume24hUsd: number | null }[],
+  ): void {
+    const live = uniqueAllMarketsPools(livePools);
+    const liveAddresses = live.map((pool) => pool.pairAddress);
+    const nextKey = allMarketsPairKey(liveAddresses);
+    if (nextKey === job.pairKey) {
+      const byPair = new Map(live.map((pool) => [pool.pairAddress, pool]));
+      for (const slot of job.slots) {
+        const row = byPair.get(slot.pairAddress);
+        if (row) slot.volume24hUsd = row.volume24hUsd;
+      }
+      return;
+    }
+    if (!allMarketsPoolSetCompatible(job.pairAddresses, liveAddresses)) return;
+
+    const previous = new Map(job.slots.map((slot) => [slot.pairAddress, slot]));
+    const next: AllMarketsSlot[] = [];
+    for (const pool of live) {
+      const existing = previous.get(pool.pairAddress);
+      if (existing) {
+        existing.volume24hUsd = pool.volume24hUsd;
+        next.push(existing);
+        continue;
+      }
+      next.push({
+        pairAddress: pool.pairAddress,
+        volume24hUsd: pool.volume24hUsd,
+        status: "open",
+        points: null,
+      });
+    }
+    job.slots = next;
+    job.pairAddresses = liveAddresses;
+    job.pairKey = nextKey;
+    job.finished = false;
+    if (!job.complete) job.daily = [];
   }
 
   private createAllMarketsJob(
@@ -1764,6 +1898,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
         status: "open",
         points: null,
       })),
+      series: "daily",
       timer: null,
       running: false,
       hydrated: false,
@@ -1780,20 +1915,114 @@ export class SolanaMarketDataSource implements MarketDataSource {
     pairKey: string,
     pools: readonly { pairAddress: string; volume24hUsd: number | null }[],
     daily: VolumeHistoryPoint[],
+    covered: readonly string[],
+    candles: readonly AllMarketsStoredPool[] | null,
     now: number,
   ): AllMarketsJob {
     const job = this.createAllMarketsJob(mint, pairKey, pools);
-    for (const slot of job.slots) {
-      slot.status = "points";
-      slot.points = [];
-    }
-    job.hydrated = true;
-    job.finished = true;
-    job.complete = true;
-    job.daily = daily;
-    job.expiresAt = now + this.volumeHistoryCacheMs;
+    this.applyRememberedSeries(job, daily, covered, candles, now);
     this.allMarketsJobs.set(mint, job);
     return job;
+  }
+
+  private createHourlyJob(
+    mint: string,
+    pairKey: string,
+    pools: readonly { pairAddress: string; volume24hUsd: number | null }[],
+  ): AllMarketsJob {
+    const job = this.createAllMarketsJob(mint, pairKey, pools);
+    job.series = "hourly";
+    return job;
+  }
+
+  private rememberCompleteHourly(
+    mint: string,
+    pairKey: string,
+    pools: readonly { pairAddress: string; volume24hUsd: number | null }[],
+    hourly: VolumeHistoryPoint[],
+    covered: readonly string[],
+    candles: readonly AllMarketsStoredPool[] | null,
+    now: number,
+  ): AllMarketsJob {
+    const job = this.createHourlyJob(mint, pairKey, pools);
+    this.applyRememberedSeries(job, hourly, covered, candles, now);
+    this.hourlyMarketsJobs.set(mint, job);
+    return job;
+  }
+
+  /** Restore a published series onto the live pool list without zeroing pools that were already summed. */
+  private applyRememberedSeries(
+    job: AllMarketsJob,
+    series: VolumeHistoryPoint[],
+    covered: readonly string[],
+    candles: readonly AllMarketsStoredPool[] | null,
+    now: number,
+  ): void {
+    const coveredSet = new Set(covered.map((address) => address.trim()).filter((address) => address.length > 0));
+    const candleByPair = new Map((candles ?? []).map((pool) => [pool.pairAddress, pool.points]));
+    for (const slot of job.slots) {
+      if (candles && candleByPair.has(slot.pairAddress)) {
+        slot.status = "points";
+        slot.points = candleByPair.get(slot.pairAddress) ?? [];
+        slot.folded = false;
+        continue;
+      }
+      if (coveredSet.has(slot.pairAddress)) {
+        slot.status = "points";
+        slot.points = [];
+        slot.folded = candles === null;
+        continue;
+      }
+      slot.status = "open";
+      slot.points = null;
+      slot.folded = false;
+    }
+    const open = job.slots.some((slot) => slot.status === "open");
+    job.hydrated = true;
+    job.complete = true;
+    job.daily = series;
+    job.expiresAt = now + this.volumeHistoryCacheMs;
+    job.finished = !open && allMarketsPairKey(job.pairAddresses) === allMarketsPairKey(covered);
+  }
+
+  /**
+   * Attach the hourly series without delaying a daily snapshot.
+   * Hourly work starts only after daily is complete, one pool per later turn.
+   * An hourly job already in flight is kept when the pool list wobbles.
+   */
+  private async withHourlySeries(
+    daily: AssetAllMarketsVolumeSnapshot,
+    mint: string,
+    pools: readonly { pairAddress: string; volume24hUsd: number | null }[],
+  ): Promise<AssetAllMarketsVolumeSnapshot> {
+    if (!daily.complete) return this.overlayHourly(daily, mint);
+    let hourly = this.hourlyMarketsJobs.get(mint);
+    if (!hourly || (hourly.finished && hourly.expiresAt <= Date.now() && !hourly.complete)) {
+      hourly = this.createHourlyJob(mint, allMarketsPairKey(pools.map((pool) => pool.pairAddress)), pools);
+      this.hourlyMarketsJobs.set(mint, hourly);
+    }
+    const snap = await this.ensureAllMarketsJob(hourly);
+    return this.overlayHourlySnapshot(daily, snap);
+  }
+
+  private overlayHourly(daily: AssetAllMarketsVolumeSnapshot, mint: string): AssetAllMarketsVolumeSnapshot {
+    const hourly = this.hourlyMarketsJobs.get(mint);
+    if (!hourly) return daily;
+    return this.overlayHourlySnapshot(daily, this.allMarketsSnapshot(hourly));
+  }
+
+  private overlayHourlySnapshot(
+    daily: AssetAllMarketsVolumeSnapshot,
+    hourly: AssetAllMarketsVolumeSnapshot,
+  ): AssetAllMarketsVolumeSnapshot {
+    return {
+      ...daily,
+      hourly: hourly.complete ? hourly.daily : [],
+      hourlyPending: hourly.pending,
+      hourlyComplete: hourly.complete,
+      hourlyResolvedPools: hourly.resolvedPools,
+      hourlyTotalPools: hourly.totalPools,
+    };
   }
 
   private async ensureAllMarketsJob(job: AllMarketsJob): Promise<AssetAllMarketsVolumeSnapshot> {
@@ -1813,22 +2042,24 @@ export class SolanaMarketDataSource implements MarketDataSource {
   private allMarketsSnapshot(job: AllMarketsJob): AssetAllMarketsVolumeSnapshot {
     const totalPools = job.slots.length;
     const resolvedPools = job.slots.filter((slot) => slot.status !== "open").length;
+    const idleHourly = {
+      hourly: [] as VolumeHistoryPoint[],
+      hourlyPending: false,
+      hourlyComplete: false,
+      hourlyResolvedPools: 0,
+      hourlyTotalPools: totalPools,
+    };
     if (job.complete) {
-      return { pending: false, complete: true, daily: job.daily, resolvedPools: totalPools, totalPools };
+      return { pending: false, complete: true, daily: job.daily, resolvedPools: totalPools, totalPools, ...idleHourly };
     }
     if (job.finished) {
-      return { pending: false, complete: false, daily: [], resolvedPools, totalPools };
+      return { pending: false, complete: false, daily: [], resolvedPools, totalPools, ...idleHourly };
     }
-    return { pending: true, complete: false, daily: [], resolvedPools, totalPools };
+    return { pending: true, complete: false, daily: [], resolvedPools, totalPools, ...idleHourly };
   }
 
-  private stopAllMarketsJob(job: AllMarketsJob) {
-    job.finished = true;
-    if (job.timer) {
-      clearTimeout(job.timer);
-      job.timer = null;
-    }
-    if (this.allMarketsJobs.get(job.mint) === job) this.allMarketsJobs.delete(job.mint);
+  private progressSuffix(job: AllMarketsJob): string | undefined {
+    return job.series === "hourly" ? ALL_MARKETS_HOURLY_PROGRESS_SUFFIX : undefined;
   }
 
   private kickAllMarkets(job: AllMarketsJob) {
@@ -1845,6 +2076,14 @@ export class SolanaMarketDataSource implements MarketDataSource {
     }, Math.max(0, delayMs));
     timer.unref?.();
     job.timer = timer;
+  }
+
+  /** Daily fill still has open pools. Hourly waits outside the Gecko queue. */
+  private dailyAllMarketsStillOpen(): boolean {
+    for (const job of this.allMarketsJobs.values()) {
+      if (job.series === "daily" && !job.finished) return true;
+    }
+    return false;
   }
 
   /** Chart and card fetches own the lane. A cooldown is waited outside the queue. */
@@ -1868,9 +2107,10 @@ export class SolanaMarketDataSource implements MarketDataSource {
       mint: job.mint,
       pairAddresses: job.pairAddresses,
       ttlMs: this.volumeHistoryCacheMs,
+      suffix: this.progressSuffix(job),
     });
     if (!saved) return;
-    const byPair = new Map(saved.map((pool) => [pool.pairAddress, pool]));
+    const byPair = new Map(saved.pools.map((pool) => [pool.pairAddress, pool]));
     for (const slot of job.slots) {
       const row = byPair.get(slot.pairAddress);
       if (!row) continue;
@@ -1900,6 +2140,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
       mint: job.mint,
       pairAddresses: job.pairAddresses,
       pools,
+      suffix: this.progressSuffix(job),
     });
   }
 
@@ -1930,7 +2171,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
         this.scheduleAllMarkets(job, this.allMarketsDeferDelayMs());
         return;
       }
-      const outcome = await this.fetchPoolDailyVolumeOnce(open.pairAddress);
+      const outcome = await this.fetchPoolSeriesVolumeOnce(open.pairAddress, job.series);
       if (job.finished) return;
       if (outcome.kind === "deferred") {
         this.scheduleAllMarkets(job, this.allMarketsDeferDelayMs());
@@ -1963,30 +2204,71 @@ export class SolanaMarketDataSource implements MarketDataSource {
     }
   }
 
-  private async finishAllMarketsJob(job: AllMarketsJob) {
-    const results: AllMarketsPoolResult[] = job.slots.map((slot) => ({
+  private slotResults(slots: readonly AllMarketsSlot[]): AllMarketsPoolResult[] {
+    return slots.map((slot) => ({
       pairAddress: slot.pairAddress,
       volume24hUsd: slot.volume24hUsd,
       points: slot.status === "points" ? (slot.points ?? []) : null,
       definitiveMiss: slot.status === "definitive_miss",
     }));
-    const assembled = assembleAllMarketsDaily(results);
+  }
+
+  private async finishAllMarketsJob(job: AllMarketsJob) {
+    const hadFolded = job.slots.some((slot) => slot.folded);
+    let complete = false;
+    let series: VolumeHistoryPoint[] = [];
+    if (hadFolded) {
+      const fresh = job.slots.filter((slot) => !slot.folded);
+      const assembled = assembleAllMarketsDaily(this.slotResults(fresh));
+      if (assembled.complete) {
+        complete = true;
+        series = mergeVolumeSeries(job.daily, assembled.daily);
+        for (const slot of fresh) slot.folded = true;
+      }
+    } else {
+      const assembled = assembleAllMarketsDaily(this.slotResults(job.slots));
+      complete = assembled.complete;
+      series = assembled.complete ? assembled.daily : [];
+    }
     const now = Date.now();
     job.finished = true;
-    job.complete = assembled.complete;
-    job.daily = assembled.complete ? assembled.daily : [];
-    job.expiresAt = now + (assembled.complete ? this.volumeHistoryCacheMs : Math.min(this.volumeHistoryCacheMs, 60_000));
+    job.complete = complete;
+    job.daily = series;
+    job.expiresAt = now + (complete ? this.volumeHistoryCacheMs : Math.min(this.volumeHistoryCacheMs, 60_000));
     if (job.timer) {
       clearTimeout(job.timer);
       job.timer = null;
     }
-    if (!assembled.complete) return;
+    if (!complete) return;
+    const poolCandles = hadFolded
+      ? undefined
+      : job.slots
+          .filter((slot) => slot.status === "points")
+          .map((slot) => ({ pairAddress: slot.pairAddress, points: slot.points ?? [] }));
+    if (job.series === "hourly") {
+      const wrote = await writeCompleteAllMarketsHourly({
+        directory: this.allMarketsVolumeCacheDir,
+        mint: job.mint,
+        pairAddresses: job.pairAddresses,
+        hourly: series,
+        hourlyPools: poolCandles,
+      });
+      if (wrote) {
+        await deleteAllMarketsProgress({
+          directory: this.allMarketsVolumeCacheDir,
+          mint: job.mint,
+          suffix: ALL_MARKETS_HOURLY_PROGRESS_SUFFIX,
+        });
+      }
+      return;
+    }
     const wrote = await writeCompleteAllMarketsDaily({
       directory: this.allMarketsVolumeCacheDir,
       mint: job.mint,
       pairAddresses: job.pairAddresses,
-      daily: assembled.daily,
+      daily: series,
       fetchedAt: now,
+      dailyPools: poolCandles,
     });
     if (wrote) {
       await deleteAllMarketsProgress({ directory: this.allMarketsVolumeCacheDir, mint: job.mint });
@@ -1994,22 +2276,29 @@ export class SolanaMarketDataSource implements MarketDataSource {
   }
 
   /**
-   * One daily OHLCV attempt. A 429 arms the shared cooldown and returns.
-   * The wait happens on the job timer, not inside the Gecko queue.
+   * One OHLCV attempt. Daily uses day candles (limit 60). Hourly uses hour candles (limit 24).
+   * A 429 arms the shared cooldown and returns. The wait happens on the job timer, not inside the Gecko queue.
+   * Hourly does not enter the queue while a daily fill is still open.
    */
-  private async fetchPoolDailyVolumeOnce(pairAddress: string): Promise<
+  private async fetchPoolSeriesVolumeOnce(pairAddress: string, series: "daily" | "hourly"): Promise<
     | { kind: "points"; points: VolumeHistoryPoint[] }
     | { kind: "definitive_miss" }
     | { kind: "rate_limited" }
     | { kind: "failed" }
     | { kind: "deferred" }
   > {
+    if (series === "hourly" && this.dailyAllMarketsStillOpen()) {
+      return { kind: "deferred" };
+    }
     const url = `${this.geckoTerminalBaseUrl}${geckoTerminalOhlcvPath(pairAddress, {
-      timeframe: "day",
-      limit: 60,
+      timeframe: series === "hourly" ? "hour" : "day",
+      limit: series === "hourly" ? 24 : 60,
     })}`;
     return this.enqueueGecko(async () => {
       if (this.priceHistoryInflight.size > 0 || this.cardVolumeSeriesInflight !== null) {
+        return { kind: "deferred" as const };
+      }
+      if (series === "hourly" && this.dailyAllMarketsStillOpen()) {
         return { kind: "deferred" as const };
       }
       try {

@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  allMarketsLiveSetIsPartial,
+  allMarketsPoolSetCompatible,
   assembleAllMarketsDaily,
+  mergeVolumeSeries,
   selectAssetVolumeHeadline,
+  selectAssetVolumeSeries,
   sumObservedVolumeUsd,
   uniqueAllMarketsPools,
 } from "../asset-volume-headline";
@@ -139,6 +143,81 @@ describe("selectAssetVolumeHeadline", () => {
   });
 });
 
+describe("selectAssetVolumeSeries", () => {
+  const hour = NOW - 3_600;
+
+  it("keeps the 24H line on the primary pool until hourly candles are complete", () => {
+    const series = selectAssetVolumeSeries({
+      range: "24h",
+      nowT: NOW,
+      windowSeconds: DAY,
+      primaryPoolPoints: [{ t: hour, volumeUsd: 187_000 }],
+      allMarketsDaily: [{ t: hour, volumeUsd: 9_000_000 }],
+      allMarketsHourly: null,
+    });
+    expect(series.scope).toBe("primary_pool");
+    expect(series.points).toEqual([{ t: hour, volumeUsd: 187_000 }]);
+  });
+
+  it("plots summed hourly candles for 24H once every pool has resolved", () => {
+    const series = selectAssetVolumeSeries({
+      range: "24h",
+      nowT: NOW,
+      windowSeconds: DAY,
+      primaryPoolPoints: [{ t: hour, volumeUsd: 187_000 }],
+      allMarketsDaily: null,
+      allMarketsHourly: [
+        { t: hour, volumeUsd: 4_200_000 },
+        { t: NOW - 2 * DAY, volumeUsd: 9_999 },
+      ],
+    });
+    expect(series).toEqual({
+      scope: "all_markets",
+      points: [{ t: hour, volumeUsd: 4_200_000 }],
+    });
+  });
+
+  it("plots summed daily candles for 7D and 30D and does not fall back when the window is empty", () => {
+    const complete = selectAssetVolumeSeries({
+      range: "7d",
+      nowT: NOW,
+      windowSeconds: 7 * DAY,
+      primaryPoolPoints: [{ t: NOW - DAY, volumeUsd: 187_000 }],
+      allMarketsDaily: [
+        { t: NOW - 2 * DAY, volumeUsd: 5_000_000 },
+        { t: NOW - DAY, volumeUsd: 1_000_000 },
+      ],
+      allMarketsHourly: [{ t: hour, volumeUsd: 12 }],
+    });
+    expect(complete.scope).toBe("all_markets");
+    expect(complete.points).toEqual([
+      { t: NOW - 2 * DAY, volumeUsd: 5_000_000 },
+      { t: NOW - DAY, volumeUsd: 1_000_000 },
+    ]);
+
+    const emptyWindow = selectAssetVolumeSeries({
+      range: "30d",
+      nowT: NOW,
+      windowSeconds: 30 * DAY,
+      primaryPoolPoints: [{ t: NOW - DAY, volumeUsd: 187_000 }],
+      allMarketsDaily: [{ t: NOW - 40 * DAY, volumeUsd: 8_000_000 }],
+      allMarketsHourly: null,
+    });
+    expect(emptyWindow).toEqual({ scope: "all_markets", points: [] });
+
+    const pending = selectAssetVolumeSeries({
+      range: "30d",
+      nowT: NOW,
+      windowSeconds: 30 * DAY,
+      primaryPoolPoints: [{ t: NOW - DAY, volumeUsd: 187_000 }],
+      allMarketsDaily: null,
+      allMarketsHourly: [{ t: hour, volumeUsd: 4_200_000 }],
+    });
+    expect(pending.scope).toBe("primary_pool");
+    expect(pending.points).toEqual([{ t: NOW - DAY, volumeUsd: 187_000 }]);
+  });
+});
+
 describe("assembleAllMarketsDaily", () => {
   it("adds every pool's candle at the same timestamp and drops unresolved pools", () => {
     const complete = assembleAllMarketsDaily([
@@ -198,6 +277,45 @@ describe("assembleAllMarketsDaily", () => {
     ).toEqual([
       ["pool-a", 5],
       ["pool-b", null],
+    ]);
+  });
+});
+
+describe("all-markets pool set wobble", () => {
+  const many = Array.from({ length: 37 }, (_, index) => `pool-${index}`);
+
+  it("treats a one-pool swap on a large set as the same fill", () => {
+    const swapped = [...many.slice(0, 36), "pool-new"];
+    expect(allMarketsPoolSetCompatible(many, swapped)).toBe(true);
+    expect(allMarketsLiveSetIsPartial(many, swapped)).toBe(false);
+    expect(allMarketsPoolSetCompatible(many, many)).toBe(true);
+  });
+
+  it("treats a 3-pool one-swap as compatible and a shrink to one pool as partial", () => {
+    expect(allMarketsPoolSetCompatible(["a", "b", "c"], ["a", "b", "d"])).toBe(true);
+    expect(allMarketsPoolSetCompatible(["a", "b", "c"], ["a"])).toBe(false);
+    expect(allMarketsLiveSetIsPartial(["a", "b", "c"], ["a"])).toBe(true);
+    expect(allMarketsLiveSetIsPartial(many, many.slice(0, 5))).toBe(true);
+    expect(allMarketsPoolSetCompatible(["a", "b"], ["c", "d"])).toBe(false);
+    expect(allMarketsLiveSetIsPartial(["a", "b"], ["c", "d"])).toBe(false);
+  });
+
+  it("adds candles that share a timestamp and leaves missing timestamps missing", () => {
+    expect(
+      mergeVolumeSeries(
+        [
+          { t: 100, volumeUsd: 1_000 },
+          { t: 200, volumeUsd: 50 },
+        ],
+        [
+          { t: 100, volumeUsd: 4_000 },
+          { t: 300, volumeUsd: 7 },
+        ],
+      ),
+    ).toEqual([
+      { t: 100, volumeUsd: 5_000 },
+      { t: 200, volumeUsd: 50 },
+      { t: 300, volumeUsd: 7 },
     ]);
   });
 });

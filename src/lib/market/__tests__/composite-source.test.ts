@@ -21,6 +21,7 @@ import type {
   SourceKind,
 } from "../types";
 import { emptyAssetPriceHistory } from "../asset-price-history";
+import { emptyAllMarketsVolumeSnapshot } from "../types";
 import { emptyEquityVolumeHistory } from "../volume-history";
 
 function provenance(sourceId: SourceKind, label: string, failures: DataProvenance["sourceFailures"] = []): DataProvenance {
@@ -111,7 +112,7 @@ class FakeSource implements MarketDataSource {
   }
 
   getAssetAllMarketsVolumeSnapshot() {
-    return Promise.resolve({ pending: false, complete: false, daily: [], resolvedPools: 0, totalPools: 0 });
+    return Promise.resolve(emptyAllMarketsVolumeSnapshot());
   }
 }
 
