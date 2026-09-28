@@ -8,8 +8,10 @@ import { VolumeSparkline } from "@/components/volume-sparkline";
 import {
   equityCardDayMovePct,
   equityCardDayVolumeSeries,
+  equityCardHeadline,
   equityCardSpotPriceUsd,
 } from "@/lib/desk/equity-card-view";
+import type { AssetSortKey } from "@/lib/market/aggregate";
 import { formatPct, formatPrice, formatUsdCompact } from "@/lib/market/format";
 import type { AssetSummary, VolumeHistoryPoint } from "@/lib/market/types";
 
@@ -27,6 +29,7 @@ function DayMove({ value }: { value: number | null }) {
 export function EquityCard({
   asset,
   href,
+  sortKey = "volume24hUsd",
   dayVolumeSeries,
   enableFavorites,
   pinned,
@@ -34,6 +37,7 @@ export function EquityCard({
 }: {
   asset: AssetSummary;
   href: string;
+  sortKey?: AssetSortKey;
   dayVolumeSeries?: readonly VolumeHistoryPoint[];
   enableFavorites?: boolean;
   pinned?: boolean;
@@ -41,6 +45,7 @@ export function EquityCard({
 }) {
   const priceUsd = equityCardSpotPriceUsd(asset);
   const sparklinePoints = equityCardDayVolumeSeries(dayVolumeSeries);
+  const headline = equityCardHeadline(asset, sortKey);
 
   return (
     <article className="group relative flex min-h-[176px] flex-col overflow-hidden rounded-2xl bg-[#141414] px-4 py-3.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] transition-colors hover:bg-[#1a1a1a]">
@@ -65,11 +70,16 @@ export function EquityCard({
           ) : null}
         </div>
       </div>
-      <p className="relative z-10 mt-5 flex items-baseline gap-1.5 pointer-events-none">
-        <span className="num text-[28px] leading-none font-semibold tracking-tight text-white">
-          {formatUsdCompact(asset.volume24hUsd)}
+      <p
+        className="relative z-10 mt-5 flex items-baseline gap-1.5 pointer-events-none"
+        data-card-metric={headline.kind}
+      >
+        <span className="num text-[28px] leading-none font-semibold tracking-tight text-white" data-card-amount>
+          {formatUsdCompact(headline.amountUsd)}
         </span>
-        <span className="shrink-0 text-sm font-normal leading-none text-neutral-200">Vol</span>
+        <span className="shrink-0 text-sm font-normal leading-none text-neutral-200" data-card-metric-label>
+          {headline.label}
+        </span>
       </p>
       <div className="relative z-10 mt-auto flex min-w-0 items-end gap-2 pt-4 pointer-events-none">
         <div className="flex min-w-0 items-baseline gap-2">

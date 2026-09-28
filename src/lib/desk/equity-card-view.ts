@@ -1,8 +1,44 @@
 import { deskSpotPriceUsd } from "./price-ticker";
+import type { AssetSortKey } from "@/lib/market/aggregate";
 import { sliceEquityCardDayVolumeSeries } from "@/lib/market/equity-card-volume";
 import type { AssetSummary, PriceHistoryPoint, VolumeHistoryPoint } from "@/lib/market/types";
 
 const DAY_SECONDS = 24 * 60 * 60;
+
+export type EquityCardMetricKind = "volume" | "liquidity";
+
+export interface EquityCardHeadline {
+  amountUsd: number | null;
+  label: "Vol" | "Liq";
+  kind: EquityCardMetricKind;
+}
+
+/**
+ * Card headline for the Volume | Liquidity toggle.
+ * Volume is DexScreener 24h (`volume.h24`, summed on the mint).
+ * Liquidity is the desk field `displayedLiquidityUsd` — the sum of DexScreener
+ * `liquidity.usd` already used to rank the Liquidity list. Missing stays missing.
+ * Pools and RH vs DEX sorts keep the volume headline.
+ */
+export function equityCardHeadline(
+  asset: Pick<AssetSummary, "volume24hUsd" | "displayedLiquidityUsd">,
+  sortKey: AssetSortKey,
+): EquityCardHeadline {
+  if (sortKey === "displayedLiquidityUsd") {
+    const amountUsd = asset.displayedLiquidityUsd;
+    return {
+      amountUsd: amountUsd === null || amountUsd === undefined || !Number.isFinite(amountUsd) ? null : amountUsd,
+      label: "Liq",
+      kind: "liquidity",
+    };
+  }
+  const amountUsd = asset.volume24hUsd;
+  return {
+    amountUsd: amountUsd === null || amountUsd === undefined || !Number.isFinite(amountUsd) ? null : amountUsd,
+    label: "Vol",
+    kind: "volume",
+  };
+}
 
 /** Reported DexScreener / DEX median spot. Missing stays missing. */
 export function equityCardSpotPriceUsd(

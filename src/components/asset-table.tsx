@@ -381,6 +381,7 @@ export function AssetTable({
               key={asset.contractAddress}
               asset={asset}
               href={`/chains/${chainId}/assets/${encodeURIComponent(assetRouteKey(asset, catalog))}`}
+              sortKey={sortKey}
               dayVolumeSeries={dayVolumeByMint[asset.contractAddress]}
               enableFavorites={enableFavorites}
               pinned={favorites.isFavorite(asset.contractAddress)}
