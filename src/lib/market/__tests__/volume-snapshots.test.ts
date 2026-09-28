@@ -235,14 +235,25 @@ describe("committed Solana desk snapshots", () => {
   const raw = JSON.parse(readFileSync(join(process.cwd(), "data/volume-snapshots/solana.json"), "utf8"));
   const snapshots = parseDeskVolumeSnapshotRecords(raw);
 
-  it("keeps every honest recorded day, including days earlier commits had replaced away", () => {
-    expect(snapshots.map((row) => row.date)).toEqual(["2026-09-24", "2026-09-25", "2026-09-26", "2026-09-27"]);
+  it("keeps every honest recorded day, including the Sep 23 CLI total and days later commits had replaced away", () => {
+    expect(snapshots.map((row) => row.date)).toEqual([
+      "2026-09-23",
+      "2026-09-24",
+      "2026-09-25",
+      "2026-09-26",
+      "2026-09-27",
+    ]);
     expect(snapshots.map((row) => row.combined24hUsd)).toEqual([
+      173522731.07,
       121018931.03999996,
       115145253.47000003,
       56268835.52999999,
       76080265.64999995,
     ]);
+    const sep23 = snapshots[0];
+    expect(sep23?.publicEquity24hUsd).toBeNull();
+    expect(sep23?.private24hUsd).toBeNull();
+    expect(sep23?.etfIndex24hUsd).toBeNull();
   });
 
   it("plots and labels every snapshot day on 7D, 14D, and 30D, including Sep 26", () => {
@@ -253,12 +264,20 @@ describe("committed Solana desk snapshots", () => {
       generatedAt: "2026-09-28T16:00:00.000Z",
     });
     const dates = history.points.map((point) => new Date(point.t * 1000).toISOString().slice(0, 10));
-    expect(dates).toEqual(["2026-09-24", "2026-09-25", "2026-09-26", "2026-09-27", "2026-09-28"]);
+    expect(dates).toEqual([
+      "2026-09-23",
+      "2026-09-24",
+      "2026-09-25",
+      "2026-09-26",
+      "2026-09-27",
+      "2026-09-28",
+    ]);
     for (const range of ["7d", "14d", "30d"] as const) {
       const visible = filterVolumeRange(history.points, range);
       expect(visible).toHaveLength(history.points.length);
       const ticks = volumeChartXTicks(visible);
       expect(ticks.map((t) => formatVolumeChartTick(t, ticks))).toEqual([
+        "Sep 23",
         "Sep 24",
         "Sep 25",
         "Sep 26",
@@ -271,7 +290,7 @@ describe("committed Solana desk snapshots", () => {
       expect(headline.volumeUsd).toBeCloseTo(visible.reduce((sum, point) => sum + point.volumeUsd, 0));
       expect(headline.caption.startsWith(range === "7d" ? "7D" : range === "14d" ? "14D" : "30D")).toBe(true);
     }
-    expect(history.points.filter((point) => point.t < Date.parse("2026-09-24T00:00:00.000Z") / 1000)).toEqual([]);
+    expect(history.points.filter((point) => point.t < Date.parse("2026-09-23T00:00:00.000Z") / 1000)).toEqual([]);
     expect(history.points.some((point) => point.volumeUsd === 0)).toBe(false);
   });
 });
