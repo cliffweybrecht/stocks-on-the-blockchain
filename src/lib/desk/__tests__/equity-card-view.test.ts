@@ -1,13 +1,73 @@
 import { describe, expect, it } from "vitest";
+import { sortAssets } from "@/lib/market/aggregate";
 import {
   equityCardDayMovePct,
   equityCardDayPriceSeries,
   equityCardDayVolumeSeries,
+  equityCardHeadline,
   equityCardPriceSparklineDirection,
   equityCardSpotPriceUsd,
 } from "../equity-card-view";
 
 const NOW = 1_700_000_000;
+
+describe("equityCardHeadline", () => {
+  it("keeps 24h volume and the Vol label outside liquidity mode", () => {
+    const row = { volume24hUsd: 19_500_000, displayedLiquidityUsd: 4_200_000 };
+    expect(equityCardHeadline(row, "volume24hUsd")).toEqual({
+      amountUsd: row.volume24hUsd,
+      label: "Vol",
+      kind: "volume",
+    });
+    expect(equityCardHeadline(row, "poolCount").label).toBe("Vol");
+    expect(equityCardHeadline(row, "premiumDiscountPct").amountUsd).toBe(row.volume24hUsd);
+  });
+
+  it("does not invent a liquidity figure when the feed left it missing", () => {
+    expect(equityCardHeadline({ volume24hUsd: 10, displayedLiquidityUsd: null }, "displayedLiquidityUsd")).toEqual({
+      amountUsd: null,
+      label: "Liq",
+      kind: "liquidity",
+    });
+    expect(equityCardHeadline({ volume24hUsd: null, displayedLiquidityUsd: 0 }, "displayedLiquidityUsd").amountUsd).toBe(0);
+    expect(equityCardHeadline({ volume24hUsd: Number.NaN, displayedLiquidityUsd: 4 }, "volume24hUsd").amountUsd).toBeNull();
+  });
+
+  it("shows the desk liquidity field, not 24h volume, when those feeds differ", () => {
+    // Sep 27 desk snapshot rows. displayedLiquidityUsd is the sum of DexScreener liquidity.usd.
+    const samples = [
+      { symbol: "NVDAx", volume24hUsd: 5_629_424.34, displayedLiquidityUsd: 4_135_108.76, volumeCoverage: "reported" as const },
+      { symbol: "CRCLx", volume24hUsd: 1_214_324.92, displayedLiquidityUsd: 4_835_437.43, volumeCoverage: "reported" as const },
+      { symbol: "TSLAx", volume24hUsd: 320_783.04, displayedLiquidityUsd: 3_090_522.47, volumeCoverage: "reported" as const },
+      { symbol: "AAPLx", volume24hUsd: 427_078.86, displayedLiquidityUsd: 729_640.42, volumeCoverage: "reported" as const },
+    ];
+
+    for (const row of samples) {
+      expect(row.volume24hUsd).not.toBeCloseTo(row.displayedLiquidityUsd, 0);
+      expect(equityCardHeadline(row, "volume24hUsd")).toEqual({
+        amountUsd: row.volume24hUsd,
+        label: "Vol",
+        kind: "volume",
+      });
+      expect(equityCardHeadline(row, "displayedLiquidityUsd")).toEqual({
+        amountUsd: row.displayedLiquidityUsd,
+        label: "Liq",
+        kind: "liquidity",
+      });
+    }
+
+    const byVolume = sortAssets(samples, "volume24hUsd");
+    const byLiquidity = sortAssets(samples, "displayedLiquidityUsd");
+    expect(byVolume[0]?.symbol).toBe("NVDAx");
+    expect(byLiquidity[0]?.symbol).toBe("CRCLx");
+    expect(equityCardHeadline(byVolume[0]!, "volume24hUsd").label).toBe("Vol");
+    expect(equityCardHeadline(byLiquidity[0]!, "displayedLiquidityUsd")).toEqual({
+      amountUsd: byLiquidity[0]?.displayedLiquidityUsd,
+      label: "Liq",
+      kind: "liquidity",
+    });
+  });
+});
 
 describe("equityCardSpotPriceUsd", () => {
   it("uses the reported DEX median and does not invent a price", () => {
