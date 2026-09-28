@@ -101,6 +101,8 @@ export function AssetTable({
   issuerFilter = ALL_ISSUERS,
   issuerFacets = [],
   unknownIssuerCount = 0,
+  etfChipVisible,
+  privateChipVisible,
   showRobinhoodMarks = true,
   enableFavorites = false,
 }: {
@@ -132,6 +134,9 @@ export function AssetTable({
   issuerFilter?: IssuerFilter;
   issuerFacets?: readonly IssuerFacet[];
   unknownIssuerCount?: number;
+  /** Lane exists in the catalog. The parenthesis count can be 0 when the list view filters it out. */
+  etfChipVisible?: boolean;
+  privateChipVisible?: boolean;
   showRobinhoodMarks?: boolean;
   enableFavorites?: boolean;
 }) {
@@ -215,18 +220,20 @@ export function AssetTable({
     ["no-pools", "Confirmed no pools"],
   ];
 
+  const showEtfChip = etfChipVisible ?? etfCount > 0;
+  const showPrivateChip = privateChipVisible ?? privateCount > 0;
   const laneChips =
-    etfCount > 0 || privateCount > 0 ? (
+    showEtfChip || showPrivateChip ? (
       <div className="flex flex-wrap gap-2">
         <Link href={hrefFor({ lane: "equity" })} scroll={false} className={chipClass(lane === "equity")}>
           Equities ({equityCount})
         </Link>
-        {etfCount > 0 ? (
+        {showEtfChip ? (
           <Link href={hrefFor({ lane: "etf" })} scroll={false} className={chipClass(lane === "etf")}>
             ETF / index ({etfCount})
           </Link>
         ) : null}
-        {privateCount > 0 ? (
+        {showPrivateChip ? (
           <Link href={hrefFor({ lane: "private" })} scroll={false} className={chipClass(lane === "private")}>
             Private market ({privateCount})
           </Link>
@@ -261,9 +268,31 @@ export function AssetTable({
     </div>
   ) : null;
 
+  const sortChips = (
+    <div className={`flex flex-wrap gap-2 text-xs ${solanaDesk ? "shrink-0 justify-end" : ""}`} data-desk-sort>
+      {sortColumns.map(([key, label]) => (
+        <Link key={key} href={hrefFor({ sortKey: key })} scroll={false} className={chipClass(sortKey === key)}>
+          {label}
+        </Link>
+      ))}
+    </div>
+  );
+
   return (
     <div className="space-y-3">
-      {laneChips || issuerChips ? (
+      {solanaDesk ? (
+        <div className="flex items-start justify-between gap-x-3 gap-y-1" data-filter-strip>
+          {laneChips || issuerChips ? (
+            <div className="flex min-w-0 flex-col gap-1" data-lane-issuers>
+              {laneChips}
+              {issuerChips}
+            </div>
+          ) : (
+            <div className="min-w-0" data-lane-issuers />
+          )}
+          {sortChips}
+        </div>
+      ) : laneChips || issuerChips ? (
         <div className="flex flex-col gap-2" data-lane-issuers>
           {laneChips}
           {issuerChips}
@@ -281,15 +310,7 @@ export function AssetTable({
           included in the Daily Volume headline.
         </p>
       ) : null}
-      {solanaDesk ? (
-        <div className="flex flex-wrap justify-end gap-2 text-xs" data-desk-sort>
-          {sortColumns.map(([key, label]) => (
-            <Link key={key} href={hrefFor({ sortKey: key })} scroll={false} className={chipClass(sortKey === key)}>
-              {label}
-            </Link>
-          ))}
-        </div>
-      ) : (
+      {solanaDesk ? null : (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <input
             value={query}
@@ -299,13 +320,7 @@ export function AssetTable({
             aria-label="Filter stocks in this list"
             className="h-8 w-full max-w-md rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
           />
-          <div className="flex flex-wrap gap-2 text-xs" data-desk-sort>
-            {sortColumns.map(([key, label]) => (
-              <Link key={key} href={hrefFor({ sortKey: key })} scroll={false} className={chipClass(sortKey === key)}>
-                {label}
-              </Link>
-            ))}
-          </div>
+          {sortChips}
         </div>
       )}
       {enableFavorites ? (

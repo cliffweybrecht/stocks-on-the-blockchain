@@ -8,12 +8,9 @@ import { ProvenanceBar } from "@/components/provenance-bar";
 import { DailyVolumeChart } from "@/components/daily-volume-chart";
 import { emptyEquityVolumeHistory } from "@/lib/market/volume-history";
 import { formatCount, formatUsdCompact } from "@/lib/market/format";
-import {
-  assetMatchesIssuerFilter,
-  listIssuerFacets,
-  parseIssuerFilter,
-} from "@/lib/desk/issuer-filter";
+import { parseIssuerFilter } from "@/lib/desk/issuer-filter";
 import { toPinCompareAsset } from "@/lib/desk/pin-compare";
+import { displayedIssuerFacets, displayedLaneCount, assetsMatchingListView } from "@/lib/desk/displayed-list-counts";
 import { parseDeskLane } from "@/lib/desk/desk-lane";
 import { resolveDeskSortKey } from "@/lib/desk/desk-sort";
 import { parsePinnedFilter } from "@/lib/desk/solana-chain-href";
@@ -22,7 +19,7 @@ import { parseAssetSortKey, sortAssets } from "@/lib/market/aggregate";
 import { toJumpAsset } from "@/lib/market/asset-search";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { SOLANA_CHAIN_ID } from "@/lib/market/types";
-import { assetMatchesCoverageFilter, parseCoverageFilter } from "@/lib/market/volume-coverage";
+import { parseCoverageFilter } from "@/lib/market/volume-coverage";
 
 export const dynamic = "force-dynamic";
 
@@ -75,14 +72,10 @@ export default async function ChainPage({
   const pinnedOnly = parsePinnedFilter(query.pinned);
   const issuerFilter = isSolana ? parseIssuerFilter(query.issuer) : "all";
   const laneAssets = lane === "etf" ? etfAssets : lane === "private" ? privateAssets : assets;
-  const issuerFacets = isSolana ? listIssuerFacets(laneAssets) : { issuers: [], unknownCount: 0 };
-  const visibleAssets = sortAssets(
-    laneAssets.filter(
-      (asset) =>
-        assetMatchesCoverageFilter(asset, coverageFilter) && assetMatchesIssuerFilter(asset, issuerFilter),
-    ),
-    sortKey,
-  );
+  const issuerFacets = isSolana
+    ? displayedIssuerFacets(laneAssets, coverageFilter)
+    : { issuers: [], unknownCount: 0 };
+  const visibleAssets = sortAssets(assetsMatchingListView(laneAssets, coverageFilter, issuerFilter), sortKey);
   const jumpAssets = isSolana ? [...assets, ...etfAssets, ...privateAssets].map(toJumpAsset) : [];
   const catalogRows = [...assets, ...etfAssets, ...privateAssets].map(toPinCompareAsset);
 
@@ -150,9 +143,11 @@ export default async function ChainPage({
             assets={visibleAssets}
             catalogAssets={catalogRows}
             totalInLane={laneAssets.length}
-            equityCount={assets.length}
-            etfCount={etfAssets.length}
-            privateCount={privateAssets.length}
+            equityCount={displayedLaneCount(assets, coverageFilter, issuerFilter)}
+            etfCount={displayedLaneCount(etfAssets, coverageFilter, issuerFilter)}
+            privateCount={displayedLaneCount(privateAssets, coverageFilter, issuerFilter)}
+            etfChipVisible={etfAssets.length > 0}
+            privateChipVisible={privateAssets.length > 0}
             lane={lane}
             coverageFilter={coverageFilter}
             defaultCoverage={defaultCoverage}
