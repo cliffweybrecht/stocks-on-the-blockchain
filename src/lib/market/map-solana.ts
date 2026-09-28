@@ -3,7 +3,6 @@ import {
   asFiniteNumber,
   asHttpUrl,
   asNonEmptyString,
-  asNonNegativeNumber,
   asReportedNumber,
   compareNullableDesc,
   sumNullable,
@@ -127,16 +126,14 @@ function pairHref(pairAddress: string | null, reportedUrl: unknown): string | nu
 
 interface PairReportedStats {
   volume24hUsd: number | null;
-  marketCapUsd: number | null;
-  fdvUsd: number | null;
   priceChange24hPct: number | null;
 }
 
-function pickPrimaryReported(rows: readonly PairReportedStats[], key: keyof Omit<PairReportedStats, "volume24hUsd">): number | null {
+/** Highest-volume pair that reported a 24h change. Pair marketCap/fdv are not read. */
+function pickPrimaryPriceChange(rows: readonly PairReportedStats[]): number | null {
   const ranked = [...rows].sort((a, b) => compareNullableDesc(a.volume24hUsd, b.volume24hUsd));
   for (const row of ranked) {
-    const value = row[key];
-    if (value !== null) return value;
+    if (row.priceChange24hPct !== null) return row.priceChange24hPct;
   }
   return null;
 }
@@ -198,7 +195,9 @@ function addPairToBucket(bucket: MintAccumulator, pair: DexScreenerPair, tokenAd
   const dexId = asNonEmptyString(pair.dexId) ?? "unknown";
   const baseAddress = asNonEmptyString(pair.baseToken?.address);
   const quoteAddress = asNonEmptyString(pair.quoteToken?.address);
-  // DexScreener priceUsd / marketCap / h24 change describe the base token.
+  // DexScreener priceUsd and priceChange.h24 describe the base token.
+  // Pair marketCap / fdv are ignored: on Token-2022 xStocks they are often
+  // price × 1,000, not price × mint supply. Caps are applied later from getTokenSupply.
   // A pair that only quotes this mint must not move the equity's median.
   const mintIsBase = baseAddress === tokenAddress;
 
@@ -230,8 +229,6 @@ function addPairToBucket(bucket: MintAccumulator, pair: DexScreenerPair, tokenAd
   });
   bucket.pairStats.push({
     volume24hUsd: volume,
-    marketCapUsd: mintIsBase ? asNonNegativeNumber(pair.marketCap) : null,
-    fdvUsd: mintIsBase ? asNonNegativeNumber(pair.fdv) : null,
     priceChange24hPct: mintIsBase ? asReportedNumber(pair.priceChange?.h24) : null,
   });
 
@@ -325,7 +322,7 @@ export function mapDexScreenerPairsToSolanaAssets(
       instrumentKind: bucket.kind,
       volumeCoverage,
       coverageNote: null,
-      priceChange24hPct: pickPrimaryReported(bucket.pairStats, "priceChange24hPct"),
+      priceChange24hPct: pickPrimaryPriceChange(bucket.pairStats),
     };
 
     summaries.push(summary);
@@ -362,9 +359,9 @@ export function mapDexScreenerPairsToSolanaAssets(
         priceCoverageComplete: dexMedianUsd !== null,
       },
       detailEnriched: true,
-      marketCapUsd: pickPrimaryReported(bucket.pairStats, "marketCapUsd"),
-      fdvUsd: pickPrimaryReported(bucket.pairStats, "fdvUsd"),
-      priceChange24hPct: pickPrimaryReported(bucket.pairStats, "priceChange24hPct"),
+      marketCapUsd: null,
+      fdvUsd: null,
+      priceChange24hPct: pickPrimaryPriceChange(bucket.pairStats),
       holderCount: null,
       circulatingSupply: null,
       totalSupply: null,

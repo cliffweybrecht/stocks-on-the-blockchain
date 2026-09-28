@@ -131,7 +131,7 @@ describe("mapDexScreenerPairsToSolanaAssets", () => {
     expect(details[0]?.totalSupply).toBeNull();
   });
 
-  it("maps DexScreener marketCap, fdv, and 24h change from the highest-volume pair", () => {
+  it("ignores DexScreener pair marketCap and fdv and still maps 24h change from the highest-volume pair", () => {
     const { assets, details } = mapDexScreenerPairsToSolanaAssets([
       {
         ...fixturePairs[0]!,
@@ -146,8 +146,8 @@ describe("mapDexScreenerPairsToSolanaAssets", () => {
         priceChange: { h24: 99 },
       },
     ]);
-    expect(details[0]?.marketCapUsd).toBe(91_040);
-    expect(details[0]?.fdvUsd).toBe(91_040);
+    expect(details[0]?.marketCapUsd).toBeNull();
+    expect(details[0]?.fdvUsd).toBeNull();
     expect(details[0]?.priceChange24hPct).toBeCloseTo(-7.09);
     expect(assets[0]?.priceChange24hPct).toBeCloseTo(-7.09);
     expect(details[0]?.circulatingSupply).toBeNull();

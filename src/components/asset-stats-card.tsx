@@ -14,7 +14,7 @@ const STATS: readonly {
   {
     key: "marketCap",
     label: "Market Cap",
-    hint: "DexScreener pair marketCap when reported. Never computed from supply × price.",
+    hint: "DEX median price × circulating supply. Supply is the Solana mint's getTokenSupply UI amount. Blank when supply or price is missing — a pool's reported market cap is not used.",
     value: (asset) => formatUsdCompact(asset.marketCapUsd),
   },
   {
@@ -32,7 +32,7 @@ const STATS: readonly {
   {
     key: "circulating",
     label: "Circulating Supply",
-    hint: "Shown only when a source reports supply. Never inferred from market cap / price.",
+    hint: "Outstanding tokens from Solana getTokenSupply (UI amount, including Token-2022 scaled UI). Same figure as total supply: an SPL mint has no separate unminted cap, and this desk has no lockup feed. Never inferred from market cap, price, or liquidity.",
     value: (asset) => formatTokenAmount(asset.circulatingSupply),
   },
   {
@@ -50,13 +50,13 @@ const STATS: readonly {
   {
     key: "fdv",
     label: "FDV",
-    hint: "DexScreener pair fdv when reported. Never computed from supply × price.",
+    hint: "DEX median price × total supply. Blank when supply or price is missing.",
     value: (asset) => formatUsdCompact(asset.fdvUsd),
   },
   {
     key: "total",
     label: "Total Supply",
-    hint: "Shown only when a source reports total supply. Never inferred from FDV / price.",
+    hint: "Outstanding tokens from Solana getTokenSupply (UI amount, including Token-2022 scaled UI). Never inferred from FDV, price, or liquidity.",
     value: (asset) => formatTokenAmount(asset.totalSupply),
   },
 ];
