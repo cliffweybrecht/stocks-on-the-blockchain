@@ -53,6 +53,7 @@ Uses DexScreener’s public API (no API key) plus the public **xStocks / Backed*
    - `GET /token-pairs/v1/solana/{mint}` for each active mint on the chain page so **every Solana pool** is included
    - Background enrichment continues after the first snapshot (default 3 minutes) until pending mints are checked
 4. **Aggregate** those pools into one stock row keyed by mint. Classified mints with no DexScreener pools still appear, with **null** volume (ranked last) and an explicit coverage reason. Unfinished mints are labeled **still hydrating**, not zero, and keep filling the process cache in the background.
+5. **Asset stats** (asset page only) read outstanding supply from Solana `getTokenSupply` and compute market cap / FDV in-process. See [Supply, market cap, and FDV](#supply-market-cap-and-fdv).
 
 The historical Backed xStock mint list in `src/lib/market/solana-allowlist.ts` is a **test fixture only**. It is not a production admission gate.
 
@@ -113,11 +114,23 @@ SOLANA_SUNRISE_REGISTRY_ENABLED=true
 SOLANA_SUNRISE_REGISTRY_URL=https://api.sunrise.xyz
 SOLANA_GECKOTERMINAL_ENABLED=true
 SOLANA_GECKOTERMINAL_BASE_URL=https://api.geckoterminal.com/api/v2
+SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+SOLANA_MINT_SUPPLY_ENABLED=true
 SOLANA_VOLUME_SNAPSHOT_DIR=data/volume-snapshots
 SOLANA_VOLUME_HISTORY_CACHE_MS=1800000
 ```
 
-Set `SOLANA_XSTOCKS_REGISTRY_ENABLED=false`, `SOLANA_ONDO_REGISTRY_ENABLED=false`, `SOLANA_TESSERA_REGISTRY_ENABLED=false`, or `SOLANA_SUNRISE_REGISTRY_ENABLED=false` to disable those candidate sources.
+Set `SOLANA_XSTOCKS_REGISTRY_ENABLED=false`, `SOLANA_ONDO_REGISTRY_ENABLED=false`, `SOLANA_TESSERA_REGISTRY_ENABLED=false`, or `SOLANA_SUNRISE_REGISTRY_ENABLED=false` to disable those candidate sources. Set `SOLANA_MINT_SUPPLY_ENABLED=false` to leave asset-page supply, market cap, and FDV blank.
+
+### Supply, market cap, and FDV
+
+On the asset page, **circulating supply** and **total supply** are the Solana mint's `getTokenSupply` UI amount (`uiAmountString`). That figure already includes the Token-2022 scaled-UI multiplier, which is the unit DEX prices quote. Raw `amount / 10^decimals` is not used — it drops the multiplier (NVDAx raw was about 321,272 tokens vs UI supply about 321,819).
+
+An SPL mint reports one outstanding supply, and this desk has no lockup indexer, so circulating and total are that same UI amount. For Backed xStocks, Jupiter's circulating and total supplies match this UI amount.
+
+**Market cap** = DEX median price × circulating supply. **FDV** = DEX median price × total supply. The arithmetic is local. DexScreener pair `marketCap` / `fdv` are ignored: liquid NVDAx pools report about price × 1,000 (about $225K) while mint UI supply × the ~$225 DEX price is on the order of $70M. If the mint supply call fails, or the DEX price is missing, the matching stat stays blank. Liquidity and volume are never turned into a market cap. Holder counts are unchanged.
+
+The chain and home lists do not call the RPC. Override the endpoint with `SOLANA_RPC_URL` (default `https://api.mainnet-beta.solana.com`).
 
 ### Terminal + Solana together
 

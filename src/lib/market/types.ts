@@ -168,15 +168,15 @@ export interface AssetDetail extends AssetSummary {
   quoteAssets: readonly QuoteAssetSlice[];
   price: PriceMarks;
   detailEnriched: boolean;
-  /** DexScreener pair `marketCap` when reported. Never computed from supply × price. */
+  /** DEX median price × circulating supply when both are known. Never a pool's reported market cap. */
   marketCapUsd: number | null;
-  /** DexScreener pair `fdv` when reported. Never computed from supply × price. */
+  /** DEX median price × total supply when both are known. Never a pool's reported FDV. */
   fdvUsd: number | null;
   /** Source-reported holder count. Unknown stays null — this desk has no holder indexer. */
   holderCount: number | null;
-  /** Source-reported circulating supply. Never inferred from market cap / price. */
+  /** Source-reported circulating supply. Never inferred from market cap, price, or liquidity. */
   circulatingSupply: number | null;
-  /** Source-reported total supply. Never inferred from FDV / price. */
+  /** Source-reported total supply. Never inferred from FDV, price, or liquidity. */
   totalSupply: number | null;
 }
 

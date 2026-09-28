@@ -1695,4 +1695,80 @@ describe("SolanaMarketDataSource", () => {
     });
     await expect(source.getEquityCardDayVolumeSeries()).resolves.toEqual({});
   });
+
+  it("prices market cap and FDV from mint UI supply and ignores DexScreener caps", async () => {
+    const rpcUrl = "https://rpc.example.test";
+    const calls: string[] = [];
+    const source = testSource({
+      rpcUrl,
+      fetchImpl: async (input, init) => {
+        const url = String(input);
+        calls.push(url);
+        if (url === rpcUrl) {
+          expect(init?.method).toBe("POST");
+          expect(JSON.parse(String(init?.body))).toMatchObject({
+            method: "getTokenSupply",
+            params: [tslaMint],
+          });
+          return jsonResponse({
+            jsonrpc: "2.0",
+            result: {
+              value: {
+                amount: "32127242493018",
+                decimals: 8,
+                uiAmount: 321272.42493018,
+                uiAmountString: "321818.97255174",
+              },
+            },
+          });
+        }
+        const pair = { ...tslaPair(), marketCap: 225_000, fdv: 225_000 };
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [pair] });
+        if (url.includes("/tokens/v1/solana/") || url.includes("/token-pairs/v1/solana/")) {
+          return jsonResponse([pair]);
+        }
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    const chain = await source.getChain("solana");
+    expect(chain?.assets[0]?.volume24hUsd).toBeCloseTo(1_250.25);
+    expect(calls.some((url) => url === rpcUrl)).toBe(false);
+
+    const asset = await source.getAsset("solana", "tslax");
+    expect(asset?.asset.circulatingSupply).toBeCloseTo(321818.97255174);
+    expect(asset?.asset.totalSupply).toBeCloseTo(321818.97255174);
+    expect(asset?.asset.marketCapUsd).toBeCloseTo(100.5 * 321818.97255174);
+    expect(asset?.asset.fdvUsd).toBe(asset?.asset.marketCapUsd);
+    expect(asset?.asset.marketCapUsd).not.toBe(225_000);
+    expect(calls.filter((url) => url === rpcUrl)).toHaveLength(1);
+
+    const again = await source.getAsset("solana", tslaMint);
+    expect(again?.asset.marketCapUsd).toBeCloseTo(100.5 * 321818.97255174);
+    expect(calls.filter((url) => url === rpcUrl)).toHaveLength(1);
+  });
+
+  it("does not show a DexScreener market cap when mint supply is missing", async () => {
+    const source = testSource({
+      rpcUrl: "https://rpc.example.test",
+      fetchImpl: async (input) => {
+        const url = String(input);
+        const pair = { ...tslaPair(), marketCap: 225_300, fdv: 225_300, liquidity: { usd: 4_100_000 } };
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [pair] });
+        if (url.includes("/tokens/v1/solana/") || url.includes("/token-pairs/v1/solana/")) {
+          return jsonResponse([pair]);
+        }
+        return jsonResponse({ error: "down" }, 502);
+      },
+    });
+
+    const asset = await source.getAsset("solana", "tslax");
+    expect(asset?.asset.displayedLiquidityUsd).toBe(4_100_000);
+    expect(asset?.asset.volume24hUsd).toBeCloseTo(1_250.25);
+    expect(asset?.asset.circulatingSupply).toBeNull();
+    expect(asset?.asset.totalSupply).toBeNull();
+    expect(asset?.asset.marketCapUsd).toBeNull();
+    expect(asset?.asset.fdvUsd).toBeNull();
+    expect(asset?.asset.holderCount).toBeNull();
+  });
 });

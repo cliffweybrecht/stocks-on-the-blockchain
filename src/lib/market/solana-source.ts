@@ -55,6 +55,7 @@ import {
   XSTOCKS_REGISTRY_MAX_PAGES,
   xStocksAssetsPath,
 } from "./solana-registry";
+import { applyOutstandingMintSupply, DEFAULT_SOLANA_RPC_URL, fetchMintUiSupply } from "./solana-supply";
 import { SOLANA_SOURCE_LABEL } from "./trust";
 import {
   SOLANA_CHAIN_ID,
@@ -200,6 +201,10 @@ export interface SolanaMarketDataSourceOptions {
   enableJupiterTokenLogos?: boolean;
   jupiterTokenBaseUrl?: string;
   mintLogoCacheMs?: number;
+  /** Solana JSON-RPC for `getTokenSupply`. Default: public mainnet-beta. */
+  rpcUrl?: string;
+  /** When false, asset stats leave supply, market cap, and FDV blank. */
+  enableMintSupply?: boolean;
 }
 
 type AllMarketsSlotStatus = "open" | "points" | "definitive_miss";
@@ -253,6 +258,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
   private geckoCooldownUntil = 0;
   private readonly mintLogoCatalog: MintLogoCatalog = new Map();
   private jupiterLogoCache = new Map<string, { url: string | null; expiresAt: number }>();
+  private mintSupplyCache = new Map<string, { uiSupply: number; expiresAt: number }>();
 
   constructor(private readonly options: SolanaMarketDataSourceOptions = {}) {
     this.memory = new SolanaHydrateMemory(options.emptyCacheMs ?? SOLANA_DEFAULTS.emptyCacheMs);
@@ -329,6 +335,14 @@ export class SolanaMarketDataSource implements MarketDataSource {
 
   private get mintLogoCacheMs() {
     return this.options.mintLogoCacheMs ?? MINT_LOGO_CACHE_MS;
+  }
+
+  private get rpcUrl() {
+    return (this.options.rpcUrl ?? DEFAULT_SOLANA_RPC_URL).replace(/\/+$/, "");
+  }
+
+  private get mintSupplyEnabled() {
+    return this.options.enableMintSupply !== false;
   }
 
   private get fetchImpl() {
@@ -1258,7 +1272,33 @@ export class SolanaMarketDataSource implements MarketDataSource {
       symbol,
     );
     if (!asset) return null;
-    return { chain: cached.mapped.chain, asset, provenance: cached.mapped.provenance };
+    const uiSupply = await this.readMintUiSupply(asset.contractAddress);
+    return {
+      chain: cached.mapped.chain,
+      asset: applyOutstandingMintSupply(asset, uiSupply),
+      provenance: cached.mapped.provenance,
+    };
+  }
+
+  /**
+   * Outstanding UI supply for one mint. Failures stay null so a down RPC cannot
+   * blank the rest of the asset page or resurrect a DexScreener cap.
+   * Successful reads are cached with the snapshot TTL. The chain list does not call this.
+   */
+  private async readMintUiSupply(mint: string): Promise<number | null> {
+    if (!this.mintSupplyEnabled) return null;
+    const now = Date.now();
+    const cached = this.mintSupplyCache.get(mint);
+    if (cached && cached.expiresAt > now) return cached.uiSupply;
+    const uiSupply = await fetchMintUiSupply(mint, {
+      rpcUrl: this.rpcUrl,
+      timeoutMs: this.timeoutMs,
+      fetchImpl: this.fetchImpl,
+    });
+    if (uiSupply !== null) {
+      this.mintSupplyCache.set(mint, { uiSupply, expiresAt: now + this.cacheMs });
+    }
+    return uiSupply;
   }
 
   async getEquityVolumeHistory(): Promise<EquityVolumeHistoryResult> {
