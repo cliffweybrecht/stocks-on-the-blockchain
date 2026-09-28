@@ -6,6 +6,7 @@ import {
   pointerToSvgX,
   pointerToViewBoxX,
   scaleVolumePoints,
+  deskRangeVolumeHeadline,
   deskVolumeHeadline,
   volumeChartXTicks,
   volumeHeadlineCopy,
@@ -26,8 +27,9 @@ function days(count: number) {
 }
 
 describe("filterVolumeRange", () => {
-  it("lists 7D leftmost, then 30D, 90D, 180D, All", () => {
-    expect(VOLUME_CHART_RANGES.map((row) => row.label)).toEqual(["7D", "30D", "90D", "180D", "All"]);
+  it("lists 7D, 14D, and 30D only", () => {
+    expect(VOLUME_CHART_RANGES.map((row) => row.label)).toEqual(["7D", "14D", "30D"]);
+    expect(VOLUME_CHART_RANGES.map((row) => row.id)).toEqual(["7d", "14d", "30d"]);
   });
 
   it("keeps a continuous 7-day window ending on the latest point", () => {
@@ -35,6 +37,14 @@ describe("filterVolumeRange", () => {
     const visible = filterVolumeRange(points, "7d");
     expect(visible).toHaveLength(8);
     expect(visible[0]?.t).toBe(points[32]?.t);
+    expect(visible[visible.length - 1]?.kind).toBe("rolling_24h");
+  });
+
+  it("keeps a continuous 14-day window ending on the latest point", () => {
+    const points = days(40);
+    const visible = filterVolumeRange(points, "14d");
+    expect(visible).toHaveLength(15);
+    expect(visible[0]?.t).toBe(points[25]?.t);
     expect(visible[visible.length - 1]?.kind).toBe("rolling_24h");
   });
 
@@ -156,19 +166,64 @@ describe("deskVolumeHeadline", () => {
 });
 
 describe("volumeChartXTicks", () => {
-  it("picks unique ordered UTC days across a 7-day window", () => {
-    const start = Date.UTC(2026, 8, 19) / 1000;
-    const points = Array.from({ length: 8 }, (_, index) => ({
+  it("labels every UTC day in the window, including the middle of a short series", () => {
+    const start = Date.UTC(2026, 8, 24) / 1000;
+    const points = [121_018_931, 115_145_253, 56_268_835.53, 76_080_265, 114_300_000].map(
+      (volumeUsd, index) => ({
+        t: start + index * UTC_DAY_SECONDS,
+        volumeUsd,
+        kind: "calendar_day" as const,
+      }),
+    );
+    const ticks = volumeChartXTicks(points);
+    expect(ticks).toEqual(points.map((point) => point.t));
+    expect(ticks.map((t) => formatVolumeChartTick(t, ticks))).toEqual([
+      "Sep 24",
+      "Sep 25",
+      "Sep 26",
+      "Sep 27",
+      "Sep 28",
+    ]);
+    expect(points[2]?.volumeUsd).toBeCloseTo(56_268_835.53);
+  });
+
+  it("keeps every day when the window is longer than a week", () => {
+    const start = Date.UTC(2026, 8, 1) / 1000;
+    const points = Array.from({ length: 14 }, (_, index) => ({
       t: start + index * UTC_DAY_SECONDS,
-      volumeUsd: 1,
+      volumeUsd: 1_000 + index,
       kind: "calendar_day" as const,
     }));
     const ticks = volumeChartXTicks(points);
-    expect(ticks).toHaveLength(4);
-    expect(ticks[0]).toBe(points[0]?.t);
-    expect(ticks[ticks.length - 1]).toBe(points[7]?.t);
-    expect(new Set(ticks).size).toBe(4);
-    expect(ticks).toEqual([...ticks].sort((a, b) => a - b));
+    expect(ticks).toEqual(points.map((point) => point.t));
+    expect(new Set(ticks.map((t) => formatVolumeChartTick(t, ticks))).size).toBe(14);
+  });
+});
+
+describe("deskRangeVolumeHeadline", () => {
+  it("sums only the snapshot days inside the selected window", () => {
+    const points = days(40);
+    const seven = filterVolumeRange(points, "7d");
+    const fourteen = filterVolumeRange(points, "14d");
+    const thirty = filterVolumeRange(points, "30d");
+    const h7 = deskRangeVolumeHeadline(seven, "7d");
+    const h14 = deskRangeVolumeHeadline(fourteen, "14d");
+    const h30 = deskRangeVolumeHeadline(thirty, "30d");
+    expect(h7.volumeUsd).toBeCloseTo(seven.reduce((sum, point) => sum + point.volumeUsd, 0));
+    expect(h14.volumeUsd).toBeCloseTo(fourteen.reduce((sum, point) => sum + point.volumeUsd, 0));
+    expect(h30.volumeUsd).toBeCloseTo(thirty.reduce((sum, point) => sum + point.volumeUsd, 0));
+    expect(h7.volumeUsd).toBeLessThan(h14.volumeUsd ?? 0);
+    expect(h14.volumeUsd).toBeLessThan(h30.volumeUsd ?? 0);
+    expect(h7.caption).toBe("7D · sum of desk snapshot days · public + private + ETF/index");
+    expect(h14.caption).toContain("14D");
+    expect(h30.caption).toContain("30D");
+    expect(h7.kind).toBe("range_sum");
+  });
+
+  it("does not invent a total when the window has no points", () => {
+    const empty = deskRangeVolumeHeadline([], "14d");
+    expect(empty.volumeUsd).toBeNull();
+    expect(empty.caption).toBe("14D · no desk snapshots in this window");
   });
 });
 

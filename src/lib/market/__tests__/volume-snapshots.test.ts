@@ -3,7 +3,7 @@ import { mkdtemp, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { filterVolumeRange } from "../daily-volume-view";
+import { deskRangeVolumeHeadline, filterVolumeRange, formatVolumeChartTick, volumeChartXTicks } from "../daily-volume-view";
 import { UTC_DAY_SECONDS } from "../volume-history";
 import { FileDeskVolumeSnapshotStore } from "../volume-snapshot-store";
 import {
@@ -245,7 +245,7 @@ describe("committed Solana desk snapshots", () => {
     ]);
   });
 
-  it("plots every snapshot day on All and on 7D when the span is inside a week", () => {
+  it("plots and labels every snapshot day on 7D, 14D, and 30D, including Sep 26", () => {
     const history = buildSnapshotEquityVolumeHistory({
       snapshots,
       liveCombined24hUsd: 97_900_000,
@@ -254,9 +254,23 @@ describe("committed Solana desk snapshots", () => {
     });
     const dates = history.points.map((point) => new Date(point.t * 1000).toISOString().slice(0, 10));
     expect(dates).toEqual(["2026-09-24", "2026-09-25", "2026-09-26", "2026-09-27", "2026-09-28"]);
-    expect(filterVolumeRange(history.points, "all")).toHaveLength(history.points.length);
-    expect(filterVolumeRange(history.points, "7d")).toHaveLength(history.points.length);
-    expect(filterVolumeRange(history.points, "30d")).toHaveLength(history.points.length);
+    for (const range of ["7d", "14d", "30d"] as const) {
+      const visible = filterVolumeRange(history.points, range);
+      expect(visible).toHaveLength(history.points.length);
+      const ticks = volumeChartXTicks(visible);
+      expect(ticks.map((t) => formatVolumeChartTick(t, ticks))).toEqual([
+        "Sep 24",
+        "Sep 25",
+        "Sep 26",
+        "Sep 27",
+        "Sep 28",
+      ]);
+      const sep26 = visible.find((point) => new Date(point.t * 1000).toISOString().startsWith("2026-09-26"));
+      expect(sep26?.volumeUsd).toBeCloseTo(56_268_835.53);
+      const headline = deskRangeVolumeHeadline(visible, range);
+      expect(headline.volumeUsd).toBeCloseTo(visible.reduce((sum, point) => sum + point.volumeUsd, 0));
+      expect(headline.caption.startsWith(range === "7d" ? "7D" : range === "14d" ? "14D" : "30D")).toBe(true);
+    }
     expect(history.points.filter((point) => point.t < Date.parse("2026-09-24T00:00:00.000Z") / 1000)).toEqual([]);
     expect(history.points.some((point) => point.volumeUsd === 0)).toBe(false);
   });

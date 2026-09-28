@@ -3,12 +3,11 @@ import { formatChartDate, formatChartDay, formatChartTick } from "./format";
 import type { VolumeHistoryPoint } from "./types";
 import { utcDayStart } from "./volume-history";
 
+/** Desk snapshots are one point per day, so the Solana list chart has no hourly 24H pill. */
 export const VOLUME_CHART_RANGES = [
   { id: "7d", label: "7D", days: 7 },
+  { id: "14d", label: "14D", days: 14 },
   { id: "30d", label: "30D", days: 30 },
-  { id: "90d", label: "90D", days: 90 },
-  { id: "180d", label: "180D", days: 180 },
-  { id: "all", label: "All", days: null },
 ] as const;
 
 export type VolumeChartRangeId = (typeof VOLUME_CHART_RANGES)[number]["id"];
@@ -25,7 +24,7 @@ export function filterVolumeRange(
 ): VolumeHistoryPoint[] {
   if (points.length === 0) return [];
   const spec = VOLUME_CHART_RANGES.find((row) => row.id === range);
-  if (!spec || spec.days === null) return [...points];
+  if (!spec) return [...points];
   const last = points[points.length - 1];
   if (!last) return [...points];
   const cutoff = last.t - spec.days * 86_400;
@@ -156,11 +155,11 @@ export function deskVolumeHeadline(input: {
   };
 }
 
-/** Evenly spaced unique UTC days from the visible series, oldest first. */
-export function volumeChartXTicks(
-  points: readonly VolumeHistoryPoint[],
-  count = 4,
-): number[] {
+/**
+ * Every unique UTC day in the visible series, oldest first.
+ * Mid-series days stay labeled; density does not drop ticks.
+ */
+export function volumeChartXTicks(points: readonly VolumeHistoryPoint[]): number[] {
   if (points.length === 0) return [];
   const byDay = new Map<number, number>();
   for (const point of points) {
@@ -168,22 +167,45 @@ export function volumeChartXTicks(
     if (day <= 0) continue;
     if (!byDay.has(day)) byDay.set(day, point.t);
   }
-  const days = [...byDay.keys()].sort((a, b) => a - b);
-  if (days.length === 0) return [];
-  if (days.length === 1) return [byDay.get(days[0]!)!];
-  const n = Math.min(count, days.length);
-  const ticks: number[] = [];
-  for (let i = 0; i < n; i++) {
-    const idx = Math.round((i / (n - 1)) * (days.length - 1));
-    const t = byDay.get(days[idx]!)!;
-    if (ticks[ticks.length - 1] !== t) ticks.push(t);
+  return [...byDay.keys()].sort((a, b) => a - b).map((day) => byDay.get(day)!);
+}
+
+/** Sum of the plotted snapshot days. Does not invent days that are absent from `points`. */
+export function sumVolumePoints(points: readonly VolumeHistoryPoint[]): number | null {
+  if (points.length === 0) return null;
+  let sum = 0;
+  let counted = 0;
+  for (const point of points) {
+    if (!Number.isFinite(point.volumeUsd) || point.volumeUsd < 0) continue;
+    sum += point.volumeUsd;
+    counted += 1;
   }
-  return ticks;
+  return counted > 0 ? sum : null;
+}
+
+export function deskRangeVolumeHeadline(
+  points: readonly VolumeHistoryPoint[],
+  range: VolumeChartRangeId,
+): { volumeUsd: number | null; caption: string; kind: "range_sum" } {
+  const label = VOLUME_CHART_RANGES.find((row) => row.id === range)?.label ?? "7D";
+  const volumeUsd = sumVolumePoints(points);
+  if (volumeUsd === null) {
+    return {
+      volumeUsd: null,
+      caption: `${label} · no desk snapshots in this window`,
+      kind: "range_sum",
+    };
+  }
+  return {
+    volumeUsd,
+    caption: `${label} · sum of desk snapshot days · public + private + ETF/index`,
+    kind: "range_sum",
+  };
 }
 
 /**
- * Month+year when those labels are unique across the ticks (All / 180D).
- * Month+day when month+year would collide (7D in one month).
+ * Month+year when those labels are unique across the ticks.
+ * Month+day when month+year would collide (a window inside one month).
  */
 export function formatVolumeChartTick(unixSeconds: number, allTicks: readonly number[]): string {
   if (!Number.isFinite(unixSeconds)) return "";
