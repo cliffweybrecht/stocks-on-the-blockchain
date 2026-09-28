@@ -4,6 +4,9 @@ import type { AssetPoolMark } from "@/lib/market/types";
 /** Markets column header. This pair's DexScreener holder count, not 24h wallets. */
 export const MARKETS_HOLDERS_HEADER = "Holders";
 
+/** Markets column header. This pool's DexScreener pairCreatedAt, not a mint age. */
+export const MARKETS_TOKEN_AGE_HEADER = "Token age";
+
 /**
  * Holders cell for one pool. Only that pool's pair-details count is read.
  * Mint holder fields that may sit on the same object are ignored.

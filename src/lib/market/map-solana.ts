@@ -3,6 +3,7 @@ import {
   asFiniteNumber,
   asHttpUrl,
   asNonEmptyString,
+  asNonNegativeNumber,
   asReportedNumber,
   compareNullableDesc,
   sumNullable,
@@ -40,6 +41,21 @@ export interface DexScreenerPair {
   volume?: { h24?: unknown };
   liquidity?: { usd?: unknown };
   txns?: { h24?: { buys?: unknown; sells?: unknown } };
+  /** Unix milliseconds. Seconds-scale values are not this field. */
+  pairCreatedAt?: unknown;
+}
+
+/** Earliest millisecond timestamp we treat as a real DexScreener pair creation time. */
+const PAIR_CREATED_AT_MIN_MS = 1_000_000_000_000;
+
+/**
+ * DexScreener `pairCreatedAt` is unix milliseconds.
+ * Missing, fractional, seconds-scale, and non-positive values stay null.
+ */
+export function parsePairCreatedAt(value: unknown): number | null {
+  const parsed = asNonNegativeNumber(value);
+  if (parsed === null || !Number.isSafeInteger(parsed) || parsed < PAIR_CREATED_AT_MIN_MS) return null;
+  return parsed;
 }
 
 /** DexScreener `info.imageUrl` is the displayed (usually base) token. Quote sides do not inherit it. */
@@ -237,6 +253,7 @@ function addPairToBucket(bucket: MintAccumulator, pair: DexScreenerPair, tokenAd
     trades24h: pairTrades24h(buys, sells),
     wallets24h: null,
     pairHolderCount: null,
+    pairCreatedAt: parsePairCreatedAt(pair.pairCreatedAt),
     tradesChange24hPct: null,
     walletsChange24hPct: null,
   });

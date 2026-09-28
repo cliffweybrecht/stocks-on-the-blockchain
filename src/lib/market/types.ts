@@ -93,6 +93,11 @@ export interface AssetPoolMark {
    * Not copied from the page mint or from another pool. Unknown stays null.
    */
   pairHolderCount?: number | null;
+  /**
+   * DexScreener `pairCreatedAt` in unix milliseconds for this pool.
+   * Not a token mint time and not copied from another pool. Unknown stays null.
+   */
+  pairCreatedAt?: number | null;
   tradesChange24hPct?: number | null;
   walletsChange24hPct?: number | null;
 }
