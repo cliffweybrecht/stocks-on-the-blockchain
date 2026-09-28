@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   applyMintHolderCount,
-  applyOtherHolderCounts,
+  applyPairHolderCounts,
   asHolderCount,
-  counterpartyHolderSide,
+  dexScreenerPairDetailsPath,
+  parseDexScreenerPairHolderCount,
   parseJupiterHolderCount,
   parseJupiterHolderCounts,
 } from "../solana-holders";
@@ -11,7 +12,6 @@ import {
 const tslaMint = "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB";
 const otherMint = "memeMint111111111111111111111111111111111";
 const usdcMint = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
-const woollyMint = "woollyMint11111111111111111111111111111111";
 
 describe("asHolderCount", () => {
   it("keeps a non-negative integer and a numeric string", () => {
@@ -76,34 +76,31 @@ describe("parseJupiterHolderCounts", () => {
   });
 });
 
-describe("counterpartyHolderSide", () => {
-  it("picks the mint that is not the asset page", () => {
+describe("parseDexScreenerPairHolderCount", () => {
+  it("reads lpHolders.count and ignores the base-token holders census", () => {
     expect(
-      counterpartyHolderSide(
-        { baseAddress: otherMint, baseSymbol: "SI", quoteAddress: tslaMint, quoteSymbol: "NVDAx" },
-        tslaMint,
-      ),
-    ).toEqual({ mint: otherMint, symbol: "SI" });
-    expect(
-      counterpartyHolderSide(
-        { baseAddress: tslaMint, baseSymbol: "NVDAx", quoteAddress: usdcMint, quoteSymbol: "USDC" },
-        tslaMint,
-      ),
-    ).toEqual({ mint: usdcMint, symbol: "USDC" });
-    expect(
-      counterpartyHolderSide(
-        { baseAddress: woollyMint, baseSymbol: "WOOLLY", quoteAddress: tslaMint, quoteSymbol: "NVDAx" },
-        tslaMint,
-      ),
-    ).toEqual({ mint: woollyMint, symbol: "WOOLLY" });
+      parseDexScreenerPairHolderCount({
+        holders: { count: 115946 },
+        lpHolders: { count: 18, holders: [{ id: "lp-wallet", balance: "1" }] },
+      }),
+    ).toBe(18);
+    expect(parseDexScreenerPairHolderCount({ lpHolders: { count: 0 } })).toBe(0);
+    expect(parseDexScreenerPairHolderCount({ lpHolders: { count: "2245" } })).toBe(2245);
   });
 
-  it("returns null when the page mint is missing from the pair", () => {
-    expect(
-      counterpartyHolderSide({ baseAddress: otherMint, quoteAddress: usdcMint }, tslaMint),
-    ).toBeNull();
-    expect(counterpartyHolderSide({ baseAddress: tslaMint, quoteAddress: null }, tslaMint)).toBeNull();
-    expect(counterpartyHolderSide({ baseAddress: tslaMint, quoteAddress: tslaMint }, tslaMint)).toBeNull();
+  it("stays null when LP holders are missing, even if the mint count is present", () => {
+    expect(parseDexScreenerPairHolderCount({ holders: { count: 5_250_000 }, lpHolders: null })).toBeNull();
+    expect(parseDexScreenerPairHolderCount({ holders: { count: 112538 } })).toBeNull();
+    expect(parseDexScreenerPairHolderCount({ lpHolders: { holders: [{ id: "only-a-row" }] } })).toBeNull();
+    expect(parseDexScreenerPairHolderCount({ lpHolders: { count: 12.5 } })).toBeNull();
+    expect(parseDexScreenerPairHolderCount(null)).toBeNull();
+  });
+});
+
+describe("dexScreenerPairDetailsPath", () => {
+  it("targets one Solana pool and skips a blank address", () => {
+    expect(dexScreenerPairDetailsPath("pair-1")).toBe("/dex/pair-details/v4/solana/pair-1");
+    expect(dexScreenerPairDetailsPath("  ")).toBeNull();
   });
 });
 
@@ -119,53 +116,32 @@ describe("applyMintHolderCount", () => {
   });
 });
 
-describe("applyOtherHolderCounts", () => {
-  it("stamps a different counterparty count on each pair and never copies the asset count", () => {
+describe("applyPairHolderCounts", () => {
+  it("keeps a different LP count on each pool and does not copy a shared mint count", () => {
     const pools = [
-      {
-        baseAddress: otherMint,
-        baseSymbol: "SI",
-        quoteAddress: tslaMint,
-        quoteSymbol: "NVDAx",
-        otherHolderCount: 40386 as number | null,
-      },
-      {
-        baseAddress: tslaMint,
-        baseSymbol: "NVDAx",
-        quoteAddress: usdcMint,
-        quoteSymbol: "USDC",
-        otherHolderCount: 40386 as number | null,
-      },
-      {
-        baseAddress: woollyMint,
-        baseSymbol: "WOOLLY",
-        quoteAddress: tslaMint,
-        quoteSymbol: "NVDAx",
-        otherHolderCount: 40386 as number | null,
-      },
+      { pairAddress: "nvda-usdc-orca", pairHolderCount: 5_250_000 as number | null },
+      { pairAddress: "nvda-usdc-raydium", pairHolderCount: 5_250_000 as number | null },
+      { pairAddress: "nvda-sol-meteora", pairHolderCount: 3_820_000 as number | null },
     ];
-    applyOtherHolderCounts(
-      tslaMint,
+    applyPairHolderCounts(
       pools,
-      new Map([
-        [tslaMint, 40386],
-        [otherMint, 1200],
-        [usdcMint, 2_000_000],
-        [woollyMint, 840],
+      new Map<string, number | null>([
+        [usdcMint, 5_250_000],
+        [tslaMint, 112_538],
+        ["nvda-usdc-orca", 18],
+        ["nvda-usdc-raydium", 41],
+        ["nvda-sol-meteora", null],
       ]),
     );
-    expect(pools.map((pool) => pool.otherHolderCount)).toEqual([1200, 2_000_000, 840]);
+    expect(pools.map((pool) => pool.pairHolderCount)).toEqual([18, 41, null]);
   });
 
-  it("leaves a dash when the other mint has no count", () => {
+  it("does not fill a pool from another pool or from the asset mint", () => {
     const pools = [
-      {
-        baseAddress: tslaMint,
-        quoteAddress: usdcMint,
-        otherHolderCount: 10 as number | null,
-      },
+      { pairAddress: "pair-a", pairHolderCount: 9 as number | null },
+      { pairAddress: "  ", pairHolderCount: 9 as number | null },
     ];
-    applyOtherHolderCounts(tslaMint, pools, new Map([[tslaMint, 40386]]));
-    expect(pools[0]?.otherHolderCount).toBeNull();
+    applyPairHolderCounts(pools, new Map([[tslaMint, 112_538], ["pair-b", 7]]));
+    expect(pools.map((pool) => pool.pairHolderCount)).toEqual([null, null]);
   });
 });

@@ -46,51 +46,43 @@ export function parseJupiterHolderCount(payload: unknown, mint: string): number 
   return parseJupiterHolderCounts(payload, new Set([requested])).get(requested) ?? null;
 }
 
-/** Set the asset-page mint holder count. Pool rows keep their own counterparty counts. */
+/** Set the asset-page mint holder count. Pool rows are not touched. */
 export function applyMintHolderCount(asset: { holderCount: number | null }, holderCount: number | null): void {
   asset.holderCount = holderCount;
 }
 
-export interface PairHolderSide {
-  baseAddress?: string | null;
-  quoteAddress?: string | null;
-  baseSymbol?: string | null;
-  quoteSymbol?: string | null;
+/** Host for DexScreener pair-details. The public pair API does not include LP holders. */
+export const DEFAULT_DEXSCREENER_IO_BASE_URL = "https://io.dexscreener.com";
+
+/** One pool per request. An empty address is not fetched. */
+export function dexScreenerPairDetailsPath(pairAddress: string): string | null {
+  const address = pairAddress.trim();
+  if (!address) return null;
+  return `/dex/pair-details/v4/solana/${encodeURIComponent(address)}`;
 }
 
 /**
- * The mint on this pair that is not the asset page.
- * SI-NVDAx on the NVDAx page is SI. NVDAx-USDC is USDC. WOOLLY-NVDAx is WOOLLY.
- * A pair that does not include the page mint has no counterparty to show.
+ * LP holders of this pool from pair-details `lpHolders.count`.
+ * `holders.count` is the base-token mint census and is ignored — it is the same number on every pool of that mint.
+ * A missing or null `lpHolders` stays null. It is not filled from `holders` or from a quote-mint count.
  */
-export function counterpartyHolderSide(
-  pool: PairHolderSide,
-  assetMint: string,
-): { mint: string; symbol: string | null } | null {
-  const asset = assetMint.trim();
-  if (!asset) return null;
-  const base = asNonEmptyString(pool.baseAddress);
-  const quote = asNonEmptyString(pool.quoteAddress);
-  if (base === asset && quote && quote !== asset) {
-    return { mint: quote, symbol: asNonEmptyString(pool.quoteSymbol) };
-  }
-  if (quote === asset && base && base !== asset) {
-    return { mint: base, symbol: asNonEmptyString(pool.baseSymbol) };
-  }
-  return null;
+export function parseDexScreenerPairHolderCount(payload: unknown): number | null {
+  if (!payload || typeof payload !== "object") return null;
+  const lpHolders = (payload as { lpHolders?: unknown }).lpHolders;
+  if (!lpHolders || typeof lpHolders !== "object") return null;
+  return asHolderCount((lpHolders as { count?: unknown }).count);
 }
 
 /**
- * Stamp each pool with the other mint's holder count.
- * A missing mint or a missing count stays null. It is not replaced with the page asset's count.
+ * Stamp each pool with its own pair address's count.
+ * A count stored under a mint, or under a different pool, is not copied across rows.
  */
-export function applyOtherHolderCounts<T extends PairHolderSide & { otherHolderCount?: number | null }>(
-  assetMint: string,
+export function applyPairHolderCounts<T extends { pairAddress: string; pairHolderCount?: number | null }>(
   pools: readonly T[],
   counts: ReadonlyMap<string, number | null>,
 ): void {
   for (const pool of pools) {
-    const side = counterpartyHolderSide(pool, assetMint);
-    pool.otherHolderCount = side ? (counts.get(side.mint) ?? null) : null;
+    const address = pool.pairAddress.trim();
+    pool.pairHolderCount = address ? (counts.get(address) ?? null) : null;
   }
 }

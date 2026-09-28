@@ -1,5 +1,43 @@
 import { describe, expect, it } from "vitest";
-import { marketsPairLabel, marketsPoolHref, marketsTokenLogoUrl, marketsTrades24h } from "../markets-pool";
+import {
+  MARKETS_HOLDERS_HEADER,
+  marketsPairHolderCount,
+  marketsPairLabel,
+  marketsPoolHref,
+  marketsTokenLogoUrl,
+  marketsTrades24h,
+} from "../markets-pool";
+
+describe("markets holders column", () => {
+  it("labels the column Holders", () => {
+    expect(MARKETS_HOLDERS_HEADER).toBe("Holders");
+    expect(MARKETS_HOLDERS_HEADER).not.toMatch(/other holders/i);
+    expect(MARKETS_HOLDERS_HEADER).not.toMatch(/24h wallets/i);
+  });
+
+  it("reads only that pool's LP count and ignores mint holder fields", () => {
+    const orcaUsdc = {
+      pairHolderCount: 18 as number | null,
+      holderCount: 112_538,
+      otherHolderCount: 5_250_000,
+    };
+    const raydiumUsdc = {
+      pairHolderCount: 41 as number | null,
+      holderCount: 112_538,
+      otherHolderCount: 5_250_000,
+    };
+    const missingLp = {
+      pairHolderCount: null as number | null,
+      holderCount: 5_250_000,
+      otherHolderCount: 5_250_000,
+    };
+    expect(marketsPairHolderCount(orcaUsdc)).toBe(18);
+    expect(marketsPairHolderCount(raydiumUsdc)).toBe(41);
+    expect(marketsPairHolderCount(orcaUsdc)).not.toBe(marketsPairHolderCount(raydiumUsdc));
+    expect(marketsPairHolderCount(missingLp)).toBeNull();
+    expect(marketsPairHolderCount({ pairHolderCount: 0 })).toBe(0);
+  });
+});
 
 describe("marketsPairLabel", () => {
   it("joins reported base and quote symbols and does not invent a side", () => {
