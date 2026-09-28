@@ -51,7 +51,7 @@ export function applyMintHolderCount(asset: { holderCount: number | null }, hold
   asset.holderCount = holderCount;
 }
 
-/** Host for DexScreener pair-details. The public pair API does not include LP holders. */
+/** Host for DexScreener pair-details. The public pair API does not include holder counts. */
 export const DEFAULT_DEXSCREENER_IO_BASE_URL = "https://io.dexscreener.com";
 
 /** One pool per request. An empty address is not fetched. */
@@ -62,15 +62,19 @@ export function dexScreenerPairDetailsPath(pairAddress: string): string | null {
 }
 
 /**
- * LP holders of this pool from pair-details `lpHolders.count`.
- * `holders.count` is the base-token mint census and is ignored — it is the same number on every pool of that mint.
- * A missing or null `lpHolders` stays null. It is not filled from `holders` or from a quote-mint count.
+ * Holder count DexScreener reports for this pair (`holders.count`).
+ * That census is the pair's base token: NVDAx-USDC reports NVDAx, SI-NVDAx reports SI.
+ * It is read only from this pair's payload. A shared base token can report the same
+ * count on two pools; that match is the source data, not a copy from the page mint.
+ * `lpHolders.count` is the LP-token wallet count. Raydium CLMM, Orca Whirlpool,
+ * Meteora DLMM, and PumpSwap leave it null, so it is not the Holders column.
+ * A missing `holders` object stays null. It is not filled from `lpHolders`.
  */
 export function parseDexScreenerPairHolderCount(payload: unknown): number | null {
   if (!payload || typeof payload !== "object") return null;
-  const lpHolders = (payload as { lpHolders?: unknown }).lpHolders;
-  if (!lpHolders || typeof lpHolders !== "object") return null;
-  return asHolderCount((lpHolders as { count?: unknown }).count);
+  const holders = (payload as { holders?: unknown }).holders;
+  if (!holders || typeof holders !== "object") return null;
+  return asHolderCount((holders as { count?: unknown }).count);
 }
 
 /**

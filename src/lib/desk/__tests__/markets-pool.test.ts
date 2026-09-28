@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { formatTokenAge } from "../../market/format";
 import {
   MARKETS_HOLDERS_HEADER,
+  MARKETS_TOKEN_AGE_HEADER,
   marketsPairHolderCount,
   marketsPairLabel,
   marketsPoolHref,
@@ -15,27 +17,51 @@ describe("markets holders column", () => {
     expect(MARKETS_HOLDERS_HEADER).not.toMatch(/24h wallets/i);
   });
 
-  it("reads only that pool's LP count and ignores mint holder fields", () => {
-    const orcaUsdc = {
-      pairHolderCount: 18 as number | null,
+  it("reads only that pool's pair holder count and ignores mint holder fields", () => {
+    const nvdaUsdc = {
+      pairHolderCount: 120_477 as number | null,
       holderCount: 112_538,
       otherHolderCount: 5_250_000,
     };
-    const raydiumUsdc = {
-      pairHolderCount: 41 as number | null,
+    const siNvda = {
+      pairHolderCount: 20_252 as number | null,
       holderCount: 112_538,
       otherHolderCount: 5_250_000,
     };
-    const missingLp = {
+    const missing = {
       pairHolderCount: null as number | null,
       holderCount: 5_250_000,
       otherHolderCount: 5_250_000,
     };
-    expect(marketsPairHolderCount(orcaUsdc)).toBe(18);
-    expect(marketsPairHolderCount(raydiumUsdc)).toBe(41);
-    expect(marketsPairHolderCount(orcaUsdc)).not.toBe(marketsPairHolderCount(raydiumUsdc));
-    expect(marketsPairHolderCount(missingLp)).toBeNull();
+    expect(marketsPairHolderCount(nvdaUsdc)).toBe(120_477);
+    expect(marketsPairHolderCount(siNvda)).toBe(20_252);
+    expect(marketsPairHolderCount(nvdaUsdc)).not.toBe(marketsPairHolderCount(siNvda));
+    expect(marketsPairHolderCount(missing)).toBeNull();
     expect(marketsPairHolderCount({ pairHolderCount: 0 })).toBe(0);
+  });
+});
+
+describe("markets token age column", () => {
+  const now = Date.UTC(2026, 8, 28, 12, 0, 0);
+  const minute = 60_000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  it("labels the column Token age", () => {
+    expect(MARKETS_TOKEN_AGE_HEADER).toBe("Token age");
+  });
+
+  it("floors a reported pair age into one unit and stays blank when the timestamp is unusable", () => {
+    expect(formatTokenAge(now - 3 * day - 5 * hour, now)).toBe("3d");
+    expect(formatTokenAge(now - 60 * day, now)).toBe("2mo");
+    expect(formatTokenAge(now - 45 * minute, now)).toBe("45m");
+    expect(formatTokenAge(now - 5 * hour, now)).toBe("5h");
+    expect(formatTokenAge(now - 400 * day, now)).toBe("1y");
+    expect(formatTokenAge(now - 20_000, now)).toBe("<1m");
+    expect(formatTokenAge(now + 10_000, now)).toBe("<1m");
+    expect(formatTokenAge(now + 2 * minute, now)).toBe("—");
+    expect(formatTokenAge(null, now)).toBe("—");
+    expect(formatTokenAge(undefined, now)).toBe("—");
   });
 });
 

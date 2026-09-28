@@ -3,6 +3,7 @@ import {
   mapDexScreenerPairsToSolanaAssets,
   mergeUnpairedSolanaAssets,
   pairTokenLogoUrl,
+  parsePairCreatedAt,
   unwrapDexScreenerPairs,
   unwrapDexScreenerSearch,
 } from "../map-solana";
@@ -108,6 +109,7 @@ describe("mapDexScreenerPairsToSolanaAssets", () => {
       trades24h: 2703,
       wallets24h: null,
       pairHolderCount: null,
+      pairCreatedAt: null,
       tradesChange24hPct: null,
       walletsChange24hPct: null,
       url: "https://dexscreener.com/solana/pair-tsla-usdc",
@@ -421,12 +423,29 @@ describe("mapDexScreenerPairsToSolanaAssets", () => {
       trades24h: 14,
       wallets24h: null,
       pairHolderCount: null,
+      pairCreatedAt: null,
       tradesChange24hPct: null,
       walletsChange24hPct: null,
     });
     expect(pools[1]?.trades24h).toBeNull();
     expect(pools[1]?.wallets24h).toBeNull();
     expect(pools[1]?.pairHolderCount).toBeNull();
+  });
+
+  it("keeps each pool's own pairCreatedAt and drops timestamps that are not milliseconds", () => {
+    const createdAt = 1_751_420_783_000;
+    const { assets } = mapDexScreenerPairsToSolanaAssets([
+      { ...fixturePairs[0]!, pairCreatedAt: createdAt },
+      { ...fixturePairs[1]!, pairCreatedAt: 1_751_420_783 },
+    ]);
+    expect(assets[0]?.pools.map((pool) => pool.pairCreatedAt)).toEqual([createdAt, null]);
+    expect(parsePairCreatedAt(createdAt)).toBe(createdAt);
+    expect(parsePairCreatedAt("1751420783000")).toBe(createdAt);
+    expect(parsePairCreatedAt(null)).toBeNull();
+    expect(parsePairCreatedAt(0)).toBeNull();
+    expect(parsePairCreatedAt(-1)).toBeNull();
+    expect(parsePairCreatedAt(1_751_420_783_000.5)).toBeNull();
+    expect(parsePairCreatedAt("nope")).toBeNull();
   });
 
   it("keeps classified registry mints with no DexScreener pools as null-volume rows", () => {

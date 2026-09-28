@@ -66,6 +66,36 @@ export function formatAddress(address: string | null | undefined): string {
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }
 
+const TOKEN_AGE_MINUTE_MS = 60_000;
+const TOKEN_AGE_HOUR_MS = 60 * TOKEN_AGE_MINUTE_MS;
+const TOKEN_AGE_DAY_MS = 24 * TOKEN_AGE_HOUR_MS;
+/** Compact months are 30-day units. This is a label, not a calendar date. */
+const TOKEN_AGE_MONTH_MS = 30 * TOKEN_AGE_DAY_MS;
+const TOKEN_AGE_YEAR_MS = 365 * TOKEN_AGE_DAY_MS;
+
+/**
+ * Compact age from a pair creation timestamp.
+ * Floors into one unit (45m, 5h, 3d, 2mo, 1y). A missing or future timestamp stays a dash.
+ * A clock skew of under a minute still reads as under a minute.
+ */
+export function formatTokenAge(createdAtMs: number | null | undefined, nowMs: number): string {
+  if (typeof createdAtMs !== "number" || !Number.isFinite(createdAtMs)) return "—";
+  if (typeof nowMs !== "number" || !Number.isFinite(nowMs)) return "—";
+  const ageMs = nowMs - createdAtMs;
+  if (ageMs < -TOKEN_AGE_MINUTE_MS) return "—";
+  if (ageMs < TOKEN_AGE_MINUTE_MS) return "<1m";
+  if (ageMs < TOKEN_AGE_HOUR_MS) return `${Math.floor(ageMs / TOKEN_AGE_MINUTE_MS)}m`;
+  if (ageMs < TOKEN_AGE_DAY_MS) return `${Math.floor(ageMs / TOKEN_AGE_HOUR_MS)}h`;
+  if (ageMs < TOKEN_AGE_MONTH_MS) return `${Math.floor(ageMs / TOKEN_AGE_DAY_MS)}d`;
+  if (ageMs < TOKEN_AGE_YEAR_MS) return `${Math.floor(ageMs / TOKEN_AGE_MONTH_MS)}mo`;
+  return `${Math.floor(ageMs / TOKEN_AGE_YEAR_MS)}y`;
+}
+
+/** Age as of this render. The clock read stays outside the React component. */
+export function formatTokenAgeNow(createdAtMs: number | null | undefined): string {
+  return formatTokenAge(createdAtMs, Date.now());
+}
+
 export function formatDurationMs(ms: number | null | undefined): string {
   if (ms === null || ms === undefined || !Number.isFinite(ms)) return "—";
   if (ms < 1000) return `${Math.round(ms)} ms`;
