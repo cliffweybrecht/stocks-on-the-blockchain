@@ -22,6 +22,7 @@ const fixturePairs = [
     priceUsd: "355.64",
     volume: { h24: 290_596.11 },
     liquidity: { usd: 2_027_739.88 },
+    labels: ["CLMM"],
     txns: { h24: { buys: 1277, sells: 1426 } },
   },
   {
@@ -103,13 +104,16 @@ describe("mapDexScreenerPairsToSolanaAssets", () => {
       quoteSymbol: "USDC",
       baseName: "Tesla xStock",
       quoteName: "USD Coin",
+      labels: ["CLMM"],
       trades24h: 2703,
       wallets24h: null,
+      otherHolderCount: null,
       tradesChange24hPct: null,
       walletsChange24hPct: null,
       url: "https://dexscreener.com/solana/pair-tsla-usdc",
     });
     expect(tsla?.pools[1]?.trades24h).toBe(18);
+    expect(tsla?.pools[1]?.labels).toBeNull();
     expect(tsla?.robinhoodReferencePriceUsd).toBeNull();
     expect(tsla?.sourceId).toBe("solana");
     expect(tsla?.logoUrl).toBeNull();
@@ -167,6 +171,16 @@ describe("mapDexScreenerPairsToSolanaAssets", () => {
     expect(details[0]?.marketCapUsd).toBeNull();
     expect(details[0]?.fdvUsd).toBeNull();
     expect(details[0]?.priceChange24hPct).toBeNull();
+  });
+
+  it("keeps DexScreener pair labels and drops non-strings", () => {
+    const { assets } = mapDexScreenerPairsToSolanaAssets([
+      {
+        ...fixturePairs[0]!,
+        labels: ["CLMM", 1, "", "  ", "DLMM"],
+      },
+    ]);
+    expect(assets[0]?.pools[0]?.labels).toEqual(["CLMM", "DLMM"]);
   });
 
   it("does not let a quote-side pair set this mint's median, change, or market cap", () => {
@@ -384,7 +398,7 @@ describe("mapDexScreenerPairsToSolanaAssets", () => {
     );
   });
 
-  it("maps pair identity and trades from DexScreener and leaves wallets unknown", () => {
+  it("maps pair identity and trades from DexScreener and leaves wallets and holders unknown", () => {
     const { assets } = mapDexScreenerPairsToSolanaAssets([
       {
         ...fixturePairs[0]!,
@@ -406,11 +420,13 @@ describe("mapDexScreenerPairsToSolanaAssets", () => {
       url: "https://dexscreener.com/solana/custom-tsla",
       trades24h: 14,
       wallets24h: null,
+      otherHolderCount: null,
       tradesChange24hPct: null,
       walletsChange24hPct: null,
     });
     expect(pools[1]?.trades24h).toBeNull();
     expect(pools[1]?.wallets24h).toBeNull();
+    expect(pools[1]?.otherHolderCount).toBeNull();
   });
 
   it("keeps classified registry mints with no DexScreener pools as null-volume rows", () => {

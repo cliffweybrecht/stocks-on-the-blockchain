@@ -2,6 +2,15 @@ import { createRequestGate, mapWithConcurrency, sleep } from "./async-pool";
 import { findAssetByKey } from "./identity";
 import { buildSolanaSnapshot, unwrapDexScreenerPairs, unwrapDexScreenerSearch, type DexScreenerPair } from "./map-solana";
 import {
+  applyOtherHolderCounts,
+  counterpartyHolderSide,
+  HOLDER_FETCH_TIMEOUT_MS,
+  MINT_HOLDER_CACHE_MS,
+  MINT_HOLDER_MISS_CACHE_MS,
+  parseJupiterHolderCounts,
+  type PairHolderSide,
+} from "./solana-holders";
+import {
   applyMintLogoFallbacks,
   DEFAULT_JUPITER_TOKEN_BASE_URL,
   JUPITER_TOKEN_SEARCH_BATCH,
@@ -207,6 +216,10 @@ export interface SolanaMarketDataSourceOptions {
   enableJupiterTokenLogos?: boolean;
   jupiterTokenBaseUrl?: string;
   mintLogoCacheMs?: number;
+  /** Jupiter Tokens V2 holderCount for the asset page. Default on. */
+  enableJupiterHolders?: boolean;
+  /** Cache TTL after Jupiter returns a holder payload, including a real null. */
+  holderCacheMs?: number;
   /** Solana JSON-RPC for `getTokenSupply`. Default: public mainnet-beta. */
   rpcUrl?: string;
   /** When false, asset stats leave supply, market cap, and FDV blank. */
@@ -274,6 +287,8 @@ export class SolanaMarketDataSource implements MarketDataSource {
   private readonly mintLogoCatalog: MintLogoCatalog = new Map();
   private jupiterLogoCache = new Map<string, { url: string | null; expiresAt: number }>();
   private mintSupplyCache = new Map<string, { uiSupply: number; expiresAt: number }>();
+  private holderCache = new Map<string, { count: number | null; expiresAt: number }>();
+  private holderInflight = new Map<string, Promise<number | null>>();
 
   constructor(private readonly options: SolanaMarketDataSourceOptions = {}) {
     this.memory = new SolanaHydrateMemory(options.emptyCacheMs ?? SOLANA_DEFAULTS.emptyCacheMs);
@@ -342,6 +357,14 @@ export class SolanaMarketDataSource implements MarketDataSource {
 
   private get jupiterTokenLogosEnabled() {
     return this.options.enableJupiterTokenLogos !== false;
+  }
+
+  private get jupiterHoldersEnabled() {
+    return this.options.enableJupiterHolders !== false;
+  }
+
+  private get holderCacheMs() {
+    return this.nonNegativeOption(this.options.holderCacheMs, MINT_HOLDER_CACHE_MS);
   }
 
   private get jupiterTokenBaseUrl() {
@@ -1287,6 +1310,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
       symbol,
     );
     if (!asset) return null;
+    await this.stampHolderCounts(asset);
     const uiSupply = await this.readMintUiSupply(asset.contractAddress);
     return {
       chain: cached.mapped.chain,
@@ -1314,6 +1338,98 @@ export class SolanaMarketDataSource implements MarketDataSource {
       this.mintSupplyCache.set(mint, { uiSupply, expiresAt: now + this.cacheMs });
     }
     return uiSupply;
+  }
+
+  /**
+   * Statistics use the page mint's Jupiter holderCount.
+   * Each Markets row uses the other mint in that pair, so SI-NVDAx and NVDAx-USDC can differ.
+   * Unique mints are batched into one search. Chain snapshots do not pay for this lookup.
+   */
+  private async stampHolderCounts(asset: {
+    contractAddress: string;
+    holderCount: number | null;
+    pools: readonly (PairHolderSide & { otherHolderCount?: number | null })[];
+  }): Promise<void> {
+    if (!this.jupiterHoldersEnabled) return;
+    const assetMint = asset.contractAddress.trim();
+    const mints: string[] = [];
+    if (assetMint) mints.push(assetMint);
+    for (const pool of asset.pools) {
+      const side = counterpartyHolderSide(pool, assetMint);
+      if (side) mints.push(side.mint);
+    }
+    const counts = await this.holderCountsForMints(mints);
+    asset.holderCount = assetMint ? (counts.get(assetMint) ?? null) : null;
+    applyOtherHolderCounts(assetMint, asset.pools, counts);
+  }
+
+  private async holderCountsForMints(mints: readonly string[]): Promise<Map<string, number | null>> {
+    const unique = [...new Set(mints.map((mint) => mint.trim()).filter(Boolean))];
+    const out = new Map<string, number | null>();
+    const now = Date.now();
+    const toFetch: string[] = [];
+    const waiting: Promise<void>[] = [];
+    for (const mint of unique) {
+      const cached = this.holderCache.get(mint);
+      if (cached && cached.expiresAt > now) {
+        out.set(mint, cached.count);
+        continue;
+      }
+      const pending = this.holderInflight.get(mint);
+      if (pending) {
+        waiting.push(
+          pending.then((count) => {
+            out.set(mint, count);
+          }),
+        );
+        continue;
+      }
+      toFetch.push(mint);
+    }
+    if (toFetch.length > 0) {
+      const task = this.fetchHolderBatch(toFetch);
+      for (const mint of toFetch) {
+        this.holderInflight.set(
+          mint,
+          task.then((counts) => counts.get(mint) ?? null),
+        );
+      }
+      try {
+        const fetched = await task;
+        for (const [mint, count] of fetched) out.set(mint, count);
+      } finally {
+        for (const mint of toFetch) this.holderInflight.delete(mint);
+      }
+    }
+    await Promise.all(waiting);
+    return out;
+  }
+
+  private async fetchHolderBatch(mints: readonly string[]): Promise<Map<string, number | null>> {
+    const result = new Map<string, number | null>();
+    const timeoutMs = Math.min(this.timeoutMs, HOLDER_FETCH_TIMEOUT_MS);
+    for (const batch of chunkValues(mints, JUPITER_TOKEN_SEARCH_BATCH)) {
+      const url = `${this.jupiterTokenBaseUrl}${jupiterTokenSearchPath(batch)}`;
+      try {
+        const payload = await this.gate().run(() =>
+          fetchJsonOrText(url, timeoutMs, this.fetchImpl, "Jupiter holder count", 0),
+        );
+        const parsed = parseJupiterHolderCounts(payload, new Set(batch));
+        const expiresAt = Date.now() + this.holderCacheMs;
+        for (const mint of batch) {
+          const count = parsed.get(mint) ?? null;
+          result.set(mint, count);
+          this.holderCache.set(mint, { count, expiresAt });
+        }
+      } catch {
+        const expiresAt = Date.now() + MINT_HOLDER_MISS_CACHE_MS;
+        for (const mint of batch) {
+          result.set(mint, null);
+          this.holderCache.set(mint, { count: null, expiresAt });
+        }
+      }
+    }
+    return result;
   }
 
   async getEquityVolumeHistory(): Promise<EquityVolumeHistoryResult> {

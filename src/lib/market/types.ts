@@ -82,10 +82,18 @@ export interface AssetPoolMark {
   quoteLogoUrl?: string | null;
   /** DexScreener pair `url` when reported, else a constructed Solana pair href. */
   url?: string | null;
+  /** DexScreener pair `labels` when reported (CLMM, DLMM, wp, …). */
+  labels?: readonly string[] | null;
   /** buys + sells when DexScreener reported both `txns.h24` sides. */
   trades24h?: number | null;
   /** Unique wallets are not on the DexScreener pair payload we fetch. */
   wallets24h?: number | null;
+  /**
+   * Jupiter Tokens V2 holderCount for the other mint in this pair (not the asset-page mint).
+   * SI-NVDAx shows SI, NVDAx-USDC shows USDC. Unknown stays null.
+   * Not a pool LP count and not a 24h wallet count.
+   */
+  otherHolderCount?: number | null;
   tradesChange24hPct?: number | null;
   walletsChange24hPct?: number | null;
 }
@@ -172,7 +180,7 @@ export interface AssetDetail extends AssetSummary {
   marketCapUsd: number | null;
   /** DEX median price × total supply when both are known. Never a pool's reported FDV. */
   fdvUsd: number | null;
-  /** Source-reported holder count. Unknown stays null — this desk has no holder indexer. */
+  /** Jupiter Tokens V2 holderCount for this mint. Unknown stays null — never inferred. */
   holderCount: number | null;
   /** Source-reported circulating supply. Never inferred from market cap, price, or liquidity. */
   circulatingSupply: number | null;

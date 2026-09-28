@@ -296,6 +296,8 @@ describe("createMarketDataSource", () => {
     expect(solanaSourceOptionsFromEnv({ SOLANA_JUPITER_TOKEN_LOGOS_ENABLED: "false" }).enableJupiterTokenLogos).toBe(
       false,
     );
+    expect(solanaSourceOptionsFromEnv({}).enableJupiterHolders).toBe(true);
+    expect(solanaSourceOptionsFromEnv({ SOLANA_JUPITER_HOLDERS_ENABLED: "false" }).enableJupiterHolders).toBe(false);
     expect(createSolanaMarketDataSource({ SOLANA_DEXSCREENER_BASE_URL: "https://dex.example" })).toBeInstanceOf(
       SolanaMarketDataSource,
     );

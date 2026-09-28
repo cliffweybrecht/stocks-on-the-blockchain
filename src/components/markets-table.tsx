@@ -9,7 +9,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { marketsPairLabel, marketsPoolHref, marketsTokenLogoUrl } from "@/lib/desk/markets-pool";
+import { marketsPoolVenues } from "@/lib/desk/venues";
 import { formatAddress, formatCountCompact, formatPct, formatUsdCompact } from "@/lib/market/format";
+import { counterpartyHolderSide } from "@/lib/market/solana-holders";
 import type { AssetDetail, AssetPoolMark } from "@/lib/market/types";
 
 function changeTone(value: number | null): "up" | "down" | "flat" | "empty" {
@@ -29,6 +31,42 @@ function MarketsChange({ value }: { value: number | null }) {
   );
 }
 
+function VenueMarks({ pool }: { pool: Pick<AssetPoolMark, "dexId" | "labels"> }) {
+  const venues = marketsPoolVenues(pool);
+  if (venues.length === 0) {
+    return <span className="text-sm text-muted-foreground">—</span>;
+  }
+
+  return (
+    <div className="flex items-center justify-end gap-1" data-markets-venues>
+      {venues.map((venue) =>
+        venue.logoSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={venue.id}
+            src={venue.logoSrc}
+            alt={venue.name}
+            title={venue.name}
+            width={18}
+            height={18}
+            data-venue={venue.id}
+            className="size-[18px] shrink-0 rounded-full object-cover ring-1 ring-border"
+          />
+        ) : (
+          <span
+            key={venue.id}
+            title={venue.name}
+            data-venue={venue.id}
+            className="max-w-[7.5rem] truncate text-xs text-foreground"
+          >
+            {venue.name}
+          </span>
+        ),
+      )}
+    </div>
+  );
+}
+
 function MarketsMetric({
   value,
   change,
@@ -38,10 +76,11 @@ function MarketsMetric({
   change: number | null;
   format: (value: number | null) => string;
 }) {
+  const showChange = change !== null && Number.isFinite(change);
   return (
     <div className="text-right">
       <div className="num text-sm text-foreground">{format(value)}</div>
-      {value !== null || change !== null ? <MarketsChange value={change} /> : null}
+      {showChange ? <MarketsChange value={change} /> : null}
     </div>
   );
 }
@@ -92,7 +131,13 @@ export function MarketsTable({
               <TableHead className="text-right font-normal text-muted-foreground">Liquidity</TableHead>
               <TableHead className="text-right font-normal text-muted-foreground">24h Volume</TableHead>
               <TableHead className="text-right font-normal text-muted-foreground">24h Trades</TableHead>
-              <TableHead className="text-right font-normal text-muted-foreground">24h Wallets</TableHead>
+              <TableHead
+                className="text-right font-normal text-muted-foreground"
+                title="Jupiter holder count for the other mint in the pair. This asset's holders stay on the statistics card."
+              >
+                Other holders
+              </TableHead>
+              <TableHead className="pl-4 text-right font-normal text-muted-foreground">Venue</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -105,7 +150,8 @@ export function MarketsTable({
               });
               const address = pool.pairAddress.trim();
               const trades = pool.trades24h ?? null;
-              const wallets = pool.wallets24h ?? null;
+              const other = counterpartyHolderSide(pool, asset.contractAddress);
+              const holders = pool.otherHolderCount ?? null;
 
               return (
                 <TableRow
@@ -151,12 +197,16 @@ export function MarketsTable({
                       format={formatCountCompact}
                     />
                   </TableCell>
-                  <TableCell className="py-3.5">
-                    <MarketsMetric
-                      value={wallets}
-                      change={pool.walletsChange24hPct ?? null}
-                      format={formatCountCompact}
-                    />
+                  <TableCell
+                    className="py-3.5"
+                    data-holders={holders === null ? "missing" : String(holders)}
+                    data-other-mint={other?.mint ?? ""}
+                    title={other?.symbol ? `${other.symbol} holders` : "Holder count for the other mint in this pair"}
+                  >
+                    <MarketsMetric value={holders} change={null} format={formatCountCompact} />
+                  </TableCell>
+                  <TableCell className="py-3.5 pl-4 text-right">
+                    <VenueMarks pool={pool} />
                   </TableCell>
                 </TableRow>
               );
