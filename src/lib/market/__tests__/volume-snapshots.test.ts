@@ -1,7 +1,9 @@
+import { readFileSync } from "node:fs";
 import { mkdtemp, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { filterVolumeRange } from "../daily-volume-view";
 import { UTC_DAY_SECONDS } from "../volume-history";
 import { FileDeskVolumeSnapshotStore } from "../volume-snapshot-store";
 import {
@@ -226,6 +228,37 @@ describe("recordDeskVolumeFromChain", () => {
     expect(first.ok && first.written).toBe(true);
     expect(again.ok && again.unchanged).toBe(true);
     expect(await store.load()).toHaveLength(1);
+  });
+});
+
+describe("committed Solana desk snapshots", () => {
+  const raw = JSON.parse(readFileSync(join(process.cwd(), "data/volume-snapshots/solana.json"), "utf8"));
+  const snapshots = parseDeskVolumeSnapshotRecords(raw);
+
+  it("keeps every honest recorded day, including days earlier commits had replaced away", () => {
+    expect(snapshots.map((row) => row.date)).toEqual(["2026-09-24", "2026-09-25", "2026-09-26", "2026-09-27"]);
+    expect(snapshots.map((row) => row.combined24hUsd)).toEqual([
+      121018931.03999996,
+      115145253.47000003,
+      56268835.52999999,
+      76080265.64999995,
+    ]);
+  });
+
+  it("plots every snapshot day on All and on 7D when the span is inside a week", () => {
+    const history = buildSnapshotEquityVolumeHistory({
+      snapshots,
+      liveCombined24hUsd: 97_900_000,
+      nowT: Date.parse("2026-09-28T16:00:00.000Z") / 1000,
+      generatedAt: "2026-09-28T16:00:00.000Z",
+    });
+    const dates = history.points.map((point) => new Date(point.t * 1000).toISOString().slice(0, 10));
+    expect(dates).toEqual(["2026-09-24", "2026-09-25", "2026-09-26", "2026-09-27", "2026-09-28"]);
+    expect(filterVolumeRange(history.points, "all")).toHaveLength(history.points.length);
+    expect(filterVolumeRange(history.points, "7d")).toHaveLength(history.points.length);
+    expect(filterVolumeRange(history.points, "30d")).toHaveLength(history.points.length);
+    expect(history.points.filter((point) => point.t < Date.parse("2026-09-24T00:00:00.000Z") / 1000)).toEqual([]);
+    expect(history.points.some((point) => point.volumeUsd === 0)).toBe(false);
   });
 });
 

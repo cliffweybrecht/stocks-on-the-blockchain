@@ -8,6 +8,28 @@
   },
   "records": [
     {
+      "date": "2026-09-24",
+      "t": 1790208000,
+      "publicEquity24hUsd": 92169407.79999997,
+      "private24hUsd": 12566366.270000001,
+      "etfIndex24hUsd": 16283156.969999999,
+      "combined24hUsd": 121018931.03999996,
+      "publicMintCount": 1535,
+      "publicPoolCount": 1434,
+      "generatedAt": "2026-09-25T04:04:26.924Z"
+    },
+    {
+      "date": "2026-09-25",
+      "t": 1790294400,
+      "publicEquity24hUsd": 75383008.60000002,
+      "private24hUsd": 13523191.939999998,
+      "etfIndex24hUsd": 26239052.93,
+      "combined24hUsd": 115145253.47000003,
+      "publicMintCount": 1536,
+      "publicPoolCount": 1382,
+      "generatedAt": "2026-09-26T04:07:53.983Z"
+    },
+    {
       "date": "2026-09-26",
       "t": 1790395200,
       "publicEquity24hUsd": 31906415.73999999,
