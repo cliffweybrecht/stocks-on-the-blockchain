@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { DeskCsvButton } from "@/components/desk-csv-button";
+import { DeskHeaderActions } from "@/components/desk-header-actions";
 import { EquityCard } from "@/components/equity-card";
 import { PinCompareStrip } from "@/components/pin-compare-strip";
 import { useSolanaFavorites } from "@/components/use-solana-favorites";
 import { type AssetSortKey, sortAssets } from "@/lib/market/aggregate";
 import { assetMatchesSearch } from "@/lib/market/asset-search";
+import { deskSortOptions } from "@/lib/desk/desk-sort";
 import { solanaChainHref } from "@/lib/desk/solana-chain-href";
 import {
   ALL_ISSUERS,
@@ -204,14 +206,8 @@ export function AssetTable({
   }, [catalog, enableFavorites, favorites.favoriteMints]);
   const compareHidden = Math.max(0, favorites.favoriteMints.length - compareRows.length);
   const hydratingVisible = rows.filter((asset) => asset.volumeCoverage === "hydrate_incomplete").length;
-  const sortColumns = (
-    [
-      ["volume24hUsd", "Volume"],
-      ["displayedLiquidityUsd", "Liquidity"],
-      ["poolCount", "Pools"],
-      ...(showRobinhoodMarks ? ([["premiumDiscountPct", "RH vs DEX"]] as const) : []),
-    ] as const
-  );
+  const solanaDesk = chainId === SOLANA_CHAIN_ID;
+  const sortColumns = deskSortOptions({ solanaDesk, showRobinhoodMarks });
 
   const coverageChips: Array<[CoverageFilter, string]> = [
     ["all", "All"],
@@ -219,23 +215,58 @@ export function AssetTable({
     ["no-pools", "Confirmed no pools"],
   ];
 
+  const laneChips =
+    etfCount > 0 || privateCount > 0 ? (
+      <div className="flex flex-wrap gap-2">
+        <Link href={hrefFor({ lane: "equity" })} scroll={false} className={chipClass(lane === "equity")}>
+          Equities ({equityCount})
+        </Link>
+        {etfCount > 0 ? (
+          <Link href={hrefFor({ lane: "etf" })} scroll={false} className={chipClass(lane === "etf")}>
+            ETF / index ({etfCount})
+          </Link>
+        ) : null}
+        {privateCount > 0 ? (
+          <Link href={hrefFor({ lane: "private" })} scroll={false} className={chipClass(lane === "private")}>
+            Private market ({privateCount})
+          </Link>
+        ) : null}
+      </div>
+    ) : null;
+
+  const issuerChips = showIssuerFilter ? (
+    <div className="flex flex-wrap gap-2 text-xs" aria-label="Filter by issuer">
+      <Link href={hrefFor({ issuer: ALL_ISSUERS })} scroll={false} className={chipClass(issuerFilter === ALL_ISSUERS)}>
+        All issuers
+      </Link>
+      {issuerFacets.map((facet) => (
+        <Link
+          key={facet.slug}
+          href={hrefFor({ issuer: facet.slug })}
+          scroll={false}
+          className={chipClass(issuerFilter === facet.slug)}
+        >
+          {facet.label} ({facet.count})
+        </Link>
+      ))}
+      {unknownIssuerCount > 0 ? (
+        <Link
+          href={hrefFor({ issuer: UNKNOWN_ISSUER })}
+          scroll={false}
+          className={chipClass(issuerFilter === UNKNOWN_ISSUER)}
+        >
+          Unknown ({unknownIssuerCount})
+        </Link>
+      ) : null}
+    </div>
+  ) : null;
+
   return (
     <div className="space-y-3">
-      {etfCount > 0 || privateCount > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          <Link href={hrefFor({ lane: "equity" })} scroll={false} className={chipClass(lane === "equity")}>
-            Equities ({equityCount})
-          </Link>
-          {etfCount > 0 ? (
-            <Link href={hrefFor({ lane: "etf" })} scroll={false} className={chipClass(lane === "etf")}>
-              ETF / index ({etfCount})
-            </Link>
-          ) : null}
-          {privateCount > 0 ? (
-            <Link href={hrefFor({ lane: "private" })} scroll={false} className={chipClass(lane === "private")}>
-              Private market ({privateCount})
-            </Link>
-          ) : null}
+      {laneChips || issuerChips ? (
+        <div className="flex flex-col gap-2" data-lane-issuers>
+          {laneChips}
+          {issuerChips}
         </div>
       ) : null}
       {lane === "etf" ? (
@@ -259,19 +290,19 @@ export function AssetTable({
           aria-label="Filter stocks in this list"
           className="h-8 w-full max-w-md rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
         />
-        <div className="flex flex-wrap items-center gap-2">
-          {enableFavorites ? (
-            <DeskCsvButton rows={rows} lane={lane} coverage={coverageFilter} sortKey={sortKey} />
-          ) : null}
-          <div className="flex flex-wrap gap-2 text-xs">
-            {sortColumns.map(([key, label]) => (
-              <Link key={key} href={hrefFor({ sortKey: key })} scroll={false} className={chipClass(sortKey === key)}>
-                {label}
-              </Link>
-            ))}
-          </div>
+        <div className="flex flex-wrap gap-2 text-xs" data-desk-sort>
+          {sortColumns.map(([key, label]) => (
+            <Link key={key} href={hrefFor({ sortKey: key })} scroll={false} className={chipClass(sortKey === key)}>
+              {label}
+            </Link>
+          ))}
         </div>
       </div>
+      {enableFavorites ? (
+        <DeskHeaderActions>
+          <DeskCsvButton rows={rows} lane={lane} coverage={coverageFilter} sortKey={sortKey} />
+        </DeskHeaderActions>
+      ) : null}
       {enableFavorites && shouldShowPinCompare(compareRows) ? (
         <PinCompareStrip
           chainId={chainId}
@@ -292,32 +323,6 @@ export function AssetTable({
           </Link>
         ) : null}
       </div>
-      {showIssuerFilter ? (
-        <div className="flex flex-wrap gap-2 text-xs" aria-label="Filter by issuer">
-          <Link href={hrefFor({ issuer: ALL_ISSUERS })} scroll={false} className={chipClass(issuerFilter === ALL_ISSUERS)}>
-            All issuers
-          </Link>
-          {issuerFacets.map((facet) => (
-            <Link
-              key={facet.slug}
-              href={hrefFor({ issuer: facet.slug })}
-              scroll={false}
-              className={chipClass(issuerFilter === facet.slug)}
-            >
-              {facet.label} ({facet.count})
-            </Link>
-          ))}
-          {unknownIssuerCount > 0 ? (
-            <Link
-              href={hrefFor({ issuer: UNKNOWN_ISSUER })}
-              scroll={false}
-              className={chipClass(issuerFilter === UNKNOWN_ISSUER)}
-            >
-              Unknown ({unknownIssuerCount})
-            </Link>
-          ) : null}
-        </div>
-      ) : null}
       <p className="text-xs text-muted-foreground" aria-live="polite">
         Ranked by {SORT_LABELS[sortKey]}
         {sortKey === "volume24hUsd" ? " (coverage, then volume, liquidity, pools)" : ""}
