@@ -1,13 +1,14 @@
 import { findAssetByKey } from "./identity";
 import { MOCK_ASSETS, MOCK_CHAINS, MOCK_DETAILS, MOCK_PRIVATE_ASSETS, mockProvenance } from "./mock-data";
-import type {
-  AssetDetailResult,
-  AssetPriceHistoryResult,
-  ChainDetailResult,
-  ChainListResult,
-  EquityVolumeHistoryResult,
-  MarketDataSource,
-  VolumeHistoryPoint,
+import {
+  emptyAllMarketsVolumeSnapshot,
+  type AssetDetailResult,
+  type AssetPriceHistoryResult,
+  type ChainDetailResult,
+  type ChainListResult,
+  type EquityVolumeHistoryResult,
+  type MarketDataSource,
+  type VolumeHistoryPoint,
 } from "./types";
 import { emptyAssetPriceHistory } from "./asset-price-history";
 import { emptyEquityVolumeHistory } from "./volume-history";
@@ -60,5 +61,9 @@ export class MockMarketDataSource implements MarketDataSource {
 
   async getEquityCardDayVolumeSeriesSnapshot() {
     return { series: {}, pending: false };
+  }
+
+  async getAssetAllMarketsVolumeSnapshot() {
+    return emptyAllMarketsVolumeSnapshot();
   }
 }

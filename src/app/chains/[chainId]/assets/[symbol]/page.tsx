@@ -17,12 +17,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatCount, formatPct, formatPrice, formatRelativeTime, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
+import { readCompleteAllMarketsDaily, DEFAULT_ALL_MARKETS_VOLUME_DIR } from "@/lib/market/all-markets-volume-cache";
+import { uniqueAllMarketsPools } from "@/lib/market/asset-volume-headline";
 import { emptyAssetPriceHistory } from "@/lib/market/asset-price-history";
 import { deskSpotPriceUsd, selectEquityPriceTicker } from "@/lib/desk/price-ticker";
 import { sortPoolsByVolume } from "@/lib/desk/pool-sort";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { toJumpAsset } from "@/lib/market/asset-search";
-import { SOLANA_CHAIN_ID } from "@/lib/market/types";
+import { SOLANA_CHAIN_ID, type VolumeHistoryPoint } from "@/lib/market/types";
 
 export const dynamic = "force-dynamic";
 
@@ -78,6 +80,13 @@ export default async function AssetPage({
   const jumpAssets = catalog
     ? [...catalog.assets, ...(catalog.etfAssets ?? []), ...(catalog.privateAssets ?? [])].map(toJumpAsset)
     : [];
+  const initialAllMarketsDaily: VolumeHistoryPoint[] | null = isSolana
+    ? await readCompleteAllMarketsDaily({
+        directory: DEFAULT_ALL_MARKETS_VOLUME_DIR,
+        mint: asset.contractAddress,
+        pairAddresses: uniqueAllMarketsPools(asset.pools).map((pool) => pool.pairAddress),
+      })
+    : null;
 
     return (
       <PageShell
@@ -88,10 +97,14 @@ export default async function AssetPage({
         <div className="space-y-5">
           <AssetBreadcrumb chain={chain} symbol={asset.symbol} />
           <AssetMarketPanel
+            key={asset.contractAddress}
             header={<AssetIdentityHeader chain={chain} asset={asset} showPin={isSolana} showBreadcrumb={false} />}
             priceUsd={deskSpotPriceUsd(asset)}
             priceChange24hPct={asset.priceChange24hPct}
             history={priceHistory}
+            allMarkets24hUsd={isSolana ? asset.volume24hUsd : null}
+            allMarketsSymbol={isSolana ? asset.symbol : null}
+            initialAllMarketsDaily={initialAllMarketsDaily}
           />
           <AssetStatsCard asset={asset} />
 

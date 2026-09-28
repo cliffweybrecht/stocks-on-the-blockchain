@@ -109,6 +109,10 @@ class FakeSource implements MarketDataSource {
   getEquityCardDayVolumeSeriesSnapshot() {
     return Promise.resolve({ series: {}, pending: false });
   }
+
+  getAssetAllMarketsVolumeSnapshot() {
+    return Promise.resolve({ pending: false, complete: false, daily: [], resolvedPools: 0, totalPools: 0 });
+  }
 }
 
 describe("CompositeMarketDataSource", () => {

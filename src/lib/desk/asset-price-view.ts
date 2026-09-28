@@ -8,9 +8,12 @@ import type {
 } from "@/lib/market/types";
 
 export const ASSET_CHART_MODES = [
-  { id: "price", label: "Price" },
   { id: "volume", label: "Volume" },
+  { id: "price", label: "Price" },
 ] as const satisfies readonly { id: AssetChartMode; label: string }[];
+
+/** Asset chart pills. 90D stays in the range table for older callers and is not shown. */
+export const ASSET_PANEL_RANGE_IDS = ["24h", "7d", "30d"] as const;
 
 export const PRICE_CHART_RANGES = [
   { id: "24h", label: "24H", seconds: 24 * 60 * 60, series: "hourly" },

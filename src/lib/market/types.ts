@@ -249,6 +249,24 @@ export interface AssetPriceHistoryResult {
   emptyReason: string | null;
 }
 
+/**
+ * Cross-pool daily USD volume for one mint.
+ * `daily` is set only when every pool resolved. `pending` means pools are still
+ * open, including across Gecko 429 cooldowns, and the page must not wait on them.
+ * `resolvedPools` counts candles or a definitive miss. It is not a partial sum.
+ */
+export interface AssetAllMarketsVolumeSnapshot {
+  pending: boolean;
+  complete: boolean;
+  daily: VolumeHistoryPoint[];
+  resolvedPools: number;
+  totalPools: number;
+}
+
+export function emptyAllMarketsVolumeSnapshot(): AssetAllMarketsVolumeSnapshot {
+  return { pending: false, complete: false, daily: [], resolvedPools: 0, totalPools: 0 };
+}
+
 export interface MarketDataSource {
   readonly id: SourceKind;
   readonly label: string;
@@ -264,6 +282,11 @@ export interface MarketDataSource {
    * `pending` stays true while fetches are in flight or a rate-limit retry is scheduled.
    */
   getEquityCardDayVolumeSeriesSnapshot(): Promise<EquityCardDayVolumeSeriesSnapshot>;
+  /**
+   * Cached sum of Gecko daily volume across every pool for the mint.
+   * A cold cache returns immediately and fills in the background.
+   */
+  getAssetAllMarketsVolumeSnapshot(chainId: string, symbol: string): Promise<AssetAllMarketsVolumeSnapshot>;
 }
 
 export interface EquityCardDayVolumeSeriesSnapshot {

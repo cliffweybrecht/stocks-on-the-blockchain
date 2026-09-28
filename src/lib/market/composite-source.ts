@@ -2,6 +2,8 @@ import { sortByVolumeThenLiquidity } from "./aggregate";
 import { COMPOSITE_SOURCE_NOTE } from "./trust";
 import {
   SOLANA_CHAIN_ID,
+  emptyAllMarketsVolumeSnapshot,
+  type AssetAllMarketsVolumeSnapshot,
   type AssetDetailResult,
   type AssetPriceHistoryResult,
   type ChainDetailResult,
@@ -145,6 +147,12 @@ export class CompositeMarketDataSource implements MarketDataSource {
     const solana = this.adapters.find((adapter) => adapter.id === "solana");
     if (!solana) return { series: {}, pending: false };
     return solana.getEquityCardDayVolumeSeriesSnapshot();
+  }
+
+  async getAssetAllMarketsVolumeSnapshot(chainId: string, symbol: string): Promise<AssetAllMarketsVolumeSnapshot> {
+    const solana = this.adapters.find((adapter) => adapter.id === "solana");
+    if (!solana || chainId !== SOLANA_CHAIN_ID) return emptyAllMarketsVolumeSnapshot();
+    return solana.getAssetAllMarketsVolumeSnapshot(chainId, symbol);
   }
 
   async getAssetPriceHistory(chainId: string, symbol: string): Promise<AssetPriceHistoryResult> {

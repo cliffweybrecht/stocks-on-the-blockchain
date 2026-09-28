@@ -59,6 +59,8 @@ import { applyOutstandingMintSupply, DEFAULT_SOLANA_RPC_URL, fetchMintUiSupply }
 import { SOLANA_SOURCE_LABEL } from "./trust";
 import {
   SOLANA_CHAIN_ID,
+  emptyAllMarketsVolumeSnapshot,
+  type AssetAllMarketsVolumeSnapshot,
   type AssetDetailResult,
   type AssetPriceHistoryResult,
   type ChainDetailResult,
@@ -82,6 +84,21 @@ import {
   sliceEquityCardDayVolumeSeries,
   type EquityCardVolumeTarget,
 } from "./equity-card-volume";
+import {
+  allMarketsPairKey,
+  deleteAllMarketsProgress,
+  readAllMarketsProgress,
+  readCompleteAllMarketsDaily,
+  writeAllMarketsProgress,
+  writeCompleteAllMarketsDaily,
+  DEFAULT_ALL_MARKETS_VOLUME_DIR,
+  type AllMarketsProgressPool,
+} from "./all-markets-volume-cache";
+import {
+  assembleAllMarketsDaily,
+  uniqueAllMarketsPools,
+  type AllMarketsPoolResult,
+} from "./asset-volume-headline";
 import {
   ASSET_PRICE_POOL_ATTEMPTS,
   buildAssetPriceHistory,
@@ -179,6 +196,8 @@ export interface SolanaMarketDataSourceOptions {
   cardVolumeSeriesTransientRetryMs?: number;
   volumeSnapshotStore?: DeskVolumeSnapshotStore;
   volumeSnapshotDir?: string;
+  /** `null` keeps all-markets volume in memory. Omitted uses the desk cache directory. */
+  allMarketsVolumeCacheDir?: string | null;
   enableJupiterTokenLogos?: boolean;
   jupiterTokenBaseUrl?: string;
   mintLogoCacheMs?: number;
@@ -186,6 +205,30 @@ export interface SolanaMarketDataSourceOptions {
   rpcUrl?: string;
   /** When false, asset stats leave supply, market cap, and FDV blank. */
   enableMintSupply?: boolean;
+}
+
+type AllMarketsSlotStatus = "open" | "points" | "definitive_miss";
+
+interface AllMarketsSlot {
+  pairAddress: string;
+  volume24hUsd: number | null;
+  status: AllMarketsSlotStatus;
+  points: VolumeHistoryPoint[] | null;
+}
+
+interface AllMarketsJob {
+  mint: string;
+  pairKey: string;
+  pairAddresses: string[];
+  slots: AllMarketsSlot[];
+  timer: ReturnType<typeof setTimeout> | null;
+  running: boolean;
+  hydrated: boolean;
+  hydratePromise: Promise<void> | null;
+  finished: boolean;
+  complete: boolean;
+  daily: VolumeHistoryPoint[];
+  expiresAt: number;
 }
 
 export class SolanaMarketDataSource implements MarketDataSource {
@@ -209,6 +252,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
   private cardVolumeTimer: ReturnType<typeof setTimeout> | null = null;
   private priceHistoryCache = new Map<string, { result: AssetPriceHistoryResult; expiresAt: number }>();
   private priceHistoryInflight = new Map<string, Promise<AssetPriceHistoryResult>>();
+  private allMarketsJobs = new Map<string, AllMarketsJob>();
   /** Serializes GeckoTerminal calls. A 429 sets `geckoCooldownUntil` for every caller. */
   private geckoTail: Promise<unknown> = Promise.resolve();
   private geckoCooldownUntil = 0;
@@ -331,6 +375,11 @@ export class SolanaMarketDataSource implements MarketDataSource {
 
   private get volumeHistoryCacheMs() {
     return this.options.volumeHistoryCacheMs ?? SOLANA_DEFAULTS.volumeHistoryCacheMs;
+  }
+
+  private get allMarketsVolumeCacheDir(): string | null {
+    if (this.options.allMarketsVolumeCacheDir === null) return null;
+    return this.options.allMarketsVolumeCacheDir ?? DEFAULT_ALL_MARKETS_VOLUME_DIR;
   }
 
   private get cardVolumeSeriesMax() {
@@ -1642,5 +1691,339 @@ export class SolanaMarketDataSource implements MarketDataSource {
       return dailyPayload === null || hourlyPayload === null ? { kind: "stop" } : { kind: "skip" };
     }
     return { kind: "use", daily, hourly };
+  }
+
+  /**
+   * Cached cross-pool daily volume. A hit returns immediately.
+   * A miss resumes a background job and does not wait for Gecko.
+   * One pool is attempted per turn. A 429 leaves that pool open, arms the
+   * shared cooldown, and schedules the next turn outside the Gecko queue.
+   * The detail chart's primary-pool fetch is not part of this path.
+   */
+  async getAssetAllMarketsVolumeSnapshot(chainId: string, symbol: string): Promise<AssetAllMarketsVolumeSnapshot> {
+    if (chainId !== SOLANA_CHAIN_ID || !this.geckoEnabled) return emptyAllMarketsVolumeSnapshot();
+
+    let mint = "";
+    let pools: { pairAddress: string; volume24hUsd: number | null }[] = [];
+    try {
+      const snapshot = await this.loadCached("full");
+      const asset = findAssetByKey(
+        [...snapshot.mapped.details, ...snapshot.mapped.etfDetails, ...snapshot.mapped.privateDetails],
+        symbol,
+      );
+      if (!asset) return emptyAllMarketsVolumeSnapshot();
+      mint = asset.contractAddress.trim();
+      pools = uniqueAllMarketsPools(asset.pools);
+    } catch {
+      return emptyAllMarketsVolumeSnapshot();
+    }
+    if (!mint || pools.length === 0) return emptyAllMarketsVolumeSnapshot();
+
+    const pairAddresses = pools.map((pool) => pool.pairAddress);
+    const pairKey = allMarketsPairKey(pairAddresses);
+    const now = Date.now();
+    const current = this.allMarketsJobs.get(mint);
+    if (current && current.pairKey !== pairKey) this.stopAllMarketsJob(current);
+    const active = this.allMarketsJobs.get(mint);
+    if (active && active.pairKey === pairKey && (!active.finished || active.expiresAt > now)) {
+      return this.ensureAllMarketsJob(active);
+    }
+
+    const disk = await readCompleteAllMarketsDaily({
+      directory: this.allMarketsVolumeCacheDir,
+      mint,
+      pairAddresses,
+      nowMs: now,
+      ttlMs: this.volumeHistoryCacheMs,
+    });
+    if (disk) {
+      const remembered = this.rememberCompleteAllMarkets(mint, pairKey, pools, disk, now);
+      return this.allMarketsSnapshot(remembered);
+    }
+
+    const raced = this.allMarketsJobs.get(mint);
+    if (raced && raced.pairKey === pairKey && !raced.finished) return this.ensureAllMarketsJob(raced);
+
+    const created = this.createAllMarketsJob(mint, pairKey, pools);
+    this.allMarketsJobs.set(mint, created);
+    return this.ensureAllMarketsJob(created);
+  }
+
+  private createAllMarketsJob(
+    mint: string,
+    pairKey: string,
+    pools: readonly { pairAddress: string; volume24hUsd: number | null }[],
+  ): AllMarketsJob {
+    return {
+      mint,
+      pairKey,
+      pairAddresses: pools.map((pool) => pool.pairAddress),
+      slots: pools.map((pool) => ({
+        pairAddress: pool.pairAddress,
+        volume24hUsd: pool.volume24hUsd,
+        status: "open",
+        points: null,
+      })),
+      timer: null,
+      running: false,
+      hydrated: false,
+      hydratePromise: null,
+      finished: false,
+      complete: false,
+      daily: [],
+      expiresAt: 0,
+    };
+  }
+
+  private rememberCompleteAllMarkets(
+    mint: string,
+    pairKey: string,
+    pools: readonly { pairAddress: string; volume24hUsd: number | null }[],
+    daily: VolumeHistoryPoint[],
+    now: number,
+  ): AllMarketsJob {
+    const job = this.createAllMarketsJob(mint, pairKey, pools);
+    for (const slot of job.slots) {
+      slot.status = "points";
+      slot.points = [];
+    }
+    job.hydrated = true;
+    job.finished = true;
+    job.complete = true;
+    job.daily = daily;
+    job.expiresAt = now + this.volumeHistoryCacheMs;
+    this.allMarketsJobs.set(mint, job);
+    return job;
+  }
+
+  private async ensureAllMarketsJob(job: AllMarketsJob): Promise<AssetAllMarketsVolumeSnapshot> {
+    if (!job.hydrated) {
+      job.hydratePromise ??= this.hydrateAllMarketsJob(job).then(() => {
+        job.hydrated = true;
+      });
+      await job.hydratePromise;
+    }
+    if (!job.finished && job.slots.every((slot) => slot.status !== "open")) {
+      await this.finishAllMarketsJob(job);
+    }
+    if (!job.finished) this.kickAllMarkets(job);
+    return this.allMarketsSnapshot(job);
+  }
+
+  private allMarketsSnapshot(job: AllMarketsJob): AssetAllMarketsVolumeSnapshot {
+    const totalPools = job.slots.length;
+    const resolvedPools = job.slots.filter((slot) => slot.status !== "open").length;
+    if (job.complete) {
+      return { pending: false, complete: true, daily: job.daily, resolvedPools: totalPools, totalPools };
+    }
+    if (job.finished) {
+      return { pending: false, complete: false, daily: [], resolvedPools, totalPools };
+    }
+    return { pending: true, complete: false, daily: [], resolvedPools, totalPools };
+  }
+
+  private stopAllMarketsJob(job: AllMarketsJob) {
+    job.finished = true;
+    if (job.timer) {
+      clearTimeout(job.timer);
+      job.timer = null;
+    }
+    if (this.allMarketsJobs.get(job.mint) === job) this.allMarketsJobs.delete(job.mint);
+  }
+
+  private kickAllMarkets(job: AllMarketsJob) {
+    if (job.finished || job.running || job.timer) return;
+    this.scheduleAllMarkets(job, 0);
+  }
+
+  private scheduleAllMarkets(job: AllMarketsJob, delayMs: number) {
+    if (job.finished) return;
+    if (job.timer) clearTimeout(job.timer);
+    const timer = setTimeout(() => {
+      job.timer = null;
+      void this.pumpAllMarkets(job);
+    }, Math.max(0, delayMs));
+    timer.unref?.();
+    job.timer = timer;
+  }
+
+  /** Chart and card fetches own the lane. A cooldown is waited outside the queue. */
+  private allMarketsLaneBlocked(): boolean {
+    return (
+      this.priceHistoryInflight.size > 0 ||
+      this.cardVolumeSeriesInflight !== null ||
+      this.geckoCooldownUntil > Date.now()
+    );
+  }
+
+  private allMarketsDeferDelayMs(): number {
+    const cooldown = this.geckoCooldownUntil - Date.now();
+    if (cooldown > 0) return cooldown;
+    return 250;
+  }
+
+  private async hydrateAllMarketsJob(job: AllMarketsJob) {
+    const saved = await readAllMarketsProgress({
+      directory: this.allMarketsVolumeCacheDir,
+      mint: job.mint,
+      pairAddresses: job.pairAddresses,
+      ttlMs: this.volumeHistoryCacheMs,
+    });
+    if (!saved) return;
+    const byPair = new Map(saved.map((pool) => [pool.pairAddress, pool]));
+    for (const slot of job.slots) {
+      const row = byPair.get(slot.pairAddress);
+      if (!row) continue;
+      if (row.status === "points") {
+        slot.status = "points";
+        slot.points = row.points;
+        continue;
+      }
+      slot.status = "definitive_miss";
+      slot.points = null;
+    }
+  }
+
+  private async persistAllMarketsProgress(job: AllMarketsJob) {
+    if (job.finished) return;
+    const pools: AllMarketsProgressPool[] = [];
+    for (const slot of job.slots) {
+      if (slot.status === "open") continue;
+      pools.push({
+        pairAddress: slot.pairAddress,
+        status: slot.status,
+        points: slot.status === "points" ? (slot.points ?? []) : [],
+      });
+    }
+    await writeAllMarketsProgress({
+      directory: this.allMarketsVolumeCacheDir,
+      mint: job.mint,
+      pairAddresses: job.pairAddresses,
+      pools,
+    });
+  }
+
+  private async pumpAllMarkets(job: AllMarketsJob) {
+    if (job.finished || job.running) return;
+    job.running = true;
+    try {
+      await this.pumpAllMarketsTurn(job);
+    } catch {
+      if (!job.finished && !job.timer) {
+        const retry = this.cardVolumeSeriesTransientRetryMs;
+        this.scheduleAllMarkets(job, retry > 0 ? retry : 1_000);
+      }
+    } finally {
+      job.running = false;
+    }
+  }
+
+  private async pumpAllMarketsTurn(job: AllMarketsJob) {
+    for (;;) {
+      if (job.finished) return;
+      const open = job.slots.find((slot) => slot.status === "open");
+      if (!open) {
+        await this.finishAllMarketsJob(job);
+        return;
+      }
+      if (this.allMarketsLaneBlocked()) {
+        this.scheduleAllMarkets(job, this.allMarketsDeferDelayMs());
+        return;
+      }
+      const outcome = await this.fetchPoolDailyVolumeOnce(open.pairAddress);
+      if (job.finished) return;
+      if (outcome.kind === "deferred") {
+        this.scheduleAllMarkets(job, this.allMarketsDeferDelayMs());
+        return;
+      }
+      if (outcome.kind === "points") {
+        open.status = "points";
+        open.points = outcome.points;
+        await this.persistAllMarketsProgress(job);
+        if (this.cardVolumeSeriesGapMs > 0) {
+          this.scheduleAllMarkets(job, this.cardVolumeSeriesGapMs);
+          return;
+        }
+        continue;
+      }
+      if (outcome.kind === "definitive_miss") {
+        open.status = "definitive_miss";
+        open.points = null;
+        await this.persistAllMarketsProgress(job);
+        continue;
+      }
+      if (outcome.kind === "rate_limited") {
+        const wait = this.geckoCooldownUntil - Date.now();
+        this.scheduleAllMarkets(job, wait > 0 ? wait : 0);
+        return;
+      }
+      const retry = this.cardVolumeSeriesTransientRetryMs;
+      this.scheduleAllMarkets(job, retry > 0 ? retry : 0);
+      return;
+    }
+  }
+
+  private async finishAllMarketsJob(job: AllMarketsJob) {
+    const results: AllMarketsPoolResult[] = job.slots.map((slot) => ({
+      pairAddress: slot.pairAddress,
+      volume24hUsd: slot.volume24hUsd,
+      points: slot.status === "points" ? (slot.points ?? []) : null,
+      definitiveMiss: slot.status === "definitive_miss",
+    }));
+    const assembled = assembleAllMarketsDaily(results);
+    const now = Date.now();
+    job.finished = true;
+    job.complete = assembled.complete;
+    job.daily = assembled.complete ? assembled.daily : [];
+    job.expiresAt = now + (assembled.complete ? this.volumeHistoryCacheMs : Math.min(this.volumeHistoryCacheMs, 60_000));
+    if (job.timer) {
+      clearTimeout(job.timer);
+      job.timer = null;
+    }
+    if (!assembled.complete) return;
+    const wrote = await writeCompleteAllMarketsDaily({
+      directory: this.allMarketsVolumeCacheDir,
+      mint: job.mint,
+      pairAddresses: job.pairAddresses,
+      daily: assembled.daily,
+      fetchedAt: now,
+    });
+    if (wrote) {
+      await deleteAllMarketsProgress({ directory: this.allMarketsVolumeCacheDir, mint: job.mint });
+    }
+  }
+
+  /**
+   * One daily OHLCV attempt. A 429 arms the shared cooldown and returns.
+   * The wait happens on the job timer, not inside the Gecko queue.
+   */
+  private async fetchPoolDailyVolumeOnce(pairAddress: string): Promise<
+    | { kind: "points"; points: VolumeHistoryPoint[] }
+    | { kind: "definitive_miss" }
+    | { kind: "rate_limited" }
+    | { kind: "failed" }
+    | { kind: "deferred" }
+  > {
+    const url = `${this.geckoTerminalBaseUrl}${geckoTerminalOhlcvPath(pairAddress, {
+      timeframe: "day",
+      limit: 60,
+    })}`;
+    return this.enqueueGecko(async () => {
+      if (this.priceHistoryInflight.size > 0 || this.cardVolumeSeriesInflight !== null) {
+        return { kind: "deferred" as const };
+      }
+      try {
+        const payload = await this.fetchSource(url, "GeckoTerminal", { retries: 0 });
+        return { kind: "points" as const, points: parseGeckoTerminalOhlcvSeries(payload).volumes };
+      } catch (error) {
+        if (isDefinitiveFetchMiss(error)) return { kind: "definitive_miss" as const };
+        if (responseStatusFromError(error) === 429) {
+          const retryAfter = error instanceof SourceRequestError ? error.retryAfterHeader : null;
+          this.armGeckoCooldown(retryAfter);
+          return { kind: "rate_limited" as const };
+        }
+        return { kind: "failed" as const };
+      }
+    });
   }
 }
