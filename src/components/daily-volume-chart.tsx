@@ -7,7 +7,7 @@ import {
   nearestVolumePoint,
   pointerToSvgX,
   scaleVolumePoints,
-  deskVolumeHeadline,
+  deskRangeVolumeHeadline,
   volumeChartXTicks,
   VOLUME_CHART_HEIGHT,
   VOLUME_CHART_INNER_H,
@@ -17,7 +17,7 @@ import {
   type VolumeChartRangeId,
 } from "@/lib/market/daily-volume-view";
 import { combinedPublicPrivateVolume24h } from "@/lib/market/aggregate";
-import { formatUsdCompact, formatUsdFull } from "@/lib/market/format";
+import { formatChartDay, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
 import type { EquityVolumeHistoryResult, VolumeHistoryPoint } from "@/lib/market/types";
 import { overlayLiveDesk24h } from "@/lib/market/volume-snapshots";
 
@@ -52,7 +52,7 @@ export function DailyVolumeChart({
   privateVolume24hUsd?: number | null;
   etfVolume24hUsd?: number | null;
 }) {
-  const [range, setRange] = useState<VolumeChartRangeId>("all");
+  const [range, setRange] = useState<VolumeChartRangeId>("7d");
   const [hover, setHover] = useState<VolumeHistoryPoint | null>(null);
 
   const publicVolume24hUsd = deskVolume24hUsd !== undefined ? deskVolume24hUsd : history.volume24hUsd;
@@ -71,14 +71,7 @@ export function DailyVolumeChart({
 
   const visible = useMemo(() => filterVolumeRange(points, range), [points, range]);
   const map = useMemo(() => scaleVolumePoints(visible), [visible]);
-  const latest = visible[visible.length - 1] ?? points[points.length - 1] ?? null;
-  const headline = deskVolumeHeadline({
-    publicVolume24hUsd: publicVolume24hUsd ?? null,
-    privateVolume24hUsd,
-    etfVolume24hUsd,
-    hover: null,
-    latest,
-  });
+  const headline = deskRangeVolumeHeadline(visible, range);
   const hasSeries = points.length > 0;
   const showHeadline = headline.volumeUsd !== null;
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((frac) => map.maxY * frac);
@@ -125,6 +118,8 @@ export function DailyVolumeChart({
               <button
                 key={row.id}
                 type="button"
+                data-volume-range={row.id}
+                aria-pressed={range === row.id}
                 onClick={() => {
                   setRange(row.id);
                   setHover(null);
@@ -158,7 +153,7 @@ export function DailyVolumeChart({
             preserveAspectRatio="none"
             className="pointer-events-none h-[240px] w-full touch-none sm:h-[280px]"
             role="img"
-            aria-label="Daily Solana tokenized stock volume from desk DexScreener 24h snapshots. Headline is public plus private plus ETF/index 24h."
+            aria-label="Daily Solana tokenized stock volume from desk DexScreener snapshots. Headline is the sum of snapshot days in the selected range."
           >
             <defs>
               <linearGradient id="volume-area" x1="0" x2="0" y1="0" y2="1">
@@ -189,18 +184,23 @@ export function DailyVolumeChart({
                 </text>
               </g>
             ))}
-            {xTicks.map((tick, index) => (
-              <text
-                key={`${tick}-${index}`}
-                x={map.x(tick)}
-                y={VOLUME_CHART_HEIGHT - 8}
-                textAnchor="middle"
-                className="fill-muted-foreground"
-                fontSize="10"
-              >
-                {formatVolumeChartTick(tick, xTicks)}
-              </text>
-            ))}
+            {xTicks.map((tick, index) => {
+              const label = formatVolumeChartTick(tick, xTicks);
+              const crowded = xTicks.length > 10;
+              return (
+                <text
+                  key={`${tick}-${index}`}
+                  x={map.x(tick)}
+                  y={crowded && index % 2 === 1 ? VOLUME_CHART_HEIGHT - 4 : VOLUME_CHART_HEIGHT - (crowded ? 16 : 8)}
+                  textAnchor="middle"
+                  className="fill-muted-foreground"
+                  fontSize={crowded ? 9 : 10}
+                  data-volume-tick={label}
+                >
+                  {label}
+                </text>
+              );
+            })}
             <path d={areaPath(visible, map)} fill="url(#volume-area)" pointerEvents="none" />
             <path
               d={linePath(visible, map)}
@@ -236,7 +236,10 @@ export function DailyVolumeChart({
               className="pointer-events-none absolute top-2 right-2 z-20 rounded-md border border-border bg-background/95 px-2 py-1 text-xs shadow-sm"
               data-volume-tooltip
             >
-              <p className="num text-foreground">{formatUsdFull(hover.volumeUsd)}</p>
+              <p data-volume-tooltip-day>{formatChartDay(hover.t)}</p>
+              <p className="num text-foreground" data-volume-tooltip-value>
+                {formatUsdFull(hover.volumeUsd)}
+              </p>
             </div>
           ) : null}
         </div>
