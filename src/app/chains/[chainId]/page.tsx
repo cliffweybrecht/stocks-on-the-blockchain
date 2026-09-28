@@ -15,6 +15,7 @@ import {
 } from "@/lib/desk/issuer-filter";
 import { toPinCompareAsset } from "@/lib/desk/pin-compare";
 import { parseDeskLane } from "@/lib/desk/desk-lane";
+import { resolveDeskSortKey } from "@/lib/desk/desk-sort";
 import { parsePinnedFilter } from "@/lib/desk/solana-chain-href";
 import { selectEquityPriceTicker } from "@/lib/desk/price-ticker";
 import { parseAssetSortKey, sortAssets } from "@/lib/market/aggregate";
@@ -70,7 +71,7 @@ export default async function ChainPage({
   const lane = parseDeskLane(query.lane, { etf: etfAssets.length > 0, private: privateAssets.length > 0 });
   const defaultCoverage = isSolana ? "with-volume" : "all";
   const coverageFilter = parseCoverageFilter(query.coverage, defaultCoverage);
-  const sortKey = parseAssetSortKey(query.sort);
+  const sortKey = resolveDeskSortKey(parseAssetSortKey(query.sort), isSolana);
   const pinnedOnly = parsePinnedFilter(query.pinned);
   const issuerFilter = isSolana ? parseIssuerFilter(query.issuer) : "all";
   const laneAssets = lane === "etf" ? etfAssets : lane === "private" ? privateAssets : assets;
@@ -92,16 +93,18 @@ export default async function ChainPage({
       priceTicker={selectEquityPriceTicker(assets)}
     >
       <div className="space-y-5">
-        <nav className="text-sm text-muted-foreground">
-          <Link href="/" className="hover:text-foreground">
-            Chains
-          </Link>
-          <span className="px-2">/</span>
-          <span className="text-foreground">{chain.name}</span>
-        </nav>
+        {isSolana ? null : (
+          <nav className="text-sm text-muted-foreground" data-chain-breadcrumb>
+            <Link href="/" className="hover:text-foreground">
+              Chains
+            </Link>
+            <span className="px-2">/</span>
+            <span className="text-foreground">{chain.name}</span>
+          </nav>
+        )}
         <div>
           <h2 className="font-heading text-2xl font-semibold tracking-tight">{chain.name}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{chain.sourceLabel}</p>
+          {isSolana ? null : <p className="mt-1 text-sm text-muted-foreground">{chain.sourceLabel}</p>}
         </div>
         {isSolana ? (
           <DailyVolumeChart

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DeskHeaderActionsSlot } from "@/components/desk-header-actions";
 import { SolanaJumpSearch } from "@/components/solana-jump-search";
 import { Badge } from "@/components/ui/badge";
 import type { SearchableAsset } from "@/lib/market/asset-search";
@@ -23,6 +24,7 @@ export function SiteHeader({
           {solanaJump && solanaJump.assets.length > 0 ? (
             <SolanaJumpSearch chainId={solanaJump.chainId} assets={solanaJump.assets} />
           ) : null}
+          <DeskHeaderActionsSlot />
           {provenance ? (
             <Badge variant="outline" className="w-fit border-primary/30 bg-primary/10 text-primary">
               {provenance.sourceId === "mock"

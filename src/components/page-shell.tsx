@@ -1,3 +1,4 @@
+import { DeskHeaderActionsProvider } from "@/components/desk-header-actions";
 import { PriceTicker } from "@/components/price-ticker";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -17,11 +18,13 @@ export function PageShell({
   priceTicker?: readonly EquityPriceTickerItem[];
 }) {
   return (
-    <div className="flex min-h-full flex-col bg-background">
-      <SiteHeader provenance={provenance} solanaJump={solanaJump} />
-      <PriceTicker items={priceTicker ?? []} />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-8">{children}</main>
-      <SiteFooter />
-    </div>
+    <DeskHeaderActionsProvider>
+      <div className="flex min-h-full flex-col bg-background">
+        <SiteHeader provenance={provenance} solanaJump={solanaJump} />
+        <PriceTicker items={priceTicker ?? []} />
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-8">{children}</main>
+        <SiteFooter />
+      </div>
+    </DeskHeaderActionsProvider>
   );
 }
