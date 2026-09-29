@@ -189,8 +189,9 @@ describe("pointsFromDeskVolumeSnapshots and closedSnapshotVolumePoints", () => {
       eveningEt,
     );
     expect(duringSep28.map((point) => utcDay(point.t))).toEqual(["2026-09-27"]);
-    // Asset candles may include the Eastern day once it has started. The desk
-    // volume series does not: Sep 28 is still in progress, and Sep 29 has not.
+    // This helper still keeps a UTC day once New York's calendar has reached it.
+    // The asset 7D/30D chart does not use it — that series waits for a closed Eastern day.
+    // Here Sep 28 is still in progress, and Sep 29 has not started.
     expect(
       clipVolumeThroughEasternDay(
         [

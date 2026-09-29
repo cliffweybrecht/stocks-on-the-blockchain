@@ -6,7 +6,7 @@ import type {
   PriceHistoryPoint,
   VolumeHistoryPoint,
 } from "@/lib/market/types";
-import { utcDayOnOrBeforeEasternToday } from "@/lib/market/volume-snapshots";
+import { isClosedEasternSnapshotDay } from "@/lib/market/volume-snapshots";
 
 export const ASSET_CHART_MODES = [
   { id: "volume", label: "Volume" },
@@ -47,9 +47,10 @@ export function priceHistoryNowT(
 }
 
 /**
- * Daily candles are UTC-day buckets. Keep a bucket only once that calendar day
- * has started in America/New_York. Hourly 24H points are instants that already
- * happened, so they are not dropped for sharing tomorrow's UTC date.
+ * Daily candles are UTC-day buckets. Plot one only after that UTC date is a
+ * closed America/New_York day — the in-progress Eastern day stays off 7D/30D.
+ * Hourly 24H points are instants that already happened, so they are not dropped
+ * for sharing today's UTC date.
  */
 function observedInRange<T extends { t: number }>(
   points: readonly T[],
@@ -60,7 +61,7 @@ function observedInRange<T extends { t: number }>(
   const cutoff = nowT - windowSeconds;
   return points.filter((point) => {
     if (point.t < cutoff || point.t > nowT) return false;
-    if (daily && !utcDayOnOrBeforeEasternToday(point.t, nowT)) return false;
+    if (daily && !isClosedEasternSnapshotDay(point.t, nowT)) return false;
     return true;
   });
 }
@@ -77,7 +78,10 @@ export function filterPriceRange(
   return observedInRange(source, nowT, spec.seconds, spec.series === "daily");
 }
 
-/** Observed pool USD volume inside the selected window. Never fills gaps or invents $0. */
+/**
+ * Observed pool USD volume inside the selected window. Never fills gaps or invents $0.
+ * Daily ranges drop a rolling 24h tip even when its timestamp sits on a closed day.
+ */
 export function filterVolumeRange(
   history: Pick<AssetPriceHistoryResult, "dailyVolume" | "hourlyVolume">,
   range: PriceChartRangeId,
@@ -85,9 +89,10 @@ export function filterVolumeRange(
 ): VolumeHistoryPoint[] {
   const spec = PRICE_CHART_RANGES.find((row) => row.id === range);
   if (!spec || !Number.isFinite(nowT) || nowT <= 0) return [];
-  const source = spec.series === "hourly" ? history.hourlyVolume : history.dailyVolume;
-  return observedInRange(source, nowT, spec.seconds, spec.series === "daily").filter(
-    (point) => Number.isFinite(point.volumeUsd) && point.volumeUsd >= 0,
+  const daily = spec.series === "daily";
+  const source = daily ? history.dailyVolume : history.hourlyVolume;
+  return observedInRange(source, nowT, spec.seconds, daily).filter(
+    (point) => Number.isFinite(point.volumeUsd) && point.volumeUsd >= 0 && !(daily && point.kind === "rolling_24h"),
   );
 }
 

@@ -127,49 +127,65 @@ describe("selectAssetVolumeHeadline", () => {
     expect(thirty.scope).toBe("primary_pool");
   });
 
-  it("omits a UTC day that America/New_York has not started from the 30D sum", () => {
-    const now = Date.parse("2026-09-29T03:00:00.000Z") / 1000;
+  it("omits the in-progress Eastern day, including an open Gecko Sep 29 candle, from the 30D sum", () => {
+    const beforeMidnight = Date.parse("2026-09-29T03:00:00.000Z") / 1000;
+    const afternoon = Date.parse("2026-09-29T20:00:00.000Z") / 1000;
+    const afterClose = Date.parse("2026-09-30T04:00:00.000Z") / 1000;
+    const sep27 = Date.parse("2026-09-27T00:00:00.000Z") / 1000;
     const sep28 = Date.parse("2026-09-28T00:00:00.000Z") / 1000;
     const sep29 = Date.parse("2026-09-29T00:00:00.000Z") / 1000;
-    const headline = selectAssetVolumeHeadline({
+    const daily = [
+      { t: sep27, volumeUsd: 500_000 },
+      { t: sep28, volumeUsd: 1_062_043 },
+      { t: sep29, volumeUsd: 22_600_000 },
+      { t: sep28, volumeUsd: 99, kind: "rolling_24h" as const },
+    ];
+
+    const at = (nowT: number) =>
+      selectAssetVolumeSeries({
+        range: "30d",
+        nowT,
+        windowSeconds: 30 * DAY,
+        primaryPoolPoints: [{ t: sep29, volumeUsd: 22_600_000 }],
+        allMarketsDaily: daily,
+        allMarketsHourly: null,
+      });
+
+    const stillSep28 = at(beforeMidnight);
+    expect(stillSep28.points).toEqual([{ t: sep27, volumeUsd: 500_000 }]);
+    expect(
+      selectAssetVolumeHeadline({
+        range: "30d",
+        nowT: beforeMidnight,
+        windowSeconds: 30 * DAY,
+        allMarkets24hUsd: 1_000,
+        primaryPoolPoints: [{ volumeUsd: 22_600_000 }],
+        allMarketsDaily: daily,
+      }).volumeUsd,
+    ).toBe(500_000);
+
+    const duringSep29 = at(afternoon);
+    expect(duringSep29.points).toEqual([
+      { t: sep27, volumeUsd: 500_000 },
+      { t: sep28, volumeUsd: 1_062_043 },
+    ]);
+    const afternoonHeadline = selectAssetVolumeHeadline({
       range: "30d",
-      nowT: now,
+      nowT: afternoon,
       windowSeconds: 30 * DAY,
       allMarkets24hUsd: 1_000,
-      primaryPoolPoints: [{ volumeUsd: 78_323 }],
-      allMarketsDaily: [
-        { t: sep28, volumeUsd: 1_062_043 },
-        { t: sep29, volumeUsd: 78_323 },
-      ],
+      primaryPoolPoints: [{ volumeUsd: 22_600_000 }],
+      allMarketsDaily: daily,
     });
-    expect(headline.volumeUsd).toBe(1_062_043);
-    expect(headline.label).toBe("30D volume (all markets)");
+    expect(afternoonHeadline.volumeUsd).toBe(1_562_043);
+    expect(afternoonHeadline.label).toBe("30D volume (all markets)");
 
-    const series = selectAssetVolumeSeries({
-      range: "30d",
-      nowT: now,
-      windowSeconds: 30 * DAY,
-      primaryPoolPoints: [{ t: sep29, volumeUsd: 78_323 }],
-      allMarketsDaily: [
-        { t: sep28, volumeUsd: 1_062_043 },
-        { t: sep29, volumeUsd: 78_323 },
-      ],
-      allMarketsHourly: null,
-    });
-    expect(series.points).toEqual([{ t: sep28, volumeUsd: 1_062_043 }]);
-
-    const opened = selectAssetVolumeSeries({
-      range: "30d",
-      nowT: Date.parse("2026-09-29T04:00:00.000Z") / 1000,
-      windowSeconds: 30 * DAY,
-      primaryPoolPoints: [],
-      allMarketsDaily: [
-        { t: sep28, volumeUsd: 1_062_043 },
-        { t: sep29, volumeUsd: 78_323 },
-      ],
-      allMarketsHourly: null,
-    });
-    expect(opened.points.map((point) => point.t)).toEqual([sep28, sep29]);
+    const closed = at(afterClose);
+    expect(closed.points).toEqual([
+      { t: sep27, volumeUsd: 500_000 },
+      { t: sep28, volumeUsd: 1_062_043 },
+      { t: sep29, volumeUsd: 22_600_000 },
+    ]);
   });
 
   it("does not replace an empty all-markets window with the primary pool or with $0", () => {
