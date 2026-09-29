@@ -146,12 +146,17 @@ export function formatChartDay(unixSeconds: number): string {
   });
 }
 
+/**
+ * 24H asset-chart clock. The unix instant is unchanged; the label is the
+ * America/New_York wall time (EDT or EST). Calendar-day axes stay on
+ * formatChartDay, which labels the UTC day key of that Eastern date.
+ */
 export function formatChartClock(unixSeconds: number): string {
   if (!Number.isFinite(unixSeconds)) return "";
   return new Date(unixSeconds * 1000).toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit",
-    timeZone: "UTC",
+    timeZone: "America/New_York",
   });
 }
 

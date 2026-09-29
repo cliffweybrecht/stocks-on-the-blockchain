@@ -178,6 +178,7 @@ export function nearestPricePoint(
   return best ?? null;
 }
 
+/** 24H ticks and hover clocks are America/New_York. 7D/30D stay UTC calendar-day labels. */
 export function formatPriceChartTick(unixSeconds: number, range: PriceChartRangeId): string {
   return range === "24h" ? formatChartClock(unixSeconds) : formatChartDay(unixSeconds);
 }

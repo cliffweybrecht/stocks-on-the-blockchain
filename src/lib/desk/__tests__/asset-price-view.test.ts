@@ -108,6 +108,17 @@ describe("filterPriceRange", () => {
     expect(formatPriceChartTick(sep29, "30d")).toBe("Sep 29");
   });
 
+  it("labels 24H clocks in America/New_York and leaves 7D/30D on the UTC day key", () => {
+    const at = (iso: string) => Date.parse(iso) / 1000;
+    expect(formatPriceChartTick(at("2026-09-29T20:00:00.000Z"), "24h")).toBe("4:00 PM");
+    expect(formatPriceChartTick(at("2026-09-29T04:00:00.000Z"), "24h")).toBe("12:00 AM");
+    expect(formatPriceChartTick(at("2026-09-29T11:00:00.000Z"), "24h")).toBe("7:00 AM");
+    expect(formatPriceChartTick(at("2026-09-29T19:00:00.000Z"), "24h")).toBe("3:00 PM");
+    expect(formatPriceChartTick(at("2026-01-15T20:00:00.000Z"), "24h")).toBe("3:00 PM");
+    expect(formatPriceChartTick(at("2026-09-28T00:00:00.000Z"), "7d")).toBe("Sep 28");
+    expect(formatPriceChartTick(at("2026-09-28T00:00:00.000Z"), "30d")).toBe("Sep 28");
+  });
+
   it("does not invent points when the window is empty", () => {
     const series = history({
       daily: [{ t: NOW - 40 * 86_400, priceUsd: 9 }],
