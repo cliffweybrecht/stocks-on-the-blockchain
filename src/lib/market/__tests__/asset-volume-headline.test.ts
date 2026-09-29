@@ -127,6 +127,51 @@ describe("selectAssetVolumeHeadline", () => {
     expect(thirty.scope).toBe("primary_pool");
   });
 
+  it("omits a UTC day that America/New_York has not started from the 30D sum", () => {
+    const now = Date.parse("2026-09-29T03:00:00.000Z") / 1000;
+    const sep28 = Date.parse("2026-09-28T00:00:00.000Z") / 1000;
+    const sep29 = Date.parse("2026-09-29T00:00:00.000Z") / 1000;
+    const headline = selectAssetVolumeHeadline({
+      range: "30d",
+      nowT: now,
+      windowSeconds: 30 * DAY,
+      allMarkets24hUsd: 1_000,
+      primaryPoolPoints: [{ volumeUsd: 78_323 }],
+      allMarketsDaily: [
+        { t: sep28, volumeUsd: 1_062_043 },
+        { t: sep29, volumeUsd: 78_323 },
+      ],
+    });
+    expect(headline.volumeUsd).toBe(1_062_043);
+    expect(headline.label).toBe("30D volume (all markets)");
+
+    const series = selectAssetVolumeSeries({
+      range: "30d",
+      nowT: now,
+      windowSeconds: 30 * DAY,
+      primaryPoolPoints: [{ t: sep29, volumeUsd: 78_323 }],
+      allMarketsDaily: [
+        { t: sep28, volumeUsd: 1_062_043 },
+        { t: sep29, volumeUsd: 78_323 },
+      ],
+      allMarketsHourly: null,
+    });
+    expect(series.points).toEqual([{ t: sep28, volumeUsd: 1_062_043 }]);
+
+    const opened = selectAssetVolumeSeries({
+      range: "30d",
+      nowT: Date.parse("2026-09-29T04:00:00.000Z") / 1000,
+      windowSeconds: 30 * DAY,
+      primaryPoolPoints: [],
+      allMarketsDaily: [
+        { t: sep28, volumeUsd: 1_062_043 },
+        { t: sep29, volumeUsd: 78_323 },
+      ],
+      allMarketsHourly: null,
+    });
+    expect(opened.points.map((point) => point.t)).toEqual([sep28, sep29]);
+  });
+
   it("does not replace an empty all-markets window with the primary pool or with $0", () => {
     const headline = selectAssetVolumeHeadline({
       range: "7d",

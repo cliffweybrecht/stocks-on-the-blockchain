@@ -470,18 +470,22 @@ export function AssetMarketPanel({
                 </text>
               </g>
             ))}
-            {xTicks.map((tick, index) => (
-              <text
-                key={`${tick}-${index}`}
-                x={map.x(tick)}
-                y={PRICE_CHART_HEIGHT - 8}
-                textAnchor="middle"
-                className="fill-muted-foreground"
-                fontSize="10"
-              >
-                {formatPriceChartTick(tick, range)}
-              </text>
-            ))}
+            {xTicks.map((tick, index) => {
+              const label = formatPriceChartTick(tick, range);
+              return (
+                <text
+                  key={`${tick}-${index}`}
+                  x={map.x(tick)}
+                  y={PRICE_CHART_HEIGHT - 8}
+                  textAnchor="middle"
+                  className="fill-muted-foreground"
+                  fontSize="10"
+                  data-asset-axis-tick={label}
+                >
+                  {label}
+                </text>
+              );
+            })}
             {latestY !== null ? (
               <text
                 x={PRICE_CHART_WIDTH - PRICE_CHART_PAD.right + 8}
