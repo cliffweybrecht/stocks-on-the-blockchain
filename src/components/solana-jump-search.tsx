@@ -95,7 +95,7 @@ export function SolanaJumpSearch({
         onClick={openDialog}
       >
         <Search />
-        Jump
+        Search
         <kbd className="hidden rounded border border-border px-1 font-mono text-[10px] text-muted-foreground sm:inline">
           /
         </kbd>
@@ -117,7 +117,7 @@ export function SolanaJumpSearch({
               >
                 <div className="border-b border-border px-3 py-2">
                   <p id={dialogId} className="sr-only">
-                    Jump to a Solana stock
+                    Search for a Solana stock
                   </p>
                   <input
                     ref={inputRef}
