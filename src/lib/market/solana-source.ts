@@ -221,7 +221,7 @@ export interface SolanaMarketDataSourceOptions {
   mintLogoCacheMs?: number;
   /** Jupiter Tokens V2 holderCount for the asset statistics card. Default on. */
   enableJupiterHolders?: boolean;
-  /** DexScreener pair-details `holders.count` for the Markets Holders column. Default on. */
+  /** DexScreener pair-details `holders.count` stamped on each pool. The Markets table does not render it. Default on. */
   enablePairHolders?: boolean;
   /** io.dexscreener.com host. The public pair API does not return holder counts. */
   dexScreenerIoBaseUrl?: string;
@@ -1429,7 +1429,8 @@ export class SolanaMarketDataSource implements MarketDataSource {
 
   /**
    * Statistics use the page mint's Jupiter holderCount.
-   * Each Markets row uses DexScreener `holders.count` for that pool address.
+   * Pair holder counts are stamped from DexScreener `holders.count` for that pool address.
+   * The Markets table does not render them.
    * A count is never copied from the page mint or from another pool. Chain snapshots do not pay for either lookup.
    * Pair-detail lookups are optional so Statistics can paint without waiting on every pool.
    */
