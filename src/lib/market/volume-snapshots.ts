@@ -6,7 +6,7 @@ import { emptyEquityVolumeHistory, utcDayStart } from "./volume-history";
 export const DESK_VOLUME_SNAPSHOT_SOURCE_LABEL = "Desk DexScreener 24h snapshots";
 
 export const DESK_VOLUME_SNAPSHOT_DEFINITION =
-  "History is this desk’s closed DexScreener 24h snapshots (public + private + ETF/index, null omitted not $0). Days before snapshots began have no series — past DexScreener totals are not invented from GeckoTerminal. The in-progress Eastern day is omitted until that day’s desk snapshot exists.";
+  "History is this desk’s closed DexScreener 24h snapshots (public + private + ETF/index, null omitted not $0). Days before snapshots began have no series — past DexScreener totals are not invented from GeckoTerminal. The in-progress Eastern day is omitted until that America/New_York date has closed.";
 
 export const DEFAULT_VOLUME_SNAPSHOT_DIR = "data/volume-snapshots";
 export const SOLANA_VOLUME_SNAPSHOT_FILE = "solana.json";
@@ -106,12 +106,15 @@ export function deskVolumeSnapshotFromChain(
       : Number.isFinite(parsed) && parsed > 0
         ? parsed / 1000
         : Date.now() / 1000;
-  const t = utcDayStart(tSource);
+  // Day key is the America/New_York date. 00:00Z is still the previous Eastern
+  // evening, so a UTC date must not open tomorrow on the desk.
+  const date = easternDayKey(tSource);
+  const t = utcInstantForDayKey(date);
   const publicEquity24hUsd = reportedUsd(chain.volume24hUsd);
   const private24hUsd = reportedUsd(chain.privateVolume24hUsd);
   const etfIndex24hUsd = reportedUsd(chain.etfVolume24hUsd);
   return {
-    date: utcDayKey(t),
+    date,
     t,
     publicEquity24hUsd,
     private24hUsd,
@@ -123,14 +126,16 @@ export function deskVolumeSnapshotFromChain(
   };
 }
 
-/** Same UTC day is replaced. All-null days are never written (null is not $0). */
+/** Same America/New_York day is replaced. All-null days are never written (null is not $0). */
 export function upsertDeskVolumeSnapshot(
   records: readonly DeskVolumeSnapshot[],
   incoming: DeskVolumeSnapshot,
 ): DeskVolumeSnapshot[] {
   if (incoming.t <= 0 || !incoming.date) return records.map(cloneSnapshot);
   if (incoming.combined24hUsd === null) return records.map(cloneSnapshot);
-  const next = records.filter((row) => row.t !== incoming.t).map(cloneSnapshot);
+  const next = records
+    .filter((row) => row.date !== incoming.date && row.t !== incoming.t)
+    .map(cloneSnapshot);
   next.push(cloneSnapshot(incoming));
   next.sort((a, b) => a.t - b.t);
   return next;
@@ -141,10 +146,11 @@ export type RecordDeskVolumeResult =
   | { ok: false; reason: string };
 
 /**
- * Awaited persist of today’s DexScreener desk 24h. Same upsert rules as the
- * live desk: null omitted not $0; all-null days are refused; same UTC day is
- * replaced. Callers that must fail closed (CLI) should treat `ok: false` as
- * a hard error. The UI persist path still swallows this.
+ * Awaited persist of the DexScreener desk 24h for the America/New_York date of
+ * `nowT`. Same upsert rules as the live desk: null omitted not $0; all-null
+ * days are refused; the same Eastern day is replaced. Callers that must fail
+ * closed (CLI) should treat `ok: false` as a hard error. The UI persist path
+ * still swallows this. The chart does not plot that in-progress day.
  */
 export async function recordDeskVolumeFromChain(
   store: DeskVolumeSnapshotStore,
@@ -161,7 +167,7 @@ export async function recordDeskVolumeFromChain(
 ): Promise<RecordDeskVolumeResult> {
   const incoming = deskVolumeSnapshotFromChain(chain, generatedAt, nowT);
   if (incoming.t <= 0 || !incoming.date) {
-    return { ok: false, reason: "DexScreener desk snapshot has no UTC day — snapshot not written." };
+    return { ok: false, reason: "DexScreener desk snapshot has no America/New_York day — snapshot not written." };
   }
   if (incoming.combined24hUsd === null) {
     return {
@@ -245,16 +251,34 @@ function isPlottableVolumePoint(point: VolumeHistoryPoint): boolean {
 }
 
 /**
- * Closed desk snapshot days only. Drops a live rolling-24h tip and any point
- * after the America/New_York date of `nowT`. Does not invent an in-progress day
- * from the current DexScreener ~24h rollup.
+ * Chart points sit on UTC midnight of an America/New_York date. That day is
+ * closed only after New York has moved on to a later date. Today and any later
+ * day stay off the series — a rolling 24h row is not a closed snapshot, and a
+ * UTC date New York has not reached is not plotted.
+ */
+export function isClosedEasternSnapshotDay(unixSeconds: number, nowT: number): boolean {
+  const todayKey = easternDayKey(nowT);
+  if (!todayKey) return false;
+  const key = utcDayKey(unixSeconds);
+  return key !== "" && key < todayKey;
+}
+
+/**
+ * Closed desk snapshot days only. Drops a live rolling-24h tip, the in-progress
+ * America/New_York day, and any later day. Does not invent a tip from the
+ * current DexScreener ~24h rollup.
  */
 export function closedSnapshotVolumePoints(
   points: readonly VolumeHistoryPoint[],
   nowT: number,
 ): VolumeHistoryPoint[] {
-  return clipVolumeThroughEasternDay(points, nowT)
-    .filter((point) => point.kind !== "rolling_24h")
+  return points
+    .filter(
+      (point) =>
+        isPlottableVolumePoint(point) &&
+        point.kind !== "rolling_24h" &&
+        isClosedEasternSnapshotDay(point.t, nowT),
+    )
     .sort((a, b) => a.t - b.t);
 }
 
@@ -274,8 +298,14 @@ export function parseDeskVolumeSnapshotRecords(payload: unknown): DeskVolumeSnap
 function parseOneSnapshot(row: unknown): DeskVolumeSnapshot | null {
   if (!row || typeof row !== "object") return null;
   const rec = row as Record<string, unknown>;
-  const t = typeof rec.t === "number" && Number.isFinite(rec.t) && rec.t > 0 ? utcDayStart(rec.t) : 0;
-  const date = typeof rec.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(rec.date) ? rec.date : utcDayKey(t);
+  const rawT = typeof rec.t === "number" && Number.isFinite(rec.t) && rec.t > 0 ? rec.t : 0;
+  const dateFromField =
+    typeof rec.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(rec.date) ? rec.date : "";
+  // Prefer the recorded Eastern date. `t` may be Eastern midnight (04:00Z) rather
+  // than UTC midnight; the chart axis uses UTC midnight of this date so the
+  // label matches the snapshot day and does not jump forward a UTC day.
+  const date = dateFromField || utcDayKey(utcDayStart(rawT));
+  const t = utcInstantForDayKey(date);
   if (t <= 0 || !date) return null;
   const generatedAt = typeof rec.generatedAt === "string" && rec.generatedAt.trim() ? rec.generatedAt : null;
   if (!generatedAt) return null;

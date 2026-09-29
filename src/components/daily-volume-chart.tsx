@@ -235,7 +235,7 @@ export function DailyVolumeChart({ history }: { history: EquityVolumeHistoryResu
       )}
       {hasSeries ? (
         <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
-          History from closed desk DexScreener snapshots. An in-progress Eastern day is omitted until that day’s snapshot exists.
+          History from closed desk DexScreener snapshots. The in-progress Eastern day is omitted until that America/New_York date has closed.
         </p>
       ) : null}
     </section>

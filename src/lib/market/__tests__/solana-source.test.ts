@@ -851,7 +851,7 @@ describe("SolanaMarketDataSource", () => {
       month: "2-digit",
       day: "2-digit",
     }).format(new Date());
-    if (stored[0] && stored[0].date <= easternToday) {
+    if (stored[0] && stored[0].date < easternToday) {
       expect(history.available).toBe(true);
       expect(history.points).toEqual([
         {
