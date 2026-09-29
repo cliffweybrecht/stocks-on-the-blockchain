@@ -67,13 +67,15 @@ describe("filterPriceRange", () => {
     expect(filterVolumeRange(history({ dailyVolume: [] }), "30d", NOW)).toEqual([]);
   });
 
-  it("does not label a UTC day that America/New_York has not started", () => {
-    const now = Date.parse("2026-09-29T03:00:00.000Z") / 1000;
+  it("keeps 7D and 30D on closed Eastern days and leaves the open Gecko day off the chart", () => {
+    const beforeMidnight = Date.parse("2026-09-29T03:00:00.000Z") / 1000;
+    const afternoon = Date.parse("2026-09-29T20:00:00.000Z") / 1000;
+    const afterClose = Date.parse("2026-09-30T04:00:00.000Z") / 1000;
     const sep28 = Date.parse("2026-09-28T00:00:00.000Z") / 1000;
     const sep29 = Date.parse("2026-09-29T00:00:00.000Z") / 1000;
     const aug31 = Date.parse("2026-08-31T00:00:00.000Z") / 1000;
     const series = history({
-      generatedAt: "2026-09-29T03:00:00.000Z",
+      generatedAt: "2026-09-29T20:00:00.000Z",
       daily: [
         { t: aug31, priceUsd: 350 },
         { t: sep28, priceUsd: 357 },
@@ -82,29 +84,39 @@ describe("filterPriceRange", () => {
       dailyVolume: [
         { t: aug31, volumeUsd: 1_095_145 },
         { t: sep28, volumeUsd: 1_062_043 },
-        { t: sep29, volumeUsd: 78_323 },
+        { t: sep28, volumeUsd: 22_600_000, kind: "rolling_24h" },
+        { t: sep29, volumeUsd: 22_600_000 },
       ],
-      hourly: [{ t: Date.parse("2026-09-29T02:00:00.000Z") / 1000, priceUsd: 356 }],
-      hourlyVolume: [{ t: Date.parse("2026-09-29T02:00:00.000Z") / 1000, volumeUsd: 47_245 }],
+      hourly: [{ t: Date.parse("2026-09-29T20:00:00.000Z") / 1000, priceUsd: 356 }],
+      hourlyVolume: [{ t: Date.parse("2026-09-29T20:00:00.000Z") / 1000, volumeUsd: 47_245 }],
     });
 
     for (const range of ["7d", "30d"] as const) {
-      const volume = filterVolumeRange(series, range, now);
-      const prices = filterPriceRange(series, range, now);
+      const volume = filterVolumeRange(series, range, afternoon);
+      const prices = filterPriceRange(series, range, afternoon);
       expect(volume.map((point) => point.t)).not.toContain(sep29);
       expect(prices.map((point) => point.t)).not.toContain(sep29);
+      expect(volume.some((point) => point.kind === "rolling_24h")).toBe(false);
       expect(volume.map((point) => formatPriceChartTick(point.t, range))).not.toContain("Sep 29");
       expect(formatPriceChartTick(volume[volume.length - 1]!.t, range)).toBe("Sep 28");
     }
 
-    expect(filterVolumeRange(series, "30d", now).some((point) => point.t === aug31)).toBe(true);
-    expect(formatPriceChartTick(aug31, "30d")).toBe("Aug 31");
-    expect(filterVolumeRange(series, "24h", now)).toEqual(series.hourlyVolume);
-    expect(filterPriceRange(series, "24h", now)).toEqual(series.hourly);
+    // 03:00Z is still Sep 28 in New York, so that candle is not closed yet.
+    expect(filterVolumeRange(series, "30d", beforeMidnight).map((point) => point.t)).toEqual([aug31]);
+    expect(filterVolumeRange(series, "7d", beforeMidnight)).toEqual([]);
+    expect(filterPriceRange(series, "30d", beforeMidnight).map((point) => point.t)).toEqual([aug31]);
 
-    const afterMidnight = Date.parse("2026-09-29T04:00:00.000Z") / 1000;
-    const opened = filterVolumeRange(series, "30d", afterMidnight);
-    expect(opened.map((point) => point.t)).toContain(sep29);
+    expect(filterVolumeRange(series, "30d", afternoon).some((point) => point.t === aug31)).toBe(true);
+    expect(formatPriceChartTick(aug31, "30d")).toBe("Aug 31");
+    expect(filterVolumeRange(series, "24h", afternoon)).toEqual(series.hourlyVolume);
+    expect(filterPriceRange(series, "24h", afternoon)).toEqual(series.hourly);
+
+    const closedVolume = filterVolumeRange(series, "30d", afterClose);
+    const closedPrices = filterPriceRange(series, "30d", afterClose);
+    expect(closedVolume.map((point) => point.t)).toEqual([sep28, sep29]);
+    expect(closedVolume.find((point) => point.t === sep29)?.volumeUsd).toBe(22_600_000);
+    expect(closedVolume.some((point) => point.kind === "rolling_24h")).toBe(false);
+    expect(closedPrices.map((point) => point.t)).toEqual([sep28, sep29]);
     expect(formatPriceChartTick(sep29, "30d")).toBe("Sep 29");
   });
 

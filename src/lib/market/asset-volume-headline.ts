@@ -1,5 +1,5 @@
 import type { PriceChartRangeId, VolumeHistoryPoint } from "./types";
-import { utcDayOnOrBeforeEasternToday } from "./volume-snapshots";
+import { isClosedEasternSnapshotDay } from "./volume-snapshots";
 
 export type AssetVolumeHeadlineScope = "all_markets" | "primary_pool";
 
@@ -69,17 +69,21 @@ export function volumePointsInWindow(
 }
 
 /**
- * Daily Gecko buckets inside the window, minus any UTC day that is still
- * tomorrow in America/New_York. Does not add or rewrite a candle.
+ * Closed Gecko UTC-day buckets inside the window.
+ * A day is plotted only after America/New_York has moved on — the same closed-day
+ * rule as the desk snapshot chart. Gecko's latest day candle is volume so far
+ * on an open UTC bucket, not a closed Eastern day, and a rolling 24h tip is
+ * never drawn as that date. Does not add or rewrite a candle.
  */
-function dailyPointsThroughEasternDay(
-  points: readonly Pick<VolumeHistoryPoint, "t" | "volumeUsd">[],
+function closedDailyPointsInWindow(
+  points: readonly (Pick<VolumeHistoryPoint, "t" | "volumeUsd"> & { kind?: VolumeHistoryPoint["kind"] })[],
   nowT: number,
   windowSeconds: number,
 ): VolumeHistoryPoint[] {
-  return volumePointsInWindow(points, nowT, windowSeconds).filter((point) =>
-    utcDayOnOrBeforeEasternToday(point.t, nowT),
+  const closed = points.filter(
+    (point) => point.kind !== "rolling_24h" && isClosedEasternSnapshotDay(point.t, nowT),
   );
+  return volumePointsInWindow(closed, nowT, windowSeconds);
 }
 
 function poolAddressSet(addresses: readonly string[]): Set<string> {
@@ -210,9 +214,9 @@ function headlineLabel(range: PriceChartRangeId, scope: AssetVolumeHeadlineScope
 
 /**
  * 24H prefers the DexScreener all-markets total (sum of every pool's volume.h24).
- * 7D and 30D use the summed Gecko daily candles across every pool when that
- * series is complete. Otherwise the headline is the primary-pool candle sum
- * and the label does not say all-markets.
+ * 7D and 30D sum the closed Gecko daily candles across every pool when that
+ * series is complete. The in-progress Eastern day is left out. Otherwise the
+ * headline is the primary-pool candle sum and the label does not say all-markets.
  * A complete all-markets series with nothing in the window stays null — it
  * does not fall back to the primary pool and it does not become $0.
  */
@@ -222,7 +226,7 @@ export function selectAssetVolumeHeadline(input: {
   windowSeconds: number;
   allMarkets24hUsd: number | null | undefined;
   primaryPoolPoints: readonly Pick<VolumeHistoryPoint, "volumeUsd">[];
-  allMarketsDaily: readonly Pick<VolumeHistoryPoint, "t" | "volumeUsd">[] | null;
+  allMarketsDaily: readonly VolumeHistoryPoint[] | null;
 }): AssetVolumeHeadline {
   if (input.range === "24h") {
     const allMarkets = reportedVolumeUsd(input.allMarkets24hUsd);
@@ -241,7 +245,7 @@ export function selectAssetVolumeHeadline(input: {
   }
 
   if (input.allMarketsDaily !== null) {
-    const inWindow = dailyPointsThroughEasternDay(input.allMarketsDaily, input.nowT, input.windowSeconds);
+    const inWindow = closedDailyPointsInWindow(input.allMarketsDaily, input.nowT, input.windowSeconds);
     return {
       volumeUsd: sumObservedVolumeUsd(inWindow),
       label: headlineLabel(input.range, "all_markets"),
@@ -264,7 +268,8 @@ export interface AssetVolumeSeries {
 /**
  * Plotted volume candles.
  * 24H uses summed hourly Gecko volume once every pool has resolved.
- * 7D and 30D use summed daily Gecko volume once that series is complete.
+ * 7D and 30D use summed daily Gecko volume for closed Eastern days once that
+ * series is complete. The open UTC day is not plotted as today.
  * Until then the line stays the primary pool. A complete series with nothing
  * in the window stays empty — it does not fall back to the primary pool.
  * `primaryPoolPoints` are already inside the chart window.
@@ -274,7 +279,7 @@ export function selectAssetVolumeSeries(input: {
   nowT: number;
   windowSeconds: number;
   primaryPoolPoints: readonly VolumeHistoryPoint[];
-  allMarketsDaily: readonly Pick<VolumeHistoryPoint, "t" | "volumeUsd">[] | null;
+  allMarketsDaily: readonly VolumeHistoryPoint[] | null;
   allMarketsHourly: readonly Pick<VolumeHistoryPoint, "t" | "volumeUsd">[] | null;
 }): AssetVolumeSeries {
   if (input.range === "24h" && input.allMarketsHourly !== null) {
@@ -285,7 +290,7 @@ export function selectAssetVolumeSeries(input: {
   }
   if ((input.range === "7d" || input.range === "30d") && input.allMarketsDaily !== null) {
     return {
-      points: dailyPointsThroughEasternDay(input.allMarketsDaily, input.nowT, input.windowSeconds),
+      points: closedDailyPointsInWindow(input.allMarketsDaily, input.nowT, input.windowSeconds),
       scope: "all_markets",
     };
   }
