@@ -66,6 +66,8 @@ export function DailyVolumeChart({
       privateVolume24hUsd,
       etfVolume24hUsd,
     );
+    // `nowT` is an instant. The overlay keys it in America/New_York, so a UTC
+    // date that has already rolled (evening in New York) does not add tomorrow.
     return overlayLiveDesk24h(history.points, liveCombined, nowT);
   }, [etfVolume24hUsd, history.generatedAt, history.points, privateVolume24hUsd, publicVolume24hUsd]);
 

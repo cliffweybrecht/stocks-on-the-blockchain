@@ -46,6 +46,39 @@ export function utcDayKey(unixSeconds: number): string {
   return new Date(start * 1000).toISOString().slice(0, 10);
 }
 
+const EASTERN_DAY_KEY = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/New_York",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+/**
+ * America/New_York calendar date (YYYY-MM-DD). Desk snapshot days are this
+ * date, not the UTC date: 00:00Z is still the previous Eastern evening.
+ */
+export function easternDayKey(unixSeconds: number): string {
+  if (!Number.isFinite(unixSeconds) || unixSeconds <= 0) return "";
+  const parts = EASTERN_DAY_KEY.formatToParts(new Date(unixSeconds * 1000));
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+  if (!year || !month || !day) return "";
+  return `${year}-${month}-${day}`;
+}
+
+/** UTC midnight of a YYYY-MM-DD key. UTC axis labels then read as that Eastern date. */
+export function utcInstantForDayKey(dayKey: string): number {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dayKey)) return 0;
+  const t = Date.parse(`${dayKey}T00:00:00.000Z`);
+  return Number.isFinite(t) ? Math.trunc(t / 1000) : 0;
+}
+
+function snapshotChartDayKey(row: DeskVolumeSnapshot): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(row.date)) return row.date;
+  return utcDayKey(row.t);
+}
+
 function cloneSnapshot(row: DeskVolumeSnapshot): DeskVolumeSnapshot {
   return { ...row };
 }
@@ -153,7 +186,8 @@ export async function recordDeskVolumeFromChain(
 export function pointsFromDeskVolumeSnapshots(
   snapshots: readonly DeskVolumeSnapshot[],
 ): VolumeHistoryPoint[] {
-  return snapshots
+  const byDay = new Map<string, VolumeHistoryPoint>();
+  const sorted = snapshots
     .filter(
       (row) =>
         row.t > 0 &&
@@ -161,37 +195,64 @@ export function pointsFromDeskVolumeSnapshots(
         Number.isFinite(row.combined24hUsd) &&
         row.combined24hUsd >= 0,
     )
-    .sort((a, b) => a.t - b.t)
-    .map((row) => ({
-      t: row.t,
+    .sort((a, b) => a.t - b.t);
+  for (const row of sorted) {
+    const dayKey = snapshotChartDayKey(row);
+    const t = utcInstantForDayKey(dayKey);
+    if (!dayKey || t <= 0) continue;
+    byDay.set(dayKey, {
+      t,
       volumeUsd: row.combined24hUsd as number,
-      kind: "calendar_day" as const,
-    }));
+      kind: "calendar_day",
+    });
+  }
+  return [...byDay.values()].sort((a, b) => a.t - b.t);
 }
 
 /**
- * Replace or append today’s UTC day with a live DexScreener 24h. Does not
- * invent missing calendar days as $0.
+ * Drop chart points whose day key is after the America/New_York date of `nowT`.
+ * A UTC date rollover (00:00Z while New York is still the previous evening)
+ * must not plot that next calendar day.
+ */
+export function clipVolumeThroughEasternDay(
+  points: readonly VolumeHistoryPoint[],
+  nowT: number,
+): VolumeHistoryPoint[] {
+  const todayKey = easternDayKey(nowT);
+  if (!todayKey) return points.filter(isPlottableVolumePoint);
+  return points.filter((point) => {
+    if (!isPlottableVolumePoint(point)) return false;
+    const key = utcDayKey(point.t);
+    return key !== "" && key <= todayKey;
+  });
+}
+
+function isPlottableVolumePoint(point: VolumeHistoryPoint): boolean {
+  return (
+    Number.isFinite(point.t) &&
+    point.t > 0 &&
+    Number.isFinite(point.volumeUsd) &&
+    point.volumeUsd >= 0
+  );
+}
+
+/**
+ * Replace or append the current America/New_York day with a live DexScreener 24h.
+ * The tip is that Eastern date, not the UTC date, so 00:00Z–midnight ET does not
+ * open tomorrow. Does not invent missing days as $0 or any day after Eastern today.
  */
 export function overlayLiveDesk24h(
   points: readonly VolumeHistoryPoint[],
   volume24hUsd: number | null | undefined,
   nowT: number,
 ): VolumeHistoryPoint[] {
-  const kept = points
-    .filter(
-      (point) =>
-        Number.isFinite(point.t) &&
-        point.t > 0 &&
-        Number.isFinite(point.volumeUsd) &&
-        point.volumeUsd >= 0,
-    )
-    .sort((a, b) => a.t - b.t);
+  const kept = clipVolumeThroughEasternDay(points, nowT).sort((a, b) => a.t - b.t);
   if (volume24hUsd === null || volume24hUsd === undefined) return kept;
   if (!Number.isFinite(volume24hUsd) || volume24hUsd < 0) return kept;
-  const today = utcDayStart(nowT);
-  if (today <= 0) return kept;
-  const withoutToday = kept.filter((point) => utcDayStart(point.t) !== today);
+  const todayKey = easternDayKey(nowT);
+  const today = utcInstantForDayKey(todayKey);
+  if (!todayKey || today <= 0) return kept;
+  const withoutToday = kept.filter((point) => utcDayKey(point.t) !== todayKey);
   const live: VolumeHistoryPoint = { t: today, volumeUsd: volume24hUsd, kind: "rolling_24h" };
   return [...withoutToday, live].sort((a, b) => a.t - b.t);
 }
