@@ -1,4 +1,5 @@
 import type { PriceChartRangeId, VolumeHistoryPoint } from "./types";
+import { utcDayOnOrBeforeEasternToday } from "./volume-snapshots";
 
 export type AssetVolumeHeadlineScope = "all_markets" | "primary_pool";
 
@@ -65,6 +66,20 @@ export function volumePointsInWindow(
     kept.push({ t: point.t, volumeUsd });
   }
   return kept;
+}
+
+/**
+ * Daily Gecko buckets inside the window, minus any UTC day that is still
+ * tomorrow in America/New_York. Does not add or rewrite a candle.
+ */
+function dailyPointsThroughEasternDay(
+  points: readonly Pick<VolumeHistoryPoint, "t" | "volumeUsd">[],
+  nowT: number,
+  windowSeconds: number,
+): VolumeHistoryPoint[] {
+  return volumePointsInWindow(points, nowT, windowSeconds).filter((point) =>
+    utcDayOnOrBeforeEasternToday(point.t, nowT),
+  );
 }
 
 function poolAddressSet(addresses: readonly string[]): Set<string> {
@@ -226,7 +241,7 @@ export function selectAssetVolumeHeadline(input: {
   }
 
   if (input.allMarketsDaily !== null) {
-    const inWindow = volumePointsInWindow(input.allMarketsDaily, input.nowT, input.windowSeconds);
+    const inWindow = dailyPointsThroughEasternDay(input.allMarketsDaily, input.nowT, input.windowSeconds);
     return {
       volumeUsd: sumObservedVolumeUsd(inWindow),
       label: headlineLabel(input.range, "all_markets"),
@@ -270,7 +285,7 @@ export function selectAssetVolumeSeries(input: {
   }
   if ((input.range === "7d" || input.range === "30d") && input.allMarketsDaily !== null) {
     return {
-      points: volumePointsInWindow(input.allMarketsDaily, input.nowT, input.windowSeconds),
+      points: dailyPointsThroughEasternDay(input.allMarketsDaily, input.nowT, input.windowSeconds),
       scope: "all_markets",
     };
   }

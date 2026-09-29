@@ -6,6 +6,7 @@ import type {
   PriceHistoryPoint,
   VolumeHistoryPoint,
 } from "@/lib/market/types";
+import { utcDayOnOrBeforeEasternToday } from "@/lib/market/volume-snapshots";
 
 export const ASSET_CHART_MODES = [
   { id: "volume", label: "Volume" },
@@ -45,6 +46,25 @@ export function priceHistoryNowT(
   return Math.max(lastDaily, lastHourly, lastDailyVol, lastHourlyVol);
 }
 
+/**
+ * Daily candles are UTC-day buckets. Keep a bucket only once that calendar day
+ * has started in America/New_York. Hourly 24H points are instants that already
+ * happened, so they are not dropped for sharing tomorrow's UTC date.
+ */
+function observedInRange<T extends { t: number }>(
+  points: readonly T[],
+  nowT: number,
+  windowSeconds: number,
+  daily: boolean,
+): T[] {
+  const cutoff = nowT - windowSeconds;
+  return points.filter((point) => {
+    if (point.t < cutoff || point.t > nowT) return false;
+    if (daily && !utcDayOnOrBeforeEasternToday(point.t, nowT)) return false;
+    return true;
+  });
+}
+
 /** Observed closes inside the selected window. Never fills gaps or invents prices. */
 export function filterPriceRange(
   history: Pick<AssetPriceHistoryResult, "daily" | "hourly">,
@@ -54,8 +74,7 @@ export function filterPriceRange(
   const spec = PRICE_CHART_RANGES.find((row) => row.id === range);
   if (!spec || !Number.isFinite(nowT) || nowT <= 0) return [];
   const source = spec.series === "hourly" ? history.hourly : history.daily;
-  const cutoff = nowT - spec.seconds;
-  return source.filter((point) => point.t >= cutoff && point.t <= nowT);
+  return observedInRange(source, nowT, spec.seconds, spec.series === "daily");
 }
 
 /** Observed pool USD volume inside the selected window. Never fills gaps or invents $0. */
@@ -67,13 +86,8 @@ export function filterVolumeRange(
   const spec = PRICE_CHART_RANGES.find((row) => row.id === range);
   if (!spec || !Number.isFinite(nowT) || nowT <= 0) return [];
   const source = spec.series === "hourly" ? history.hourlyVolume : history.dailyVolume;
-  const cutoff = nowT - spec.seconds;
-  return source.filter(
-    (point) =>
-      point.t >= cutoff &&
-      point.t <= nowT &&
-      Number.isFinite(point.volumeUsd) &&
-      point.volumeUsd >= 0,
+  return observedInRange(source, nowT, spec.seconds, spec.series === "daily").filter(
+    (point) => Number.isFinite(point.volumeUsd) && point.volumeUsd >= 0,
   );
 }
 

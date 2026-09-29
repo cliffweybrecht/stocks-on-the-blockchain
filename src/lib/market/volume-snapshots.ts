@@ -210,6 +210,18 @@ export function pointsFromDeskVolumeSnapshots(
 }
 
 /**
+ * UTC day of `unixSeconds` is on or before the America/New_York date of `nowT`.
+ * Daily Gecko candles are UTC-midnight buckets. 00:00Z is still the previous
+ * Eastern evening, so that bucket is tomorrow until New York's calendar day starts.
+ */
+export function utcDayOnOrBeforeEasternToday(unixSeconds: number, nowT: number): boolean {
+  const todayKey = easternDayKey(nowT);
+  if (!todayKey) return Number.isFinite(unixSeconds) && unixSeconds > 0;
+  const key = utcDayKey(unixSeconds);
+  return key !== "" && key <= todayKey;
+}
+
+/**
  * Drop chart points whose day key is after the America/New_York date of `nowT`.
  * A UTC date rollover (00:00Z while New York is still the previous evening)
  * must not plot that next calendar day.
@@ -218,13 +230,9 @@ export function clipVolumeThroughEasternDay(
   points: readonly VolumeHistoryPoint[],
   nowT: number,
 ): VolumeHistoryPoint[] {
-  const todayKey = easternDayKey(nowT);
-  if (!todayKey) return points.filter(isPlottableVolumePoint);
-  return points.filter((point) => {
-    if (!isPlottableVolumePoint(point)) return false;
-    const key = utcDayKey(point.t);
-    return key !== "" && key <= todayKey;
-  });
+  return points.filter(
+    (point) => isPlottableVolumePoint(point) && utcDayOnOrBeforeEasternToday(point.t, nowT),
+  );
 }
 
 function isPlottableVolumePoint(point: VolumeHistoryPoint): boolean {
