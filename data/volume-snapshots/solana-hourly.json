@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "hourKey": "America/New_York",
+  "kind": "rolling_h24_totals",
+  "units": {
+    "volume24hUsd": "USD",
+    "liquidityUsd": "USD"
+  },
+  "note": "One compact row per America/New_York hour. Rolling DexScreener h24 desk totals (public, private, ETF/index, combined) and displayed-liquidity totals. Not a per-asset or per-pool dump, and not a closed Eastern day bar.",
+  "records": []
+}

@@ -41,8 +41,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Desk DexScreener 24h snapshots written at runtime
+# Local DexScreener snapshot experiments. solana.json (closed days) is already
+# tracked. solana-hourly.json is the compact hourly totals series the routine commits.
 /data/volume-snapshots/*.json
+!/data/volume-snapshots/solana-hourly.json
 
 # Cached cross-pool Gecko daily volume. Rebuilt in the background.
 /data/cache/
