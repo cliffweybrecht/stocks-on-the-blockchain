@@ -217,11 +217,30 @@ Robinhood marks stay null on Solana. Off-Solana pairs are ignored.
 | **Universe** | Same fail-closed classifier as the rest of the desk. Public ranking stays public-equity only. The Daily Volume series is the combined public + private + ETF/index 24h |
 | **Why snapshots** | DexScreener’s public API is snapshot-only (no pair history). Each recorded day is the America/New_York calendar date of that snapshot window. Days before snapshots began have **no series** — past DexScreener totals are not invented from GeckoTerminal |
 | **Honesty** | Gap days are omitted, not plotted as **$0**. A source-reported `0` is kept. Null DexScreener 24h is never coerced to zero. The in-progress America/New_York day is omitted until that date has closed — a rolling 24h row written during the day is not a closed snapshot, and a UTC date that New York has not reached is never plotted. A seed adapter with no snapshots yields an **empty chart**, never invented nonzero points |
-| **Coverage** | One combined point per Eastern calendar day this desk recorded (`data/volume-snapshots/solana.json` by default). GeckoTerminal remains a candidate source and per-asset **price** candles only |
+| **Coverage** | One combined point per Eastern calendar day this desk recorded (`data/volume-snapshots/solana.json` by default). GeckoTerminal remains a candidate source and per-asset **price** candles only. Hourly rolling totals live in a separate file and are not this series |
 
-Daily cron / agent should run `SOLANA_MARKET_ENABLED=true npm run snapshot:volume` (same DexScreener all-pools desk 24h; no Gecko backfill).
+Daily cron / agent should run `SOLANA_MARKET_ENABLED=true npm run snapshot:volume` (same DexScreener all-pools desk 24h; no Gecko backfill). That command writes closed-day rows in `data/volume-snapshots/solana.json` only.
 
 The seed adapter does **not** draw a demo series.
+
+### Hourly desk totals
+
+Hourly capture is a **rolling DexScreener h24 totals** series, not a second copy of the daily desk dump and not a closed-day bar. The Daily Volume chart still plots closed America/New_York days from `solana.json` only. An in-progress Eastern day and these hourly rows stay off that chart.
+
+| | |
+| --- | --- |
+| **File** | `data/volume-snapshots/solana-hourly.json` |
+| **Row** | One object per America/New_York hour: `hour` (`YYYY-MM-DDTHH`), `offset` (`-04:00` / `-05:00`, so the repeated fall-back hour stays two rows), `t` (unix start of that hour), public / private / ETF / combined rolling h24 USD, and the same four displayed-liquidity totals when the desk reported them |
+| **Size** | Totals only. No per-asset or per-pool blob. A repeat inside the same Eastern hour replaces that row. About one short JSON line per hour |
+| **Honesty** | Null h24 is omitted, not stored as $0. A reported `0` is kept. All-null hours are not written |
+
+Run once per America/New_York clock hour (a few minutes past the hour is enough). The hour key is the Eastern hour of the desk snapshot timestamp.
+
+```bash
+SOLANA_MARKET_ENABLED=true npm run snapshot:volume:hourly
+```
+
+Same all-pools DexScreener desk read as `snapshot:volume`. No Gecko backfill. The process writes `solana-hourly.json` only — it does not update `solana.json`. Commit that hourly file. Do not nest these rows inside `solana.json`; the daily writer does not keep a side section, and the chart must not treat a rolling hour as a closed day.
 
 ## Trust labeling
 

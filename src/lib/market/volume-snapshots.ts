@@ -298,6 +298,10 @@ export function parseDeskVolumeSnapshotRecords(payload: unknown): DeskVolumeSnap
 function parseOneSnapshot(row: unknown): DeskVolumeSnapshot | null {
   if (!row || typeof row !== "object") return null;
   const rec = row as Record<string, unknown>;
+  // Hourly totals use `hour` (`YYYY-MM-DDTHH`) and no Eastern `date`. Their `t`
+  // is an hour start, which can fall on the next UTC date. Never promote that
+  // rolling row into a closed-day bar.
+  if (typeof rec.hour === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}$/.test(rec.hour)) return null;
   const rawT = typeof rec.t === "number" && Number.isFinite(rec.t) && rec.t > 0 ? rec.t : 0;
   const dateFromField =
     typeof rec.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(rec.date) ? rec.date : "";
