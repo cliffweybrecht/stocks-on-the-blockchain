@@ -156,8 +156,9 @@ export function deskVolumeHeadline(input: {
 }
 
 /**
- * Every unique UTC day in the visible series, oldest first.
- * Mid-series days stay labeled; density does not drop ticks.
+ * Every unique desk day in the visible series, oldest first.
+ * Points sit on UTC midnight of the America/New_York date, so these ticks
+ * label that Eastern day. Mid-series days stay labeled; density does not drop ticks.
  */
 export function volumeChartXTicks(points: readonly VolumeHistoryPoint[]): number[] {
   if (points.length === 0) return [];
