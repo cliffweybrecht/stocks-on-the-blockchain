@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { AssetBreadcrumb, AssetIdentityHeader } from "@/components/asset-identity-header";
 import { AssetMarketPanel } from "@/components/asset-price-chart";
 import { AssetStatsCard } from "@/components/asset-stats-card";
@@ -7,6 +8,12 @@ import { ErrorState } from "@/components/error-state";
 import { MarketsTable } from "@/components/markets-table";
 import { Metric } from "@/components/metric";
 import { PageShell } from "@/components/page-shell";
+import {
+  SolanaAssetChart,
+  SolanaAssetChartFallback,
+  SolanaAssetMarkets,
+  SolanaAssetStats,
+} from "@/components/solana-asset-sections";
 import { TrustBanner } from "@/components/trust-banner";
 import {
   Table,
@@ -17,14 +24,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatCount, formatPct, formatPrice, formatRelativeTime, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
-import { readStoredAllMarketsVolume, DEFAULT_ALL_MARKETS_VOLUME_DIR } from "@/lib/market/all-markets-volume-cache";
-import { uniqueAllMarketsPools } from "@/lib/market/asset-volume-headline";
 import { emptyAssetPriceHistory } from "@/lib/market/asset-price-history";
 import { deskSpotPriceUsd, selectEquityPriceTicker } from "@/lib/desk/price-ticker";
 import { sortPoolsByVolume } from "@/lib/desk/pool-sort";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { toJumpAsset } from "@/lib/market/asset-search";
-import { SOLANA_CHAIN_ID, type VolumeHistoryPoint } from "@/lib/market/types";
+import { SOLANA_CHAIN_ID } from "@/lib/market/types";
 
 export const dynamic = "force-dynamic";
 
@@ -36,11 +41,12 @@ export default async function AssetPage({
   const { chainId, symbol } = await params;
   const source = createMarketDataSource();
   const decoded = decodeURIComponent(symbol);
+  const solanaFastPath = chainId === SOLANA_CHAIN_ID;
 
   const [assetSettled, chainSettled, priceHistorySettled] = await Promise.allSettled([
-    source.getAsset(chainId, decoded),
-    chainId === SOLANA_CHAIN_ID ? source.getChain(chainId) : Promise.resolve(null),
-    source.getAssetPriceHistory(chainId, decoded),
+    source.getAsset(chainId, decoded, solanaFastPath ? { enrich: false } : undefined),
+    solanaFastPath ? source.getChain(chainId) : Promise.resolve(null),
+    solanaFastPath ? Promise.resolve(null) : source.getAssetPriceHistory(chainId, decoded),
   ]);
 
   if (assetSettled.status === "rejected") {
@@ -69,10 +75,10 @@ export default async function AssetPage({
   const isSolana = chain.id === SOLANA_CHAIN_ID;
   const rankedPools = sortPoolsByVolume(asset.pools);
   const priceHistory =
-    priceHistorySettled.status === "fulfilled"
+    priceHistorySettled.status === "fulfilled" && priceHistorySettled.value
       ? priceHistorySettled.value
       : emptyAssetPriceHistory(
-          priceHistorySettled.reason instanceof Error
+          priceHistorySettled.status === "rejected" && priceHistorySettled.reason instanceof Error
             ? priceHistorySettled.reason.message
             : "Price history request failed. The desk does not invent a series.",
         );
@@ -80,15 +86,12 @@ export default async function AssetPage({
   const jumpAssets = catalog
     ? [...catalog.assets, ...(catalog.etfAssets ?? []), ...(catalog.privateAssets ?? [])].map(toJumpAsset)
     : [];
-  const storedAllMarkets = isSolana
-    ? await readStoredAllMarketsVolume({
-        directory: DEFAULT_ALL_MARKETS_VOLUME_DIR,
-        mint: asset.contractAddress,
-        pairAddresses: uniqueAllMarketsPools(asset.pools).map((pool) => pool.pairAddress),
-      })
-    : null;
-  const initialAllMarketsDaily: VolumeHistoryPoint[] | null = storedAllMarkets?.daily ?? null;
-  const initialAllMarketsHourly: VolumeHistoryPoint[] | null = storedAllMarkets?.hourly ?? null;
+  if (isSolana) {
+    // Overlap chart, statistics, and pair-holder work with the shell. Do not await it.
+    void source.getAssetPriceHistory(chain.id, decoded).catch(() => undefined);
+    void source.getAsset(chain.id, decoded, { pairHolders: false }).catch(() => undefined);
+    void source.getAsset(chain.id, decoded).catch(() => undefined);
+  }
 
     return (
       <PageShell
@@ -98,18 +101,26 @@ export default async function AssetPage({
       >
         <div className="space-y-5">
           <AssetBreadcrumb chain={chain} symbol={asset.symbol} />
-          <AssetMarketPanel
-            key={asset.contractAddress}
-            header={<AssetIdentityHeader chain={chain} asset={asset} showPin={isSolana} showBreadcrumb={false} />}
-            priceUsd={deskSpotPriceUsd(asset)}
-            priceChange24hPct={asset.priceChange24hPct}
-            history={priceHistory}
-            allMarkets24hUsd={isSolana ? asset.volume24hUsd : null}
-            allMarketsSymbol={isSolana ? asset.symbol : null}
-            initialAllMarketsDaily={initialAllMarketsDaily}
-            initialAllMarketsHourly={initialAllMarketsHourly}
-          />
-          <AssetStatsCard asset={asset} />
+          {isSolana ? (
+            <Suspense fallback={<SolanaAssetChartFallback chain={chain} asset={asset} />}>
+              <SolanaAssetChart chain={chain} asset={asset} routeSymbol={decoded} />
+            </Suspense>
+          ) : (
+            <AssetMarketPanel
+              key={asset.contractAddress}
+              header={<AssetIdentityHeader chain={chain} asset={asset} showPin={false} showBreadcrumb={false} />}
+              priceUsd={deskSpotPriceUsd(asset)}
+              priceChange24hPct={asset.priceChange24hPct}
+              history={priceHistory}
+            />
+          )}
+          {isSolana ? (
+            <Suspense fallback={<AssetStatsCard asset={asset} />}>
+              <SolanaAssetStats chainId={chain.id} routeSymbol={decoded} fallbackAsset={asset} />
+            </Suspense>
+          ) : (
+            <AssetStatsCard asset={asset} />
+          )}
 
           {isSolana ? null : <TrustBanner />}
 
@@ -170,7 +181,18 @@ export default async function AssetPage({
           ) : null}
 
           {rankedPools.length > 0 ? (
-            <MarketsTable asset={asset} pools={rankedPools} />
+            isSolana ? (
+              <Suspense fallback={<MarketsTable asset={asset} pools={rankedPools} />}>
+                <SolanaAssetMarkets
+                  chainId={chain.id}
+                  routeSymbol={decoded}
+                  fallbackAsset={asset}
+                  fallbackPools={rankedPools}
+                />
+              </Suspense>
+            ) : (
+              <MarketsTable asset={asset} pools={rankedPools} />
+            )
           ) : isSolana ? (
             <section className="rounded-xl border border-dashed border-border bg-card px-4 py-6">
               <h3 className="font-heading text-lg font-medium">

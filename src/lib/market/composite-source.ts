@@ -6,6 +6,7 @@ import {
   type AssetAllMarketsVolumeSnapshot,
   type AssetDetailResult,
   type AssetPriceHistoryResult,
+  type AssetReadOptions,
   type ChainDetailResult,
   type ChainListResult,
   type DataProvenance,
@@ -111,11 +112,15 @@ export class CompositeMarketDataSource implements MarketDataSource {
     return null;
   }
 
-  async getAsset(chainId: string, symbol: string): Promise<AssetDetailResult | null> {
+  async getAsset(
+    chainId: string,
+    symbol: string,
+    options?: AssetReadOptions,
+  ): Promise<AssetDetailResult | null> {
     const errors: Error[] = [];
     for (const adapter of this.adapters) {
       try {
-        const result = await adapter.getAsset(chainId, symbol);
+        const result = await adapter.getAsset(chainId, symbol, options);
         if (result) return result;
       } catch (error) {
         errors.push(error instanceof Error ? error : new Error(errorMessage(error)));

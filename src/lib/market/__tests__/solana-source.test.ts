@@ -2557,4 +2557,225 @@ describe("SolanaMarketDataSource", () => {
     expect(urls.some((url) => url.includes("/tokens/v2/search"))).toBe(false);
     expect(urls.some((url) => url.includes("/dex/pair-details/"))).toBe(false);
   });
+
+  it("loads mint supply and the Jupiter holder count at the same time", async () => {
+    const rpcUrl = "https://rpc.example.test";
+    let holderStarted = false;
+    let supplyStarted = false;
+    let releaseHolder: (() => void) | undefined;
+    let releaseSupply: (() => void) | undefined;
+    const holderGate = new Promise<void>((resolve) => {
+      releaseHolder = resolve;
+    });
+    const supplyGate = new Promise<void>((resolve) => {
+      releaseSupply = resolve;
+    });
+    const source = testSource({
+      rpcUrl,
+      enableJupiterHolders: true,
+      enablePairHolders: false,
+      enableMintSupply: true,
+      jupiterTokenBaseUrl: "https://lite-api.jup.ag/tokens/v2",
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [tslaPair()] });
+        if (url.includes("/tokens/v1/solana/") || url.includes("/token-pairs/v1/solana/")) {
+          return jsonResponse([tslaPair()]);
+        }
+        if (url.includes("/tokens/v2/search")) {
+          holderStarted = true;
+          await holderGate;
+          return jsonResponse([{ id: tslaMint, holderCount: 10 }]);
+        }
+        if (url === rpcUrl) {
+          supplyStarted = true;
+          await supplyGate;
+          return jsonResponse({
+            jsonrpc: "2.0",
+            result: { value: { uiAmountString: "10" } },
+          });
+        }
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    const pending = source.getAsset("solana", "tslax");
+    await vi.waitFor(() => {
+      expect(holderStarted).toBe(true);
+      expect(supplyStarted).toBe(true);
+    });
+    releaseHolder?.();
+    releaseSupply?.();
+    const asset = await pending;
+    expect(asset?.asset.holderCount).toBe(10);
+    expect(asset?.asset.circulatingSupply).toBe(10);
+    expect(asset?.asset.marketCapUsd).toBeCloseTo(100.5 * 10);
+  });
+
+  it("skips pair-detail lookups when statistics do not need them", async () => {
+    const urls: string[] = [];
+    const rpcUrl = "https://rpc.example.test";
+    const source = testSource({
+      rpcUrl,
+      enableJupiterHolders: true,
+      enablePairHolders: true,
+      jupiterTokenBaseUrl: "https://lite-api.jup.ag/tokens/v2",
+      dexScreenerIoBaseUrl: "https://io.dexscreener.com",
+      fetchImpl: async (input) => {
+        const url = String(input);
+        urls.push(url);
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [tslaPair()] });
+        if (url.includes("/tokens/v1/solana/") || url.includes("/token-pairs/v1/solana/")) {
+          return jsonResponse([tslaPair()]);
+        }
+        if (url.includes("/tokens/v2/search")) return jsonResponse([{ id: tslaMint, holderCount: 40386 }]);
+        if (url === rpcUrl) {
+          return jsonResponse({
+            jsonrpc: "2.0",
+            result: { value: { uiAmountString: "4" } },
+          });
+        }
+        if (url.includes("/dex/pair-details/")) return jsonResponse({ holders: { count: 9 } });
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    const asset = await source.getAsset("solana", "tslax", { pairHolders: false });
+    expect(asset?.asset.holderCount).toBe(40386);
+    expect(asset?.asset.circulatingSupply).toBe(4);
+    expect(asset?.asset.pools[0]?.pairHolderCount).toBeNull();
+    expect(urls.some((url) => url.includes("/dex/pair-details/"))).toBe(false);
+    expect(urls.some((url) => url.includes("/tokens/v2/search"))).toBe(true);
+  });
+
+  it("reuses holder and supply memory for a shell read and does not call out again", async () => {
+    const urls: string[] = [];
+    const rpcUrl = "https://rpc.example.test";
+    const source = testSource({
+      rpcUrl,
+      enableJupiterHolders: true,
+      enablePairHolders: true,
+      jupiterTokenBaseUrl: "https://lite-api.jup.ag/tokens/v2",
+      dexScreenerIoBaseUrl: "https://io.dexscreener.com",
+      fetchImpl: async (input) => {
+        const url = String(input);
+        urls.push(url);
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [tslaPair()] });
+        if (url.includes("/tokens/v1/solana/") || url.includes("/token-pairs/v1/solana/")) {
+          return jsonResponse([tslaPair()]);
+        }
+        if (url.includes("/tokens/v2/search")) return jsonResponse([{ id: tslaMint, holderCount: 12 }]);
+        if (url === rpcUrl) {
+          return jsonResponse({
+            jsonrpc: "2.0",
+            result: { value: { uiAmountString: "8" } },
+          });
+        }
+        if (url.includes("/dex/pair-details/")) return jsonResponse({ holders: { count: 3 } });
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    const full = await source.getAsset("solana", "tslax");
+    expect(full?.asset.holderCount).toBe(12);
+    expect(full?.asset.pools[0]?.pairHolderCount).toBe(3);
+    const callsAfterEnrich = urls.length;
+    const shell = await source.getAsset("solana", "tslax", { enrich: false });
+    expect(shell?.asset.holderCount).toBe(12);
+    expect(shell?.asset.circulatingSupply).toBe(8);
+    expect(shell?.asset.pools[0]?.pairHolderCount).toBe(3);
+    expect(shell?.asset.pools[0]).not.toBe(full?.asset.pools[0]);
+    expect(urls.length).toBe(callsAfterEnrich);
+  });
+
+  it("shares one supply read across overlapping asset loads", async () => {
+    const rpcUrl = "https://rpc.example.test";
+    let supplyCalls = 0;
+    const source = testSource({
+      rpcUrl,
+      enableJupiterHolders: false,
+      enablePairHolders: false,
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [tslaPair()] });
+        if (url.includes("/tokens/v1/solana/") || url.includes("/token-pairs/v1/solana/")) {
+          return jsonResponse([tslaPair()]);
+        }
+        if (url === rpcUrl) {
+          supplyCalls += 1;
+          await new Promise((resolve) => setTimeout(resolve, 20));
+          return jsonResponse({
+            jsonrpc: "2.0",
+            result: { value: { uiAmountString: "6" } },
+          });
+        }
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    const [first, second] = await Promise.all([
+      source.getAsset("solana", "tslax"),
+      source.getAsset("solana", "tslax"),
+    ]);
+    expect(first?.asset.circulatingSupply).toBe(6);
+    expect(second?.asset.circulatingSupply).toBe(6);
+    expect(supplyCalls).toBe(1);
+  });
+
+  it("lets the detail chart finish before the next card sparkline takes the Gecko lane", async () => {
+    const hoodPair = {
+      ...tslaPair(),
+      pairAddress: "pair-other",
+      baseToken: { address: hoodMint, name: "Robinhood xStock", symbol: "HOODx" },
+      volume: { h24: 9_000_000 },
+      liquidity: { usd: 50_000 },
+    };
+    const urls: string[] = [];
+    let releaseCard: (() => void) | undefined;
+    const cardGate = new Promise<void>((resolve) => {
+      releaseCard = resolve;
+    });
+    const source = testSource({
+      enableGeckoTerminal: true,
+      geckoTerminalBaseUrl: "https://api.geckoterminal.com/api/v2",
+      fetchImpl: async (input) => {
+        const url = String(input);
+        urls.push(url);
+        if (url.includes("/latest/dex/search") || url.includes("/tokens/v1/solana/") || url.includes("/token-pairs/v1/solana/")) {
+          return jsonResponse(url.includes("/latest/dex/search") ? { pairs: [hoodPair, tslaPair()] } : [hoodPair, tslaPair()]);
+        }
+        if (url.includes("/ohlcv/") && url.includes("pair-other")) {
+          await cardGate;
+          return jsonResponse({
+            data: { attributes: { ohlcv_list: [[1_700_000_000, 1, 1, 1, 1, 10]] } },
+          });
+        }
+        if (url.includes("/ohlcv/")) {
+          const close = url.includes("/ohlcv/hour") ? 108.2 : 100.5;
+          return jsonResponse({
+            meta: { base: { address: tslaMint } },
+            data: { attributes: { ohlcv_list: [[1_700_000_000, close, close, close, close, 40]] } },
+          });
+        }
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    try {
+      const seriesPromise = source.getEquityCardDayVolumeSeries();
+      await vi.waitFor(() => {
+        expect(urls.some((url) => url.includes("pair-other") && url.includes("/ohlcv/"))).toBe(true);
+      });
+      const historyPromise = source.getAssetPriceHistory("solana", "TSLAx");
+      releaseCard?.();
+      const history = await historyPromise;
+      expect(history.available).toBe(true);
+      expect(history.pairAddress).toBe("pair-1");
+      const pair1 = urls.filter((url) => url.includes("pair-1") && url.includes("/ohlcv/"));
+      expect(pair1[0]).toContain("/ohlcv/day");
+      await seriesPromise;
+    } finally {
+      releaseCard?.();
+    }
+  });
 });

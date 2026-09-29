@@ -71,8 +71,10 @@ import {
   SOLANA_CHAIN_ID,
   emptyAllMarketsVolumeSnapshot,
   type AssetAllMarketsVolumeSnapshot,
+  type AssetDetail,
   type AssetDetailResult,
   type AssetPriceHistoryResult,
+  type AssetReadOptions,
   type ChainDetailResult,
   type ChainListResult,
   type EquityCardDayVolumeSeriesSnapshot,
@@ -292,6 +294,9 @@ export class SolanaMarketDataSource implements MarketDataSource {
   private readonly mintLogoCatalog: MintLogoCatalog = new Map();
   private jupiterLogoCache = new Map<string, { url: string | null; expiresAt: number }>();
   private mintSupplyCache = new Map<string, { uiSupply: number; expiresAt: number }>();
+  private mintSupplyInflight = new Map<string, Promise<number | null>>();
+  /** In-flight enriched asset reads, keyed by route symbol and whether pair holders are included. */
+  private assetInflight = new Map<string, Promise<AssetDetailResult | null>>();
   private holderCache = new Map<string, { count: number | null; expiresAt: number }>();
   private holderInflight = new Map<string, Promise<number | null>>();
   private pairHolderCache = new Map<string, { count: number | null; expiresAt: number }>();
@@ -1317,21 +1322,78 @@ export class SolanaMarketDataSource implements MarketDataSource {
     };
   }
 
-  async getAsset(chainId: string, symbol: string): Promise<AssetDetailResult | null> {
+  async getAsset(
+    chainId: string,
+    symbol: string,
+    options?: AssetReadOptions,
+  ): Promise<AssetDetailResult | null> {
     if (chainId !== SOLANA_CHAIN_ID) return null;
+    if (options?.enrich === false) return this.readCachedAsset(symbol);
+    const pairHolders = options?.pairHolders !== false;
+    const key = `${symbol.trim().toLowerCase()}:${pairHolders ? "pairs" : "stats"}`;
+    const inflight = this.assetInflight.get(key);
+    if (inflight) return inflight;
+    const pending = this.loadEnrichedAsset(symbol, pairHolders).finally(() => {
+      if (this.assetInflight.get(key) === pending) this.assetInflight.delete(key);
+    });
+    this.assetInflight.set(key, pending);
+    return pending;
+  }
+
+  /** Snapshot row plus any holder or supply values already in memory. No outbound calls. */
+  private async readCachedAsset(symbol: string): Promise<AssetDetailResult | null> {
     const cached = await this.loadCached("full");
-    const asset = findAssetByKey(
-      [...cached.mapped.details, ...cached.mapped.etfDetails, ...cached.mapped.privateDetails],
-      symbol,
-    );
+    const asset = this.findCachedAsset(cached, symbol);
     if (!asset) return null;
-    await this.stampHolderCounts(asset);
-    const uiSupply = await this.readMintUiSupply(asset.contractAddress);
+    return {
+      chain: cached.mapped.chain,
+      asset: this.assetFromMemory(asset),
+      provenance: cached.mapped.provenance,
+    };
+  }
+
+  private async loadEnrichedAsset(symbol: string, pairHolders: boolean): Promise<AssetDetailResult | null> {
+    const cached = await this.loadCached("full");
+    const asset = this.findCachedAsset(cached, symbol);
+    if (!asset) return null;
+    const [, uiSupply] = await Promise.all([
+      this.stampHolderCounts(asset, { pairHolders }),
+      this.readMintUiSupply(asset.contractAddress),
+    ]);
     return {
       chain: cached.mapped.chain,
       asset: applyOutstandingMintSupply(asset, uiSupply),
       provenance: cached.mapped.provenance,
     };
+  }
+
+  private findCachedAsset(cached: CachedSnapshot, symbol: string): AssetDetail | undefined {
+    return findAssetByKey(
+      [...cached.mapped.details, ...cached.mapped.etfDetails, ...cached.mapped.privateDetails],
+      symbol,
+    );
+  }
+
+  /** Copy so a later holder stamp cannot mutate a shell the page already rendered. */
+  private assetFromMemory(asset: AssetDetail): AssetDetail {
+    const now = Date.now();
+    let next: AssetDetail = { ...asset, pools: asset.pools.map((pool) => ({ ...pool })) };
+    const supply = this.mintSupplyCache.get(asset.contractAddress);
+    if (supply && supply.expiresAt > now) {
+      next = applyOutstandingMintSupply(next, supply.uiSupply);
+    }
+    const holder = this.holderCache.get(asset.contractAddress.trim());
+    if (holder && holder.expiresAt > now) {
+      next = { ...next, holderCount: holder.count };
+    }
+    let stamped = false;
+    const pools = next.pools.map((pool) => {
+      const cached = this.pairHolderCache.get(pool.pairAddress.trim());
+      if (!cached || cached.expiresAt <= now) return pool;
+      stamped = true;
+      return { ...pool, pairHolderCount: cached.count };
+    });
+    return stamped ? { ...next, pools } : next;
   }
 
   /**
@@ -1344,30 +1406,45 @@ export class SolanaMarketDataSource implements MarketDataSource {
     const now = Date.now();
     const cached = this.mintSupplyCache.get(mint);
     if (cached && cached.expiresAt > now) return cached.uiSupply;
-    const uiSupply = await fetchMintUiSupply(mint, {
-      rpcUrl: this.rpcUrl,
-      timeoutMs: this.timeoutMs,
-      fetchImpl: this.fetchImpl,
-    });
-    if (uiSupply !== null) {
-      this.mintSupplyCache.set(mint, { uiSupply, expiresAt: now + this.cacheMs });
+    const pending = this.mintSupplyInflight.get(mint);
+    if (pending) return pending;
+    const task = (async () => {
+      const uiSupply = await fetchMintUiSupply(mint, {
+        rpcUrl: this.rpcUrl,
+        timeoutMs: this.timeoutMs,
+        fetchImpl: this.fetchImpl,
+      });
+      if (uiSupply !== null) {
+        this.mintSupplyCache.set(mint, { uiSupply, expiresAt: Date.now() + this.cacheMs });
+      }
+      return uiSupply;
+    })();
+    this.mintSupplyInflight.set(mint, task);
+    try {
+      return await task;
+    } finally {
+      if (this.mintSupplyInflight.get(mint) === task) this.mintSupplyInflight.delete(mint);
     }
-    return uiSupply;
   }
 
   /**
    * Statistics use the page mint's Jupiter holderCount.
    * Each Markets row uses DexScreener `holders.count` for that pool address.
    * A count is never copied from the page mint or from another pool. Chain snapshots do not pay for either lookup.
+   * Pair-detail lookups are optional so Statistics can paint without waiting on every pool.
    */
-  private async stampHolderCounts(asset: {
-    contractAddress: string;
-    holderCount: number | null;
-    pools: readonly { pairAddress: string; pairHolderCount?: number | null }[];
-  }): Promise<void> {
+  private async stampHolderCounts(
+    asset: {
+      contractAddress: string;
+      holderCount: number | null;
+      pools: readonly { pairAddress: string; pairHolderCount?: number | null }[];
+    },
+    options?: { pairHolders?: boolean },
+  ): Promise<void> {
+    const pairHolders = options?.pairHolders !== false && this.pairHoldersEnabled;
     await Promise.all([
       this.jupiterHoldersEnabled ? this.stampMintHolderCount(asset) : Promise.resolve(),
-      this.pairHoldersEnabled ? this.stampPairHolderCounts(asset.pools) : Promise.resolve(),
+      pairHolders ? this.stampPairHolderCounts(asset.pools) : Promise.resolve(),
     ]);
   }
 
@@ -1731,6 +1808,24 @@ export class SolanaMarketDataSource implements MarketDataSource {
     return this.snapshotCardSeries();
   }
 
+  /**
+   * Card sparklines share the one Gecko lane with the detail chart.
+   * A chart request that is already in flight finishes before the next card candle,
+   * including during the steady gap. The in-flight card call is not cancelled.
+   */
+  private async waitForDetailChart(): Promise<void> {
+    while (this.priceHistoryInflight.size > 0) {
+      await Promise.all(
+        [...this.priceHistoryInflight.values()].map((pending) =>
+          pending.then(
+            () => undefined,
+            () => undefined,
+          ),
+        ),
+      );
+    }
+  }
+
   private async fetchEquityCardVolumeTargets(targets: readonly EquityCardVolumeTarget[], nowT: number) {
     let gapMs = this.cardVolumeSeriesGapMs;
     let cooled = false;
@@ -1742,6 +1837,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
       if (index > 0 && gapMs > 0) await sleep(gapMs);
 
       for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        await this.waitForDetailChart();
         const result = await this.tryFetchEquityCardVolume(target, nowT);
         if (result.kind === "ok") break;
         if (attempt >= maxAttempts - 1) break;
