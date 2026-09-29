@@ -7,5 +7,7 @@
     "liquidityUsd": "USD"
   },
   "note": "One compact row per America/New_York hour. Rolling DexScreener h24 desk totals (public, private, ETF/index, combined) and displayed-liquidity totals. Not a per-asset or per-pool dump, and not a closed Eastern day bar.",
-  "records": []
+  "records": [
+    {"hour":"2026-09-29T01","offset":"-04:00","t":1790658000,"publicEquity24hUsd":74500029.01999995,"private24hUsd":25197011.749999996,"etfIndex24hUsd":12002295.699999994,"combined24hUsd":111699336.46999994,"publicLiquidityUsd":41260834.46000003,"privateLiquidityUsd":10880444.950000001,"etfIndexLiquidityUsd":12962990.719999999,"combinedLiquidityUsd":65104270.13000003,"generatedAt":"2026-09-29T05:55:01.401Z"}
+  ]
 }
