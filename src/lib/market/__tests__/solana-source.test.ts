@@ -833,21 +833,38 @@ describe("SolanaMarketDataSource", () => {
     });
 
     const history = await source.getEquityVolumeHistory();
-    expect(history.available).toBe(true);
     expect(urls.some((url) => url.includes("/ohlcv/"))).toBe(false);
     expect(history.seriesByMint).toEqual({});
     expect(history.definition).toMatch(/DexScreener 24h snapshots/);
     expect(history.definition).not.toMatch(/GeckoTerminal USD volume/i);
-    expect(history.points).toHaveLength(1);
-    expect(history.points[0]?.kind).toBe("rolling_24h");
-    expect(history.points[0]?.volumeUsd).toBeCloseTo(10_250.25);
-    expect(history.volume24hUsd).toBeCloseTo(1_250.25);
+    expect(history.points.some((point) => point.kind === "rolling_24h")).toBe(false);
+    expect(history.points.every((point) => point.kind === "calendar_day")).toBe(true);
     expect(history.points.some((point) => point.volumeUsd === 0)).toBe(false);
     const stored = await snapshots.load();
     expect(stored).toHaveLength(1);
     expect(stored[0]?.combined24hUsd).toBeCloseTo(10_250.25);
     expect(stored[0]?.publicEquity24hUsd).toBeCloseTo(1_250.25);
     expect(stored[0]?.etfIndex24hUsd).toBe(9_000);
+    const easternToday = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/New_York",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+    if (stored[0] && stored[0].date <= easternToday) {
+      expect(history.available).toBe(true);
+      expect(history.points).toEqual([
+        {
+          t: Date.parse(`${stored[0].date}T00:00:00.000Z`) / 1000,
+          volumeUsd: stored[0].combined24hUsd,
+          kind: "calendar_day",
+        },
+      ]);
+      expect(history.volume24hUsd).toBeCloseTo(1_250.25);
+    } else {
+      expect(history.points).toEqual([]);
+      expect(history.available).toBe(false);
+    }
   });
 
   it("keeps prior DexScreener snapshot days and does not invent Gecko history when OHLCV fails", async () => {
@@ -884,9 +901,8 @@ describe("SolanaMarketDataSource", () => {
     expect(urls.some((url) => url.includes("/ohlcv/"))).toBe(false);
     expect(history.available).toBe(true);
     expect(history.points[0]).toEqual({ t: priorT, volumeUsd: 10, kind: "calendar_day" });
-    const latest = history.points[history.points.length - 1];
-    expect(latest?.kind).toBe("rolling_24h");
-    expect(latest?.volumeUsd).toBeCloseTo(1_250.25);
+    expect(history.points.every((point) => point.kind === "calendar_day")).toBe(true);
+    expect(history.points.some((point) => point.kind === "rolling_24h")).toBe(false);
     expect(history.points.some((point) => point.kind === "calendar_day" && point.volumeUsd === 0)).toBe(false);
     expect(history.definition).toMatch(/DexScreener 24h snapshots/);
     expect(history.definition).not.toMatch(/No GeckoTerminal daily candles/);

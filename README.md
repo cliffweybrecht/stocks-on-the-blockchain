@@ -213,11 +213,11 @@ Robinhood marks stay null on Solana. Off-Solana pairs are ignored.
 
 | | |
 | --- | --- |
-| **Definition** | Historical days: this desk’s persisted **DexScreener 24h snapshots** (public + private + ETF/index, `sumNullable`; null omitted, not zero). Latest chart point: the live DexScreener combined 24h when reported (rolling 24h, not a UTC calendar day). Headline / Solana card use the same combined 24h |
+| **Definition** | Closed desk **DexScreener 24h snapshots** only (public + private + ETF/index, `sumNullable`; null omitted, not zero). The Total Daily Tokenized Stock Volume series does not add a live rolling-24h tip for the in-progress Eastern day. Headline sums are the plotted snapshot days |
 | **Universe** | Same fail-closed classifier as the rest of the desk. Public ranking stays public-equity only. The Daily Volume series is the combined public + private + ETF/index 24h |
-| **Why snapshots** | DexScreener’s public API is snapshot-only (no pair history). The desk records each UTC day’s combined 24h. Days before snapshots began have **no series** — past DexScreener totals are not invented from GeckoTerminal |
-| **Honesty** | Gap days are omitted, not plotted as **$0**. A source-reported `0` is kept. Null DexScreener 24h is never coerced to zero. A seed adapter with no snapshots yields an **empty chart**, never invented nonzero points |
-| **Coverage** | One combined point per UTC day this desk recorded (`data/volume-snapshots/solana.json` by default). GeckoTerminal remains a candidate source and per-asset **price** candles only |
+| **Why snapshots** | DexScreener’s public API is snapshot-only (no pair history). Each recorded day is the America/New_York calendar date of that snapshot window. Days before snapshots began have **no series** — past DexScreener totals are not invented from GeckoTerminal |
+| **Honesty** | Gap days are omitted, not plotted as **$0**. A source-reported `0` is kept. Null DexScreener 24h is never coerced to zero. An in-progress Eastern day is omitted until that day’s desk snapshot exists. A seed adapter with no snapshots yields an **empty chart**, never invented nonzero points |
+| **Coverage** | One combined point per Eastern calendar day this desk recorded (`data/volume-snapshots/solana.json` by default). GeckoTerminal remains a candidate source and per-asset **price** candles only |
 
 Daily cron / agent should run `SOLANA_MARKET_ENABLED=true npm run snapshot:volume` (same DexScreener all-pools desk 24h; no Gecko backfill).
 

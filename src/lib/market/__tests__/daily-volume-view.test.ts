@@ -8,6 +8,7 @@ import {
   scaleVolumePoints,
   deskRangeVolumeHeadline,
   deskVolumeHeadline,
+  sumVolumePoints,
   volumeChartXTicks,
   volumeHeadlineCopy,
   VOLUME_CHART_PAD,
@@ -22,7 +23,7 @@ function days(count: number) {
   return Array.from({ length: count }, (_, index) => ({
     t: DAY0 + index * UTC_DAY_SECONDS,
     volumeUsd: index === count - 1 ? 27_300_000 : index * 1_000,
-    kind: index === count - 1 ? ("rolling_24h" as const) : ("calendar_day" as const),
+    kind: "calendar_day" as const,
   }));
 }
 
@@ -37,7 +38,7 @@ describe("filterVolumeRange", () => {
     const visible = filterVolumeRange(points, "7d");
     expect(visible).toHaveLength(8);
     expect(visible[0]?.t).toBe(points[32]?.t);
-    expect(visible[visible.length - 1]?.kind).toBe("rolling_24h");
+    expect(visible[visible.length - 1]?.kind).toBe("calendar_day");
   });
 
   it("keeps a continuous 14-day window ending on the latest point", () => {
@@ -45,7 +46,7 @@ describe("filterVolumeRange", () => {
     const visible = filterVolumeRange(points, "14d");
     expect(visible).toHaveLength(15);
     expect(visible[0]?.t).toBe(points[25]?.t);
-    expect(visible[visible.length - 1]?.kind).toBe("rolling_24h");
+    expect(visible[visible.length - 1]?.kind).toBe("calendar_day");
   });
 
   it("keeps a continuous 30-day window ending on the latest point", () => {
@@ -53,7 +54,7 @@ describe("filterVolumeRange", () => {
     const visible = filterVolumeRange(points, "30d");
     expect(visible).toHaveLength(31);
     expect(visible[0]?.t).toBe(points[9]?.t);
-    expect(visible[visible.length - 1]?.kind).toBe("rolling_24h");
+    expect(visible[visible.length - 1]?.kind).toBe("calendar_day");
   });
 });
 
@@ -224,6 +225,17 @@ describe("deskRangeVolumeHeadline", () => {
     const empty = deskRangeVolumeHeadline([], "14d");
     expect(empty.volumeUsd).toBeNull();
     expect(empty.caption).toBe("14D · no desk snapshots in this window");
+  });
+
+  it("leaves a live rolling tip out of the headline sum", () => {
+    const points = [
+      { t: DAY0, volumeUsd: 10, kind: "calendar_day" as const },
+      { t: DAY0 + UTC_DAY_SECONDS, volumeUsd: 99_000, kind: "rolling_24h" as const },
+    ];
+    expect(sumVolumePoints(points)).toBe(10);
+    const headline = deskRangeVolumeHeadline(points, "7d");
+    expect(headline.volumeUsd).toBe(10);
+    expect(headline.caption).toMatch(/sum of desk snapshot days/);
   });
 });
 

@@ -16,10 +16,9 @@ import {
   VOLUME_CHART_WIDTH,
   type VolumeChartRangeId,
 } from "@/lib/market/daily-volume-view";
-import { combinedPublicPrivateVolume24h } from "@/lib/market/aggregate";
 import { formatChartDay, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
 import type { EquityVolumeHistoryResult, VolumeHistoryPoint } from "@/lib/market/types";
-import { overlayLiveDesk24h } from "@/lib/market/volume-snapshots";
+import { closedSnapshotVolumePoints } from "@/lib/market/volume-snapshots";
 
 function areaPath(
   points: readonly VolumeHistoryPoint[],
@@ -41,35 +40,17 @@ function linePath(
   return `M ${points.map((point) => `${map.x(point.t).toFixed(2)},${map.y(point.volumeUsd).toFixed(2)}`).join(" L ")}`;
 }
 
-export function DailyVolumeChart({
-  history,
-  deskVolume24hUsd,
-  privateVolume24hUsd = null,
-  etfVolume24hUsd = null,
-}: {
-  history: EquityVolumeHistoryResult;
-  deskVolume24hUsd?: number | null;
-  privateVolume24hUsd?: number | null;
-  etfVolume24hUsd?: number | null;
-}) {
+export function DailyVolumeChart({ history }: { history: EquityVolumeHistoryResult }) {
   const [range, setRange] = useState<VolumeChartRangeId>("7d");
   const [hover, setHover] = useState<VolumeHistoryPoint | null>(null);
-
-  const publicVolume24hUsd = deskVolume24hUsd !== undefined ? deskVolume24hUsd : history.volume24hUsd;
 
   const points = useMemo(() => {
     const parsedGeneratedAt = Date.parse(history.generatedAt);
     const fallbackT = history.points[history.points.length - 1]?.t ?? 0;
     const nowT = Number.isFinite(parsedGeneratedAt) ? parsedGeneratedAt / 1000 : fallbackT;
-    const liveCombined = combinedPublicPrivateVolume24h(
-      publicVolume24hUsd ?? null,
-      privateVolume24hUsd,
-      etfVolume24hUsd,
-    );
-    // `nowT` is an instant. The overlay keys it in America/New_York, so a UTC
-    // date that has already rolled (evening in New York) does not add tomorrow.
-    return overlayLiveDesk24h(history.points, liveCombined, nowT);
-  }, [etfVolume24hUsd, history.generatedAt, history.points, privateVolume24hUsd, publicVolume24hUsd]);
+    // Closed snapshot days only. A rolling ~24h tip is not an Eastern snapshot day.
+    return closedSnapshotVolumePoints(history.points, nowT);
+  }, [history.generatedAt, history.points]);
 
   const visible = useMemo(() => filterVolumeRange(points, range), [points, range]);
   const map = useMemo(() => scaleVolumePoints(visible), [visible]);
@@ -254,7 +235,7 @@ export function DailyVolumeChart({
       )}
       {hasSeries ? (
         <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
-          History from desk DexScreener snapshots. Days before snapshots began have no series.
+          History from closed desk DexScreener snapshots. An in-progress Eastern day is omitted until that day’s snapshot exists.
         </p>
       ) : null}
     </section>

@@ -100,12 +100,7 @@ export default async function ChainPage({
           {isSolana ? null : <p className="mt-1 text-sm text-muted-foreground">{chain.sourceLabel}</p>}
         </div>
         {isSolana ? (
-          <DailyVolumeChart
-            history={volumeHistory}
-            deskVolume24hUsd={chain.volume24hUsd}
-            privateVolume24hUsd={chain.privateVolume24hUsd}
-            etfVolume24hUsd={chain.etfVolume24hUsd}
-          />
+          <DailyVolumeChart history={volumeHistory} />
         ) : (
           <>
             <ProvenanceBar provenance={provenance} compact />
