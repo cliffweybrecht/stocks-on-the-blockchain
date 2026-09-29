@@ -9,9 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  MARKETS_HOLDERS_HEADER,
   MARKETS_TOKEN_AGE_HEADER,
-  marketsPairHolderCount,
   marketsPairLabel,
   marketsPoolHref,
   marketsTokenLogoUrl,
@@ -129,26 +127,20 @@ export function MarketsTable({
     <section className="space-y-3" data-markets>
       <h3 className="font-heading text-lg font-medium">Markets</h3>
       <div className="rounded-2xl bg-card/90 px-1 py-2 sm:px-3 sm:py-3">
-        <Table className="min-w-[58rem]">
+        <Table className="min-w-[50rem]">
           <TableHeader className="[&_tr]:border-0">
             <TableRow className="border-0 hover:bg-transparent">
               <TableHead className="w-10 font-normal text-muted-foreground">#</TableHead>
               <TableHead className="font-normal text-muted-foreground">Pair</TableHead>
-              <TableHead className="text-right font-normal text-muted-foreground">Liquidity</TableHead>
-              <TableHead className="text-right font-normal text-muted-foreground">24h Volume</TableHead>
-              <TableHead className="text-right font-normal text-muted-foreground">24h Trades</TableHead>
-              <TableHead
-                className="text-right font-normal text-muted-foreground"
-                title="DexScreener holders for this pair. A missing count stays blank."
-              >
-                {MARKETS_HOLDERS_HEADER}
-              </TableHead>
               <TableHead
                 className="text-right font-normal text-muted-foreground"
                 title="DexScreener pairCreatedAt for this pool. A missing timestamp stays blank."
               >
                 {MARKETS_TOKEN_AGE_HEADER}
               </TableHead>
+              <TableHead className="text-right font-normal text-muted-foreground">Liquidity</TableHead>
+              <TableHead className="text-right font-normal text-muted-foreground">24h Volume</TableHead>
+              <TableHead className="text-right font-normal text-muted-foreground">24h Trades</TableHead>
               <TableHead className="pl-4 text-right font-normal text-muted-foreground">Venue</TableHead>
             </TableRow>
           </TableHeader>
@@ -162,7 +154,6 @@ export function MarketsTable({
               });
               const address = pool.pairAddress.trim();
               const trades = pool.trades24h ?? null;
-              const holders = marketsPairHolderCount(pool);
               const tokenAge = formatTokenAgeNow(pool.pairCreatedAt);
 
               return (
@@ -196,6 +187,13 @@ export function MarketsTable({
                       </div>
                     </div>
                   </TableCell>
+                  <TableCell
+                    className="num py-3.5 text-right text-foreground"
+                    data-token-age={pool.pairCreatedAt == null ? "missing" : String(pool.pairCreatedAt)}
+                    title="DexScreener pairCreatedAt for this pool"
+                  >
+                    {tokenAge}
+                  </TableCell>
                   <TableCell className="num py-3.5 text-right text-foreground">
                     {formatUsdCompact(pool.liquidityUsd)}
                   </TableCell>
@@ -208,20 +206,6 @@ export function MarketsTable({
                       change={pool.tradesChange24hPct ?? null}
                       format={formatCountCompact}
                     />
-                  </TableCell>
-                  <TableCell
-                    className="py-3.5"
-                    data-holders={holders === null ? "missing" : String(holders)}
-                    title="DexScreener holders for this pair"
-                  >
-                    <MarketsMetric value={holders} change={null} format={formatCountCompact} />
-                  </TableCell>
-                  <TableCell
-                    className="num py-3.5 text-right text-foreground"
-                    data-token-age={pool.pairCreatedAt == null ? "missing" : String(pool.pairCreatedAt)}
-                    title="DexScreener pairCreatedAt for this pool"
-                  >
-                    {tokenAge}
                   </TableCell>
                   <TableCell className="py-3.5 pl-4 text-right">
                     <VenueMarks pool={pool} />
