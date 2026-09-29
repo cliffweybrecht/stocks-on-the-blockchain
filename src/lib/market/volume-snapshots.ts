@@ -6,7 +6,7 @@ import { emptyEquityVolumeHistory, utcDayStart } from "./volume-history";
 export const DESK_VOLUME_SNAPSHOT_SOURCE_LABEL = "Desk DexScreener 24h snapshots";
 
 export const DESK_VOLUME_SNAPSHOT_DEFINITION =
-  "History is this desk’s DexScreener 24h snapshots (public + private + ETF/index, null omitted not $0). Days before snapshots began have no series — past DexScreener totals are not invented from GeckoTerminal. Today’s point is the live DexScreener desk 24h when reported.";
+  "History is this desk’s closed DexScreener 24h snapshots (public + private + ETF/index, null omitted not $0). Days before snapshots began have no series — past DexScreener totals are not invented from GeckoTerminal. The in-progress Eastern day is omitted until that day’s desk snapshot exists.";
 
 export const DEFAULT_VOLUME_SNAPSHOT_DIR = "data/volume-snapshots";
 export const SOLANA_VOLUME_SNAPSHOT_FILE = "solana.json";
@@ -245,24 +245,17 @@ function isPlottableVolumePoint(point: VolumeHistoryPoint): boolean {
 }
 
 /**
- * Replace or append the current America/New_York day with a live DexScreener 24h.
- * The tip is that Eastern date, not the UTC date, so 00:00Z–midnight ET does not
- * open tomorrow. Does not invent missing days as $0 or any day after Eastern today.
+ * Closed desk snapshot days only. Drops a live rolling-24h tip and any point
+ * after the America/New_York date of `nowT`. Does not invent an in-progress day
+ * from the current DexScreener ~24h rollup.
  */
-export function overlayLiveDesk24h(
+export function closedSnapshotVolumePoints(
   points: readonly VolumeHistoryPoint[],
-  volume24hUsd: number | null | undefined,
   nowT: number,
 ): VolumeHistoryPoint[] {
-  const kept = clipVolumeThroughEasternDay(points, nowT).sort((a, b) => a.t - b.t);
-  if (volume24hUsd === null || volume24hUsd === undefined) return kept;
-  if (!Number.isFinite(volume24hUsd) || volume24hUsd < 0) return kept;
-  const todayKey = easternDayKey(nowT);
-  const today = utcInstantForDayKey(todayKey);
-  if (!todayKey || today <= 0) return kept;
-  const withoutToday = kept.filter((point) => utcDayKey(point.t) !== todayKey);
-  const live: VolumeHistoryPoint = { t: today, volumeUsd: volume24hUsd, kind: "rolling_24h" };
-  return [...withoutToday, live].sort((a, b) => a.t - b.t);
+  return clipVolumeThroughEasternDay(points, nowT)
+    .filter((point) => point.kind !== "rolling_24h")
+    .sort((a, b) => a.t - b.t);
 }
 
 export function parseDeskVolumeSnapshotRecords(payload: unknown): DeskVolumeSnapshot[] {
@@ -320,7 +313,7 @@ export function buildSnapshotEquityVolumeHistory(input: {
   poolCount?: number;
 }): EquityVolumeHistoryResult {
   const fromStore = pointsFromDeskVolumeSnapshots(input.snapshots);
-  const points = overlayLiveDesk24h(fromStore, input.liveCombined24hUsd, input.nowT);
+  const points = closedSnapshotVolumePoints(fromStore, input.nowT);
   if (points.length === 0) {
     return emptyEquityVolumeHistory(
       "No DexScreener desk snapshots yet. History starts when this desk records a 24h snapshot. Past days are not invented from GeckoTerminal.",

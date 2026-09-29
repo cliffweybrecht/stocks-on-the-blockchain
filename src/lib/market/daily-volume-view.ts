@@ -171,12 +171,16 @@ export function volumeChartXTicks(points: readonly VolumeHistoryPoint[]): number
   return [...byDay.keys()].sort((a, b) => a - b).map((day) => byDay.get(day)!);
 }
 
-/** Sum of the plotted snapshot days. Does not invent days that are absent from `points`. */
+/**
+ * Sum of plotted closed snapshot days. A live rolling-24h tip is not a snapshot
+ * day and is left out of the headline even if it is still in `points`.
+ */
 export function sumVolumePoints(points: readonly VolumeHistoryPoint[]): number | null {
   if (points.length === 0) return null;
   let sum = 0;
   let counted = 0;
   for (const point of points) {
+    if (point.kind === "rolling_24h") continue;
     if (!Number.isFinite(point.volumeUsd) || point.volumeUsd < 0) continue;
     sum += point.volumeUsd;
     counted += 1;

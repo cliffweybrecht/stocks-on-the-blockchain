@@ -9,9 +9,9 @@ import { FileDeskVolumeSnapshotStore } from "../volume-snapshot-store";
 import {
   buildSnapshotEquityVolumeHistory,
   clipVolumeThroughEasternDay,
+  closedSnapshotVolumePoints,
   deskVolumeSnapshotFromChain,
   easternDayKey,
-  overlayLiveDesk24h,
   parseDeskVolumeSnapshotRecords,
   pointsFromDeskVolumeSnapshots,
   recordDeskVolumeFromChain,
@@ -113,7 +113,7 @@ describe("upsertDeskVolumeSnapshot", () => {
   });
 });
 
-describe("pointsFromDeskVolumeSnapshots and overlayLiveDesk24h", () => {
+describe("pointsFromDeskVolumeSnapshots and closedSnapshotVolumePoints", () => {
   it("builds chart points only from stored snapshots and does not fill gaps as $0", () => {
     const points = pointsFromDeskVolumeSnapshots([
       snap({ t: DAY0, combined24hUsd: 10 }),
@@ -137,19 +137,21 @@ describe("pointsFromDeskVolumeSnapshots and overlayLiveDesk24h", () => {
     expect(points).toEqual([{ t: Date.UTC(2026, 8, 28) / 1000, volumeUsd: 10, kind: "calendar_day" }]);
   });
 
-  it("overlays today’s Eastern day without inventing the days in between", () => {
+  it("does not append a live rolling tip for the in-progress Eastern day", () => {
     const stored = pointsFromDeskVolumeSnapshots([snap({ t: DAY0, combined24hUsd: 10 })]);
-    // 16:00Z is noon in New York, so the Eastern day and the UTC day agree.
+    // 16:00Z is noon in New York. Sep 15 has no snapshot, so the live 24h must not open it.
     const noonEt = Date.parse("2026-09-15T16:00:00.000Z") / 1000;
-    const overlaid = overlayLiveDesk24h(stored, 99, noonEt);
-    expect(overlaid).toEqual([
-      { t: DAY0, volumeUsd: 10, kind: "calendar_day" },
-      { t: DAY1, volumeUsd: 99, kind: "rolling_24h" },
-    ]);
-    expect(overlayLiveDesk24h(stored, null, noonEt)).toEqual(stored);
+    expect(easternDayKey(noonEt)).toBe("2026-09-15");
+    expect(closedSnapshotVolumePoints(stored, noonEt)).toEqual(stored);
+    expect(
+      closedSnapshotVolumePoints(
+        [...stored, { t: DAY1, volumeUsd: 99, kind: "rolling_24h" }],
+        noonEt,
+      ),
+    ).toEqual(stored);
   });
 
-  it("keeps the live tip on the Eastern date after UTC midnight", () => {
+  it("plots a real Eastern snapshot and drops a rolling tip after UTC midnight", () => {
     const sep28 = Date.UTC(2026, 8, 28) / 1000;
     const stored = pointsFromDeskVolumeSnapshots([
       snap({ t: Date.UTC(2026, 8, 27) / 1000, combined24hUsd: 76_080_265, date: "2026-09-27" }),
@@ -158,16 +160,22 @@ describe("pointsFromDeskVolumeSnapshots and overlayLiveDesk24h", () => {
     // 01:30Z on Sep 29 is 21:30 ET on Sep 28. UTC "today" is already Sep 29.
     const eveningEt = Date.parse("2026-09-29T01:30:00.000Z") / 1000;
     expect(easternDayKey(eveningEt)).toBe("2026-09-28");
-    const overlaid = overlayLiveDesk24h(stored, 114_000_000, eveningEt);
-    expect(overlaid.map((point) => new Date(point.t * 1000).toISOString().slice(0, 10))).toEqual([
-      "2026-09-27",
-      "2026-09-28",
-    ]);
-    expect(overlaid[1]).toEqual({ t: sep28, volumeUsd: 114_000_000, kind: "rolling_24h" });
-    expect(clipVolumeThroughEasternDay(
-      [...stored, { t: Date.UTC(2026, 8, 29) / 1000, volumeUsd: 114_000_000, kind: "rolling_24h" }],
+    const closed = closedSnapshotVolumePoints(
+      [
+        ...stored,
+        { t: sep28, volumeUsd: 999, kind: "rolling_24h" },
+        { t: Date.UTC(2026, 8, 29) / 1000, volumeUsd: 114_000_000, kind: "rolling_24h" },
+      ],
       eveningEt,
-    ).map((point) => utcDay(point.t))).toEqual(["2026-09-27", "2026-09-28"]);
+    );
+    expect(closed.map((point) => utcDay(point.t))).toEqual(["2026-09-27", "2026-09-28"]);
+    expect(closed[1]).toEqual({ t: sep28, volumeUsd: 114_000_000, kind: "calendar_day" });
+    expect(
+      clipVolumeThroughEasternDay(
+        [...stored, { t: Date.UTC(2026, 8, 29) / 1000, volumeUsd: 114_000_000, kind: "calendar_day" }],
+        eveningEt,
+      ).map((point) => utcDay(point.t)),
+    ).toEqual(["2026-09-27", "2026-09-28"]);
   });
 });
 
@@ -176,7 +184,7 @@ function utcDay(unixSeconds: number): string {
 }
 
 describe("buildSnapshotEquityVolumeHistory", () => {
-  it("uses snapshots plus the live tip and never falls back to Gecko candles", () => {
+  it("uses closed snapshots and ignores the live rollup", () => {
     const history = buildSnapshotEquityVolumeHistory({
       snapshots: [snap({ t: DAY0, combined24hUsd: 10, publicEquity24hUsd: 10 })],
       liveCombined24hUsd: 126_900_000,
@@ -187,23 +195,22 @@ describe("buildSnapshotEquityVolumeHistory", () => {
       poolCount: 40,
     });
     expect(history.available).toBe(true);
-    expect(history.points).toEqual([
-      { t: DAY0, volumeUsd: 10, kind: "calendar_day" },
-      { t: DAY1, volumeUsd: 126_900_000, kind: "rolling_24h" },
-    ]);
+    expect(history.points).toEqual([{ t: DAY0, volumeUsd: 10, kind: "calendar_day" }]);
+    expect(history.points.some((point) => point.kind === "rolling_24h")).toBe(false);
     expect(history.seriesByMint).toEqual({});
     expect(history.sourceLabel).not.toMatch(/GeckoTerminal/);
     expect(history.definition).toMatch(/DexScreener 24h snapshots/);
     expect(history.definition).toMatch(/not invented from GeckoTerminal/);
+    expect(history.definition).toMatch(/in-progress Eastern day is omitted/);
     expect(history.volume24hUsd).toBe(86_200_000);
   });
 
-  it("stays empty when there are no snapshots and no live 24h — does not invent history", () => {
+  it("stays empty when there are no snapshots — a live 24h does not invent a tip", () => {
     const history = buildSnapshotEquityVolumeHistory({
       snapshots: [],
-      liveCombined24hUsd: null,
-      nowT: DAY1,
-      generatedAt: "2026-09-15T12:00:00.000Z",
+      liveCombined24hUsd: 126_900_000,
+      nowT: Date.parse("2026-09-15T16:00:00.000Z") / 1000,
+      generatedAt: "2026-09-15T16:00:00.000Z",
     });
     expect(history.available).toBe(false);
     expect(history.points).toEqual([]);
@@ -296,7 +303,7 @@ describe("committed Solana desk snapshots", () => {
     expect(sep23?.etfIndex24hUsd).toBeNull();
   });
 
-  it("plots and labels every snapshot day on 7D, 14D, and 30D, including Sep 26", () => {
+  it("plots and labels every snapshot day on 7D, 14D, and 30D, and does not add a live Sep 28 tip", () => {
     const history = buildSnapshotEquityVolumeHistory({
       snapshots,
       liveCombined24hUsd: 97_900_000,
@@ -304,14 +311,9 @@ describe("committed Solana desk snapshots", () => {
       generatedAt: "2026-09-28T16:00:00.000Z",
     });
     const dates = history.points.map((point) => new Date(point.t * 1000).toISOString().slice(0, 10));
-    expect(dates).toEqual([
-      "2026-09-23",
-      "2026-09-24",
-      "2026-09-25",
-      "2026-09-26",
-      "2026-09-27",
-      "2026-09-28",
-    ]);
+    expect(dates).toEqual(["2026-09-23", "2026-09-24", "2026-09-25", "2026-09-26", "2026-09-27"]);
+    expect(history.points.every((point) => point.kind === "calendar_day")).toBe(true);
+    const snapshotSum = snapshots.reduce((sum, row) => sum + (row.combined24hUsd ?? 0), 0);
     for (const range of ["7d", "14d", "30d"] as const) {
       const visible = filterVolumeRange(history.points, range);
       expect(visible).toHaveLength(history.points.length);
@@ -322,19 +324,19 @@ describe("committed Solana desk snapshots", () => {
         "Sep 25",
         "Sep 26",
         "Sep 27",
-        "Sep 28",
       ]);
       const sep26 = visible.find((point) => new Date(point.t * 1000).toISOString().startsWith("2026-09-26"));
       expect(sep26?.volumeUsd).toBeCloseTo(56_268_835.53);
       const headline = deskRangeVolumeHeadline(visible, range);
-      expect(headline.volumeUsd).toBeCloseTo(visible.reduce((sum, point) => sum + point.volumeUsd, 0));
+      expect(headline.volumeUsd).toBeCloseTo(snapshotSum);
+      expect(headline.volumeUsd).not.toBeCloseTo(snapshotSum + 97_900_000);
       expect(headline.caption.startsWith(range === "7d" ? "7D" : range === "14d" ? "14D" : "30D")).toBe(true);
     }
     expect(history.points.filter((point) => point.t < Date.parse("2026-09-23T00:00:00.000Z") / 1000)).toEqual([]);
     expect(history.points.some((point) => point.volumeUsd === 0)).toBe(false);
   });
 
-  it("does not plot Sep 29 while America/New_York is still Sep 28", () => {
+  it("ends on the last snapshot while America/New_York is still Sep 28 and no Sep 28 snapshot exists", () => {
     const history = buildSnapshotEquityVolumeHistory({
       snapshots,
       liveCombined24hUsd: 114_000_000,
@@ -342,24 +344,23 @@ describe("committed Solana desk snapshots", () => {
       generatedAt: "2026-09-29T01:48:00.000Z",
     });
     const dates = history.points.map((point) => new Date(point.t * 1000).toISOString().slice(0, 10));
-    expect(dates).toEqual([
-      "2026-09-23",
-      "2026-09-24",
-      "2026-09-25",
-      "2026-09-26",
-      "2026-09-27",
-      "2026-09-28",
-    ]);
+    expect(dates).toEqual(["2026-09-23", "2026-09-24", "2026-09-25", "2026-09-26", "2026-09-27"]);
     expect(history.points[history.points.length - 1]).toMatchObject({
-      volumeUsd: 114_000_000,
-      kind: "rolling_24h",
+      volumeUsd: 76_080_265.64999995,
+      kind: "calendar_day",
     });
     for (const range of ["7d", "14d", "30d"] as const) {
       const visible = filterVolumeRange(history.points, range);
       const ticks = volumeChartXTicks(visible);
       const labels = ticks.map((t) => formatVolumeChartTick(t, ticks));
+      expect(labels).not.toContain("Sep 28");
       expect(labels).not.toContain("Sep 29");
-      expect(labels[labels.length - 1]).toBe("Sep 28");
+      expect(labels[labels.length - 1]).toBe("Sep 27");
+      const headline = deskRangeVolumeHeadline(visible, range);
+      expect(headline.volumeUsd).toBeCloseTo(visible.reduce((sum, point) => sum + point.volumeUsd, 0));
+      expect(headline.volumeUsd).not.toBeCloseTo(
+        visible.reduce((sum, point) => sum + point.volumeUsd, 0) + 114_000_000,
+      );
     }
     expect(easternDayKey(Date.parse("2026-09-29T03:59:59.000Z") / 1000)).toBe("2026-09-28");
     expect(easternDayKey(Date.parse("2026-09-29T04:00:00.000Z") / 1000)).toBe("2026-09-29");

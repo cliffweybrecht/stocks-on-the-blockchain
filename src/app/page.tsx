@@ -65,7 +65,6 @@ export default async function HomePage() {
     }
   }
   const maxVolume = maxNullable(chains.map(chainCombinedVolume24h));
-  const solanaChain = chains.find((chain) => chain.id === SOLANA_CHAIN_ID);
   const priceTicker = selectEquityPriceTicker(tickerAssets);
 
   return (
@@ -75,12 +74,7 @@ export default async function HomePage() {
       solanaJump={jumpAssets.length > 0 ? { chainId: SOLANA_CHAIN_ID, assets: jumpAssets } : undefined}
     >
       <div className="space-y-4">
-        <DailyVolumeChart
-          history={history}
-          deskVolume24hUsd={solanaChain?.volume24hUsd ?? null}
-          privateVolume24hUsd={solanaChain?.privateVolume24hUsd ?? null}
-          etfVolume24hUsd={solanaChain?.etfVolume24hUsd ?? null}
-        />
+        <DailyVolumeChart history={history} />
         <section className="space-y-3">
           <h2 className="font-heading text-lg font-medium">Chain volume</h2>
           {chains.length === 0 ? (
