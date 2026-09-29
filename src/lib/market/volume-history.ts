@@ -5,7 +5,7 @@ export const UTC_DAY_SECONDS = 86_400;
 
 /** Closed desk DexScreener 24h snapshots only. GeckoTerminal is not this series. */
 export const EQUITY_VOLUME_HISTORY_DEFINITION =
-  "History is this desk’s closed DexScreener 24h snapshots (public + private + ETF/index, null omitted not $0). Days before snapshots began have no series — past DexScreener totals are not invented from GeckoTerminal. The in-progress Eastern day is omitted until that day’s desk snapshot exists.";
+  "History is this desk’s closed DexScreener 24h snapshots (public + private + ETF/index, null omitted not $0). Days before snapshots began have no series — past DexScreener totals are not invented from GeckoTerminal. The in-progress Eastern day is omitted until that America/New_York date has closed.";
 
 export const EQUITY_VOLUME_HISTORY_SOURCE_LABEL = "Desk DexScreener 24h snapshots";
 

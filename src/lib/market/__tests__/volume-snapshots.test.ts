@@ -23,6 +23,11 @@ import {
 const DAY0 = Date.UTC(2026, 8, 14) / 1000;
 const DAY1 = DAY0 + UTC_DAY_SECONDS;
 
+/** 16:00Z is noon in New York, so the Eastern date matches this UTC midnight. */
+function noonOnUtcDay(utcMidnight: number): number {
+  return utcMidnight + 16 * 3_600;
+}
+
 function chain(partial: {
   volume24hUsd?: number | null;
   privateVolume24hUsd?: number | null;
@@ -56,14 +61,14 @@ describe("deskVolumeSnapshotFromChain", () => {
     const row = deskVolumeSnapshotFromChain(
       chain({ volume24hUsd: 86_200_000, privateVolume24hUsd: 8_700_000, etfVolume24hUsd: 32_100_000 }),
       generatedAt,
-      DAY1,
+      noonOnUtcDay(DAY1),
     );
     expect(row.t).toBe(DAY1);
     expect(row.date).toBe("2026-09-15");
     expect(row.combined24hUsd).toBeCloseTo(127_000_000);
     expect(row.publicEquity24hUsd).toBe(86_200_000);
 
-    const allNull = deskVolumeSnapshotFromChain(chain({}), generatedAt, DAY1);
+    const allNull = deskVolumeSnapshotFromChain(chain({}), generatedAt, noonOnUtcDay(DAY1));
     expect(allNull.combined24hUsd).toBeNull();
     expect(allNull.publicEquity24hUsd).toBeNull();
   });
@@ -72,29 +77,42 @@ describe("deskVolumeSnapshotFromChain", () => {
     const row = deskVolumeSnapshotFromChain(
       chain({ volume24hUsd: 0, privateVolume24hUsd: null, etfVolume24hUsd: null }),
       "2026-09-15T12:00:00.000Z",
-      DAY1,
+      noonOnUtcDay(DAY1),
     );
     expect(row.combined24hUsd).toBe(0);
+  });
+
+  it("keys the row to America/New_York so 00:00Z does not open the next Eastern day", () => {
+    const evening = Date.parse("2026-09-29T01:48:00.000Z") / 1000;
+    expect(easternDayKey(evening)).toBe("2026-09-28");
+    const row = deskVolumeSnapshotFromChain(
+      chain({ volume24hUsd: 114_000_000 }),
+      "2026-09-29T01:48:00.000Z",
+      evening,
+    );
+    expect(row.date).toBe("2026-09-28");
+    expect(row.t).toBe(Date.UTC(2026, 8, 28) / 1000);
+    expect(row.date).not.toBe("2026-09-29");
   });
 });
 
 describe("upsertDeskVolumeSnapshot", () => {
-  it("replaces the same UTC day and refuses to persist an all-null day", () => {
+  it("replaces the same Eastern day and refuses to persist an all-null day", () => {
     const first = deskVolumeSnapshotFromChain(
       chain({ volume24hUsd: 100 }),
       "2026-09-15T01:00:00.000Z",
-      DAY1,
+      noonOnUtcDay(DAY1),
     );
     const richer = deskVolumeSnapshotFromChain(
       chain({ volume24hUsd: 150, privateVolume24hUsd: 20 }),
       "2026-09-15T02:00:00.000Z",
-      DAY1,
+      noonOnUtcDay(DAY1),
     );
-    const afterNull = deskVolumeSnapshotFromChain(chain({}), "2026-09-15T03:00:00.000Z", DAY1);
+    const afterNull = deskVolumeSnapshotFromChain(chain({}), "2026-09-15T03:00:00.000Z", noonOnUtcDay(DAY1));
     const prior = deskVolumeSnapshotFromChain(
       chain({ volume24hUsd: 9 }),
       "2026-09-14T12:00:00.000Z",
-      DAY0,
+      noonOnUtcDay(DAY0),
     );
 
     const once = upsertDeskVolumeSnapshot([], first);
@@ -151,31 +169,46 @@ describe("pointsFromDeskVolumeSnapshots and closedSnapshotVolumePoints", () => {
     ).toEqual(stored);
   });
 
-  it("plots a real Eastern snapshot and drops a rolling tip after UTC midnight", () => {
+  it("omits the in-progress Eastern day and does not plot a UTC tomorrow", () => {
     const sep28 = Date.UTC(2026, 8, 28) / 1000;
+    const sep29 = Date.UTC(2026, 8, 29) / 1000;
     const stored = pointsFromDeskVolumeSnapshots([
       snap({ t: Date.UTC(2026, 8, 27) / 1000, combined24hUsd: 76_080_265, date: "2026-09-27" }),
       snap({ t: sep28, combined24hUsd: 114_000_000, date: "2026-09-28" }),
+      snap({ t: sep29, combined24hUsd: 114_000_000, date: "2026-09-29" }),
     ]);
     // 01:30Z on Sep 29 is 21:30 ET on Sep 28. UTC "today" is already Sep 29.
     const eveningEt = Date.parse("2026-09-29T01:30:00.000Z") / 1000;
     expect(easternDayKey(eveningEt)).toBe("2026-09-28");
-    const closed = closedSnapshotVolumePoints(
+    const duringSep28 = closedSnapshotVolumePoints(
       [
         ...stored,
         { t: sep28, volumeUsd: 999, kind: "rolling_24h" },
-        { t: Date.UTC(2026, 8, 29) / 1000, volumeUsd: 114_000_000, kind: "rolling_24h" },
+        { t: sep29, volumeUsd: 114_000_000, kind: "rolling_24h" },
       ],
       eveningEt,
     );
-    expect(closed.map((point) => utcDay(point.t))).toEqual(["2026-09-27", "2026-09-28"]);
-    expect(closed[1]).toEqual({ t: sep28, volumeUsd: 114_000_000, kind: "calendar_day" });
+    expect(duringSep28.map((point) => utcDay(point.t))).toEqual(["2026-09-27"]);
+    // Asset candles may include the Eastern day once it has started. The desk
+    // volume series does not: Sep 28 is still in progress, and Sep 29 has not.
     expect(
       clipVolumeThroughEasternDay(
-        [...stored, { t: Date.UTC(2026, 8, 29) / 1000, volumeUsd: 114_000_000, kind: "calendar_day" }],
+        [
+          { t: Date.UTC(2026, 8, 27) / 1000, volumeUsd: 76_080_265, kind: "calendar_day" },
+          { t: sep28, volumeUsd: 114_000_000, kind: "calendar_day" },
+          { t: sep29, volumeUsd: 114_000_000, kind: "calendar_day" },
+        ],
         eveningEt,
       ).map((point) => utcDay(point.t)),
     ).toEqual(["2026-09-27", "2026-09-28"]);
+
+    // 04:10Z is 00:10 ET on Sep 29. Sep 28 has closed; Sep 29 has not.
+    const justAfterMidnight = Date.parse("2026-09-29T04:10:00.000Z") / 1000;
+    expect(easternDayKey(justAfterMidnight)).toBe("2026-09-29");
+    expect(closedSnapshotVolumePoints(stored, justAfterMidnight).map((point) => utcDay(point.t))).toEqual([
+      "2026-09-27",
+      "2026-09-28",
+    ]);
   });
 });
 
@@ -225,7 +258,7 @@ describe("recordDeskVolumeFromChain", () => {
       store,
       chain({ volume24hUsd: 86_200_000, privateVolume24hUsd: 8_700_000, etfVolume24hUsd: 32_100_000 }),
       "2026-09-15T12:00:00.000Z",
-      DAY1,
+      noonOnUtcDay(DAY1),
     );
     expect(written.ok).toBe(true);
     if (written.ok) {
@@ -240,7 +273,7 @@ describe("recordDeskVolumeFromChain", () => {
       store,
       chain({ volume24hUsd: 90_000_000, privateVolume24hUsd: 8_700_000, etfVolume24hUsd: 32_100_000 }),
       "2026-09-15T18:00:00.000Z",
-      DAY1,
+      noonOnUtcDay(DAY1),
     );
     expect(richer.ok).toBe(true);
     if (richer.ok) {
@@ -249,7 +282,7 @@ describe("recordDeskVolumeFromChain", () => {
     }
     expect(await store.load()).toHaveLength(1);
 
-    const refused = await recordDeskVolumeFromChain(store, chain({}), "2026-09-15T20:00:00.000Z", DAY1);
+    const refused = await recordDeskVolumeFromChain(store, chain({}), "2026-09-15T20:00:00.000Z", noonOnUtcDay(DAY1));
     expect(refused.ok).toBe(false);
     if (!refused.ok) {
       expect(refused.reason).toMatch(/all-null/);
@@ -264,13 +297,13 @@ describe("recordDeskVolumeFromChain", () => {
       store,
       chain({ volume24hUsd: 10 }),
       "2026-09-15T12:00:00.000Z",
-      DAY1,
+      noonOnUtcDay(DAY1),
     );
     const again = await recordDeskVolumeFromChain(
       store,
       chain({ volume24hUsd: 10 }),
       "2026-09-15T12:00:00.000Z",
-      DAY1,
+      noonOnUtcDay(DAY1),
     );
     expect(first.ok && first.written).toBe(true);
     expect(again.ok && again.unchanged).toBe(true);
@@ -305,7 +338,11 @@ describe("committed Solana desk snapshots", () => {
     expect(sep23?.etfIndex24hUsd).toBeNull();
   });
 
-  it("plots and labels every snapshot day on 7D, 14D, and 30D, and does not add a live Sep 28 tip", () => {
+  it("holds the stored Sep 28 snapshot off 7D, 14D, and 30D while that Eastern day is in progress", () => {
+    const throughSep27 = snapshots
+      .filter((row) => row.date < "2026-09-28")
+      .reduce((sum, row) => sum + (row.combined24hUsd ?? 0), 0);
+    const sep28Usd = snapshots.find((row) => row.date === "2026-09-28")?.combined24hUsd ?? 0;
     const history = buildSnapshotEquityVolumeHistory({
       snapshots,
       liveCombined24hUsd: 97_900_000,
@@ -313,16 +350,8 @@ describe("committed Solana desk snapshots", () => {
       generatedAt: "2026-09-28T16:00:00.000Z",
     });
     const dates = history.points.map((point) => new Date(point.t * 1000).toISOString().slice(0, 10));
-    expect(dates).toEqual([
-      "2026-09-23",
-      "2026-09-24",
-      "2026-09-25",
-      "2026-09-26",
-      "2026-09-27",
-      "2026-09-28",
-    ]);
+    expect(dates).toEqual(["2026-09-23", "2026-09-24", "2026-09-25", "2026-09-26", "2026-09-27"]);
     expect(history.points.every((point) => point.kind === "calendar_day")).toBe(true);
-    const snapshotSum = snapshots.reduce((sum, row) => sum + (row.combined24hUsd ?? 0), 0);
     for (const range of ["7d", "14d", "30d"] as const) {
       const visible = filterVolumeRange(history.points, range);
       expect(visible).toHaveLength(history.points.length);
@@ -333,25 +362,55 @@ describe("committed Solana desk snapshots", () => {
         "Sep 25",
         "Sep 26",
         "Sep 27",
-        "Sep 28",
       ]);
       const sep26 = visible.find((point) => new Date(point.t * 1000).toISOString().startsWith("2026-09-26"));
       expect(sep26?.volumeUsd).toBeCloseTo(56_268_835.53);
       const headline = deskRangeVolumeHeadline(visible, range);
-      expect(headline.volumeUsd).toBeCloseTo(snapshotSum);
-      expect(headline.volumeUsd).not.toBeCloseTo(snapshotSum + 97_900_000);
+      expect(headline.volumeUsd).toBeCloseTo(throughSep27);
+      expect(headline.volumeUsd).not.toBeCloseTo(throughSep27 + sep28Usd);
+      expect(headline.volumeUsd).not.toBeCloseTo(throughSep27 + 97_900_000);
       expect(headline.caption.startsWith(range === "7d" ? "7D" : range === "14d" ? "14D" : "30D")).toBe(true);
     }
     expect(history.points.filter((point) => point.t < Date.parse("2026-09-23T00:00:00.000Z") / 1000)).toEqual([]);
     expect(history.points.some((point) => point.volumeUsd === 0)).toBe(false);
   });
 
-  it("ends on the stored Sep 28 snapshot while America/New_York is still Sep 28 and does not plot Sep 29", () => {
+  it("keeps the stored Sep 28 row off the series while America/New_York is still Sep 28 and does not plot Sep 29", () => {
     const history = buildSnapshotEquityVolumeHistory({
       snapshots,
       liveCombined24hUsd: 114_000_000,
       nowT: Date.parse("2026-09-29T01:48:00.000Z") / 1000,
       generatedAt: "2026-09-29T01:48:00.000Z",
+    });
+    const dates = history.points.map((point) => new Date(point.t * 1000).toISOString().slice(0, 10));
+    expect(dates).toEqual(["2026-09-23", "2026-09-24", "2026-09-25", "2026-09-26", "2026-09-27"]);
+    expect(history.points[history.points.length - 1]).toMatchObject({
+      volumeUsd: 76_080_265.64999995,
+      kind: "calendar_day",
+    });
+    for (const range of ["7d", "14d", "30d"] as const) {
+      const visible = filterVolumeRange(history.points, range);
+      const ticks = volumeChartXTicks(visible);
+      const labels = ticks.map((t) => formatVolumeChartTick(t, ticks));
+      expect(labels).not.toContain("Sep 28");
+      expect(labels).not.toContain("Sep 29");
+      expect(labels[labels.length - 1]).toBe("Sep 27");
+      const headline = deskRangeVolumeHeadline(visible, range);
+      expect(headline.volumeUsd).toBeCloseTo(visible.reduce((sum, point) => sum + point.volumeUsd, 0));
+      expect(headline.volumeUsd).not.toBeCloseTo(
+        visible.reduce((sum, point) => sum + point.volumeUsd, 0) + 114_000_000,
+      );
+    }
+    expect(easternDayKey(Date.parse("2026-09-29T03:59:59.000Z") / 1000)).toBe("2026-09-28");
+    expect(easternDayKey(Date.parse("2026-09-29T04:00:00.000Z") / 1000)).toBe("2026-09-29");
+  });
+
+  it("plots the stored Sep 28 snapshot once that Eastern day has closed and does not add the Sep 29 rollup", () => {
+    const history = buildSnapshotEquityVolumeHistory({
+      snapshots,
+      liveCombined24hUsd: 114_000_000,
+      nowT: Date.parse("2026-09-29T04:10:00.000Z") / 1000,
+      generatedAt: "2026-09-29T04:10:00.000Z",
     });
     const dates = history.points.map((point) => new Date(point.t * 1000).toISOString().slice(0, 10));
     expect(dates).toEqual([
@@ -378,8 +437,65 @@ describe("committed Solana desk snapshots", () => {
         visible.reduce((sum, point) => sum + point.volumeUsd, 0) + 114_000_000,
       );
     }
-    expect(easternDayKey(Date.parse("2026-09-29T03:59:59.000Z") / 1000)).toBe("2026-09-28");
-    expect(easternDayKey(Date.parse("2026-09-29T04:00:00.000Z") / 1000)).toBe("2026-09-29");
+  });
+
+  it("does not label Sep 29 or add the live rollup while that Eastern day is in progress", () => {
+    const liveUsd = 113_963_983.24;
+    const throughSep27 = snapshots
+      .filter((row) => row.date < "2026-09-28")
+      .reduce((sum, row) => sum + (row.combined24hUsd ?? 0), 0);
+    const storedSum = snapshots.reduce((sum, row) => sum + (row.combined24hUsd ?? 0), 0);
+    const cases = [
+      {
+        generatedAt: "2026-09-29T01:48:00.000Z", // 21:48 ET Sep 28; UTC date is already Sep 29
+        date: "2026-09-28",
+        labels: ["Sep 23", "Sep 24", "Sep 25", "Sep 26", "Sep 27"],
+        headlineUsd: throughSep27,
+      },
+      {
+        generatedAt: "2026-09-29T04:10:00.000Z", // 00:10 ET Sep 29; Sep 28 has closed
+        date: "2026-09-29",
+        labels: ["Sep 23", "Sep 24", "Sep 25", "Sep 26", "Sep 27", "Sep 28"],
+        headlineUsd: storedSum,
+      },
+    ] as const;
+    for (const { generatedAt, date, labels: expectedLabels, headlineUsd } of cases) {
+      const nowT = Date.parse(generatedAt) / 1000;
+      const live = deskVolumeSnapshotFromChain(
+        chain({
+          volume24hUsd: 80_000_000,
+          privateVolume24hUsd: 20_000_000,
+          etfVolume24hUsd: liveUsd - 100_000_000,
+        }),
+        generatedAt,
+        nowT,
+      );
+      expect(easternDayKey(nowT)).toBe(date);
+      expect(live.date).toBe(date);
+      expect(live.t).toBe(Date.parse(`${date}T00:00:00.000Z`) / 1000);
+      const history = buildSnapshotEquityVolumeHistory({
+        snapshots: upsertDeskVolumeSnapshot(snapshots, live),
+        liveCombined24hUsd: liveUsd,
+        nowT,
+        generatedAt,
+      });
+      const sep28 = history.points.find((point) => new Date(point.t * 1000).toISOString().startsWith("2026-09-28"));
+      if (date === "2026-09-29") {
+        expect(sep28?.volumeUsd).toBeCloseTo(113_009_159.34999996);
+      } else {
+        expect(sep28).toBeUndefined();
+      }
+      for (const range of ["7d", "14d", "30d"] as const) {
+        const visible = filterVolumeRange(history.points, range);
+        const ticks = volumeChartXTicks(visible);
+        const labels = ticks.map((t) => formatVolumeChartTick(t, ticks));
+        expect(labels).toEqual([...expectedLabels]);
+        expect(labels).not.toContain("Sep 29");
+        const headline = deskRangeVolumeHeadline(visible, range);
+        expect(headline.volumeUsd).toBeCloseTo(headlineUsd);
+        expect(headline.volumeUsd).not.toBeCloseTo(headlineUsd + liveUsd);
+      }
+    }
   });
 });
 
@@ -388,7 +504,7 @@ describe("FileDeskVolumeSnapshotStore", () => {
     const dir = await mkdtemp(join(tmpdir(), "sotb-vol-"));
     const store = new FileDeskVolumeSnapshotStore(dir);
     expect(await store.load()).toEqual([]);
-    const row = deskVolumeSnapshotFromChain(chain({ volume24hUsd: 5 }), "2026-09-15T12:00:00.000Z", DAY1);
+    const row = deskVolumeSnapshotFromChain(chain({ volume24hUsd: 5 }), "2026-09-15T12:00:00.000Z", noonOnUtcDay(DAY1));
     await store.save(upsertDeskVolumeSnapshot([], row));
     const loaded = await store.load();
     expect(loaded).toHaveLength(1);
@@ -400,8 +516,8 @@ describe("FileDeskVolumeSnapshotStore", () => {
   it("uses unique temp files so overlapping saves do not throw ENOENT", async () => {
     const dir = await mkdtemp(join(tmpdir(), "sotb-vol-"));
     const store = new FileDeskVolumeSnapshotStore(dir);
-    const first = deskVolumeSnapshotFromChain(chain({ volume24hUsd: 5 }), "2026-09-15T12:00:00.000Z", DAY1);
-    const second = deskVolumeSnapshotFromChain(chain({ volume24hUsd: 9 }), "2026-09-14T12:00:00.000Z", DAY0);
+    const first = deskVolumeSnapshotFromChain(chain({ volume24hUsd: 5 }), "2026-09-15T12:00:00.000Z", noonOnUtcDay(DAY1));
+    const second = deskVolumeSnapshotFromChain(chain({ volume24hUsd: 9 }), "2026-09-14T12:00:00.000Z", noonOnUtcDay(DAY0));
     await Promise.all([
       store.save(upsertDeskVolumeSnapshot([], first)),
       store.save(upsertDeskVolumeSnapshot([], second)),
