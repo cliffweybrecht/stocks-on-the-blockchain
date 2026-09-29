@@ -15,6 +15,24 @@ import type { AssetSortKey } from "@/lib/market/aggregate";
 import { formatPct, formatPrice, formatUsdCompact } from "@/lib/market/format";
 import type { AssetSummary, VolumeHistoryPoint } from "@/lib/market/types";
 
+const warmedAssetRoutes = new Set<string>();
+
+/** Pointer-down starts holder, supply, and chart fetches before the route paints. */
+function warmSolanaAssetDetail(href: string) {
+  const marker = "/chains/solana/assets/";
+  const index = href.indexOf(marker);
+  if (index < 0) return;
+  const symbol = decodeURIComponent(href.slice(index + marker.length).split(/[?#]/)[0] ?? "");
+  if (!symbol || symbol.length > 64 || warmedAssetRoutes.has(symbol)) return;
+  warmedAssetRoutes.add(symbol);
+  void fetch(`/api/solana/asset-warm?symbol=${encodeURIComponent(symbol)}`, {
+    cache: "no-store",
+    keepalive: true,
+  }).catch(() => {
+    warmedAssetRoutes.delete(symbol);
+  });
+}
+
 function DayMove({ value }: { value: number | null }) {
   const move = equityCardDayMovePct(value);
   if (move === null) return null;
@@ -52,6 +70,7 @@ export function EquityCard({
       <Link
         href={href}
         prefetch
+        onPointerDown={() => warmSolanaAssetDetail(href)}
         className="absolute inset-0 z-0 rounded-2xl"
         aria-label={`${asset.symbol} ${asset.name}`}
       />

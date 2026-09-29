@@ -213,6 +213,16 @@ export interface AssetDetailResult {
   provenance: DataProvenance;
 }
 
+/**
+ * Asset page reads.
+ * `enrich: false` is the list-cache row only — no Jupiter, pair-detail, RPC, or Gecko.
+ * `pairHolders: false` still loads the mint holder and outstanding supply for Statistics.
+ */
+export interface AssetReadOptions {
+  enrich?: boolean;
+  pairHolders?: boolean;
+}
+
 export type VolumeHistoryPointKind = "calendar_day" | "rolling_24h";
 
 export interface VolumeHistoryPoint {
@@ -303,7 +313,7 @@ export interface MarketDataSource {
   readonly label: string;
   listChains(): Promise<ChainListResult>;
   getChain(chainId: string): Promise<ChainDetailResult | null>;
-  getAsset(chainId: string, symbol: string): Promise<AssetDetailResult | null>;
+  getAsset(chainId: string, symbol: string, options?: AssetReadOptions): Promise<AssetDetailResult | null>;
   getEquityVolumeHistory(): Promise<EquityVolumeHistoryResult>;
   getAssetPriceHistory(chainId: string, symbol: string): Promise<AssetPriceHistoryResult>;
   /** Primary-pool Gecko hourly volume for card sparklines. Missing mints are omitted. */

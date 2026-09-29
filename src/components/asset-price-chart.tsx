@@ -31,6 +31,7 @@ import type {
   VolumeHistoryPoint,
 } from "@/lib/market/types";
 import { pointerToSvgX } from "@/lib/market/daily-volume-view";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const PANEL_RANGES = PRICE_CHART_RANGES.filter((row) =>
   (ASSET_PANEL_RANGE_IDS as readonly string[]).includes(row.id),
@@ -75,6 +76,7 @@ export function AssetMarketPanel({
   allMarketsSymbol = null,
   initialAllMarketsDaily = null,
   initialAllMarketsHourly = null,
+  chartPending = false,
 }: {
   header?: ReactNode;
   priceUsd: number | null;
@@ -88,6 +90,8 @@ export function AssetMarketPanel({
   initialAllMarketsDaily?: VolumeHistoryPoint[] | null;
   /** Warm hourly cache from disk. Null means the 24H line may still be the primary pool. */
   initialAllMarketsHourly?: VolumeHistoryPoint[] | null;
+  /** Plot area is still loading. Header, range, and the DexScreener 24H total stay visible. */
+  chartPending?: boolean;
 }) {
   const [range, setRange] = useState<PriceChartRangeId>("24h");
   const [mode, setMode] = useState<AssetChartMode>("volume");
@@ -387,7 +391,16 @@ export function AssetMarketPanel({
         )}
       </div>
 
-      {hasSeries ? (
+      {chartPending ? (
+        <div
+          className="mt-3 h-[220px] sm:h-[260px]"
+          aria-busy="true"
+          aria-label="Loading chart"
+          data-chart-pending
+        >
+          <Skeleton className="h-full w-full" />
+        </div>
+      ) : hasSeries ? (
         <div
           className="relative mt-3 cursor-crosshair"
           data-price-plot={isVolume ? undefined : true}
