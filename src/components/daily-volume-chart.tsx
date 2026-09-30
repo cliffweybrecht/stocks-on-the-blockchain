@@ -2,18 +2,20 @@
 
 import { useMemo, useState, type PointerEvent } from "react";
 import {
+  deskChartHeadline,
   filterVolumeRange,
   formatVolumeChartTick,
+  isRollingVolumeChartRange,
   nearestVolumePoint,
   pointerToSvgX,
   scaleVolumePoints,
-  deskRangeVolumeHeadline,
   volumeChartXTicks,
   VOLUME_CHART_HEIGHT,
   VOLUME_CHART_INNER_H,
   VOLUME_CHART_PAD,
   VOLUME_CHART_RANGES,
   VOLUME_CHART_WIDTH,
+  type DeskRolling24hVolumes,
   type VolumeChartRangeId,
 } from "@/lib/market/daily-volume-view";
 import { formatChartDay, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
@@ -40,9 +42,17 @@ function linePath(
   return `M ${points.map((point) => `${map.x(point.t).toFixed(2)},${map.y(point.volumeUsd).toFixed(2)}`).join(" L ")}`;
 }
 
-export function DailyVolumeChart({ history }: { history: EquityVolumeHistoryResult }) {
+export function DailyVolumeChart({
+  history,
+  rolling24h = null,
+}: {
+  history: EquityVolumeHistoryResult;
+  /** Live Solana ChainVolume 24h legs. Used only when 24H is selected. */
+  rolling24h?: DeskRolling24hVolumes | null;
+}) {
   const [range, setRange] = useState<VolumeChartRangeId>("7d");
   const [hover, setHover] = useState<VolumeHistoryPoint | null>(null);
+  const rolling = isRollingVolumeChartRange(range);
 
   const points = useMemo(() => {
     const parsedGeneratedAt = Date.parse(history.generatedAt);
@@ -52,9 +62,12 @@ export function DailyVolumeChart({ history }: { history: EquityVolumeHistoryResu
     return closedSnapshotVolumePoints(history.points, nowT);
   }, [history.generatedAt, history.points]);
 
-  const visible = useMemo(() => filterVolumeRange(points, range), [points, range]);
+  const visible = useMemo(
+    () => (isRollingVolumeChartRange(range) ? [] : filterVolumeRange(points, range)),
+    [points, range],
+  );
   const map = useMemo(() => scaleVolumePoints(visible), [visible]);
-  const headline = deskRangeVolumeHeadline(visible, range);
+  const headline = deskChartHeadline(range, visible, rolling24h);
   const hasSeries = points.length > 0;
   const showHeadline = headline.volumeUsd !== null;
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((frac) => map.maxY * frac);
@@ -79,16 +92,18 @@ export function DailyVolumeChart({ history }: { history: EquityVolumeHistoryResu
           <h2 className="font-heading text-[9px] leading-tight font-medium tracking-wide text-foreground/90">
             Total Daily Tokenized Stock Volume
           </h2>
-          {showHeadline ? (
+          {showHeadline || rolling ? (
             <>
-              <p
-                className="num mt-1 text-3xl font-medium text-primary"
-                aria-live="polite"
-                data-volume-headline
-                data-volume-kind={headline.kind}
-              >
-                {formatUsdCompact(headline.volumeUsd)}
-              </p>
+              {showHeadline ? (
+                <p
+                  className="num mt-1 text-3xl font-medium text-primary"
+                  aria-live="polite"
+                  data-volume-headline
+                  data-volume-kind={headline.kind}
+                >
+                  {formatUsdCompact(headline.volumeUsd)}
+                </p>
+              ) : null}
               <p className="mt-1 text-[11px] leading-snug text-muted-foreground" data-volume-caption>
                 {headline.caption}
               </p>
@@ -97,30 +112,58 @@ export function DailyVolumeChart({ history }: { history: EquityVolumeHistoryResu
         </div>
         {hasSeries ? (
           <div className="flex flex-wrap gap-1">
-            {VOLUME_CHART_RANGES.map((row) => (
-              <button
-                key={row.id}
-                type="button"
-                data-volume-range={row.id}
-                aria-pressed={range === row.id}
-                onClick={() => {
-                  setRange(row.id);
-                  setHover(null);
-                }}
-                className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                  range === row.id
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
-              >
-                {row.label}
-              </button>
-            ))}
+            {VOLUME_CHART_RANGES.map((row) => {
+              const rollingChip = "rolling" in row && row.rolling;
+              return (
+                <button
+                  key={row.id}
+                  type="button"
+                  data-volume-range={row.id}
+                  aria-pressed={range === row.id}
+                  aria-label={rollingChip ? "24H rolling last 24 hours" : row.label}
+                  title={rollingChip ? "Rolling last 24 hours, not a closed Eastern day" : undefined}
+                  onClick={() => {
+                    setRange(row.id);
+                    setHover(null);
+                  }}
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                    range === row.id
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                >
+                  {row.label}
+                  {rollingChip ? <span className="ml-1 font-normal opacity-80">rolling</span> : null}
+                </button>
+              );
+            })}
           </div>
         ) : null}
       </div>
+      {rolling ? (
+        <dl className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-3" data-volume-rolling-split>
+          <div>
+            <dt className="text-[10px] tracking-wide text-muted-foreground uppercase">Public 24h</dt>
+            <dd className="num text-sm font-medium" data-volume-public>
+              {formatUsdCompact(rolling24h?.publicVolume24hUsd)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[10px] tracking-wide text-muted-foreground uppercase">Private 24h</dt>
+            <dd className="num text-sm font-medium" data-volume-private>
+              {formatUsdCompact(rolling24h?.privateVolume24hUsd)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[10px] tracking-wide text-muted-foreground uppercase">ETF/index 24h</dt>
+            <dd className="num text-sm font-medium" data-volume-etf>
+              {formatUsdCompact(rolling24h?.etfVolume24hUsd)}
+            </dd>
+          </div>
+        </dl>
+      ) : null}
 
-      {hasSeries && visible.length > 0 ? (
+      {!rolling && hasSeries && visible.length > 0 ? (
         <div
           className="relative mt-3 cursor-crosshair"
           data-volume-plot
@@ -226,14 +269,18 @@ export function DailyVolumeChart({ history }: { history: EquityVolumeHistoryResu
             </div>
           ) : null}
         </div>
-      ) : (
+      ) : rolling ? null : (
         <div className="mt-4 flex h-[220px] items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 px-6 text-center">
           <p className="max-w-md text-sm text-muted-foreground">
             {history.emptyReason ?? "Historical volume series is unavailable. The desk does not invent points."}
           </p>
         </div>
       )}
-      {hasSeries ? (
+      {rolling ? (
+        <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-volume-rolling-hint>
+          Rolling last 24 hours. Not a closed America/New_York day.
+        </p>
+      ) : hasSeries ? (
         <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
           History from closed desk DexScreener snapshots. The in-progress Eastern day is omitted until that America/New_York date has closed.
         </p>

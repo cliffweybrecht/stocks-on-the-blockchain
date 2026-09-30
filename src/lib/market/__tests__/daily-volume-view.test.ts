@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  deskChartHeadline,
   filterVolumeRange,
   formatVolumeChartTick,
+  isRollingVolumeChartRange,
   nearestVolumePoint,
   pointerToSvgX,
   pointerToViewBoxX,
@@ -28,9 +30,21 @@ function days(count: number) {
 }
 
 describe("filterVolumeRange", () => {
-  it("lists 7D, 14D, and 30D only", () => {
-    expect(VOLUME_CHART_RANGES.map((row) => row.label)).toEqual(["7D", "14D", "30D"]);
-    expect(VOLUME_CHART_RANGES.map((row) => row.id)).toEqual(["7d", "14d", "30d"]);
+  it("lists rolling 24H beside the closed 7D, 14D, and 30D windows", () => {
+    expect(VOLUME_CHART_RANGES.map((row) => row.label)).toEqual(["24H", "7D", "14D", "30D"]);
+    expect(VOLUME_CHART_RANGES.map((row) => row.id)).toEqual(["24h", "7d", "14d", "30d"]);
+    expect(isRollingVolumeChartRange("24h")).toBe(true);
+    expect(isRollingVolumeChartRange("7d")).toBe(false);
+    expect(isRollingVolumeChartRange("14d")).toBe(false);
+    expect(isRollingVolumeChartRange("30d")).toBe(false);
+  });
+
+  it("does not treat 24H as a slice of closed snapshot days", () => {
+    const points = days(40);
+    expect(filterVolumeRange(points, "24h")).toEqual([]);
+    const seven = filterVolumeRange(points, "7d");
+    expect(seven).toHaveLength(8);
+    expect(seven[0]?.t).toBe(points[32]?.t);
   });
 
   it("keeps a continuous 7-day window ending on the latest point", () => {
@@ -225,6 +239,35 @@ describe("deskRangeVolumeHeadline", () => {
     const empty = deskRangeVolumeHeadline([], "14d");
     expect(empty.volumeUsd).toBeNull();
     expect(empty.caption).toBe("14D · no desk snapshots in this window");
+  });
+
+  it("uses the live public + private + ETF rollup for 24H and leaves closed-day sums unchanged", () => {
+    const points = days(40);
+    const seven = filterVolumeRange(points, "7d");
+    const rolling = {
+      publicVolume24hUsd: 1_250.25,
+      privateVolume24hUsd: 88_000,
+      etfVolume24hUsd: 13_000_000,
+    };
+    const day = deskChartHeadline("7d", seven, rolling);
+    expect(day.kind).toBe("range_sum");
+    expect(day.volumeUsd).toBeCloseTo(seven.reduce((sum, point) => sum + point.volumeUsd, 0));
+    expect(day.caption).toBe("7D · sum of desk snapshot days · public + private + ETF/index");
+
+    const live = deskChartHeadline("24h", seven, rolling);
+    expect(live.kind).toBe("combined_24h");
+    expect(live.volumeUsd).toBeCloseTo(13_089_250.25);
+    expect(live.caption).toBe("24h · public + private + ETF/index");
+    expect(live.volumeUsd).not.toBeCloseTo(day.volumeUsd ?? 0);
+
+    const missing = deskChartHeadline("24h", seven, {
+      publicVolume24hUsd: null,
+      privateVolume24hUsd: null,
+      etfVolume24hUsd: null,
+    });
+    expect(missing.volumeUsd).toBeNull();
+    expect(missing.kind).toBe("combined_24h");
+    expect(missing.caption).toBe("24h · no reported public, private, or ETF/index volume");
   });
 
   it("leaves a live rolling tip out of the headline sum", () => {

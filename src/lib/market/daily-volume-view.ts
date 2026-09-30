@@ -3,14 +3,31 @@ import { formatChartDate, formatChartDay, formatChartTick } from "./format";
 import type { VolumeHistoryPoint } from "./types";
 import { utcDayStart } from "./volume-history";
 
-/** Desk snapshots are one point per day, so the Solana list chart has no hourly 24H pill. */
+/**
+ * 24H is the live DexScreener rollup (public + private + ETF/index).
+ * It is not a closed America/New_York day and has no hourly series.
+ * 7D/14D/30D stay sums of closed desk snapshot days.
+ */
 export const VOLUME_CHART_RANGES = [
+  { id: "24h", label: "24H", rolling: true },
   { id: "7d", label: "7D", days: 7 },
   { id: "14d", label: "14D", days: 14 },
   { id: "30d", label: "30D", days: 30 },
 ] as const;
 
 export type VolumeChartRangeId = (typeof VOLUME_CHART_RANGES)[number]["id"];
+export type ClosedVolumeChartRangeId = Exclude<VolumeChartRangeId, "24h">;
+
+/** Live ChainVolume 24h legs. Null is unreported, not zero. */
+export interface DeskRolling24hVolumes {
+  publicVolume24hUsd: number | null;
+  privateVolume24hUsd: number | null;
+  etfVolume24hUsd?: number | null;
+}
+
+export function isRollingVolumeChartRange(range: VolumeChartRangeId): range is "24h" {
+  return range === "24h";
+}
 
 export const VOLUME_CHART_WIDTH = 800;
 export const VOLUME_CHART_HEIGHT = 280;
@@ -25,6 +42,8 @@ export function filterVolumeRange(
   if (points.length === 0) return [];
   const spec = VOLUME_CHART_RANGES.find((row) => row.id === range);
   if (!spec) return [...points];
+  // Rolling 24H is a live total, not a slice of closed snapshot days.
+  if (!("days" in spec)) return [];
   const last = points[points.length - 1];
   if (!last) return [...points];
   const cutoff = last.t - spec.days * 86_400;
@@ -190,7 +209,7 @@ export function sumVolumePoints(points: readonly VolumeHistoryPoint[]): number |
 
 export function deskRangeVolumeHeadline(
   points: readonly VolumeHistoryPoint[],
-  range: VolumeChartRangeId,
+  range: ClosedVolumeChartRangeId,
 ): { volumeUsd: number | null; caption: string; kind: "range_sum" } {
   const label = VOLUME_CHART_RANGES.find((row) => row.id === range)?.label ?? "7D";
   const volumeUsd = sumVolumePoints(points);
@@ -206,6 +225,29 @@ export function deskRangeVolumeHeadline(
     caption: `${label} · sum of desk snapshot days · public + private + ETF/index`,
     kind: "range_sum",
   };
+}
+
+/**
+ * 24H reads the live rolling desk total. Closed ranges sum the plotted snapshot days.
+ * A rolling selection does not fall through to those days when the live legs are null.
+ */
+export function deskChartHeadline(
+  range: VolumeChartRangeId,
+  visibleClosedPoints: readonly VolumeHistoryPoint[],
+  rolling: DeskRolling24hVolumes | null,
+):
+  | ReturnType<typeof deskVolumeHeadline>
+  | ReturnType<typeof deskRangeVolumeHeadline> {
+  if (isRollingVolumeChartRange(range)) {
+    return deskVolumeHeadline({
+      publicVolume24hUsd: rolling?.publicVolume24hUsd ?? null,
+      privateVolume24hUsd: rolling?.privateVolume24hUsd ?? null,
+      etfVolume24hUsd: rolling?.etfVolume24hUsd ?? null,
+      hover: null,
+      latest: null,
+    });
+  }
+  return deskRangeVolumeHeadline(visibleClosedPoints, range);
 }
 
 /**
