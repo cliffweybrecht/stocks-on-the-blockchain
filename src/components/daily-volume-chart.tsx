@@ -15,7 +15,6 @@ import {
   VOLUME_CHART_PAD,
   VOLUME_CHART_RANGES,
   VOLUME_CHART_WIDTH,
-  type ClosedVolumeChartRangeId,
   type DeskRolling24hVolumes,
   type VolumeChartRangeId,
 } from "@/lib/market/daily-volume-view";
@@ -52,10 +51,8 @@ export function DailyVolumeChart({
   rolling24h?: DeskRolling24hVolumes | null;
 }) {
   const [range, setRange] = useState<VolumeChartRangeId>("7d");
-  const [plottedRange, setPlottedRange] = useState<ClosedVolumeChartRangeId>("7d");
   const [hover, setHover] = useState<VolumeHistoryPoint | null>(null);
   const rolling = isRollingVolumeChartRange(range);
-  const chartRange = rolling ? plottedRange : range;
 
   const points = useMemo(() => {
     const parsedGeneratedAt = Date.parse(history.generatedAt);
@@ -65,7 +62,12 @@ export function DailyVolumeChart({
     return closedSnapshotVolumePoints(history.points, nowT);
   }, [history.generatedAt, history.points]);
 
-  const visible = useMemo(() => filterVolumeRange(points, chartRange), [points, chartRange]);
+  // TODO(lana): 24H should plot the desk last-24h hourly VolumeHistoryPoint[] (kind "rolling_24h")
+  // once that read path names its export. Do not parse solana-hourly.json here, and do not reuse closed days.
+  const visible = useMemo(
+    () => (rolling ? [] : filterVolumeRange(points, range)),
+    [points, range, rolling],
+  );
   const map = useMemo(() => scaleVolumePoints(visible), [visible]);
   const headline = deskChartHeadline(range, visible, rolling24h);
   const hasSeries = points.length > 0;
@@ -120,7 +122,6 @@ export function DailyVolumeChart({
                 aria-pressed={range === row.id}
                 onClick={() => {
                   setRange(row.id);
-                  if (!isRollingVolumeChartRange(row.id)) setPlottedRange(row.id);
                   setHover(null);
                 }}
                 className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
@@ -135,30 +136,7 @@ export function DailyVolumeChart({
           </div>
         ) : null}
       </div>
-      {rolling ? (
-        <dl className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-3" data-volume-24h-split>
-          <div>
-            <dt className="text-[10px] tracking-wide text-muted-foreground uppercase">Public 24h</dt>
-            <dd className="num text-sm font-medium" data-volume-public>
-              {formatUsdCompact(rolling24h?.publicVolume24hUsd)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-[10px] tracking-wide text-muted-foreground uppercase">Private 24h</dt>
-            <dd className="num text-sm font-medium" data-volume-private>
-              {formatUsdCompact(rolling24h?.privateVolume24hUsd)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-[10px] tracking-wide text-muted-foreground uppercase">ETF/index 24h</dt>
-            <dd className="num text-sm font-medium" data-volume-etf>
-              {formatUsdCompact(rolling24h?.etfVolume24hUsd)}
-            </dd>
-          </div>
-        </dl>
-      ) : null}
-
-      {hasSeries && visible.length > 0 ? (
+      {!rolling && hasSeries && visible.length > 0 ? (
         <div
           className="relative mt-3 cursor-crosshair"
           data-volume-plot
@@ -174,11 +152,7 @@ export function DailyVolumeChart({
             preserveAspectRatio="none"
             className="pointer-events-none h-[240px] w-full touch-none sm:h-[280px]"
             role="img"
-            aria-label={
-              rolling
-                ? "Daily Solana tokenized stock volume from desk DexScreener snapshots."
-                : "Daily Solana tokenized stock volume from desk DexScreener snapshots. Headline is the sum of snapshot days in the selected range."
-            }
+            aria-label="Daily Solana tokenized stock volume from desk DexScreener snapshots. Headline is the sum of snapshot days in the selected range."
           >
             <defs>
               <linearGradient id="volume-area" x1="0" x2="0" y1="0" y2="1">
@@ -268,14 +242,14 @@ export function DailyVolumeChart({
             </div>
           ) : null}
         </div>
-      ) : (
+      ) : rolling ? null : (
         <div className="mt-4 flex h-[220px] items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 px-6 text-center">
           <p className="max-w-md text-sm text-muted-foreground">
             {history.emptyReason ?? "Historical volume series is unavailable. The desk does not invent points."}
           </p>
         </div>
       )}
-      {hasSeries ? (
+      {!rolling && hasSeries ? (
         <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
           History from closed desk DexScreener snapshots. The in-progress Eastern day is omitted until that America/New_York date has closed.
         </p>
