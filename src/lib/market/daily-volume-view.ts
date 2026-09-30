@@ -1,11 +1,11 @@
 import { combinedPublicPrivateVolume24h } from "./aggregate";
-import { formatChartDate, formatChartDay, formatChartTick } from "./format";
+import { formatChartClock, formatChartDate, formatChartDay, formatChartTick } from "./format";
 import type { VolumeHistoryPoint } from "./types";
 import { utcDayStart } from "./volume-history";
 
 /**
- * 24H is the live DexScreener rollup (public + private + ETF/index).
- * It is not a closed America/New_York day and has no hourly series.
+ * 24H headline is the live DexScreener rollup (public + private + ETF/index).
+ * The 24H plot is hourly captures (`hourlyHistory`), not a closed America/New_York day.
  * 7D/14D/30D stay sums of closed desk snapshot days.
  */
 export const VOLUME_CHART_RANGES = [
@@ -172,6 +172,25 @@ export function deskVolumeHeadline(input: {
     caption: "24h · no reported public, private, or ETF/index volume",
     kind: "combined_24h",
   };
+}
+
+/** One tick per captured hour. Does not insert hours the desk did not record. */
+export function hourlyVolumeChartXTicks(points: readonly VolumeHistoryPoint[]): number[] {
+  if (points.length <= 8) return points.map((point) => point.t);
+  const step = points.length > 16 ? 3 : 2;
+  const ticks: number[] = [];
+  for (let index = 0; index < points.length; index += step) {
+    const t = points[index]?.t;
+    if (t !== undefined) ticks.push(t);
+  }
+  const last = points[points.length - 1]?.t;
+  if (last !== undefined && ticks[ticks.length - 1] !== last) ticks.push(last);
+  return ticks;
+}
+
+/** Eastern clock label for an hourly desk capture. Closed-day charts stay on calendar days. */
+export function formatHourlyVolumeChartTick(unixSeconds: number): string {
+  return formatChartClock(unixSeconds);
 }
 
 /**

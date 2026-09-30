@@ -18,7 +18,7 @@ import { selectEquityPriceTicker } from "@/lib/desk/price-ticker";
 import { parseAssetSortKey, sortAssets } from "@/lib/market/aggregate";
 import { toJumpAsset } from "@/lib/market/asset-search";
 import { createMarketDataSource } from "@/lib/market/factory";
-import { SOLANA_CHAIN_ID } from "@/lib/market/types";
+import { SOLANA_CHAIN_ID, type EquityVolumeHistoryResult } from "@/lib/market/types";
 import { parseCoverageFilter } from "@/lib/market/volume-coverage";
 
 export const dynamic = "force-dynamic";
@@ -59,9 +59,16 @@ export default async function ChainPage({
 
   const { chain, assets, etfAssets = [], privateAssets = [], provenance } = result;
   const isSolana = chain.id === SOLANA_CHAIN_ID;
-  const volumeHistory = isSolana
-    ? await source.getEquityVolumeHistory()
-    : emptyEquityVolumeHistory("This chart is Solana tokenized public equities only.");
+  let volumeHistory: EquityVolumeHistoryResult;
+  let hourlyVolumeHistory: EquityVolumeHistoryResult | null = null;
+  if (isSolana) {
+    [volumeHistory, hourlyVolumeHistory] = await Promise.all([
+      source.getEquityVolumeHistory(),
+      source.getEquityHourlyRollingVolumeHistory(),
+    ]);
+  } else {
+    volumeHistory = emptyEquityVolumeHistory("This chart is Solana tokenized public equities only.");
+  }
   if (isSolana) {
     void source.getEquityCardDayVolumeSeries();
   }
@@ -102,6 +109,7 @@ export default async function ChainPage({
         {isSolana ? (
           <DailyVolumeChart
             history={volumeHistory}
+            hourlyHistory={hourlyVolumeHistory}
             rolling24h={{
               publicVolume24hUsd: chain.volume24hUsd,
               privateVolume24hUsd: chain.privateVolume24hUsd,

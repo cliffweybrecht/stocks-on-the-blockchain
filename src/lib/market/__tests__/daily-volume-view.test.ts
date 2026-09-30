@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   deskChartHeadline,
   filterVolumeRange,
+  formatHourlyVolumeChartTick,
   formatVolumeChartTick,
+  hourlyVolumeChartXTicks,
   isRollingVolumeChartRange,
   nearestVolumePoint,
   pointerToSvgX,
@@ -260,6 +262,14 @@ describe("deskRangeVolumeHeadline", () => {
     expect(live.caption).toBe("24h · public + private + ETF/index");
     expect(live.volumeUsd).not.toBeCloseTo(day.volumeUsd ?? 0);
 
+    const hourly = [
+      { t: DAY0, volumeUsd: 4_000_000, kind: "rolling_24h" as const },
+      { t: DAY0 + 3600, volumeUsd: 5_000_000, kind: "rolling_24h" as const },
+    ];
+    const fromHourly = deskChartHeadline("24h", hourly, rolling);
+    expect(fromHourly.volumeUsd).toBeCloseTo(13_089_250.25);
+    expect(fromHourly.kind).toBe("combined_24h");
+
     const missing = deskChartHeadline("24h", seven, {
       publicVolume24hUsd: null,
       privateVolume24hUsd: null,
@@ -279,6 +289,32 @@ describe("deskRangeVolumeHeadline", () => {
     const headline = deskRangeVolumeHeadline(points, "7d");
     expect(headline.volumeUsd).toBe(10);
     expect(headline.caption).toMatch(/sum of desk snapshot days/);
+  });
+});
+
+describe("hourlyVolumeChartXTicks", () => {
+  it("keeps captured hours and does not fill gaps", () => {
+    const points = [0, 1, 3].map((hour) => ({
+      t: DAY0 + hour * 3600,
+      volumeUsd: 1_000,
+      kind: "rolling_24h" as const,
+    }));
+    expect(hourlyVolumeChartXTicks(points)).toEqual(points.map((point) => point.t));
+    expect(formatHourlyVolumeChartTick(points[0]!.t)).toMatch(/^\d{1,2}:\d{2}\s[AP]M$/);
+    expect(formatHourlyVolumeChartTick(points[0]!.t)).not.toMatch(/Sep|2026/);
+  });
+
+  it("thins labels when many hours exist and still includes the last capture", () => {
+    const points = Array.from({ length: 19 }, (_, index) => ({
+      t: DAY0 + index * 3600,
+      volumeUsd: 1_000 + index,
+      kind: "rolling_24h" as const,
+    }));
+    const ticks = hourlyVolumeChartXTicks(points);
+    expect(ticks.length).toBeLessThan(points.length);
+    expect(ticks[0]).toBe(points[0]!.t);
+    expect(ticks[ticks.length - 1]).toBe(points[18]!.t);
+    expect(ticks.every((t) => points.some((point) => point.t === t))).toBe(true);
   });
 });
 

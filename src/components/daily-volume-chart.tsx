@@ -4,7 +4,9 @@ import { useMemo, useState, type PointerEvent } from "react";
 import {
   deskChartHeadline,
   filterVolumeRange,
+  formatHourlyVolumeChartTick,
   formatVolumeChartTick,
+  hourlyVolumeChartXTicks,
   isRollingVolumeChartRange,
   nearestVolumePoint,
   pointerToSvgX,
@@ -44,10 +46,17 @@ function linePath(
 
 export function DailyVolumeChart({
   history,
+  hourlyHistory = null,
   rolling24h = null,
 }: {
   history: EquityVolumeHistoryResult;
-  /** Live Solana ChainVolume 24h legs. Used only when 24H is selected. */
+  /**
+   * Last ~24 Eastern hours of DexScreener h24 desk totals for 24H mode.
+   * Plot `hourlyHistory.points` (`kind: "rolling_24h"`, y = `combined24hUsd`, x = Eastern hour start).
+   * 7D/14D/30D keep using closed days from `history`. Do not pass these points through closedSnapshotVolumePoints.
+   */
+  hourlyHistory?: EquityVolumeHistoryResult | null;
+  /** Live Solana ChainVolume 24h legs. Used only for the 24H headline. */
   rolling24h?: DeskRolling24hVolumes | null;
 }) {
   const [range, setRange] = useState<VolumeChartRangeId>("7d");
@@ -62,18 +71,29 @@ export function DailyVolumeChart({
     return closedSnapshotVolumePoints(history.points, nowT);
   }, [history.generatedAt, history.points]);
 
-  // TODO(lana): 24H should plot the desk last-24h hourly VolumeHistoryPoint[] (kind "rolling_24h")
-  // once that read path names its export. Do not parse solana-hourly.json here, and do not reuse closed days.
-  const visible = useMemo(
-    () => (rolling ? [] : filterVolumeRange(points, range)),
-    [points, range, rolling],
-  );
+  const hourlyPoints = useMemo(() => {
+    const rows = hourlyHistory?.points ?? [];
+    return [...rows]
+      .filter(
+        (point) =>
+          Number.isFinite(point.t) &&
+          point.t > 0 &&
+          Number.isFinite(point.volumeUsd) &&
+          point.volumeUsd >= 0,
+      )
+      .sort((a, b) => a.t - b.t);
+  }, [hourlyHistory]);
+  const visible = useMemo(() => {
+    if (isRollingVolumeChartRange(range)) return hourlyPoints;
+    return filterVolumeRange(points, range);
+  }, [hourlyPoints, points, range]);
   const map = useMemo(() => scaleVolumePoints(visible), [visible]);
   const headline = deskChartHeadline(range, visible, rolling24h);
-  const hasSeries = points.length > 0;
+  const hasDaily = points.length > 0;
+  const showRanges = hasDaily || hourlyPoints.length > 0;
   const showHeadline = headline.volumeUsd !== null;
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((frac) => map.maxY * frac);
-  const xTicks = volumeChartXTicks(visible);
+  const xTicks = rolling ? hourlyVolumeChartXTicks(visible) : volumeChartXTicks(visible);
 
   function setHoverFromClient(plot: Element, clientX: number, clientY: number) {
     const svg = plot.querySelector("svg");
@@ -88,7 +108,10 @@ export function DailyVolumeChart({
   }
 
   return (
-    <section className="rounded-xl border border-border bg-card/80 px-4 py-4 sm:px-5">
+    <section
+      className="rounded-xl border border-border bg-card/80 px-4 py-4 sm:px-5"
+      data-hourly-rolling-count={hourlyHistory?.points.length ?? 0}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="font-heading text-[9px] leading-tight font-medium tracking-wide text-foreground/90">
@@ -112,7 +135,7 @@ export function DailyVolumeChart({
             </>
           ) : null}
         </div>
-        {hasSeries ? (
+        {showRanges ? (
           <div className="flex flex-wrap gap-1">
             {VOLUME_CHART_RANGES.map((row) => (
               <button
@@ -136,7 +159,7 @@ export function DailyVolumeChart({
           </div>
         ) : null}
       </div>
-      {!rolling && hasSeries && visible.length > 0 ? (
+      {visible.length > 0 ? (
         <div
           className="relative mt-3 cursor-crosshair"
           data-volume-plot
@@ -152,7 +175,11 @@ export function DailyVolumeChart({
             preserveAspectRatio="none"
             className="pointer-events-none h-[240px] w-full touch-none sm:h-[280px]"
             role="img"
-            aria-label="Daily Solana tokenized stock volume from desk DexScreener snapshots. Headline is the sum of snapshot days in the selected range."
+            aria-label={
+              rolling
+                ? "Hourly DexScreener 24h desk totals. Each point is the combined total captured at that Eastern hour."
+                : "Daily Solana tokenized stock volume from desk DexScreener snapshots. Headline is the sum of snapshot days in the selected range."
+            }
           >
             <defs>
               <linearGradient id="volume-area" x1="0" x2="0" y1="0" y2="1">
@@ -184,7 +211,7 @@ export function DailyVolumeChart({
               </g>
             ))}
             {xTicks.map((tick, index) => {
-              const label = formatVolumeChartTick(tick, xTicks);
+              const label = rolling ? formatHourlyVolumeChartTick(tick) : formatVolumeChartTick(tick, xTicks);
               const crowded = xTicks.length > 10;
               return (
                 <text
@@ -235,21 +262,30 @@ export function DailyVolumeChart({
               className="pointer-events-none absolute top-2 right-2 z-20 rounded-md border border-border bg-background/95 px-2 py-1 text-xs shadow-sm"
               data-volume-tooltip
             >
-              <p data-volume-tooltip-day>{formatChartDay(hover.t)}</p>
+              <p data-volume-tooltip-day>
+                {rolling ? formatHourlyVolumeChartTick(hover.t) : formatChartDay(hover.t)}
+              </p>
               <p className="num text-foreground" data-volume-tooltip-value>
                 {formatUsdFull(hover.volumeUsd)}
               </p>
             </div>
           ) : null}
         </div>
-      ) : rolling ? null : (
+      ) : (
         <div className="mt-4 flex h-[220px] items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 px-6 text-center">
           <p className="max-w-md text-sm text-muted-foreground">
-            {history.emptyReason ?? "Historical volume series is unavailable. The desk does not invent points."}
+            {rolling
+              ? (hourlyHistory?.emptyReason ?? "Hourly volume series is unavailable. Missing hours are not invented.")
+              : (history.emptyReason ?? "Historical volume series is unavailable. The desk does not invent points.")}
           </p>
         </div>
       )}
-      {!rolling && hasSeries ? (
+      {rolling && visible.length > 0 ? (
+        <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-volume-hourly-note>
+          Each point is the DexScreener 24h total captured at that Eastern hour. Missing hours are omitted.
+        </p>
+      ) : null}
+      {!rolling && hasDaily ? (
         <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
           History from closed desk DexScreener snapshots. The in-progress Eastern day is omitted until that America/New_York date has closed.
         </p>

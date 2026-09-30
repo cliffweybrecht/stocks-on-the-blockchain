@@ -1,13 +1,22 @@
 import { combinedPublicPrivateVolume24h } from "./aggregate";
 import { asNonNegativeNumber, sumNullable } from "./numbers";
-import type { ChainVolume } from "./types";
+import type { ChainVolume, EquityVolumeHistoryResult, VolumeHistoryPoint } from "./types";
 
 /**
  * Rolling DexScreener h24 desk totals, one row per America/New_York hour.
  * This is not a closed Eastern day bar and must not be written into
- * `solana.json` or plotted by the daily volume chart.
+ * `solana.json` or mixed into the 7D/14D/30D closed-day series.
+ * The chart's 24H mode reads these rows through `buildHourlyRollingVolumeHistory`.
  */
 export const DESK_HOURLY_VOLUME_KIND = "rolling_h24_totals";
+
+/** Clock window for the desk chart's 24H series. Filter on `t`, not civil-hour labels. */
+export const HOURLY_ROLLING_VOLUME_WINDOW_SECONDS = 24 * 60 * 60;
+
+export const DESK_HOURLY_ROLLING_VOLUME_SOURCE_LABEL = "Desk DexScreener rolling 24h snapshots";
+
+export const DESK_HOURLY_ROLLING_VOLUME_DEFINITION =
+  "Each point is a DexScreener rolling h24 desk total (public + private + ETF/index) captured at an America/New_York hour. The value is that snapshot’s rolling 24h total, not volume during the hour alone. Hours missing from the hourly file are left out.";
 
 export const DESK_HOURLY_VOLUME_NOTE =
   "One compact row per America/New_York hour. Rolling DexScreener h24 desk totals (public, private, ETF/index, combined) and displayed-liquidity totals. Not a per-asset or per-pool dump, and not a closed Eastern day bar.";
@@ -287,6 +296,81 @@ function parseOneHourlySnapshot(row: unknown): DeskHourlyVolumeSnapshot | null {
       asNonNegativeNumber(rec.combinedLiquidityUsd) ??
       sumNullable([publicLiquidityUsd, privateLiquidityUsd, etfIndexLiquidityUsd]),
     generatedAt,
+  };
+}
+
+/**
+ * Last 24 hours of captured Eastern-hour DexScreener rolling h24 desk totals.
+ * `volumeUsd` is `combined24hUsd`. `t` is the unix start of that Eastern hour.
+ * Keeps rows with `t` in `[nowT - 24h, nowT]`. Skips a null combined total.
+ * Does not insert hours that are absent from `snapshots`.
+ */
+export function buildHourlyRollingVolumeHistory(
+  snapshots: readonly DeskHourlyVolumeSnapshot[],
+  nowT: number,
+): VolumeHistoryPoint[] {
+  if (!Number.isFinite(nowT) || nowT <= 0) return [];
+  const cutoff = nowT - HOURLY_ROLLING_VOLUME_WINDOW_SECONDS;
+  const byT = new Map<number, VolumeHistoryPoint>();
+  for (const row of snapshots) {
+    if (!Number.isFinite(row.t) || row.t <= 0 || row.t < cutoff || row.t > nowT) continue;
+    const volumeUsd = row.combined24hUsd;
+    if (volumeUsd === null || !Number.isFinite(volumeUsd) || volumeUsd < 0) continue;
+    byT.set(row.t, { t: row.t, volumeUsd, kind: "rolling_24h" });
+  }
+  return [...byT.values()].sort((a, b) => a.t - b.t);
+}
+
+export function emptyHourlyRollingVolumeHistory(
+  reason: string,
+  generatedAt = new Date().toISOString(),
+): EquityVolumeHistoryResult {
+  return {
+    available: false,
+    points: [],
+    seriesByMint: {},
+    definition: DESK_HOURLY_ROLLING_VOLUME_DEFINITION,
+    sourceLabel: DESK_HOURLY_ROLLING_VOLUME_SOURCE_LABEL,
+    poolCount: 0,
+    poolCountAttempted: 0,
+    mintCount: 0,
+    volume24hUsd: null,
+    firstObservableAt: null,
+    lastObservableAt: null,
+    generatedAt,
+    emptyReason: reason,
+  };
+}
+
+/** History object the Solana desk page passes beside the closed-day series. */
+export function buildHourlyRollingEquityVolumeHistory(input: {
+  snapshots: readonly DeskHourlyVolumeSnapshot[];
+  nowT: number;
+  generatedAt: string;
+}): EquityVolumeHistoryResult {
+  const points = buildHourlyRollingVolumeHistory(input.snapshots, input.nowT);
+  if (points.length === 0) {
+    return emptyHourlyRollingVolumeHistory(
+      "No DexScreener rolling 24h hourly snapshots in the last 24 hours. Missing hours are not invented.",
+      input.generatedAt,
+    );
+  }
+  const first = points[0];
+  const last = points[points.length - 1];
+  return {
+    available: true,
+    points,
+    seriesByMint: {},
+    definition: DESK_HOURLY_ROLLING_VOLUME_DEFINITION,
+    sourceLabel: DESK_HOURLY_ROLLING_VOLUME_SOURCE_LABEL,
+    poolCount: 0,
+    poolCountAttempted: 0,
+    mintCount: 0,
+    volume24hUsd: last?.volumeUsd ?? null,
+    firstObservableAt: first ? new Date(first.t * 1000).toISOString() : null,
+    lastObservableAt: last ? new Date(last.t * 1000).toISOString() : null,
+    generatedAt: input.generatedAt,
+    emptyReason: null,
   };
 }
 

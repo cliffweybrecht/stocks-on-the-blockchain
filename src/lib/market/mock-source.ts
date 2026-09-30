@@ -12,6 +12,7 @@ import {
 } from "./types";
 import { emptyAssetPriceHistory } from "./asset-price-history";
 import { emptyEquityVolumeHistory } from "./volume-history";
+import { emptyHourlyRollingVolumeHistory } from "./volume-hourly-snapshots";
 
 export class MockMarketDataSource implements MarketDataSource {
   readonly id = "mock" as const;
@@ -46,6 +47,12 @@ export class MockMarketDataSource implements MarketDataSource {
   async getEquityVolumeHistory(): Promise<EquityVolumeHistoryResult> {
     return emptyEquityVolumeHistory(
       "Seed adapter does not invent a historical volume series. Enable live Solana to record DexScreener 24h snapshots.",
+    );
+  }
+
+  async getEquityHourlyRollingVolumeHistory(): Promise<EquityVolumeHistoryResult> {
+    return emptyHourlyRollingVolumeHistory(
+      "Seed adapter does not invent hourly desk volume. Enable live Solana to read solana-hourly.json.",
     );
   }
 
