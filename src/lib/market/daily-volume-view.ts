@@ -174,18 +174,52 @@ export function deskVolumeHeadline(input: {
   };
 }
 
-/** One tick per captured hour. Does not insert hours the desk did not record. */
+/**
+ * "10:00 PM" at 10px is about 56 viewBox units wide. Centers closer than this
+ * collide on the 800-wide chart, including the newest hour parked beside the
+ * previous 3-hour tick.
+ */
+const HOURLY_TICK_MIN_GAP_PX = 72;
+
+/**
+ * Eastern hour labels, thinned so neighbors do not overlap.
+ * Does not insert hours the desk did not record. The newest capture stays
+ * labeled when it would otherwise sit on the previous tick.
+ */
 export function hourlyVolumeChartXTicks(points: readonly VolumeHistoryPoint[]): number[] {
-  if (points.length <= 8) return points.map((point) => point.t);
-  const step = points.length > 16 ? 3 : 2;
-  const ticks: number[] = [];
-  for (let index = 0; index < points.length; index += step) {
-    const t = points[index]?.t;
-    if (t !== undefined) ticks.push(t);
+  if (points.length === 0) return [];
+  const step = points.length > 16 ? 3 : points.length > 8 ? 2 : 1;
+  const chosen: number[] = [];
+  for (let index = 0; index < points.length; index += step) chosen.push(index);
+  const lastIndex = points.length - 1;
+  const previous = chosen[chosen.length - 1];
+  if (previous !== lastIndex) {
+    if (lastIndex - previous < step) chosen[chosen.length - 1] = lastIndex;
+    else chosen.push(lastIndex);
   }
-  const last = points[points.length - 1]?.t;
-  if (last !== undefined && ticks[ticks.length - 1] !== last) ticks.push(last);
-  return ticks;
+  return spaceHourlyTickTimes(
+    chosen.map((index) => points[index]!.t),
+    points,
+  );
+}
+
+/** Drop any remaining pair whose centers would overlap. Keep the later hour. */
+function spaceHourlyTickTimes(ticks: readonly number[], points: readonly VolumeHistoryPoint[]): number[] {
+  if (ticks.length <= 1) return [...ticks];
+  const map = scaleVolumePoints(points);
+  const kept: number[] = [];
+  for (const t of ticks) {
+    const prev = kept[kept.length - 1];
+    if (prev === undefined || map.x(t) - map.x(prev) >= HOURLY_TICK_MIN_GAP_PX) {
+      kept.push(t);
+      continue;
+    }
+    const before = kept[kept.length - 2];
+    if (before === undefined || map.x(t) - map.x(before) >= HOURLY_TICK_MIN_GAP_PX) {
+      kept[kept.length - 1] = t;
+    }
+  }
+  return kept;
 }
 
 /** Eastern clock label for an hourly desk capture. Closed-day charts stay on calendar days. */

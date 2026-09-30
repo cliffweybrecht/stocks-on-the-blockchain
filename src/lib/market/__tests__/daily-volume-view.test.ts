@@ -316,6 +316,21 @@ describe("hourlyVolumeChartXTicks", () => {
     expect(ticks[ticks.length - 1]).toBe(points[18]!.t);
     expect(ticks.every((t) => points.some((point) => point.t === t))).toBe(true);
   });
+
+  it("does not park the newest hour on top of the previous tick", () => {
+    const points = Array.from({ length: 20 }, (_, index) => ({
+      t: DAY0 + index * 3600,
+      volumeUsd: 1_000,
+      kind: "rolling_24h" as const,
+    }));
+    const ticks = hourlyVolumeChartXTicks(points);
+    const map = scaleVolumePoints(points);
+    expect(ticks[ticks.length - 1]).toBe(points[19]!.t);
+    expect(ticks).not.toContain(points[18]!.t);
+    for (let index = 1; index < ticks.length; index += 1) {
+      expect(map.x(ticks[index]!) - map.x(ticks[index - 1]!)).toBeGreaterThanOrEqual(72);
+    }
+  });
 });
 
 describe("formatVolumeChartTick", () => {

@@ -212,7 +212,7 @@ export function DailyVolumeChart({
             ))}
             {xTicks.map((tick, index) => {
               const label = rolling ? formatHourlyVolumeChartTick(tick) : formatVolumeChartTick(tick, xTicks);
-              const crowded = xTicks.length > 10;
+              const crowded = !rolling && xTicks.length > 10;
               return (
                 <text
                   key={`${tick}-${index}`}
