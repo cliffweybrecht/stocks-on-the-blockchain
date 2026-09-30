@@ -98,17 +98,37 @@ export function scaleVolumePoints(points: readonly VolumeHistoryPoint[], options
   };
 }
 
+/** Labels closer than this in the 236px plot collide at 10px type. */
+const DELTA_Y_TICK_MIN_GAP = 16;
+
 /**
  * Y ticks for a signed delta axis. Always includes 0. Nonnegative series keep
- * the closed-day quarters of the max so 7D/14D/30D labels do not move.
+ * the closed-day quarters of the max. A tiny negative beside a large positive
+ * is drawn, but its label is omitted when it would sit on the zero label.
  */
 export function volumeDeltaYTicks(minY: number, maxY: number): number[] {
   const lo = Math.min(minY, 0);
   const hi = Math.max(maxY, 0);
   if (lo === 0 && hi === 0) return [0];
-  if (lo === 0) return [0, 0.25, 0.5, 0.75, 1].map((frac) => hi * frac);
-  if (hi === 0) return [0, 0.25, 0.5, 0.75, 1].map((frac) => (frac === 0 ? 0 : lo * frac));
-  return [lo, lo / 2, 0, hi / 2, hi];
+  const raw =
+    lo === 0
+      ? [0, 0.25, 0.5, 0.75, 1].map((frac) => hi * frac)
+      : hi === 0
+        ? [0, 0.25, 0.5, 0.75, 1].map((frac) => (frac === 0 ? 0 : lo * frac))
+        : [lo, lo / 2, 0, hi / 2, hi];
+  return spaceDeltaYTicks(raw, lo, hi);
+}
+
+function spaceDeltaYTicks(ticks: readonly number[], minY: number, maxY: number): number[] {
+  const span = maxY - minY || 1;
+  const y = (value: number) => ((maxY - value) / span) * VOLUME_CHART_INNER_H;
+  const unique = [...new Set(ticks.map((tick) => (Object.is(tick, -0) ? 0 : tick)))];
+  const outward = [...unique].sort((a, b) => Math.abs(y(a) - y(0)) - Math.abs(y(b) - y(0)));
+  const kept: number[] = [];
+  for (const tick of outward) {
+    if (kept.every((other) => Math.abs(y(tick) - y(other)) >= DELTA_Y_TICK_MIN_GAP)) kept.push(tick);
+  }
+  return kept.sort((a, b) => a - b);
 }
 
 /** Compact delta axis label. Positive values carry an explicit plus. */

@@ -368,8 +368,12 @@ describe("volumeDeltaYTicks", () => {
   it("labels a signed axis in delta dollars and always includes zero", () => {
     expect(volumeDeltaYTicks(0, 40)).toEqual([0, 10, 20, 30, 40]);
     expect(volumeDeltaYTicks(-10, 30)).toEqual([-10, -5, 0, 15, 30]);
-    expect(volumeDeltaYTicks(-8, 0)).toEqual([0, -2, -4, -6, -8]);
+    expect(volumeDeltaYTicks(-8, 0)).toEqual([-8, -6, -4, -2, 0]);
     expect(volumeDeltaYTicks(0, 0)).toEqual([0]);
+    const crowded = volumeDeltaYTicks(-1_620_000, 31_840_000);
+    expect(crowded).toContain(0);
+    expect(crowded).toContain(31_840_000);
+    expect(crowded.some((tick) => tick < 0)).toBe(false);
     expect(formatDeltaUsdCompact(40)).toBe("+$40.0");
     expect(formatDeltaUsdCompact(-8)).toBe("-$8.0");
     expect(formatDeltaUsdCompact(0)).toBe("$0");
