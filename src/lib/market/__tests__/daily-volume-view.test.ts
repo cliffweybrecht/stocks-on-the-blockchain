@@ -9,17 +9,24 @@ import {
   nearestVolumePoint,
   pointerToSvgX,
   pointerToViewBoxX,
+  formatDeltaUsdCompact,
+  formatDeltaUsdFull,
+  hourlyRollingVolumeDeltas,
+  HOURLY_VOLUME_DELTA_CAPTION,
   scaleVolumePoints,
   deskRangeVolumeHeadline,
   deskVolumeHeadline,
   sumVolumePoints,
   volumeChartXTicks,
+  volumeDeltaYTicks,
   volumeHeadlineCopy,
+  VOLUME_CHART_INNER_H,
   VOLUME_CHART_PAD,
   VOLUME_CHART_RANGES,
   VOLUME_CHART_WIDTH,
 } from "../daily-volume-view";
 import { UTC_DAY_SECONDS } from "../volume-history";
+import { closedSnapshotVolumePoints } from "../volume-snapshots";
 
 const DAY0 = 1_699_920_000;
 
@@ -330,6 +337,129 @@ describe("hourlyVolumeChartXTicks", () => {
     for (let index = 1; index < ticks.length; index += 1) {
       expect(map.x(ticks[index]!) - map.x(ticks[index - 1]!)).toBeGreaterThanOrEqual(72);
     }
+  });
+});
+
+describe("scaleVolumePoints", () => {
+  it("keeps a nonnegative series anchored at zero and the max", () => {
+    const points = days(3);
+    const map = scaleVolumePoints(points);
+    expect(map.minY).toBe(0);
+    expect(map.maxY).toBe(27_300_000);
+    expect(map.y(0)).toBeCloseTo(VOLUME_CHART_PAD.top + VOLUME_CHART_INNER_H);
+    expect(map.y(map.maxY)).toBeCloseTo(VOLUME_CHART_PAD.top);
+  });
+
+  it("puts the zero baseline between positive and negative deltas", () => {
+    const map = scaleVolumePoints([
+      { t: DAY0, volumeUsd: -10, kind: "rolling_24h" },
+      { t: DAY0 + 3600, volumeUsd: 30, kind: "rolling_24h" },
+    ]);
+    expect(map.minY).toBe(-10);
+    expect(map.maxY).toBe(30);
+    expect(map.y(30)).toBeCloseTo(VOLUME_CHART_PAD.top);
+    expect(map.y(-10)).toBeCloseTo(VOLUME_CHART_PAD.top + VOLUME_CHART_INNER_H);
+    expect(map.y(0)).toBeGreaterThan(map.y(30));
+    expect(map.y(0)).toBeLessThan(map.y(-10));
+  });
+});
+
+describe("volumeDeltaYTicks", () => {
+  it("labels a signed axis in delta dollars and always includes zero", () => {
+    expect(volumeDeltaYTicks(0, 40)).toEqual([0, 10, 20, 30, 40]);
+    expect(volumeDeltaYTicks(-10, 30)).toEqual([-10, -5, 0, 15, 30]);
+    expect(volumeDeltaYTicks(-8, 0)).toEqual([0, -2, -4, -6, -8]);
+    expect(volumeDeltaYTicks(0, 0)).toEqual([0]);
+    expect(formatDeltaUsdCompact(40)).toBe("+$40.0");
+    expect(formatDeltaUsdCompact(-8)).toBe("-$8.0");
+    expect(formatDeltaUsdCompact(0)).toBe("$0");
+    expect(formatDeltaUsdFull(1250.5).startsWith("+")).toBe(true);
+    expect(formatDeltaUsdFull(-1250.5).startsWith("-")).toBe(true);
+  });
+});
+
+describe("hourlyRollingVolumeDeltas", () => {
+  it("plots each later capture minus the prior one and omits the first hour", () => {
+    const points = [100, 140, 90].map((volumeUsd, index) => ({
+      t: DAY0 + index * 3600,
+      volumeUsd,
+      kind: "rolling_24h" as const,
+    }));
+    const deltas = hourlyRollingVolumeDeltas(points);
+    expect(deltas).toEqual([
+      { t: points[1]!.t, priorT: points[0]!.t, volumeUsd: 40, kind: "rolling_24h" },
+      { t: points[2]!.t, priorT: points[1]!.t, volumeUsd: -50, kind: "rolling_24h" },
+    ]);
+    expect(deltas.some((point) => point.t === points[0]!.t)).toBe(false);
+    expect(HOURLY_VOLUME_DELTA_CAPTION).toMatch(/change in the DexScreener rolling 24h total/);
+    expect(HOURLY_VOLUME_DELTA_CAPTION).toMatch(/prior captured Eastern hour/);
+    expect(HOURLY_VOLUME_DELTA_CAPTION).toMatch(/Missing hours are omitted/);
+    expect(HOURLY_VOLUME_DELTA_CAPTION).not.toMatch(/24h total captured at that Eastern hour/);
+  });
+
+  it("does not invent a zero for the first point or a bar for a missing hour", () => {
+    const points = [0, 1, 3].map((hour) => ({
+      t: DAY0 + hour * 3600,
+      volumeUsd: 1_000 + hour * 100,
+      kind: "rolling_24h" as const,
+    }));
+    const deltas = hourlyRollingVolumeDeltas(points);
+    expect(deltas.map((point) => point.t)).toEqual([points[1]!.t, points[2]!.t]);
+    expect(deltas.map((point) => point.t)).not.toContain(DAY0 + 2 * 3600);
+    expect(deltas[0]?.volumeUsd).toBe(points[1]!.volumeUsd - points[0]!.volumeUsd);
+    expect(deltas[1]?.volumeUsd).toBe(points[2]!.volumeUsd - points[1]!.volumeUsd);
+    expect(deltas[1]?.priorT).toBe(points[1]!.t);
+    expect(hourlyRollingVolumeDeltas(points.slice(0, 1))).toEqual([]);
+  });
+
+  it("keeps a real zero change and sorts before differencing", () => {
+    const earlier = { t: DAY0, volumeUsd: 10, kind: "rolling_24h" as const };
+    const flat = { t: DAY0 + 3600, volumeUsd: 10, kind: "rolling_24h" as const };
+    const later = { t: DAY0 + 7200, volumeUsd: 4, kind: "rolling_24h" as const };
+    expect(hourlyRollingVolumeDeltas([later, earlier, flat])).toEqual([
+      { t: flat.t, priorT: earlier.t, volumeUsd: 0, kind: "rolling_24h" },
+      { t: later.t, priorT: flat.t, volumeUsd: -6, kind: "rolling_24h" },
+    ]);
+  });
+
+  it("skips invalid levels and closed days instead of treating them as a prior hour", () => {
+    const points = [
+      { t: DAY0, volumeUsd: 100, kind: "calendar_day" as const },
+      { t: DAY0 + 3600, volumeUsd: 10, kind: "rolling_24h" as const },
+      { t: DAY0 + 7200, volumeUsd: Number.NaN, kind: "rolling_24h" as const },
+      { t: DAY0 + 10_800, volumeUsd: -5, kind: "rolling_24h" as const },
+      { t: DAY0 + 14_400, volumeUsd: 8, kind: "rolling_24h" as const },
+    ];
+    expect(hourlyRollingVolumeDeltas(points)).toEqual([
+      {
+        t: DAY0 + 14_400,
+        priorT: DAY0 + 3600,
+        volumeUsd: -2,
+        kind: "rolling_24h",
+      },
+    ]);
+  });
+
+  it("replaces a repeated hour instead of plotting two bars at the same time", () => {
+    const points = [
+      { t: DAY0, volumeUsd: 10, kind: "rolling_24h" as const },
+      { t: DAY0, volumeUsd: 15, kind: "rolling_24h" as const },
+      { t: DAY0 + 3600, volumeUsd: 18, kind: "rolling_24h" as const },
+    ];
+    expect(hourlyRollingVolumeDeltas(points)).toEqual([
+      { t: DAY0 + 3600, priorT: DAY0, volumeUsd: 3, kind: "rolling_24h" },
+    ]);
+  });
+
+  it("does not run rolling hours through closedSnapshotVolumePoints", () => {
+    const points = [
+      { t: DAY0, volumeUsd: 10, kind: "rolling_24h" as const },
+      { t: DAY0 + 3600, volumeUsd: 14, kind: "rolling_24h" as const },
+    ];
+    expect(closedSnapshotVolumePoints(points, DAY0 + 10_000)).toEqual([]);
+    expect(hourlyRollingVolumeDeltas(points)).toEqual([
+      { t: DAY0 + 3600, priorT: DAY0, volumeUsd: 4, kind: "rolling_24h" },
+    ]);
   });
 });
 

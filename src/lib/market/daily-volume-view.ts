@@ -1,13 +1,31 @@
 import { combinedPublicPrivateVolume24h } from "./aggregate";
-import { formatChartClock, formatChartDate, formatChartDay, formatChartTick } from "./format";
+import {
+  formatChartClock,
+  formatChartDate,
+  formatChartDay,
+  formatChartTick,
+  formatUsdCompact,
+  formatUsdFull,
+} from "./format";
 import type { VolumeHistoryPoint } from "./types";
 import { utcDayStart } from "./volume-history";
 
 /**
  * 24H headline is the live DexScreener rollup (public + private + ETF/index).
- * The 24H plot is hourly captures (`hourlyHistory`), not a closed America/New_York day.
+ * The 24H plot is the hour-over-hour change in `hourlyHistory` captures, not the
+ * absolute rolling total and not a closed America/New_York day.
  * 7D/14D/30D stay sums of closed desk snapshot days.
  */
+
+/** Footer under the 24H delta bars. The live headline copy stays a separate line. */
+export const HOURLY_VOLUME_DELTA_CAPTION =
+  "Each point is the change in the DexScreener rolling 24h total vs the prior captured Eastern hour. Missing hours are omitted.";
+
+export const HOURLY_VOLUME_DELTA_ARIA =
+  "Hour-over-hour change in the DexScreener rolling 24h total. Each bar is the change versus the prior captured Eastern hour. Missing hours are omitted.";
+
+export const HOURLY_VOLUME_DELTA_EMPTY =
+  "Hour-over-hour change needs a prior captured Eastern hour. Missing hours are not invented.";
 export const VOLUME_CHART_RANGES = [
   { id: "24h", label: "24H", rolling: true },
   { id: "7d", label: "7D", days: 7 },
@@ -51,19 +69,107 @@ export function filterVolumeRange(
   return filtered.length > 0 ? filtered : [...points];
 }
 
-export function scaleVolumePoints(points: readonly VolumeHistoryPoint[]) {
+export function scaleVolumePoints(points: readonly VolumeHistoryPoint[], options?: { xInset?: number }) {
   const minT = points[0]?.t ?? 0;
   const maxT = points[points.length - 1]?.t ?? 1;
-  const maxY = Math.max(...points.map((point) => point.volumeUsd), 0);
+  const finite = points.map((point) => point.volumeUsd).filter((value) => Number.isFinite(value));
+  const dataMin = finite.length > 0 ? Math.min(...finite) : 0;
+  const dataMax = finite.length > 0 ? Math.max(...finite) : 0;
+  // Zero stays in frame so a delta chart has a baseline. Nonnegative series
+  // still scale from 0 to the max, matching the closed-day chart.
+  const minY = Math.min(0, dataMin);
+  const maxY = Math.max(0, dataMax);
+  const xInset = Math.max(0, options?.xInset ?? 0);
   const spanT = Math.max(maxT - minT, 1);
-  const spanY = maxY > 0 ? maxY : 1;
+  const spanY = maxY - minY > 0 ? maxY - minY : 1;
+  const usableW = Math.max(VOLUME_CHART_INNER_W - xInset * 2, 1);
+  const centerSingle = points.length <= 1 && xInset > 0;
   return {
     minT,
     maxT,
+    minY,
     maxY,
-    x: (t: number) => VOLUME_CHART_PAD.left + ((t - minT) / spanT) * VOLUME_CHART_INNER_W,
-    y: (value: number) => VOLUME_CHART_PAD.top + VOLUME_CHART_INNER_H - (value / spanY) * VOLUME_CHART_INNER_H,
+    x: (t: number) =>
+      centerSingle
+        ? VOLUME_CHART_PAD.left + VOLUME_CHART_INNER_W / 2
+        : VOLUME_CHART_PAD.left + xInset + ((t - minT) / spanT) * usableW,
+    y: (value: number) =>
+      VOLUME_CHART_PAD.top + VOLUME_CHART_INNER_H - ((value - minY) / spanY) * VOLUME_CHART_INNER_H,
   };
+}
+
+/**
+ * Y ticks for a signed delta axis. Always includes 0. Nonnegative series keep
+ * the closed-day quarters of the max so 7D/14D/30D labels do not move.
+ */
+export function volumeDeltaYTicks(minY: number, maxY: number): number[] {
+  const lo = Math.min(minY, 0);
+  const hi = Math.max(maxY, 0);
+  if (lo === 0 && hi === 0) return [0];
+  if (lo === 0) return [0, 0.25, 0.5, 0.75, 1].map((frac) => hi * frac);
+  if (hi === 0) return [0, 0.25, 0.5, 0.75, 1].map((frac) => (frac === 0 ? 0 : lo * frac));
+  return [lo, lo / 2, 0, hi / 2, hi];
+}
+
+/** Compact delta axis label. Positive values carry an explicit plus. */
+export function formatDeltaUsdCompact(value: number): string {
+  const text = formatUsdCompact(value);
+  if (value > 0 && text.startsWith("$")) return `+${text}`;
+  return text;
+}
+
+/** Tooltip amount for a signed delta. Closed-day tooltips stay on `formatUsdFull`. */
+export function formatDeltaUsdFull(value: number): string {
+  const text = formatUsdFull(value);
+  if (value > 0 && text.startsWith("$")) return `+${text}`;
+  return text;
+}
+
+/** One plotted 24H bar: change versus the previous captured hour, at the later hour. */
+export interface HourlyRollingDeltaPoint extends VolumeHistoryPoint {
+  priorT: number;
+  kind: "rolling_24h";
+}
+
+/**
+ * Captured rolling hours the 24H chart is allowed to difference.
+ * Drops closed snapshot days, non-finite rows, and negative levels (a rolling
+ * total is never negative). Same Eastern hour keeps the last row. Does not
+ * insert missing hours and does not call `closedSnapshotVolumePoints`.
+ */
+export function plottableHourlyRollingPoints(points: readonly VolumeHistoryPoint[]): VolumeHistoryPoint[] {
+  const byT = new Map<number, VolumeHistoryPoint>();
+  for (const point of points) {
+    if (point.kind === "calendar_day") continue;
+    if (!Number.isFinite(point.t) || point.t <= 0) continue;
+    if (!Number.isFinite(point.volumeUsd) || point.volumeUsd < 0) continue;
+    byT.set(point.t, { t: point.t, volumeUsd: point.volumeUsd, kind: point.kind ?? "rolling_24h" });
+  }
+  return [...byT.values()].sort((a, b) => a.t - b.t);
+}
+
+/**
+ * Hour-over-hour change of the rolling 24h snapshot total.
+ * For each consecutive captured pair, plot `volumeUsd[i] - volumeUsd[i-1]` at `t[i]`.
+ * The first capture has no prior and is omitted — not drawn as zero.
+ * A gap stays a gap: the next captured hour is differenced against the prior
+ * capture, and no hour is invented in between.
+ */
+export function hourlyRollingVolumeDeltas(points: readonly VolumeHistoryPoint[]): HourlyRollingDeltaPoint[] {
+  const rows = plottableHourlyRollingPoints(points);
+  const deltas: HourlyRollingDeltaPoint[] = [];
+  for (let index = 1; index < rows.length; index += 1) {
+    const prior = rows[index - 1];
+    const current = rows[index];
+    if (!prior || !current) continue;
+    deltas.push({
+      t: current.t,
+      priorT: prior.t,
+      volumeUsd: current.volumeUsd - prior.volumeUsd,
+      kind: "rolling_24h",
+    });
+  }
+  return deltas;
 }
 
 export type VolumeChartScale = ReturnType<typeof scaleVolumePoints>;
@@ -186,7 +292,7 @@ const HOURLY_TICK_MIN_GAP_PX = 72;
  * Does not insert hours the desk did not record. The newest capture stays
  * labeled when it would otherwise sit on the previous tick.
  */
-export function hourlyVolumeChartXTicks(points: readonly VolumeHistoryPoint[]): number[] {
+export function hourlyVolumeChartXTicks(points: readonly VolumeHistoryPoint[], xInset = 0): number[] {
   if (points.length === 0) return [];
   const step = points.length > 16 ? 3 : points.length > 8 ? 2 : 1;
   const chosen: number[] = [];
@@ -200,13 +306,18 @@ export function hourlyVolumeChartXTicks(points: readonly VolumeHistoryPoint[]): 
   return spaceHourlyTickTimes(
     chosen.map((index) => points[index]!.t),
     points,
+    xInset,
   );
 }
 
 /** Drop any remaining pair whose centers would overlap. Keep the later hour. */
-function spaceHourlyTickTimes(ticks: readonly number[], points: readonly VolumeHistoryPoint[]): number[] {
+function spaceHourlyTickTimes(
+  ticks: readonly number[],
+  points: readonly VolumeHistoryPoint[],
+  xInset = 0,
+): number[] {
   if (ticks.length <= 1) return [...ticks];
-  const map = scaleVolumePoints(points);
+  const map = scaleVolumePoints(points, { xInset });
   const kept: number[] = [];
   for (const t of ticks) {
     const prev = kept[kept.length - 1];
