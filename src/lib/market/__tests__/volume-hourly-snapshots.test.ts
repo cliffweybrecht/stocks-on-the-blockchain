@@ -5,14 +5,18 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { FileDeskHourlyVolumeSnapshotStore } from "../volume-hourly-snapshot-store";
 import {
+  buildHourlyRollingEquityVolumeHistory,
+  buildHourlyRollingVolumeHistory,
   deskHourlyVolumeSnapshotFromDetail,
   easternHourStamp,
+  easternHourStartUnix,
   parseDeskHourlyVolumeSnapshotRecords,
   recordDeskHourlyVolumeFromDetail,
   serializeDeskHourlyVolumeSnapshots,
   upsertDeskHourlyVolumeSnapshot,
   MemoryDeskHourlyVolumeSnapshotStore,
   type DeskHourlyVolumeDetail,
+  type DeskHourlyVolumeSnapshot,
 } from "../volume-hourly-snapshots";
 import { buildSnapshotEquityVolumeHistory, parseDeskVolumeSnapshotRecords } from "../volume-snapshots";
 import { FileDeskVolumeSnapshotStore } from "../volume-snapshot-store";
@@ -219,6 +223,112 @@ describe("hourly totals stay off the closed-day chart", () => {
   });
 });
 
+function hourlyRow(
+  hour: string,
+  combined24hUsd: number | null,
+  offset = "-04:00",
+): DeskHourlyVolumeSnapshot {
+  return {
+    hour,
+    offset,
+    t: easternHourStartUnix(hour, offset),
+    publicEquity24hUsd: combined24hUsd === null ? null : 1,
+    private24hUsd: null,
+    etfIndex24hUsd: null,
+    combined24hUsd,
+    publicLiquidityUsd: null,
+    privateLiquidityUsd: null,
+    etfIndexLiquidityUsd: null,
+    combinedLiquidityUsd: null,
+    generatedAt: "2026-09-29T22:00:00.000Z",
+  };
+}
+
+describe("buildHourlyRollingVolumeHistory", () => {
+  const nowT = easternHourStartUnix("2026-09-29T18", "-04:00");
+  const rows = [
+    hourlyRow("2026-09-28T17", 99),
+    hourlyRow("2026-09-28T18", 1),
+    hourlyRow("2026-09-29T08", 8),
+    hourlyRow("2026-09-29T10", 10),
+    hourlyRow("2026-09-29T11", 4),
+    hourlyRow("2026-09-29T11", 11),
+    hourlyRow("2026-09-29T17", null),
+    hourlyRow("2026-09-29T18", 18),
+    hourlyRow("2026-09-29T19", 19),
+  ];
+
+  it("keeps Eastern hours inside the last 24h and drops the rest", () => {
+    const points = buildHourlyRollingVolumeHistory(rows, nowT);
+    expect(points.map((point) => point.t)).toEqual([
+      easternHourStartUnix("2026-09-28T18", "-04:00"),
+      easternHourStartUnix("2026-09-29T08", "-04:00"),
+      easternHourStartUnix("2026-09-29T10", "-04:00"),
+      easternHourStartUnix("2026-09-29T11", "-04:00"),
+      easternHourStartUnix("2026-09-29T18", "-04:00"),
+    ]);
+    expect(points.every((point) => point.kind === "rolling_24h")).toBe(true);
+    expect(points.map((point) => point.volumeUsd)).toEqual([1, 8, 10, 11, 18]);
+    expect(points.some((point) => point.volumeUsd === 1 && point.t === easternHourStartUnix("2026-09-29T08", "-04:00"))).toBe(
+      false,
+    );
+  });
+
+  it("leaves T09 and T17 gaps absent and skips a null combined total", () => {
+    const points = buildHourlyRollingVolumeHistory(rows, nowT);
+    const missing = [
+      easternHourStartUnix("2026-09-29T09", "-04:00"),
+      easternHourStartUnix("2026-09-29T17", "-04:00"),
+    ];
+    for (const t of missing) {
+      expect(points.some((point) => point.t === t)).toBe(false);
+    }
+    const t08 = easternHourStartUnix("2026-09-29T08", "-04:00");
+    const t10 = easternHourStartUnix("2026-09-29T10", "-04:00");
+    expect(t10 - t08).toBe(7_200);
+    expect(points.filter((point) => point.t === t08 || point.t === t10)).toHaveLength(2);
+  });
+
+  it("returns nothing for an invalid clock and does not treat a negative total as zero", () => {
+    expect(buildHourlyRollingVolumeHistory(rows, Number.NaN)).toEqual([]);
+    expect(buildHourlyRollingVolumeHistory(rows, 0)).toEqual([]);
+    const negative = hourlyRow("2026-09-29T12", -5);
+    expect(buildHourlyRollingVolumeHistory([negative], nowT)).toEqual([]);
+    const zero = hourlyRow("2026-09-29T12", 0);
+    expect(buildHourlyRollingVolumeHistory([zero], nowT)).toEqual([
+      { t: zero.t, volumeUsd: 0, kind: "rolling_24h" },
+    ]);
+  });
+
+  it("builds an hourly history object without inventing points when the window is empty", () => {
+    const history = buildHourlyRollingEquityVolumeHistory({
+      snapshots: rows,
+      nowT,
+      generatedAt: "2026-09-29T22:00:00.000Z",
+    });
+    expect(history.available).toBe(true);
+    expect(history.points.at(-1)).toEqual({
+      t: easternHourStartUnix("2026-09-29T18", "-04:00"),
+      volumeUsd: 18,
+      kind: "rolling_24h",
+    });
+    expect(history.volume24hUsd).toBe(18);
+    expect(history.definition).toMatch(/rolling h24/);
+    expect(history.definition).toMatch(/not volume during the hour alone/);
+    expect(history.sourceLabel).toMatch(/rolling 24h/);
+    expect(history.emptyReason).toBeNull();
+
+    const empty = buildHourlyRollingEquityVolumeHistory({
+      snapshots: [hourlyRow("2026-09-29T17", null)],
+      nowT,
+      generatedAt: "2026-09-29T22:00:00.000Z",
+    });
+    expect(empty.available).toBe(false);
+    expect(empty.points).toEqual([]);
+    expect(empty.emptyReason).toMatch(/not invented/);
+  });
+});
+
 describe("FileDeskHourlyVolumeSnapshotStore", () => {
   it("round-trips one compact row and fails closed on garbage", async () => {
     const dir = await mkdtemp(join(tmpdir(), "sotb-hourly-"));
@@ -241,13 +351,27 @@ describe("FileDeskHourlyVolumeSnapshotStore", () => {
     expect(parseDeskHourlyVolumeSnapshotRecords(JSON.parse(raw))).toHaveLength(1);
   });
 
-  it("parses the committed envelope as an empty series", () => {
-    const raw = JSON.parse(readFileSync(join(process.cwd(), "data/volume-snapshots/solana-hourly.json"), "utf8"));
+  it("parses the committed hourly file as captured hours only", () => {
+    const text = readFileSync(join(process.cwd(), "data/volume-snapshots/solana-hourly.json"), "utf8");
+    const raw = JSON.parse(text) as {
+      hourKey: string;
+      kind: string;
+      records: { hour: string }[];
+    };
     expect(raw.hourKey).toBe("America/New_York");
     expect(raw.kind).toBe("rolling_h24_totals");
-    expect(parseDeskHourlyVolumeSnapshotRecords(raw)).toEqual([]);
-    expect(serializeDeskHourlyVolumeSnapshots([])).toBe(
-      readFileSync(join(process.cwd(), "data/volume-snapshots/solana-hourly.json"), "utf8"),
-    );
+    const parsed = parseDeskHourlyVolumeSnapshotRecords(raw);
+    expect(parsed.map((row) => row.hour)).toEqual(raw.records.map((row) => row.hour));
+    expect(serializeDeskHourlyVolumeSnapshots(parsed)).toBe(text);
+    const latest = parsed[parsed.length - 1];
+    expect(latest).toBeTruthy();
+    if (!latest) return;
+    const points = buildHourlyRollingVolumeHistory(parsed, latest.t);
+    const captured = new Set(parsed.map((row) => row.t));
+    expect(points.every((point) => captured.has(point.t) && point.kind === "rolling_24h")).toBe(true);
+    for (const hour of ["2026-09-29T09", "2026-09-29T17"]) {
+      if (parsed.some((row) => row.hour === hour)) continue;
+      expect(points.some((point) => point.t === easternHourStartUnix(hour, "-04:00"))).toBe(false);
+    }
   });
 });

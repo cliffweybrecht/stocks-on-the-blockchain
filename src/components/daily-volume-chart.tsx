@@ -40,7 +40,18 @@ function linePath(
   return `M ${points.map((point) => `${map.x(point.t).toFixed(2)},${map.y(point.volumeUsd).toFixed(2)}`).join(" L ")}`;
 }
 
-export function DailyVolumeChart({ history }: { history: EquityVolumeHistoryResult }) {
+export function DailyVolumeChart({
+  history,
+  hourlyHistory = null,
+}: {
+  history: EquityVolumeHistoryResult;
+  /**
+   * Last ~24 Eastern hours of DexScreener rolling h24 desk totals for 24H mode.
+   * Plot `hourlyHistory.points` (`kind: "rolling_24h"`, y = `combined24hUsd`, x = Eastern hour start).
+   * 7D/14D/30D keep using closed days from `history`.
+   */
+  hourlyHistory?: EquityVolumeHistoryResult | null;
+}) {
   const [range, setRange] = useState<VolumeChartRangeId>("7d");
   const [hover, setHover] = useState<VolumeHistoryPoint | null>(null);
 
@@ -73,7 +84,10 @@ export function DailyVolumeChart({ history }: { history: EquityVolumeHistoryResu
   }
 
   return (
-    <section className="rounded-xl border border-border bg-card/80 px-4 py-4 sm:px-5">
+    <section
+      className="rounded-xl border border-border bg-card/80 px-4 py-4 sm:px-5"
+      data-hourly-rolling-count={hourlyHistory?.points.length ?? 0}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="font-heading text-[9px] leading-tight font-medium tracking-wide text-foreground/90">
