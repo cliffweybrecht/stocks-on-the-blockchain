@@ -319,8 +319,9 @@ export interface MarketDataSource {
    * Last ~24 America/New_York hours of DexScreener rolling h24 desk totals
    * from `solana-hourly.json`. Each point is `kind: "rolling_24h"` with
    * `volumeUsd` = combined public + private + ETF/index and `t` = that
-   * Eastern hour’s unix start. Missing hours are omitted. Does not read or
-   * write the closed-day snapshot file.
+   * Eastern hour’s unix start. Captured hours only — missing hours are not
+   * stored as points. The 24H chart still marks every Eastern hour in the
+   * window and leaves a miss empty. Does not read or write the closed-day file.
    */
   getEquityHourlyRollingVolumeHistory(): Promise<EquityVolumeHistoryResult>;
   getAssetPriceHistory(chainId: string, symbol: string): Promise<AssetPriceHistoryResult>;

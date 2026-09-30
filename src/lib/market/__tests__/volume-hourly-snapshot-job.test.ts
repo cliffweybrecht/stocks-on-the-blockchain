@@ -6,6 +6,7 @@ import { SolanaMarketDataSource } from "../solana-source";
 import type { ChainDetailResult, ChainVolume, DataProvenance } from "../types";
 import {
   formatDeskHourlyVolumeSnapshotSuccess,
+  readHourlyTargetHour,
   runDeskHourlyVolumeSnapshotCli,
   runDeskHourlyVolumeSnapshotJob,
 } from "../volume-hourly-snapshot-job";
@@ -191,6 +192,106 @@ describe("runDeskHourlyVolumeSnapshotJob", () => {
     const saved = await store.load();
     expect(saved).toHaveLength(1);
     expect(JSON.stringify(saved[0])).not.toMatch(/TSLAx|pair-spy|pairAddress/);
+  });
+});
+
+describe("pinned Eastern hour", () => {
+  const lateFetch = "2026-09-23T13:10:00.000Z";
+  const clockT = Date.parse(lateFetch) / 1000;
+
+  it("writes the target hour when DexScreener finishes after the hour rolls", async () => {
+    const store = new MemoryDeskHourlyVolumeSnapshotStore();
+    const result = await runDeskHourlyVolumeSnapshotJob({
+      source: { getChain: async () => mockDetail(lateFetch) },
+      store,
+      targetHour: "2026-09-23T08",
+      clockT,
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.snapshot.hour).toBe("2026-09-23T08");
+    expect(result.snapshot.offset).toBe("-04:00");
+    expect(result.snapshot.t).toBe(Date.parse("2026-09-23T08:00:00-04:00") / 1000);
+    expect(result.snapshot.generatedAt).toBe(lateFetch);
+    expect(result.snapshot.combined24hUsd).toBeCloseTo(127_000_000);
+    expect(await store.load()).toEqual([result.snapshot]);
+  });
+
+  it("stamps the fetch hour when no target is pinned", async () => {
+    const store = new MemoryDeskHourlyVolumeSnapshotStore();
+    const result = await runDeskHourlyVolumeSnapshotJob({
+      source: { getChain: async () => mockDetail(lateFetch) },
+      store,
+      clockT,
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.snapshot.hour).toBe("2026-09-23T09");
+    expect(result.snapshot.generatedAt).toBe(lateFetch);
+  });
+
+  it("does not fetch or write when the pin would backfill a past miss", async () => {
+    const store = new MemoryDeskHourlyVolumeSnapshotStore();
+    let calls = 0;
+    const result = await runDeskHourlyVolumeSnapshotJob({
+      source: {
+        getChain: async () => {
+          calls += 1;
+          return mockDetail(lateFetch);
+        },
+      },
+      store,
+      targetHour: "2026-09-20T08",
+      clockT,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toMatch(/not backfilled/);
+    expect(calls).toBe(0);
+    expect(await store.load()).toEqual([]);
+  });
+
+  it("reads HOURLY_TARGET_HOUR and --hour without touching solana.json", async () => {
+    expect(readHourlyTargetHour({ HOURLY_TARGET_HOUR: "2026-09-23T08", SNAPSHOT_HOUR: "2026-09-23T09" })).toEqual({
+      ok: true,
+      hour: "2026-09-23T08",
+    });
+    expect(readHourlyTargetHour({ SNAPSHOT_HOUR: "2026-09-23T09" }, ["--hour", "2026-09-23T08"])).toEqual({
+      ok: true,
+      hour: "2026-09-23T08",
+    });
+    expect(readHourlyTargetHour({}, ["--snapshot-hour=2026-09-23T08"])).toEqual({
+      ok: true,
+      hour: "2026-09-23T08",
+    });
+    expect(readHourlyTargetHour({}, ["--hour"])).toEqual({
+      ok: false,
+      reason: "--hour needs an America/New_York hour (YYYY-MM-DDTHH).",
+    });
+
+    const dir = await mkdtemp(join(tmpdir(), "sotb-hourly-pin-"));
+    const sentinel = '{"version":1,"records":[{"date":"sentinel"}]}\n';
+    await writeFile(join(dir, "solana.json"), sentinel, "utf8");
+    const logs: string[] = [];
+    const code = await runDeskHourlyVolumeSnapshotCli({
+      env: {
+        SOLANA_MARKET_ENABLED: "true",
+        SOLANA_VOLUME_SNAPSHOT_DIR: dir,
+        HOURLY_TARGET_HOUR: "2026-09-23T08",
+      },
+      source: { getChain: async () => mockDetail(lateFetch) },
+      clockT,
+      log: (message) => logs.push(message),
+    });
+    expect(code).toBe(0);
+    expect(logs[0]).toMatch(/wrote 2026-09-23T08-04:00 combined=127000000/);
+    expect(await readFile(join(dir, "solana.json"), "utf8")).toBe(sentinel);
+    const hourly = JSON.parse(await readFile(join(dir, "solana-hourly.json"), "utf8")) as {
+      records: { hour: string; generatedAt: string; combined24hUsd: number }[];
+    };
+    expect(hourly.records).toHaveLength(1);
+    expect(hourly.records[0]?.hour).toBe("2026-09-23T08");
+    expect(hourly.records[0]?.generatedAt).toBe(lateFetch);
+    expect(hourly.records[0]?.combined24hUsd).toBeCloseTo(127_000_000);
   });
 });
 

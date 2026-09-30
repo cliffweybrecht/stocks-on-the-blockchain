@@ -10,8 +10,10 @@ import {
   deskHourlyVolumeSnapshotFromDetail,
   easternHourStamp,
   easternHourStartUnix,
+  easternRollingHourStarts,
   parseDeskHourlyVolumeSnapshotRecords,
   recordDeskHourlyVolumeFromDetail,
+  resolvePinnedEasternHour,
   serializeDeskHourlyVolumeSnapshots,
   upsertDeskHourlyVolumeSnapshot,
   MemoryDeskHourlyVolumeSnapshotStore,
@@ -274,6 +276,38 @@ describe("buildHourlyRollingVolumeHistory", () => {
     );
   });
 
+  it("lists every Eastern hour in the window, including hours with no snapshot", () => {
+    const slots = easternRollingHourStarts(nowT);
+    expect(slots[0]).toBe(easternHourStartUnix("2026-09-28T18", "-04:00"));
+    expect(slots.at(-1)).toBe(nowT);
+    expect(slots).toHaveLength(25);
+    expect(slots).toContain(easternHourStartUnix("2026-09-29T09", "-04:00"));
+    expect(slots).toContain(easternHourStartUnix("2026-09-29T17", "-04:00"));
+    const points = buildHourlyRollingVolumeHistory(rows, nowT);
+    for (const t of slots) {
+      const captured = points.some((point) => point.t === t);
+      const row = rows.find((item) => item.t === t && item.combined24hUsd !== null && item.hour !== "2026-09-28T17");
+      if (!captured) {
+        expect(row?.combined24hUsd ?? null).toBeNull();
+      }
+    }
+    expect(points.some((point) => point.t === easternHourStartUnix("2026-09-29T09", "-04:00"))).toBe(false);
+    expect(easternRollingHourStarts(Number.NaN)).toEqual([]);
+  });
+
+  it("keeps both fall-back hours and does not invent the spring-forward gap", () => {
+    const fallNow = Date.parse("2026-11-01T08:30:00.000Z") / 1000;
+    const fallSlots = easternRollingHourStarts(fallNow).map((t) => easternHourStamp(t));
+    const labels = fallSlots.map((stamp) => (stamp ? `${stamp.hour}${stamp.offset}` : ""));
+    expect(labels).toContain("2026-11-01T01-04:00");
+    expect(labels).toContain("2026-11-01T01-05:00");
+    const springNow = Date.parse("2026-03-08T09:00:00.000Z") / 1000;
+    const springHours = easternRollingHourStarts(springNow).map((t) => easternHourStamp(t)?.hour);
+    expect(springHours).toContain("2026-03-08T01");
+    expect(springHours).toContain("2026-03-08T03");
+    expect(springHours).not.toContain("2026-03-08T02");
+  });
+
   it("leaves T09 and T17 gaps absent and skips a null combined total", () => {
     const points = buildHourlyRollingVolumeHistory(rows, nowT);
     const missing = [
@@ -326,6 +360,49 @@ describe("buildHourlyRollingVolumeHistory", () => {
     expect(empty.available).toBe(false);
     expect(empty.points).toEqual([]);
     expect(empty.emptyReason).toMatch(/not invented/);
+  });
+});
+
+describe("resolvePinnedEasternHour", () => {
+  const duringNextHour = Date.parse("2026-09-23T13:10:00.000Z") / 1000;
+
+  it("accepts the current hour and the hour the clock just left", () => {
+    expect(resolvePinnedEasternHour("  ", duringNextHour)).toEqual({ ok: true, stamp: null });
+    const current = resolvePinnedEasternHour("2026-09-23T09", duringNextHour);
+    expect(current.ok && current.stamp?.hour).toBe("2026-09-23T09");
+    expect(current.ok && current.stamp?.offset).toBe("-04:00");
+    const previous = resolvePinnedEasternHour("2026-09-23T08-04:00", duringNextHour);
+    expect(previous.ok && previous.stamp?.hour).toBe("2026-09-23T08");
+    expect(previous.ok && previous.stamp?.t).toBe(Date.parse("2026-09-23T08:00:00-04:00") / 1000);
+    const twoBack = resolvePinnedEasternHour("2026-09-23T07", duringNextHour);
+    expect(twoBack.ok && twoBack.stamp?.hour).toBe("2026-09-23T07");
+  });
+
+  it("refuses a future hour, a backfill, a spring-forward gap, and an ambiguous fall-back hour", () => {
+    const future = resolvePinnedEasternHour("2026-09-23T10", duringNextHour);
+    expect(future.ok).toBe(false);
+    if (!future.ok) expect(future.reason).toMatch(/future/);
+
+    const old = resolvePinnedEasternHour("2026-09-23T06", duringNextHour);
+    expect(old.ok).toBe(false);
+    if (!old.ok) expect(old.reason).toMatch(/not backfilled/);
+
+    const gap = resolvePinnedEasternHour("2026-03-08T02", Date.parse("2026-03-08T07:30:00.000Z") / 1000);
+    expect(gap.ok).toBe(false);
+    if (!gap.ok) expect(gap.reason).toMatch(/not a real/);
+
+    const ambiguous = resolvePinnedEasternHour("2026-11-01T01", Date.parse("2026-11-01T06:30:00.000Z") / 1000);
+    expect(ambiguous.ok).toBe(false);
+    if (!ambiguous.ok) expect(ambiguous.reason).toMatch(/ambiguous/);
+
+    const first = resolvePinnedEasternHour("2026-11-01T01-04:00", Date.parse("2026-11-01T06:30:00.000Z") / 1000);
+    const second = resolvePinnedEasternHour("2026-11-01T01-05:00", Date.parse("2026-11-01T06:30:00.000Z") / 1000);
+    expect(first.ok).toBe(true);
+    expect(second.ok).toBe(true);
+    if (!first.ok || !second.ok || !first.stamp || !second.stamp) return;
+    expect(first.stamp.offset).toBe("-04:00");
+    expect(second.stamp.offset).toBe("-05:00");
+    expect(first.stamp.t).not.toBe(second.stamp.t);
   });
 });
 

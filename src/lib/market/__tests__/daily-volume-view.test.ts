@@ -21,6 +21,7 @@ import {
   volumeDeltaYTicks,
   volumeHeadlineCopy,
   VOLUME_CHART_INNER_H,
+  VOLUME_CHART_INNER_W,
   VOLUME_CHART_PAD,
   VOLUME_CHART_RANGES,
   VOLUME_CHART_WIDTH,
@@ -350,6 +351,20 @@ describe("scaleVolumePoints", () => {
     expect(map.y(map.maxY)).toBeCloseTo(VOLUME_CHART_PAD.top);
   });
 
+  it("keeps empty hours in an explicit time domain without inventing their volume", () => {
+    const domain = [0, 3600, 7200, 10_800];
+    const map = scaleVolumePoints([{ t: 3600, volumeUsd: 10, kind: "rolling_24h" }], {
+      domainT: domain,
+      xInset: 0,
+    });
+    expect(map.minT).toBe(0);
+    expect(map.maxT).toBe(10_800);
+    expect(map.x(0)).toBeCloseTo(VOLUME_CHART_PAD.left);
+    expect(map.x(10_800)).toBeCloseTo(VOLUME_CHART_PAD.left + VOLUME_CHART_INNER_W);
+    expect(map.maxY).toBe(10);
+    expect(map.minY).toBe(0);
+  });
+
   it("puts the zero baseline between positive and negative deltas", () => {
     const map = scaleVolumePoints([
       { t: DAY0, volumeUsd: -10, kind: "rolling_24h" },
@@ -396,23 +411,25 @@ describe("hourlyRollingVolumeDeltas", () => {
     ]);
     expect(deltas.some((point) => point.t === points[0]!.t)).toBe(false);
     expect(HOURLY_VOLUME_DELTA_CAPTION).toMatch(/change in the DexScreener rolling 24h total/);
-    expect(HOURLY_VOLUME_DELTA_CAPTION).toMatch(/prior captured Eastern hour/);
-    expect(HOURLY_VOLUME_DELTA_CAPTION).toMatch(/Missing hours are omitted/);
+    expect(HOURLY_VOLUME_DELTA_CAPTION).toMatch(/previous Eastern hour/);
+    expect(HOURLY_VOLUME_DELTA_CAPTION).toMatch(/Every hour in the window is shown/);
+    expect(HOURLY_VOLUME_DELTA_CAPTION).toMatch(/missing captures are left empty/);
+    expect(HOURLY_VOLUME_DELTA_CAPTION).not.toMatch(/Missing hours are omitted/);
     expect(HOURLY_VOLUME_DELTA_CAPTION).not.toMatch(/24h total captured at that Eastern hour/);
   });
 
-  it("does not invent a zero for the first point or a bar for a missing hour", () => {
+  it("does not invent a zero for the first point or a delta across a missing hour", () => {
     const points = [0, 1, 3].map((hour) => ({
       t: DAY0 + hour * 3600,
       volumeUsd: 1_000 + hour * 100,
       kind: "rolling_24h" as const,
     }));
     const deltas = hourlyRollingVolumeDeltas(points);
-    expect(deltas.map((point) => point.t)).toEqual([points[1]!.t, points[2]!.t]);
+    expect(deltas.map((point) => point.t)).toEqual([points[1]!.t]);
     expect(deltas.map((point) => point.t)).not.toContain(DAY0 + 2 * 3600);
+    expect(deltas.map((point) => point.t)).not.toContain(points[2]!.t);
     expect(deltas[0]?.volumeUsd).toBe(points[1]!.volumeUsd - points[0]!.volumeUsd);
-    expect(deltas[1]?.volumeUsd).toBe(points[2]!.volumeUsd - points[1]!.volumeUsd);
-    expect(deltas[1]?.priorT).toBe(points[1]!.t);
+    expect(deltas[0]?.priorT).toBe(points[0]!.t);
     expect(hourlyRollingVolumeDeltas(points.slice(0, 1))).toEqual([]);
   });
 
@@ -434,14 +451,7 @@ describe("hourlyRollingVolumeDeltas", () => {
       { t: DAY0 + 10_800, volumeUsd: -5, kind: "rolling_24h" as const },
       { t: DAY0 + 14_400, volumeUsd: 8, kind: "rolling_24h" as const },
     ];
-    expect(hourlyRollingVolumeDeltas(points)).toEqual([
-      {
-        t: DAY0 + 14_400,
-        priorT: DAY0 + 3600,
-        volumeUsd: -2,
-        kind: "rolling_24h",
-      },
-    ]);
+    expect(hourlyRollingVolumeDeltas(points)).toEqual([]);
   });
 
   it("replaces a repeated hour instead of plotting two bars at the same time", () => {

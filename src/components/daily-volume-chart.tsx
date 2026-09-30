@@ -33,6 +33,7 @@ import {
 } from "@/lib/market/daily-volume-view";
 import { formatChartDay, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
 import type { EquityVolumeHistoryResult, VolumeHistoryPoint } from "@/lib/market/types";
+import { easternRollingHourStarts } from "@/lib/market/volume-hourly-snapshots";
 import { closedSnapshotVolumePoints } from "@/lib/market/volume-snapshots";
 
 /** Lime for an up hour. Down hours use the desk price-down token. */
@@ -185,18 +186,34 @@ export function DailyVolumeChart({
     return closedSnapshotVolumePoints(history.points, nowT);
   }, [history.generatedAt, history.points]);
 
+  const hourlyNowT = useMemo(() => {
+    const parsed = Date.parse(hourlyHistory?.generatedAt ?? "");
+    return Number.isFinite(parsed) && parsed > 0 ? parsed / 1000 : 0;
+  }, [hourlyHistory?.generatedAt]);
+  const hourSlots = useMemo(() => easternRollingHourStarts(hourlyNowT), [hourlyNowT]);
+  const hourSlotSet = useMemo(() => new Set(hourSlots), [hourSlots]);
   const hourlyCaptures = useMemo(
-    () => plottableHourlyRollingPoints(hourlyHistory?.points ?? []),
-    [hourlyHistory],
+    () =>
+      plottableHourlyRollingPoints(hourlyHistory?.points ?? []).filter((point) => hourSlotSet.has(point.t)),
+    [hourlyHistory, hourSlotSet],
   );
+  const capturedHours = useMemo(() => new Set(hourlyCaptures.map((point) => point.t)), [hourlyCaptures]);
   const hourlyDeltas = useMemo(() => hourlyRollingVolumeDeltas(hourlyCaptures), [hourlyCaptures]);
   const visible = useMemo(() => {
     if (isRollingVolumeChartRange(range)) return hourlyDeltas;
     return filterVolumeRange(points, range);
   }, [hourlyDeltas, points, range]);
-  const barWidth = deltaBarWidth(visible.length);
-  const xInset = rolling ? barWidth / 2 : 0;
-  const map = useMemo(() => scaleVolumePoints(visible, { xInset }), [visible, xInset]);
+  const showHourlyAxis = rolling && hourSlots.length > 0 && hourlyCaptures.length > 0;
+  const barWidth = deltaBarWidth(hourSlots.length);
+  const xInset = showHourlyAxis ? barWidth / 2 : 0;
+  const map = useMemo(
+    () =>
+      scaleVolumePoints(showHourlyAxis ? hourlyDeltas : visible, {
+        xInset,
+        domainT: showHourlyAxis ? hourSlots : undefined,
+      }),
+    [hourlyDeltas, hourSlots, showHourlyAxis, visible, xInset],
+  );
   // 24H headline ignores the plotted series and reads the live rollup.
   const headline = deskChartHeadline(range, rolling ? points : visible, rolling24h);
   const hasDaily = points.length > 0;
@@ -205,7 +222,13 @@ export function DailyVolumeChart({
   const yTicks = rolling
     ? volumeDeltaYTicks(map.minY, map.maxY)
     : [0, 0.25, 0.5, 0.75, 1].map((frac) => map.maxY * frac);
-  const xTicks = rolling ? hourlyVolumeChartXTicks(visible, xInset) : volumeChartXTicks(visible);
+  const xTicks = showHourlyAxis
+    ? hourlyVolumeChartXTicks(
+        hourSlots.map((t) => ({ t, volumeUsd: 0, kind: "rolling_24h" as const })),
+        xInset,
+      )
+    : volumeChartXTicks(visible);
+  const plotBottom = VOLUME_CHART_PAD.top + VOLUME_CHART_INNER_H;
 
   function setHoverFromClient(plot: Element, clientX: number, clientY: number) {
     const svg = plot.querySelector("svg");
@@ -216,13 +239,20 @@ export function DailyVolumeChart({
       plot.getBoundingClientRect(),
     );
     if (svgX === null) return;
-    setHover(nearestVolumePoint(rolling ? hourlyDeltas : visible, map, svgX));
+    if (showHourlyAxis) {
+      const slot =
+        hourSlots.length > 1 ? Math.abs(map.x(hourSlots[1]!) - map.x(hourSlots[0]!)) : barWidth;
+      setHover(nearestVolumePoint(hourlyDeltas, map, svgX, slot / 2));
+      return;
+    }
+    setHover(nearestVolumePoint(visible, map, svgX));
   }
 
   return (
     <section
       className="rounded-xl border border-border bg-card/80 px-4 py-4 sm:px-5"
       data-hourly-rolling-count={hourlyHistory?.points.length ?? 0}
+      data-hourly-axis-count={hourSlots.length}
       data-hourly-delta-count={hourlyDeltas.length}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -272,7 +302,7 @@ export function DailyVolumeChart({
           </div>
         ) : null}
       </div>
-      {visible.length > 0 ? (
+      {showHourlyAxis || (!rolling && visible.length > 0) ? (
         <div
           className="relative mt-3 cursor-crosshair"
           data-volume-plot
@@ -325,6 +355,23 @@ export function DailyVolumeChart({
                 </text>
               </g>
             ))}
+            {showHourlyAxis
+              ? hourSlots.map((t) => (
+                  <line
+                    key={`hour-${t}`}
+                    x1={map.x(t)}
+                    x2={map.x(t)}
+                    y1={plotBottom}
+                    y2={plotBottom + 4}
+                    stroke="currentColor"
+                    className="text-muted-foreground"
+                    strokeWidth="1"
+                    data-volume-hour={t}
+                    data-volume-hour-empty={capturedHours.has(t) ? "false" : "true"}
+                    pointerEvents="none"
+                  />
+                ))
+              : null}
             {xTicks.map((tick, index) => {
               const label = rolling ? formatHourlyVolumeChartTick(tick) : formatVolumeChartTick(tick, xTicks);
               const crowded = !rolling && xTicks.length > 10;
@@ -409,7 +456,7 @@ export function DailyVolumeChart({
         <div className="mt-4 flex h-[220px] items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 px-6 text-center">
           <p className="max-w-md text-sm text-muted-foreground">
             {rolling
-              ? hourlyCaptures.length > 0 && hourlyDeltas.length === 0
+              ? hourlyCaptures.length > 0 && hourSlots.length === 0
                 ? HOURLY_VOLUME_DELTA_EMPTY
                 : (hourlyHistory?.emptyReason ??
                   "Hourly volume series is unavailable. Missing hours are not invented.")
@@ -417,7 +464,7 @@ export function DailyVolumeChart({
           </p>
         </div>
       )}
-      {rolling && visible.length > 0 ? (
+      {showHourlyAxis ? (
         <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-volume-hourly-note>
           {HOURLY_VOLUME_DELTA_CAPTION}
         </p>

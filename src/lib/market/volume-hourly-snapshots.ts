@@ -13,10 +13,20 @@ export const DESK_HOURLY_VOLUME_KIND = "rolling_h24_totals";
 /** Clock window for the desk chart's 24H series. Filter on `t`, not civil-hour labels. */
 export const HOURLY_ROLLING_VOLUME_WINDOW_SECONDS = 24 * 60 * 60;
 
+/** One Eastern hour in unix time, including both fall-back hours and the spring-forward jump. */
+export const EASTERN_HOUR_STEP_SECONDS = 60 * 60;
+
+/**
+ * A pinned hour may be the current Eastern hour or up to two hours behind.
+ * That covers a DexScreener fetch that finishes after the scheduled hour rolls.
+ * Older pins are refused so this path cannot backfill a past miss.
+ */
+export const PINNED_EASTERN_HOUR_MAX_LAG_SECONDS = 2 * EASTERN_HOUR_STEP_SECONDS;
+
 export const DESK_HOURLY_ROLLING_VOLUME_SOURCE_LABEL = "Desk DexScreener rolling 24h snapshots";
 
 export const DESK_HOURLY_ROLLING_VOLUME_DEFINITION =
-  "Each point is a DexScreener rolling h24 desk total (public + private + ETF/index) captured at an America/New_York hour. The value is that snapshot’s rolling 24h total, not volume during the hour alone. Hours missing from the hourly file are left out.";
+  "Each point is a DexScreener rolling h24 desk total (public + private + ETF/index) captured at an America/New_York hour. The value is that snapshot’s rolling 24h total, not volume during the hour alone. The 24H chart shows every Eastern hour in the window; a missing capture stays an empty slot and is not invented.";
 
 export const DESK_HOURLY_VOLUME_NOTE =
   "One compact row per America/New_York hour. Rolling DexScreener h24 desk totals (public, private, ETF/index, combined) and displayed-liquidity totals. Not a per-asset or per-pool dump, and not a closed Eastern day bar.";
@@ -300,10 +310,118 @@ function parseOneHourlySnapshot(row: unknown): DeskHourlyVolumeSnapshot | null {
 }
 
 /**
+ * Every America/New_York hour start in `[nowT - 24h, nowT]`, oldest first.
+ * Steps by unix hour, so the repeated fall-back hour stays two slots and the
+ * spring-forward gap is not invented. These are axis slots, not volume points.
+ */
+export function easternRollingHourStarts(nowT: number): number[] {
+  if (!Number.isFinite(nowT) || nowT <= 0) return [];
+  const end = easternHourStamp(nowT);
+  if (!end) return [];
+  const cutoff = nowT - HOURLY_ROLLING_VOLUME_WINDOW_SECONDS;
+  const starts: number[] = [];
+  const seen = new Set<number>();
+  let cursor = end.t;
+  while (starts.length < 30) {
+    if (cursor < cutoff) break;
+    const stamp = easternHourStamp(cursor);
+    if (!stamp || stamp.t < cutoff || stamp.t > nowT) break;
+    if (seen.has(stamp.t)) break;
+    seen.add(stamp.t);
+    starts.push(stamp.t);
+    cursor = stamp.t - EASTERN_HOUR_STEP_SECONDS;
+  }
+  return starts.reverse();
+}
+
+const PINNED_HOUR_RE = /^(\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]))([+-](?:0\d|1[0-4]):[0-5]\d)?$/;
+
+export type PinnedEasternHourResult =
+  | { ok: true; stamp: { hour: string; offset: string; t: number } | null }
+  | { ok: false; reason: string };
+
+function matchingEasternHour(hour: string, offset: string): { hour: string; offset: string; t: number } | null {
+  const t = easternHourStartUnix(hour, offset);
+  if (t <= 0) return null;
+  const stamp = easternHourStamp(t);
+  if (!stamp || stamp.hour !== hour || stamp.offset !== offset) return null;
+  return stamp;
+}
+
+/**
+ * `HOURLY_TARGET_HOUR` / `SNAPSHOT_HOUR` / `--hour`.
+ * Blank means "stamp the fetch clock" (the unpinned path).
+ * A civil hour without an offset is resolved in America/New_York. The fall-back
+ * 01:00 needs an explicit offset. The spring-forward 02:00 is rejected.
+ * The pin must be the current Eastern hour or at most two hours behind `nowT`.
+ */
+export function resolvePinnedEasternHour(raw: string | null | undefined, nowT: number): PinnedEasternHourResult {
+  const text = raw?.trim() ?? "";
+  if (!text) return { ok: true, stamp: null };
+  if (!Number.isFinite(nowT) || nowT <= 0) {
+    return { ok: false, reason: "Pinned Eastern hour cannot be checked against an invalid clock — snapshot not written." };
+  }
+  const match = PINNED_HOUR_RE.exec(text);
+  if (!match) {
+    return {
+      ok: false,
+      reason: `Pinned Eastern hour ${JSON.stringify(text)} must be YYYY-MM-DDTHH or YYYY-MM-DDTHH±HH:MM (America/New_York). Snapshot not written.`,
+    };
+  }
+  const hour = match[1] ?? "";
+  const explicitOffset = match[2] ?? "";
+  let stamp: { hour: string; offset: string; t: number } | null = null;
+  if (explicitOffset) {
+    stamp = matchingEasternHour(hour, explicitOffset);
+    if (!stamp) {
+      return {
+        ok: false,
+        reason: `Pinned Eastern hour ${text} is not a real America/New_York hour — snapshot not written.`,
+      };
+    }
+  } else {
+    const matches = ["-04:00", "-05:00"]
+      .map((offset) => matchingEasternHour(hour, offset))
+      .filter((row): row is { hour: string; offset: string; t: number } => row !== null);
+    if (matches.length > 1) {
+      return {
+        ok: false,
+        reason: `Pinned Eastern hour ${hour} is ambiguous (fall-back). Pass the offset, for example ${hour}-04:00 or ${hour}-05:00. Snapshot not written.`,
+      };
+    }
+    stamp = matches[0] ?? null;
+    if (!stamp) {
+      return {
+        ok: false,
+        reason: `Pinned Eastern hour ${hour} is not a real America/New_York hour — snapshot not written.`,
+      };
+    }
+  }
+  const nowHour = easternHourStamp(nowT);
+  if (!nowHour) {
+    return { ok: false, reason: "Pinned Eastern hour cannot be checked against an invalid clock — snapshot not written." };
+  }
+  if (stamp.t > nowHour.t) {
+    return {
+      ok: false,
+      reason: `Pinned Eastern hour ${deskHourlyVolumeSnapshotLabel(stamp)} is still in the future — snapshot not written.`,
+    };
+  }
+  if (nowHour.t - stamp.t > PINNED_EASTERN_HOUR_MAX_LAG_SECONDS) {
+    return {
+      ok: false,
+      reason: `Pinned Eastern hour ${deskHourlyVolumeSnapshotLabel(stamp)} is more than two Eastern hours behind the clock. Historical gaps are not backfilled — snapshot not written.`,
+    };
+  }
+  return { ok: true, stamp };
+}
+
+/**
  * Last 24 hours of captured Eastern-hour DexScreener rolling h24 desk totals.
  * `volumeUsd` is `combined24hUsd`. `t` is the unix start of that Eastern hour.
  * Keeps rows with `t` in `[nowT - 24h, nowT]`. Skips a null combined total.
- * Does not insert hours that are absent from `snapshots`.
+ * Does not insert hours that are absent from `snapshots` and does not invent volume.
+ * The 24H axis uses `easternRollingHourStarts` for the empty slots.
  */
 export function buildHourlyRollingVolumeHistory(
   snapshots: readonly DeskHourlyVolumeSnapshot[],

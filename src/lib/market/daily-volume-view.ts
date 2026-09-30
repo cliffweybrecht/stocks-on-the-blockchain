@@ -9,23 +9,25 @@ import {
 } from "./format";
 import type { VolumeHistoryPoint } from "./types";
 import { utcDayStart } from "./volume-history";
+import { EASTERN_HOUR_STEP_SECONDS } from "./volume-hourly-snapshots";
 
 /**
  * 24H headline is the live DexScreener rollup (public + private + ETF/index).
  * The 24H plot is the hour-over-hour change in `hourlyHistory` captures, not the
- * absolute rolling total and not a closed America/New_York day.
+ * absolute rolling total and not a closed America/New_York day. The axis includes
+ * every Eastern hour in the window; a missing capture is an empty slot.
  * 7D/14D/30D stay sums of closed desk snapshot days.
  */
 
 /** Footer under the 24H delta bars. The live headline copy stays a separate line. */
 export const HOURLY_VOLUME_DELTA_CAPTION =
-  "Each point is the change in the DexScreener rolling 24h total vs the prior captured Eastern hour. Missing hours are omitted.";
+  "Each bar is the change in the DexScreener rolling 24h total versus the previous Eastern hour, and only when that hour was captured too. Every hour in the window is shown; missing captures are left empty.";
 
 export const HOURLY_VOLUME_DELTA_ARIA =
-  "Hour-over-hour change in the DexScreener rolling 24h total. Each bar is the change versus the prior captured Eastern hour. Missing hours are omitted.";
+  "Hour-over-hour change in the DexScreener rolling 24h total. Every Eastern hour in the last 24 hours is shown. A bar is the change versus the previous Eastern hour when that hour was captured. Missing captures are left empty.";
 
 export const HOURLY_VOLUME_DELTA_EMPTY =
-  "Hour-over-hour change needs a prior captured Eastern hour. Missing hours are not invented.";
+  "Hour-over-hour change needs the previous Eastern hour captured too. Missing hours are left empty, not invented.";
 export const VOLUME_CHART_RANGES = [
   { id: "24h", label: "24H", rolling: true },
   { id: "7d", label: "7D", days: 7 },
@@ -69,9 +71,13 @@ export function filterVolumeRange(
   return filtered.length > 0 ? filtered : [...points];
 }
 
-export function scaleVolumePoints(points: readonly VolumeHistoryPoint[], options?: { xInset?: number }) {
-  const minT = points[0]?.t ?? 0;
-  const maxT = points[points.length - 1]?.t ?? 1;
+export function scaleVolumePoints(
+  points: readonly VolumeHistoryPoint[],
+  options?: { xInset?: number; domainT?: readonly number[] },
+) {
+  const domain = (options?.domainT ?? []).filter((t) => Number.isFinite(t));
+  const minT = domain.length > 0 ? Math.min(...domain) : (points[0]?.t ?? 0);
+  const maxT = domain.length > 0 ? Math.max(...domain) : (points[points.length - 1]?.t ?? 1);
   const finite = points.map((point) => point.volumeUsd).filter((value) => Number.isFinite(value));
   const dataMin = finite.length > 0 ? Math.min(...finite) : 0;
   const dataMax = finite.length > 0 ? Math.max(...finite) : 0;
@@ -83,7 +89,7 @@ export function scaleVolumePoints(points: readonly VolumeHistoryPoint[], options
   const spanT = Math.max(maxT - minT, 1);
   const spanY = maxY - minY > 0 ? maxY - minY : 1;
   const usableW = Math.max(VOLUME_CHART_INNER_W - xInset * 2, 1);
-  const centerSingle = points.length <= 1 && xInset > 0;
+  const centerSingle = domain.length === 0 && points.length <= 1 && xInset > 0;
   return {
     minT,
     maxT,
@@ -170,18 +176,18 @@ export function plottableHourlyRollingPoints(points: readonly VolumeHistoryPoint
 
 /**
  * Hour-over-hour change of the rolling 24h snapshot total.
- * For each consecutive captured pair, plot `volumeUsd[i] - volumeUsd[i-1]` at `t[i]`.
- * The first capture has no prior and is omitted — not drawn as zero.
- * A gap stays a gap: the next captured hour is differenced against the prior
- * capture, and no hour is invented in between.
+ * Plot `volumeUsd[H] - volumeUsd[H-1]` at hour H only when both captures exist
+ * and H-1 is the previous Eastern hour. The first capture has no prior and is
+ * omitted — not drawn as zero. A missing hour stays empty: no bar, and the next
+ * capture is not differenced across the gap.
  */
 export function hourlyRollingVolumeDeltas(points: readonly VolumeHistoryPoint[]): HourlyRollingDeltaPoint[] {
   const rows = plottableHourlyRollingPoints(points);
+  const byT = new Map(rows.map((row) => [row.t, row]));
   const deltas: HourlyRollingDeltaPoint[] = [];
-  for (let index = 1; index < rows.length; index += 1) {
-    const prior = rows[index - 1];
-    const current = rows[index];
-    if (!prior || !current) continue;
+  for (const current of rows) {
+    const prior = byT.get(current.t - EASTERN_HOUR_STEP_SECONDS);
+    if (!prior) continue;
     deltas.push({
       t: current.t,
       priorT: prior.t,
@@ -198,6 +204,7 @@ export function nearestVolumePoint(
   points: readonly VolumeHistoryPoint[],
   map: VolumeChartScale,
   svgX: number,
+  maxDistance = Number.POSITIVE_INFINITY,
 ): VolumeHistoryPoint | null {
   if (points.length === 0) return null;
   let best = points[0];
@@ -209,7 +216,8 @@ export function nearestVolumePoint(
       bestDist = dist;
     }
   }
-  return best ?? null;
+  if (!best || bestDist > maxDistance) return null;
+  return best;
 }
 
 /** Map a pointer through the SVG screen CTM so letterboxed viewBoxes still track. */

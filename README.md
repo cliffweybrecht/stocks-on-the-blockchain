@@ -225,7 +225,7 @@ The seed adapter does **not** draw a demo series.
 
 ### Hourly desk totals
 
-Hourly capture is a **rolling DexScreener h24 totals** series, not a second copy of the daily desk dump and not a closed-day bar. `7D` / `14D` / `30D` still plot closed America/New_York days from `solana.json` only. The `24H` range keeps the live all-markets rolling headline and plots the hour-over-hour change in these captured totals (each hour minus the prior captured Eastern hour). Missing hours are omitted, not filled in. An in-progress Eastern day stays off the closed-day series.
+Hourly capture is a **rolling DexScreener h24 totals** series, not a second copy of the daily desk dump and not a closed-day bar. `7D` / `14D` / `30D` still plot closed America/New_York days from `solana.json` only. The `24H` range keeps the live all-markets rolling headline. Its axis includes every America/New_York hour in the last 24 hours. A bar is the change versus the previous Eastern hour, and only when that hour was captured too. Missing hours stay empty slots — no bar and no invented delta. An in-progress Eastern day stays off the closed-day series.
 
 | | |
 | --- | --- |
@@ -234,11 +234,13 @@ Hourly capture is a **rolling DexScreener h24 totals** series, not a second copy
 | **Size** | Totals only. No per-asset or per-pool blob. A repeat inside the same Eastern hour replaces that row. About one short JSON line per hour |
 | **Honesty** | Null h24 is omitted, not stored as $0. A reported `0` is kept. All-null hours are not written |
 
-Run once per America/New_York clock hour (a few minutes past the hour is enough). The hour key is the Eastern hour of the desk snapshot timestamp.
+Run once per America/New_York clock hour. Pin that hour with `HOURLY_TARGET_HOUR` or `SNAPSHOT_HOUR` (or `--hour`) so a DexScreener fetch that finishes after the hour rolls still writes the scheduled hour. The value is the live desk fetch; the pin only sets the hour key. `generatedAt` stays the fetch completion time. A pin more than two Eastern hours behind the clock is refused — this command does not backfill older gaps. Without a pin, the key is the Eastern hour of the fetch timestamp.
 
 ```bash
-SOLANA_MARKET_ENABLED=true npm run snapshot:volume:hourly
+HOURLY_TARGET_HOUR=2026-09-30T10 SOLANA_MARKET_ENABLED=true npm run snapshot:volume:hourly
 ```
+
+`YYYY-MM-DDTHH` is the Eastern civil hour. On the fall-back night, add the offset (`2026-11-01T01-04:00` or `2026-11-01T01-05:00`). `--hour` is the same pin and wins over the environment.
 
 Same all-pools DexScreener desk read as `snapshot:volume`. No Gecko backfill. The process writes `solana-hourly.json` only — it does not update `solana.json`. Commit that hourly file. Do not nest these rows inside `solana.json`; the daily writer does not keep a side section, and the chart must not treat a rolling hour as a closed day.
 
