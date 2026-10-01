@@ -10,6 +10,7 @@ import { createMarketDataSource } from "@/lib/market/factory";
 import { maxNullable } from "@/lib/market/numbers";
 import { SOLANA_CHAIN_ID, type AssetSummary } from "@/lib/market/types";
 import { emptyEquityVolumeHistory } from "@/lib/market/volume-history";
+import { emptyHourlyRollingVolumeHistory } from "@/lib/market/volume-hourly-snapshots";
 
 export const dynamic = "force-dynamic";
 
@@ -18,9 +19,10 @@ export default async function HomePage() {
 
   let loaded;
   try {
-    const [chainsSettled, historySettled] = await Promise.allSettled([
+    const [chainsSettled, historySettled, hourlySettled] = await Promise.allSettled([
       source.listChains(),
       source.getEquityVolumeHistory(),
+      source.getEquityHourlyRollingVolumeHistory(),
     ]);
     if (chainsSettled.status === "rejected") {
       throw chainsSettled.reason;
@@ -33,7 +35,15 @@ export default async function HomePage() {
               ? historySettled.reason.message
               : "Historical volume series is unavailable.",
           );
-    loaded = { ...chainsSettled.value, history };
+    const hourlyHistory =
+      hourlySettled.status === "fulfilled"
+        ? hourlySettled.value
+        : emptyHourlyRollingVolumeHistory(
+            hourlySettled.reason instanceof Error
+              ? hourlySettled.reason.message
+              : "Hourly rolling volume series is unavailable.",
+          );
+    loaded = { ...chainsSettled.value, history, hourlyHistory };
   } catch (error) {
     const detail =
       error instanceof Error
@@ -46,7 +56,7 @@ export default async function HomePage() {
     );
   }
 
-  const { chains: listedChains, provenance, history } = loaded;
+  const { chains: listedChains, provenance, history, hourlyHistory } = loaded;
   const tickerAssets: AssetSummary[] = [];
   let jumpAssets: ReturnType<typeof toJumpAsset>[] = [];
   const chains = [...listedChains];
@@ -66,6 +76,7 @@ export default async function HomePage() {
   }
   const maxVolume = maxNullable(chains.map(chainCombinedVolume24h));
   const priceTicker = selectEquityPriceTicker(tickerAssets);
+  const solanaChain = chains.find((chain) => chain.id === SOLANA_CHAIN_ID) ?? null;
 
   return (
     <PageShell
@@ -74,7 +85,19 @@ export default async function HomePage() {
       solanaJump={jumpAssets.length > 0 ? { chainId: SOLANA_CHAIN_ID, assets: jumpAssets } : undefined}
     >
       <div className="space-y-4">
-        <DailyVolumeChart history={history} />
+        <DailyVolumeChart
+          history={history}
+          hourlyHistory={hourlyHistory}
+          rolling24h={
+            solanaChain
+              ? {
+                  publicVolume24hUsd: solanaChain.volume24hUsd,
+                  privateVolume24hUsd: solanaChain.privateVolume24hUsd,
+                  etfVolume24hUsd: solanaChain.etfVolume24hUsd,
+                }
+              : null
+          }
+        />
         <section className="space-y-3">
           <h2 className="font-heading text-lg font-medium">Chain volume</h2>
           {chains.length === 0 ? (

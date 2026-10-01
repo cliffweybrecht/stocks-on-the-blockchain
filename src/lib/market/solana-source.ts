@@ -128,6 +128,12 @@ import {
 } from "./asset-price-history";
 import { chainCombinedVolume24h } from "./aggregate";
 import { emptyEquityVolumeHistory } from "./volume-history";
+import { FileDeskHourlyVolumeSnapshotStore } from "./volume-hourly-snapshot-store";
+import {
+  buildHourlyRollingEquityVolumeHistory,
+  emptyHourlyRollingVolumeHistory,
+  type DeskHourlyVolumeSnapshotStore,
+} from "./volume-hourly-snapshots";
 import { FileDeskVolumeSnapshotStore } from "./volume-snapshot-store";
 import {
   buildSnapshotEquityVolumeHistory,
@@ -214,6 +220,8 @@ export interface SolanaMarketDataSourceOptions {
   cardVolumeSeriesTransientRetryMs?: number;
   volumeSnapshotStore?: DeskVolumeSnapshotStore;
   volumeSnapshotDir?: string;
+  /** Hourly rolling h24 file. Omitted reads `solana-hourly.json` beside the daily snapshots. */
+  hourlyVolumeSnapshotStore?: DeskHourlyVolumeSnapshotStore;
   /** `null` keeps all-markets volume in memory. Omitted uses the desk cache directory. */
   allMarketsVolumeCacheDir?: string | null;
   enableJupiterTokenLogos?: boolean;
@@ -273,6 +281,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
   private backgroundWork: Promise<void> | null = null;
   private readonly memory: SolanaHydrateMemory;
   private readonly deskSnapshots: DeskVolumeSnapshotStore;
+  private readonly deskHourlySnapshots: DeskHourlyVolumeSnapshotStore;
   private volumeHistoryCache: { result: EquityVolumeHistoryResult; expiresAt: number } | null = null;
   private volumeHistoryInflight: Promise<EquityVolumeHistoryResult> | null = null;
   private cardVolumeResolved = new Map<string, { points: VolumeHistoryPoint[] | null; expiresAt: number }>();
@@ -305,6 +314,8 @@ export class SolanaMarketDataSource implements MarketDataSource {
   constructor(private readonly options: SolanaMarketDataSourceOptions = {}) {
     this.memory = new SolanaHydrateMemory(options.emptyCacheMs ?? SOLANA_DEFAULTS.emptyCacheMs);
     this.deskSnapshots = options.volumeSnapshotStore ?? new FileDeskVolumeSnapshotStore(options.volumeSnapshotDir);
+    this.deskHourlySnapshots =
+      options.hourlyVolumeSnapshotStore ?? new FileDeskHourlyVolumeSnapshotStore(options.volumeSnapshotDir);
   }
 
   private get baseUrl() {
@@ -1623,6 +1634,22 @@ export class SolanaMarketDataSource implements MarketDataSource {
         this.volumeHistoryInflight = null;
       });
     return this.volumeHistoryInflight;
+  }
+
+  /**
+   * Read path for the chart's 24H series. Loads `solana-hourly.json` only.
+   * Does not persist a closed Eastern day and does not call DexScreener.
+   */
+  async getEquityHourlyRollingVolumeHistory(): Promise<EquityVolumeHistoryResult> {
+    const generatedAt = new Date().toISOString();
+    const nowT = Date.now() / 1000;
+    try {
+      const records = await this.deskHourlySnapshots.load();
+      return buildHourlyRollingEquityVolumeHistory({ snapshots: records, nowT, generatedAt });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Hourly desk volume snapshot read failed.";
+      return emptyHourlyRollingVolumeHistory(message, generatedAt);
+    }
   }
 
   private async persistDeskVolume(snapshot: CachedSnapshot): Promise<void> {

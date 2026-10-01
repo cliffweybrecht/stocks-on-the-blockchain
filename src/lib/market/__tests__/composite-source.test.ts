@@ -23,6 +23,7 @@ import type {
 import { emptyAssetPriceHistory } from "../asset-price-history";
 import { emptyAllMarketsVolumeSnapshot } from "../types";
 import { emptyEquityVolumeHistory } from "../volume-history";
+import { emptyHourlyRollingVolumeHistory } from "../volume-hourly-snapshots";
 
 function provenance(sourceId: SourceKind, label: string, failures: DataProvenance["sourceFailures"] = []): DataProvenance {
   return {
@@ -95,6 +96,10 @@ class FakeSource implements MarketDataSource {
     return this.impl.history
       ? this.impl.history()
       : Promise.resolve(emptyEquityVolumeHistory(`No history on ${this.id}.`));
+  }
+
+  getEquityHourlyRollingVolumeHistory() {
+    return Promise.resolve(emptyHourlyRollingVolumeHistory(`No hourly history on ${this.id}.`));
   }
 
   getAssetPriceHistory() {

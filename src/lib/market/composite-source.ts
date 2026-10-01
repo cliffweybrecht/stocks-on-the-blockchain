@@ -17,6 +17,7 @@ import {
 } from "./types";
 import { emptyAssetPriceHistory } from "./asset-price-history";
 import { emptyEquityVolumeHistory } from "./volume-history";
+import { emptyHourlyRollingVolumeHistory } from "./volume-hourly-snapshots";
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Unknown adapter failure.";
@@ -140,6 +141,16 @@ export class CompositeMarketDataSource implements MarketDataSource {
       );
     }
     return solana.getEquityVolumeHistory();
+  }
+
+  async getEquityHourlyRollingVolumeHistory(): Promise<EquityVolumeHistoryResult> {
+    const solana = this.adapters.find((adapter) => adapter.id === "solana");
+    if (!solana) {
+      return emptyHourlyRollingVolumeHistory(
+        "No Solana adapter is configured, so there is no hourly DexScreener desk volume to load.",
+      );
+    }
+    return solana.getEquityHourlyRollingVolumeHistory();
   }
 
   async getEquityCardDayVolumeSeries(): Promise<Record<string, VolumeHistoryPoint[]>> {

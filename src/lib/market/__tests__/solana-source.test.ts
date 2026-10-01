@@ -9,6 +9,7 @@ import {
 } from "../all-markets-volume-cache";
 import { BACKPACK_SUNRISE_BATCH_TICKERS, DEFAULT_SOLANA_DISCOVERY_QUERIES } from "../solana-discover";
 import { SolanaMarketDataSource, type SolanaMarketDataSourceOptions } from "../solana-source";
+import { MemoryDeskHourlyVolumeSnapshotStore, easternHourStamp } from "../volume-hourly-snapshots";
 import { MemoryDeskVolumeSnapshotStore } from "../volume-snapshots";
 
 const tslaMint = "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB";
@@ -906,6 +907,97 @@ describe("SolanaMarketDataSource", () => {
     expect(history.points.some((point) => point.kind === "calendar_day" && point.volumeUsd === 0)).toBe(false);
     expect(history.definition).toMatch(/DexScreener 24h snapshots/);
     expect(history.definition).not.toMatch(/No GeckoTerminal daily candles/);
+  });
+
+  it("reads hourly rolling 24h points from the hourly store and does not write the closed-day file", async () => {
+    const nowT = Math.floor(Date.now() / 1000);
+    const current = easternHourStamp(nowT);
+    const gapHour = easternHourStamp(nowT - 3_600);
+    const stale = easternHourStamp(nowT - 30 * 3_600);
+    expect(current).toBeTruthy();
+    expect(gapHour).toBeTruthy();
+    expect(stale).toBeTruthy();
+    if (!current || !gapHour || !stale) return;
+    const daily = new MemoryDeskVolumeSnapshotStore([
+      {
+        date: "2026-09-14",
+        t: Date.UTC(2026, 8, 14) / 1000,
+        publicEquity24hUsd: 10,
+        private24hUsd: null,
+        etfIndex24hUsd: null,
+        combined24hUsd: 10,
+        publicMintCount: 1,
+        publicPoolCount: 1,
+        generatedAt: "2026-09-14T12:00:00.000Z",
+      },
+    ]);
+    const hourly = new MemoryDeskHourlyVolumeSnapshotStore([
+      {
+        hour: stale.hour,
+        offset: stale.offset,
+        t: stale.t,
+        publicEquity24hUsd: 1,
+        private24hUsd: null,
+        etfIndex24hUsd: null,
+        combined24hUsd: 1,
+        publicLiquidityUsd: null,
+        privateLiquidityUsd: null,
+        etfIndexLiquidityUsd: null,
+        combinedLiquidityUsd: null,
+        generatedAt: "2026-09-28T00:00:00.000Z",
+      },
+      {
+        hour: gapHour.hour,
+        offset: gapHour.offset,
+        t: gapHour.t,
+        publicEquity24hUsd: null,
+        private24hUsd: null,
+        etfIndex24hUsd: null,
+        combined24hUsd: null,
+        publicLiquidityUsd: null,
+        privateLiquidityUsd: null,
+        etfIndexLiquidityUsd: null,
+        combinedLiquidityUsd: null,
+        generatedAt: "2026-09-29T00:00:00.000Z",
+      },
+      {
+        hour: current.hour,
+        offset: current.offset,
+        t: current.t,
+        publicEquity24hUsd: 4,
+        private24hUsd: 2,
+        etfIndex24hUsd: 3,
+        combined24hUsd: 9,
+        publicLiquidityUsd: null,
+        privateLiquidityUsd: null,
+        etfIndexLiquidityUsd: null,
+        combinedLiquidityUsd: null,
+        generatedAt: new Date(nowT * 1000).toISOString(),
+      },
+    ]);
+    const source = testSource({
+      volumeSnapshotStore: daily,
+      hourlyVolumeSnapshotStore: hourly,
+    });
+
+    const history = await source.getEquityHourlyRollingVolumeHistory();
+    expect(history.available).toBe(true);
+    expect(history.points).toEqual([{ t: current.t, volumeUsd: 9, kind: "rolling_24h" }]);
+    expect(history.points.some((point) => point.t === gapHour.t || point.t === stale.t)).toBe(false);
+    expect(history.definition).toMatch(/rolling h24/);
+    expect(await daily.load()).toEqual([
+      {
+        date: "2026-09-14",
+        t: Date.UTC(2026, 8, 14) / 1000,
+        publicEquity24hUsd: 10,
+        private24hUsd: null,
+        etfIndex24hUsd: null,
+        combined24hUsd: 10,
+        publicMintCount: 1,
+        publicPoolCount: 1,
+        generatedAt: "2026-09-14T12:00:00.000Z",
+      },
+    ]);
   });
 
   it("loads per-mint price closes from GeckoTerminal and never treats volume as price", async () => {
