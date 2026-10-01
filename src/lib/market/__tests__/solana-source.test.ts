@@ -1000,6 +1000,79 @@ describe("SolanaMarketDataSource", () => {
     ]);
   });
 
+  it("reads the live 24H headline from the desk cache without writing solana.json or refetching DexScreener", async () => {
+    const snapshots = new MemoryDeskVolumeSnapshotStore();
+    const urls: string[] = [];
+    const source = testSource({
+      cacheMs: 60_000,
+      volumeSnapshotStore: snapshots,
+      fetchImpl: async (input) => {
+        const url = String(input);
+        urls.push(url);
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [tslaPair()] });
+        if (url.includes("/token-pairs/")) return jsonResponse([tslaPair()]);
+        if (url.includes("/tokens/")) return jsonResponse([tslaPair()]);
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    const first = await source.getLiveDeskRolling24h();
+    expect(first?.publicVolume24hUsd).toBeCloseTo(1_250.25);
+    expect(first?.privateVolume24hUsd).toBeNull();
+    expect(first?.etfVolume24hUsd).toBeNull();
+    const calls = urls.length;
+    expect(calls).toBeGreaterThan(0);
+
+    const second = await source.getLiveDeskRolling24h();
+    expect(second?.publicVolume24hUsd).toBeCloseTo(1_250.25);
+    expect(urls).toHaveLength(calls);
+    expect(await snapshots.load()).toEqual([]);
+
+    await source.getEquityVolumeHistory();
+    expect(await snapshots.load()).toHaveLength(1);
+  });
+
+  it("picks up a new DexScreener total after the desk cache expires without writing solana.json", async () => {
+    const snapshots = new MemoryDeskVolumeSnapshotStore();
+    let hydrates = 0;
+    const source = testSource({
+      cacheMs: 30,
+      staleMs: 10_000,
+      volumeSnapshotStore: snapshots,
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [tslaPair()] });
+        if (url.includes("/token-pairs/")) {
+          hydrates += 1;
+          return jsonResponse([
+            {
+              ...tslaPair(),
+              volume: { h24: hydrates === 1 ? 1_250.25 : 4_000 },
+            },
+          ]);
+        }
+        if (url.includes("/tokens/")) return jsonResponse([tslaPair()]);
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    const first = await source.getLiveDeskRolling24h();
+    expect(first?.publicVolume24hUsd).toBeCloseTo(1_250.25);
+    expect(hydrates).toBe(1);
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    const stale = await source.getLiveDeskRolling24h();
+    expect(stale?.publicVolume24hUsd).toBeCloseTo(1_250.25);
+
+    for (let attempt = 0; attempt < 20 && hydrates < 2; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    const refreshed = await source.getLiveDeskRolling24h();
+    expect(hydrates).toBeGreaterThanOrEqual(2);
+    expect(refreshed?.publicVolume24hUsd).toBeCloseTo(4_000);
+    expect(await snapshots.load()).toEqual([]);
+  });
+
   it("loads per-mint price closes from GeckoTerminal and never treats volume as price", async () => {
     const urls: string[] = [];
     const source = testSource({

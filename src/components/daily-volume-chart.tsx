@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type PointerEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 import {
   deskChartHeadline,
   filterVolumeRange,
@@ -31,6 +31,13 @@ import {
   type VolumeChartRangeId,
   type VolumeChartScale,
 } from "@/lib/market/daily-volume-view";
+import {
+  DESK_VOLUME_24H_LIVE_PATH,
+  DESK_VOLUME_24H_POLL_MS,
+  deskVolumePollDue,
+  parseDeskVolumeLivePayload,
+  preferFresherHourlyHistory,
+} from "@/lib/market/desk-volume-live";
 import { formatChartDay, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
 import type { EquityVolumeHistoryResult, VolumeHistoryPoint } from "@/lib/market/types";
 import { easternRollingHourStarts } from "@/lib/market/volume-hourly-snapshots";
@@ -158,8 +165,8 @@ function DeltaBars({
 
 export function DailyVolumeChart({
   history,
-  hourlyHistory = null,
-  rolling24h = null,
+  hourlyHistory: hourlyHistoryProp = null,
+  rolling24h: rolling24hProp = null,
   initialRange = "7d",
 }: {
   history: EquityVolumeHistoryResult;
@@ -176,7 +183,74 @@ export function DailyVolumeChart({
 }) {
   const [range, setRange] = useState<VolumeChartRangeId>(initialRange);
   const [hover, setHover] = useState<VolumeHistoryPoint | null>(null);
+  const [hourlyHistory, setHourlyHistory] = useState(hourlyHistoryProp);
+  const [rolling24h, setRolling24h] = useState(rolling24hProp);
+  const rollingFromPoll = useRef(false);
   const rolling = isRollingVolumeChartRange(range);
+
+  useEffect(() => {
+    setHourlyHistory((current) => preferFresherHourlyHistory(current, hourlyHistoryProp));
+  }, [hourlyHistoryProp]);
+
+  useEffect(() => {
+    if (rollingFromPoll.current) return;
+    setRolling24h(rolling24hProp ?? null);
+  }, [rolling24hProp]);
+
+  useEffect(() => {
+    if (!rolling) return;
+    let cancelled = false;
+    let timer = 0;
+    let lastPull = 0;
+
+    const pull = async () => {
+      const now = Date.now();
+      if (!deskVolumePollDue(now, lastPull)) return;
+      lastPull = now;
+      try {
+        const response = await fetch(DESK_VOLUME_24H_LIVE_PATH, { cache: "no-store" });
+        if (!response.ok) return;
+        const parsed = parseDeskVolumeLivePayload(await response.json());
+        if (!parsed || cancelled) return;
+        setHourlyHistory((current) => preferFresherHourlyHistory(current, parsed.hourlyHistory));
+        if (parsed.rolling24h) {
+          rollingFromPoll.current = true;
+          setRolling24h(parsed.rolling24h);
+        }
+      } catch {
+        // Keep the last headline and bars. A failed poll must not clear captured hours.
+      }
+    };
+
+    const arm = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        if (cancelled || document.visibilityState === "hidden") return;
+        void pull().finally(() => {
+          if (!cancelled && document.visibilityState !== "hidden") arm();
+        });
+      }, DESK_VOLUME_24H_POLL_MS);
+    };
+
+    const onWake = () => {
+      if (document.visibilityState === "hidden") {
+        window.clearTimeout(timer);
+        return;
+      }
+      void pull();
+      arm();
+    };
+
+    onWake();
+    window.addEventListener("focus", onWake);
+    document.addEventListener("visibilitychange", onWake);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+      window.removeEventListener("focus", onWake);
+      document.removeEventListener("visibilitychange", onWake);
+    };
+  }, [rolling]);
 
   const points = useMemo(() => {
     const parsedGeneratedAt = Date.parse(history.generatedAt);
@@ -254,6 +328,8 @@ export function DailyVolumeChart({
       data-hourly-rolling-count={hourlyHistory?.points.length ?? 0}
       data-hourly-axis-count={hourSlots.length}
       data-hourly-delta-count={hourlyDeltas.length}
+      data-volume-refresh-ms={rolling ? DESK_VOLUME_24H_POLL_MS : undefined}
+      data-volume-live={rolling ? "24h" : undefined}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>

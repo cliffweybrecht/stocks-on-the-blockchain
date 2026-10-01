@@ -231,6 +231,13 @@ export interface VolumeHistoryPoint {
   kind?: VolumeHistoryPointKind;
 }
 
+/** Public, private, and ETF/index 24h legs. Null is unreported, not zero. */
+export interface DeskLiveRolling24h {
+  publicVolume24hUsd: number | null;
+  privateVolume24hUsd: number | null;
+  etfVolume24hUsd: number | null;
+}
+
 export interface EquityVolumeHistoryResult {
   available: boolean;
   points: VolumeHistoryPoint[];
@@ -324,6 +331,13 @@ export interface MarketDataSource {
    * window and leaves a miss empty. Does not read or write the closed-day file.
    */
   getEquityHourlyRollingVolumeHistory(): Promise<EquityVolumeHistoryResult>;
+  /**
+   * Live DexScreener all-markets 24h legs for the volume-chart headline.
+   * Reuses the in-memory desk snapshot (default fresh for 5 minutes).
+   * Does not write `solana.json` and does not read `solana-hourly.json`.
+   * Null means the snapshot is unavailable — callers keep the last headline.
+   */
+  getLiveDeskRolling24h(): Promise<DeskLiveRolling24h | null>;
   getAssetPriceHistory(chainId: string, symbol: string): Promise<AssetPriceHistoryResult>;
   /** Primary-pool Gecko hourly volume for card sparklines. Missing mints are omitted. */
   getEquityCardDayVolumeSeries(): Promise<Record<string, VolumeHistoryPoint[]>>;

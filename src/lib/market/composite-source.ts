@@ -10,6 +10,7 @@ import {
   type ChainDetailResult,
   type ChainListResult,
   type DataProvenance,
+  type DeskLiveRolling24h,
   type EquityVolumeHistoryResult,
   type MarketDataSource,
   type SourceFailure,
@@ -151,6 +152,12 @@ export class CompositeMarketDataSource implements MarketDataSource {
       );
     }
     return solana.getEquityHourlyRollingVolumeHistory();
+  }
+
+  async getLiveDeskRolling24h(): Promise<DeskLiveRolling24h | null> {
+    const solana = this.adapters.find((adapter) => adapter.id === "solana");
+    if (!solana) return null;
+    return solana.getLiveDeskRolling24h();
   }
 
   async getEquityCardDayVolumeSeries(): Promise<Record<string, VolumeHistoryPoint[]>> {

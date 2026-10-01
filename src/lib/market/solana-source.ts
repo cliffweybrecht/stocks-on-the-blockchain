@@ -78,6 +78,7 @@ import {
   type ChainDetailResult,
   type ChainListResult,
   type EquityCardDayVolumeSeriesSnapshot,
+  type DeskLiveRolling24h,
   type EquityVolumeHistoryResult,
   type MarketDataSource,
   type VolumeAggregation,
@@ -278,6 +279,8 @@ export class SolanaMarketDataSource implements MarketDataSource {
   private cache: CachedSnapshot | null = null;
   private inflight: Promise<CachedSnapshot> | null = null;
   private inflightMode: SnapshotMode | null = null;
+  /** Page loads persist the in-progress Eastern day. The 24H poll must not. */
+  private inflightPersistDesk = true;
   private backgroundWork: Promise<void> | null = null;
   private readonly memory: SolanaHydrateMemory;
   private readonly deskSnapshots: DeskVolumeSnapshotStore;
@@ -869,12 +872,36 @@ export class SolanaMarketDataSource implements MarketDataSource {
     return this.cache;
   }
 
-  private commitCache(next: CachedSnapshot): CachedSnapshot {
+  private commitCache(next: CachedSnapshot, persistDeskVolume = true): CachedSnapshot {
     const merged = this.preferRicherCache(next);
     this.cache = merged;
-    this.scheduleEnrichment();
-    void this.persistDeskVolume(merged);
+    if (persistDeskVolume) {
+      this.scheduleEnrichment();
+      void this.persistDeskVolume(merged);
+    }
     return merged;
+  }
+
+  /**
+   * Start a desk refresh, or join one already running.
+   * A caller that must persist can upgrade an in-flight poll refresh before it commits.
+   * A poll cannot downgrade a refresh the page already asked to persist.
+   */
+  private beginRefresh(mode: SnapshotMode, persistDeskVolume: boolean): Promise<CachedSnapshot> {
+    if (this.inflight && (this.inflightMode === mode || this.inflightMode === "full" || mode === "light")) {
+      if (persistDeskVolume) this.inflightPersistDesk = true;
+      return this.inflight;
+    }
+    this.inflightMode = mode;
+    this.inflightPersistDesk = persistDeskVolume;
+    this.inflight = this.refresh(mode)
+      .then((next) => this.commitCache(next, this.inflightPersistDesk))
+      .finally(() => {
+        this.inflight = null;
+        this.inflightMode = null;
+        this.inflightPersistDesk = true;
+      });
+    return this.inflight;
   }
 
   private rebuildSnapshot(
@@ -1266,19 +1293,19 @@ export class SolanaMarketDataSource implements MarketDataSource {
     if (this.backgroundWork) await this.backgroundWork;
   }
 
-  private async loadCached(mode: SnapshotMode): Promise<CachedSnapshot> {
+  private async loadCached(
+    mode: SnapshotMode,
+    options?: { persistDeskVolume?: boolean },
+  ): Promise<CachedSnapshot> {
+    const persistDeskVolume = options?.persistDeskVolume !== false;
     const now = Date.now();
     const hit = this.cacheSatisfies(mode, now);
     if (hit) {
-      this.scheduleEnrichment();
+      if (persistDeskVolume) this.scheduleEnrichment();
       if (hit.expiresAt <= now && !this.inflight) {
-        this.inflightMode = mode;
-        this.inflight = this.refresh(mode)
-          .then((next) => this.commitCache(next))
-          .finally(() => {
-            this.inflight = null;
-            this.inflightMode = null;
-          });
+        void this.beginRefresh(mode, persistDeskVolume).catch(() => undefined);
+      } else if (hit.expiresAt <= now && persistDeskVolume) {
+        this.inflightPersistDesk = true;
       }
       const age = now - hit.createdAt;
       hit.mapped.provenance.cacheStatus = hit.pendingPreviewMints.length + hit.pendingFullMints.length > 0
@@ -1291,6 +1318,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
     }
 
     if (this.inflight && (this.inflightMode === mode || this.inflightMode === "full" || mode === "light")) {
+      if (persistDeskVolume) this.inflightPersistDesk = true;
       const pending = await this.inflight;
       if (mode === "full" && pending.aggregation !== "all-pools") {
         // fall through to a full refresh
@@ -1299,14 +1327,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
       }
     }
 
-    this.inflightMode = mode;
-    this.inflight = this.refresh(mode)
-      .then((next) => this.commitCache(next))
-      .finally(() => {
-        this.inflight = null;
-        this.inflightMode = null;
-      });
-    return this.inflight;
+    return this.beginRefresh(mode, persistDeskVolume);
   }
 
   private preferRicherCache(next: CachedSnapshot): CachedSnapshot {
@@ -1649,6 +1670,25 @@ export class SolanaMarketDataSource implements MarketDataSource {
     } catch (error) {
       const message = error instanceof Error ? error.message : "Hourly desk volume snapshot read failed.";
       return emptyHourlyRollingVolumeHistory(message, generatedAt);
+    }
+  }
+
+  /**
+   * Live headline for the 24H chart. Uses the same desk snapshot as the page,
+   * so DexScreener is not called again until `cacheMs` (default 5 minutes).
+   * This path does not write `solana.json`.
+   */
+  async getLiveDeskRolling24h(): Promise<DeskLiveRolling24h | null> {
+    try {
+      const cached = await this.loadCached("full", { persistDeskVolume: false });
+      const chain = cached.mapped.chain;
+      return {
+        publicVolume24hUsd: chain.volume24hUsd,
+        privateVolume24hUsd: chain.privateVolume24hUsd,
+        etfVolume24hUsd: chain.etfVolume24hUsd,
+      };
+    } catch {
+      return null;
     }
   }
 

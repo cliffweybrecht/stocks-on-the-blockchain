@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { DailyVolumeChart } from "./daily-volume-chart";
 import { HOURLY_VOLUME_DELTA_CAPTION } from "@/lib/market/daily-volume-view";
+import { DESK_VOLUME_24H_POLL_MS } from "@/lib/market/desk-volume-live";
 import { formatUsdCompact } from "@/lib/market/format";
 import type { EquityVolumeHistoryResult, VolumeHistoryPoint } from "@/lib/market/types";
 import { emptyEquityVolumeHistory } from "@/lib/market/volume-history";
@@ -109,6 +110,8 @@ describe("DailyVolumeChart 24H deltas", () => {
     expect(html).not.toContain('fill="url(#volume-area)"');
     expect(html).toContain("Every hour in the window is shown");
     expect(html).toContain("missing captures are left empty");
+    expect(html).toContain('data-volume-live="24h"');
+    expect(html).toContain(`data-volume-refresh-ms="${DESK_VOLUME_24H_POLL_MS}"`);
   });
 });
 
@@ -124,6 +127,8 @@ describe("DailyVolumeChart closed ranges", () => {
       expect(html).not.toContain('data-volume-y="+$');
       expect(html).toContain('fill="url(#volume-area)"');
       expect(html).toContain("History from closed desk DexScreener snapshots");
+      expect(html).not.toContain("data-volume-refresh-ms");
+      expect(html).not.toContain('data-volume-live="24h"');
       expect(html).not.toContain(formatUsdCompact(999_000_000));
       expect(html).not.toContain(formatUsdCompact(220_500_000));
     }
