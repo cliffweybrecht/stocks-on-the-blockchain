@@ -225,7 +225,7 @@ The seed adapter does **not** draw a demo series.
 
 ### Hourly desk totals
 
-Hourly capture is a **rolling DexScreener h24 totals** series, not a second copy of the daily desk dump and not a closed-day bar. `7D` / `14D` / `30D` still plot closed America/New_York days from `solana.json` only. The `24H` range keeps the live all-markets rolling headline. Its axis includes every America/New_York hour in the last 24 hours. A bar is the change versus the previous Eastern hour, and only when that hour was captured too. Missing hours stay empty slots — no bar and no invented delta. An in-progress Eastern day stays off the closed-day series.
+Hourly capture is a **rolling DexScreener h24 totals** series, not a second copy of the daily desk dump and not a closed-day bar. `7D` / `14D` / `30D` still plot closed America/New_York days from `solana.json` only. The `24H` range keeps the live all-markets rolling headline and plots those hourly captures as a lime area: each point is the DexScreener rolling 24h desk total at that America/New_York hour, not volume during the hour alone. The axis includes every Eastern hour in the last 24 hours. A missing capture stays an empty gap — the line does not invent a point. An in-progress Eastern day stays off the closed-day series.
 
 | | |
 | --- | --- |

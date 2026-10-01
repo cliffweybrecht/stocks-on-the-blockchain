@@ -13,21 +13,22 @@ import { EASTERN_HOUR_STEP_SECONDS } from "./volume-hourly-snapshots";
 
 /**
  * 24H headline is the live DexScreener rollup (public + private + ETF/index).
- * The 24H plot is the hour-over-hour change in `hourlyHistory` captures, not the
- * absolute rolling total and not a closed America/New_York day. The axis includes
- * every Eastern hour in the window; a missing capture is an empty slot.
- * 7D/14D/30D stay sums of closed desk snapshot days.
+ * The 24H plot is the absolute rolling 24h desk total captured at each Eastern
+ * hour (`combined24hUsd`), not the change versus the previous hour and not
+ * volume during that hour alone. The axis includes every Eastern hour in the
+ * window; a missing capture is an empty gap. 7D/14D/30D stay sums of closed
+ * desk snapshot days.
  */
 
-/** Footer under the 24H delta bars. The live headline copy stays a separate line. */
-export const HOURLY_VOLUME_DELTA_CAPTION =
-  "Each bar is the change in the DexScreener rolling 24h total versus the previous Eastern hour, and only when that hour was captured too. Every hour in the window is shown; missing captures are left empty.";
+/** Footer under the 24H rolling-total area. The live headline copy stays a separate line. */
+export const HOURLY_VOLUME_SERIES_CAPTION =
+  "Each point is the DexScreener rolling 24h desk total captured at that Eastern hour (public + private + ETF/index), not volume during that hour alone. Every hour in the window is shown; missing captures are left empty.";
 
-export const HOURLY_VOLUME_DELTA_ARIA =
-  "Hour-over-hour change in the DexScreener rolling 24h total. Every Eastern hour in the last 24 hours is shown. A bar is the change versus the previous Eastern hour when that hour was captured. Missing captures are left empty.";
+export const HOURLY_VOLUME_SERIES_ARIA =
+  "DexScreener rolling 24h desk total across Eastern hours. Each point is the rolling 24h total captured at that hour, not volume during the hour alone. Every Eastern hour in the last 24 hours is shown. Missing captures are left empty.";
 
-export const HOURLY_VOLUME_DELTA_EMPTY =
-  "Hour-over-hour change needs the previous Eastern hour captured too. Missing hours are left empty, not invented.";
+export const HOURLY_VOLUME_SERIES_EMPTY =
+  "No DexScreener rolling 24h hourly snapshots in this window. Missing hours are left empty, not invented.";
 export const VOLUME_CHART_RANGES = [
   { id: "24h", label: "24H", rolling: true },
   { id: "7d", label: "7D", days: 7 },
@@ -172,6 +173,26 @@ export function plottableHourlyRollingPoints(points: readonly VolumeHistoryPoint
     byT.set(point.t, { t: point.t, volumeUsd: point.volumeUsd, kind: point.kind ?? "rolling_24h" });
   }
   return [...byT.values()].sort((a, b) => a.t - b.t);
+}
+
+/**
+ * Split captured hours into runs the area can draw without bridging a miss.
+ * Adjacent means the next Eastern hour (one unix hour, including the fall-back
+ * repeat and the spring-forward jump). A gap starts a new run. Nothing is inserted.
+ */
+export function contiguousHourlyRuns(points: readonly VolumeHistoryPoint[]): VolumeHistoryPoint[][] {
+  const rows = plottableHourlyRollingPoints(points);
+  const runs: VolumeHistoryPoint[][] = [];
+  for (const point of rows) {
+    const run = runs[runs.length - 1];
+    const previous = run?.[run.length - 1];
+    if (!run || !previous || point.t - previous.t !== EASTERN_HOUR_STEP_SECONDS) {
+      runs.push([point]);
+      continue;
+    }
+    run.push(point);
+  }
+  return runs;
 }
 
 /**

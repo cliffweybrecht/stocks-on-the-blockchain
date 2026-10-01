@@ -2,7 +2,8 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { DailyVolumeChart } from "./daily-volume-chart";
-import { HOURLY_VOLUME_DELTA_CAPTION } from "@/lib/market/daily-volume-view";
+import { HOURLY_VOLUME_SERIES_CAPTION } from "@/lib/market/daily-volume-view";
+import { DESK_CHART_STROKE } from "@/lib/desk/chart-curve";
 import { DESK_VOLUME_24H_POLL_MS } from "@/lib/market/desk-volume-live";
 import { formatUsdCompact } from "@/lib/market/format";
 import type { EquityVolumeHistoryResult, VolumeHistoryPoint } from "@/lib/market/types";
@@ -67,47 +68,50 @@ function markup(initialRange: "24h" | "7d" | "14d" | "30d", hourly = hourlyLevel
   );
 }
 
-describe("DailyVolumeChart 24H deltas", () => {
+describe("DailyVolumeChart 24H rolling area", () => {
   const html = markup("24h");
 
-  it("keeps the live rolling headline and plots hour-over-hour change", () => {
+  it("keeps the live rolling headline and plots absolute hourly totals", () => {
     expect(html).toContain('data-volume-kind="combined_24h"');
     expect(html).toContain(`>${formatUsdCompact(220_500_000)}<`);
     expect(html).toContain("24h · public + private + ETF/index");
     expect(html).not.toContain(formatUsdCompact(999_000_000));
-    expect(html).not.toContain(formatUsdCompact(205_000_000));
-    expect(html).toContain('data-volume-series="hourly-delta"');
-    expect(html).toContain(`>${HOURLY_VOLUME_DELTA_CAPTION}<`);
-    expect(html).not.toContain("24h total captured at that Eastern hour");
-    expect(html).toContain("Hour-over-hour change in the DexScreener rolling 24h total");
+    expect(html).toContain('data-volume-series="hourly-rolling"');
+    expect(html).toContain(`>${HOURLY_VOLUME_SERIES_CAPTION}<`);
+    expect(html).toContain("rolling 24h desk total captured at that Eastern hour");
+    expect(html).toContain("not volume during that hour alone");
+    expect(html).not.toContain("Hour-over-hour change");
+    expect(html).not.toContain("versus the previous Eastern hour");
   });
 
-  it("shows every Eastern hour and draws a delta only for consecutive captures", () => {
+  it("draws a lime area through captured hours and leaves the missing hour empty", () => {
     const slots = easternRollingHourStarts(Date.parse(GENERATED_AT) / 1000);
     expect(slots.length).toBeGreaterThan(20);
     expect(html).toContain(`data-hourly-axis-count="${slots.length}"`);
+    expect(html).toContain('data-hourly-point-count="4"');
     for (const t of slots) {
       expect(html).toContain(`data-volume-hour="${t}"`);
     }
     expect(html).toContain(`data-volume-hour="${missing14}" data-volume-hour-empty="true"`);
     expect(html).toContain(`data-volume-hour="${captured13}" data-volume-hour-empty="false"`);
-    const bars = [...html.matchAll(/data-volume-t="(\d+)"/g)].map((match) => Number(match[1]));
-    expect(bars).toEqual([captured13, captured16]);
-    expect(bars).not.toContain(captured12);
-    expect(bars).not.toContain(missing14);
-    expect(bars).not.toContain(captured15);
-    expect(html).toContain('data-volume-sign="up"');
-    expect(html).toContain('data-volume-sign="down"');
-    expect(html).toContain('data-volume-delta="10000000"');
-    expect(html).toContain('data-volume-delta="-15000000"');
-    expect(html).not.toContain(`data-volume-delta="${205_000_000 - 210_000_000}"`);
-    expect(html).toContain('fill="#B7FF3C"');
-    expect(html).toContain("var(--price-down)");
-    expect(html).toContain('data-volume-zero="true"');
-    expect(html).toContain('data-volume-y="+$10.0M"');
-    expect(html).toContain('data-volume-y="-$15.0M"');
+    const plotted = [...html.matchAll(/data-volume-t="(\d+)"/g)].map((match) => Number(match[1]));
+    expect(plotted).toEqual([captured12, captured13, captured15, captured16]);
+    expect(plotted).not.toContain(missing14);
+    expect(html).toContain('data-volume-usd="200000000"');
+    expect(html).toContain('data-volume-usd="210000000"');
+    expect(html).toContain('data-volume-usd="205000000"');
+    expect(html).toContain('data-volume-usd="190000000"');
+    expect(html).toContain('data-volume-run-count="2"');
+    expect(html).toContain(`stroke="${DESK_CHART_STROKE}"`);
+    expect(html).toContain('fill="url(#volume-area-24h)"');
+    expect(html).toMatch(/ C /);
+    expect(html).not.toContain("data-volume-bar");
+    expect(html).not.toContain("data-volume-sign");
+    expect(html).not.toContain("data-volume-delta");
+    expect(html).not.toContain("var(--price-down)");
+    expect(html).not.toContain('data-volume-y="+$');
+    expect(html).not.toContain('data-volume-y="-$');
     expect(html).toContain('data-volume-y="$0"');
-    expect(html).not.toContain('fill="url(#volume-area)"');
     expect(html).toContain("Every hour in the window is shown");
     expect(html).toContain("missing captures are left empty");
     expect(html).toContain('data-volume-live="24h"');
@@ -123,7 +127,9 @@ describe("DailyVolumeChart closed ranges", () => {
       expect(html).toContain('data-volume-kind="range_sum"');
       expect(html).not.toContain("data-volume-bar");
       expect(html).not.toContain("data-volume-hour");
-      expect(html).not.toContain(HOURLY_VOLUME_DELTA_CAPTION);
+      expect(html).not.toContain(HOURLY_VOLUME_SERIES_CAPTION);
+      expect(html).not.toContain("data-volume-rolling-area");
+      expect(html).not.toContain('stroke="#B7FF3C"');
       expect(html).not.toContain('data-volume-y="+$');
       expect(html).toContain('fill="url(#volume-area)"');
       expect(html).toContain("History from closed desk DexScreener snapshots");
@@ -134,16 +140,20 @@ describe("DailyVolumeChart closed ranges", () => {
     }
   });
 
-  it("shows the hour axis and no bar when only one hourly capture exists", () => {
+  it("shows the hour axis and a single lime point when only one hourly capture exists", () => {
     const only = [{ t: easternHour("2026-09-30T10"), volumeUsd: 200_000_000, kind: "rolling_24h" as const }];
     const html = markup("24h", only);
     const slots = easternRollingHourStarts(Date.parse(GENERATED_AT) / 1000);
     expect(html).toContain(`data-hourly-axis-count="${slots.length}"`);
     expect(html).toContain(`data-volume-hour="${only[0]!.t}" data-volume-hour-empty="false"`);
     expect(html).toContain(`data-volume-hour="${easternHour("2026-09-30T09")}" data-volume-hour-empty="true"`);
+    expect(html).toContain('data-volume-run-count="1"');
+    expect(html).toContain(`data-volume-t="${only[0]!.t}"`);
+    expect(html).toContain('data-volume-usd="200000000"');
+    expect(html).toContain(`fill="${DESK_CHART_STROKE}"`);
     expect(html).not.toContain("data-volume-bar");
-    expect(html).toContain('data-volume-zero="true"');
-    expect(html).toContain(HOURLY_VOLUME_DELTA_CAPTION);
+    expect(html).not.toContain('fill="url(#volume-area-24h)"');
+    expect(html).toContain(HOURLY_VOLUME_SERIES_CAPTION);
     expect(html).toContain(`>${formatUsdCompact(220_500_000)}<`);
     expect(html).toContain('data-volume-kind="combined_24h"');
   });

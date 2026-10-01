@@ -1,33 +1,29 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
+import { DESK_CHART_STROKE, monotoneAreaPath, monotoneLinePath } from "@/lib/desk/chart-curve";
 import {
+  contiguousHourlyRuns,
   deskChartHeadline,
   filterVolumeRange,
-  formatDeltaUsdCompact,
-  formatDeltaUsdFull,
   formatHourlyVolumeChartTick,
   formatVolumeChartTick,
-  hourlyRollingVolumeDeltas,
   hourlyVolumeChartXTicks,
-  HOURLY_VOLUME_DELTA_ARIA,
-  HOURLY_VOLUME_DELTA_CAPTION,
-  HOURLY_VOLUME_DELTA_EMPTY,
+  HOURLY_VOLUME_SERIES_ARIA,
+  HOURLY_VOLUME_SERIES_CAPTION,
+  HOURLY_VOLUME_SERIES_EMPTY,
   isRollingVolumeChartRange,
   nearestVolumePoint,
   plottableHourlyRollingPoints,
   pointerToSvgX,
   scaleVolumePoints,
   volumeChartXTicks,
-  volumeDeltaYTicks,
   VOLUME_CHART_HEIGHT,
   VOLUME_CHART_INNER_H,
-  VOLUME_CHART_INNER_W,
   VOLUME_CHART_PAD,
   VOLUME_CHART_RANGES,
   VOLUME_CHART_WIDTH,
   type DeskRolling24hVolumes,
-  type HourlyRollingDeltaPoint,
   type VolumeChartRangeId,
   type VolumeChartScale,
 } from "@/lib/market/daily-volume-view";
@@ -42,10 +38,6 @@ import { formatChartDay, formatUsdCompact, formatUsdFull } from "@/lib/market/fo
 import type { EquityVolumeHistoryResult, VolumeHistoryPoint } from "@/lib/market/types";
 import { easternRollingHourStarts } from "@/lib/market/volume-hourly-snapshots";
 import { closedSnapshotVolumePoints } from "@/lib/market/volume-snapshots";
-
-/** Lime for an up hour. Down hours use the desk price-down token. */
-const POSITIVE_DELTA = "#B7FF3C";
-const NEGATIVE_DELTA = "var(--price-down)";
 
 function areaPath(
   points: readonly VolumeHistoryPoint[],
@@ -67,96 +59,63 @@ function linePath(
   return `M ${points.map((point) => `${map.x(point.t).toFixed(2)},${map.y(point.volumeUsd).toFixed(2)}`).join(" L ")}`;
 }
 
-/** Width of one delta bar. Capped so a short series does not paint a slab. */
-function deltaBarWidth(count: number): number {
-  if (count <= 1) return 16;
-  const slot = VOLUME_CHART_INNER_W / Math.max(count - 1, 1);
-  return Math.max(4, Math.min(18, slot * 0.58));
-}
-
-function deltaBarX(center: number, width: number): number {
-  const left = VOLUME_CHART_PAD.left;
-  const right = VOLUME_CHART_WIDTH - VOLUME_CHART_PAD.right - width;
-  return Math.min(Math.max(center - width / 2, left), right);
-}
-
-function deltaSign(value: number): "up" | "down" | "flat" {
-  if (value > 0) return "up";
-  if (value < 0) return "down";
-  return "flat";
-}
-
-function DeltaBars({
+/** Absolute rolling-24h totals. A gap between Eastern hours breaks the curve. */
+function HourlyRollingArea({
   points,
   map,
-  width,
-  hoverT,
 }: {
-  points: readonly HourlyRollingDeltaPoint[];
+  points: readonly VolumeHistoryPoint[];
   map: VolumeChartScale;
-  width: number;
-  hoverT: number | null;
 }) {
-  const zeroY = map.y(0);
-  const plotRight = VOLUME_CHART_WIDTH - VOLUME_CHART_PAD.right;
+  const baseline = map.y(0);
+  const runs = contiguousHourlyRuns(points);
   return (
-    <g data-volume-deltas="true">
-      <line
-        x1={VOLUME_CHART_PAD.left}
-        x2={plotRight}
-        y1={zeroY}
-        y2={zeroY}
-        stroke="currentColor"
-        className="text-foreground/55"
-        strokeWidth="1.25"
-        data-volume-zero="true"
-        pointerEvents="none"
-      />
-      {points.map((point) => {
-        const x = deltaBarX(map.x(point.t), width);
-        const sign = deltaSign(point.volumeUsd);
-        const hovered = hoverT === point.t;
-        if (sign === "flat") {
+    <g data-volume-rolling-area="true" data-volume-run-count={runs.length}>
+      {runs.map((run) => {
+        const first = run[0];
+        if (!first) return null;
+        if (run.length === 1) {
           return (
-            <line
-              key={point.t}
-              x1={x}
-              x2={x + width}
-              y1={zeroY}
-              y2={zeroY}
-              stroke="currentColor"
-              className="text-muted-foreground"
-              strokeWidth="2.5"
-              data-volume-bar="true"
-              data-volume-t={point.t}
-              data-volume-delta={point.volumeUsd}
-              data-volume-sign="flat"
+            <circle
+              key={first.t}
+              cx={map.x(first.t)}
+              cy={map.y(first.volumeUsd)}
+              r="3.5"
+              fill={DESK_CHART_STROKE}
+              data-volume-point="true"
+              data-volume-t={first.t}
+              data-volume-usd={first.volumeUsd}
               pointerEvents="none"
             />
           );
         }
-        const valueY = map.y(point.volumeUsd);
-        const height = Math.max(Math.abs(valueY - zeroY), 1.25);
-        const y = point.volumeUsd > 0 ? zeroY - height : zeroY;
+        const curve = run.map((point) => ({ x: map.x(point.t), y: map.y(point.volumeUsd) }));
         return (
-          <rect
-            key={point.t}
-            x={x}
-            y={y}
-            width={width}
-            height={height}
-            rx={1.5}
-            fill={sign === "up" ? POSITIVE_DELTA : NEGATIVE_DELTA}
-            fillOpacity={sign === "up" ? 1 : 0.82}
-            stroke={hovered ? "currentColor" : "transparent"}
-            className={hovered ? "text-foreground" : undefined}
-            strokeWidth={hovered ? 1 : 0}
-            data-volume-bar="true"
-            data-volume-t={point.t}
-            data-volume-delta={point.volumeUsd}
-            data-volume-sign={sign}
-            pointerEvents="none"
-          />
+          <g key={first.t} data-volume-run={run.length}>
+            <path d={monotoneAreaPath(curve, baseline)} fill="url(#volume-area-24h)" pointerEvents="none" />
+            <path
+              d={monotoneLinePath(curve)}
+              fill="none"
+              stroke={DESK_CHART_STROKE}
+              strokeWidth="2"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              pointerEvents="none"
+            />
+            {run.map((point) => (
+              <circle
+                key={point.t}
+                cx={map.x(point.t)}
+                cy={map.y(point.volumeUsd)}
+                r="0"
+                fill={DESK_CHART_STROKE}
+                data-volume-point="true"
+                data-volume-t={point.t}
+                data-volume-usd={point.volumeUsd}
+                pointerEvents="none"
+              />
+            ))}
+          </g>
         );
       })}
     </g>
@@ -172,7 +131,7 @@ export function DailyVolumeChart({
   history: EquityVolumeHistoryResult;
   /**
    * Last ~24 Eastern hours of DexScreener h24 desk totals.
-   * 24H plots hour-over-hour change of these captures, not the absolute level.
+   * 24H plots each capture's absolute rolling total (`combined24hUsd`).
    * 7D/14D/30D keep using closed days from `history`. Do not pass these points through closedSnapshotVolumePoints.
    */
   hourlyHistory?: EquityVolumeHistoryResult | null;
@@ -272,35 +231,26 @@ export function DailyVolumeChart({
     [hourlyHistory, hourSlotSet],
   );
   const capturedHours = useMemo(() => new Set(hourlyCaptures.map((point) => point.t)), [hourlyCaptures]);
-  const hourlyDeltas = useMemo(() => hourlyRollingVolumeDeltas(hourlyCaptures), [hourlyCaptures]);
   const visible = useMemo(() => {
-    if (isRollingVolumeChartRange(range)) return hourlyDeltas;
+    if (isRollingVolumeChartRange(range)) return hourlyCaptures;
     return filterVolumeRange(points, range);
-  }, [hourlyDeltas, points, range]);
+  }, [hourlyCaptures, points, range]);
   const showHourlyAxis = rolling && hourSlots.length > 0 && hourlyCaptures.length > 0;
-  const barWidth = deltaBarWidth(hourSlots.length);
-  const xInset = showHourlyAxis ? barWidth / 2 : 0;
   const map = useMemo(
     () =>
-      scaleVolumePoints(showHourlyAxis ? hourlyDeltas : visible, {
-        xInset,
+      scaleVolumePoints(visible, {
         domainT: showHourlyAxis ? hourSlots : undefined,
       }),
-    [hourlyDeltas, hourSlots, showHourlyAxis, visible, xInset],
+    [hourSlots, showHourlyAxis, visible],
   );
   // 24H headline ignores the plotted series and reads the live rollup.
   const headline = deskChartHeadline(range, rolling ? points : visible, rolling24h);
   const hasDaily = points.length > 0;
   const showRanges = hasDaily || hourlyCaptures.length > 0;
   const showHeadline = headline.volumeUsd !== null;
-  const yTicks = rolling
-    ? volumeDeltaYTicks(map.minY, map.maxY)
-    : [0, 0.25, 0.5, 0.75, 1].map((frac) => map.maxY * frac);
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map((frac) => map.maxY * frac);
   const xTicks = showHourlyAxis
-    ? hourlyVolumeChartXTicks(
-        hourSlots.map((t) => ({ t, volumeUsd: 0, kind: "rolling_24h" as const })),
-        xInset,
-      )
+    ? hourlyVolumeChartXTicks(hourSlots.map((t) => ({ t, volumeUsd: 0, kind: "rolling_24h" as const })))
     : volumeChartXTicks(visible);
   const plotBottom = VOLUME_CHART_PAD.top + VOLUME_CHART_INNER_H;
 
@@ -315,8 +265,8 @@ export function DailyVolumeChart({
     if (svgX === null) return;
     if (showHourlyAxis) {
       const slot =
-        hourSlots.length > 1 ? Math.abs(map.x(hourSlots[1]!) - map.x(hourSlots[0]!)) : barWidth;
-      setHover(nearestVolumePoint(hourlyDeltas, map, svgX, slot / 2));
+        hourSlots.length > 1 ? Math.abs(map.x(hourSlots[1]!) - map.x(hourSlots[0]!)) : 16;
+      setHover(nearestVolumePoint(hourlyCaptures, map, svgX, slot / 2));
       return;
     }
     setHover(nearestVolumePoint(visible, map, svgX));
@@ -327,7 +277,7 @@ export function DailyVolumeChart({
       className="rounded-xl border border-border bg-card/80 px-4 py-4 sm:px-5"
       data-hourly-rolling-count={hourlyHistory?.points.length ?? 0}
       data-hourly-axis-count={hourSlots.length}
-      data-hourly-delta-count={hourlyDeltas.length}
+      data-hourly-point-count={hourlyCaptures.length}
       data-volume-refresh-ms={rolling ? DESK_VOLUME_24H_POLL_MS : undefined}
       data-volume-live={rolling ? "24h" : undefined}
     >
@@ -382,7 +332,7 @@ export function DailyVolumeChart({
         <div
           className="relative mt-3 cursor-crosshair"
           data-volume-plot
-          data-volume-series={rolling ? "hourly-delta" : "closed-day"}
+          data-volume-series={rolling ? "hourly-rolling" : "closed-day"}
           onPointerLeave={() => setHover(null)}
           onMouseLeave={() => setHover(null)}
           onPointerMove={(event: PointerEvent<HTMLDivElement>) =>
@@ -397,7 +347,7 @@ export function DailyVolumeChart({
             role="img"
             aria-label={
               rolling
-                ? HOURLY_VOLUME_DELTA_ARIA
+                ? HOURLY_VOLUME_SERIES_ARIA
                 : "Daily Solana tokenized stock volume from desk DexScreener snapshots. Headline is the sum of snapshot days in the selected range."
             }
           >
@@ -405,6 +355,10 @@ export function DailyVolumeChart({
               <linearGradient id="volume-area" x1="0" x2="0" y1="0" y2="1">
                 <stop offset="0%" stopColor="var(--volume)" stopOpacity="0.38" />
                 <stop offset="100%" stopColor="var(--volume)" stopOpacity="0.02" />
+              </linearGradient>
+              <linearGradient id="volume-area-24h" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stopColor={DESK_CHART_STROKE} stopOpacity="0.38" />
+                <stop offset="100%" stopColor={DESK_CHART_STROKE} stopOpacity="0.02" />
               </linearGradient>
             </defs>
             <rect x={0} y={0} width={VOLUME_CHART_WIDTH} height={VOLUME_CHART_HEIGHT} fill="transparent" />
@@ -425,9 +379,9 @@ export function DailyVolumeChart({
                   textAnchor="end"
                   className="fill-muted-foreground"
                   fontSize="10"
-                  data-volume-y={rolling ? formatDeltaUsdCompact(tick) : formatUsdCompact(tick)}
+                  data-volume-y={formatUsdCompact(tick)}
                 >
-                  {rolling ? formatDeltaUsdCompact(tick) : formatUsdCompact(tick)}
+                  {formatUsdCompact(tick)}
                 </text>
               </g>
             ))}
@@ -466,7 +420,7 @@ export function DailyVolumeChart({
               );
             })}
             {rolling ? (
-              <DeltaBars points={hourlyDeltas} map={map} width={barWidth} hoverT={hover?.t ?? null} />
+              <HourlyRollingArea points={hourlyCaptures} map={map} />
             ) : (
               <>
                 <path d={areaPath(visible, map)} fill="url(#volume-area)" pointerEvents="none" />
@@ -488,7 +442,7 @@ export function DailyVolumeChart({
                   x2={map.x(hover.t)}
                   y1={VOLUME_CHART_PAD.top}
                   y2={VOLUME_CHART_PAD.top + VOLUME_CHART_INNER_H}
-                  stroke={rolling ? (hover.volumeUsd < 0 ? NEGATIVE_DELTA : POSITIVE_DELTA) : "var(--volume)"}
+                  stroke={rolling ? DESK_CHART_STROKE : "var(--volume)"}
                   strokeOpacity="0.45"
                   strokeDasharray="3 3"
                 />
@@ -496,7 +450,7 @@ export function DailyVolumeChart({
                   cx={map.x(hover.t)}
                   cy={map.y(hover.volumeUsd)}
                   r="3.5"
-                  fill={rolling ? (hover.volumeUsd < 0 ? NEGATIVE_DELTA : POSITIVE_DELTA) : "var(--volume)"}
+                  fill={rolling ? DESK_CHART_STROKE : "var(--volume)"}
                 />
               </g>
             ) : null}
@@ -514,17 +468,9 @@ export function DailyVolumeChart({
               <p data-volume-tooltip-day>
                 {rolling ? formatHourlyVolumeChartTick(hover.t) : formatChartDay(hover.t)}
               </p>
-              <p
-                className={`num ${rolling && hover.volumeUsd < 0 ? "text-price-down" : "text-foreground"}`}
-                data-volume-tooltip-value
-              >
-                {rolling ? formatDeltaUsdFull(hover.volumeUsd) : formatUsdFull(hover.volumeUsd)}
+              <p className="num text-foreground" data-volume-tooltip-value>
+                {formatUsdFull(hover.volumeUsd)}
               </p>
-              {rolling && "priorT" in hover && typeof hover.priorT === "number" ? (
-                <p className="text-muted-foreground" data-volume-tooltip-prior>
-                  vs {formatHourlyVolumeChartTick(hover.priorT)}
-                </p>
-              ) : null}
             </div>
           ) : null}
         </div>
@@ -532,17 +478,14 @@ export function DailyVolumeChart({
         <div className="mt-4 flex h-[220px] items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 px-6 text-center">
           <p className="max-w-md text-sm text-muted-foreground">
             {rolling
-              ? hourlyCaptures.length > 0 && hourSlots.length === 0
-                ? HOURLY_VOLUME_DELTA_EMPTY
-                : (hourlyHistory?.emptyReason ??
-                  "Hourly volume series is unavailable. Missing hours are not invented.")
+              ? (hourlyHistory?.emptyReason ?? HOURLY_VOLUME_SERIES_EMPTY)
               : (history.emptyReason ?? "Historical volume series is unavailable. The desk does not invent points.")}
           </p>
         </div>
       )}
       {showHourlyAxis ? (
         <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-volume-hourly-note>
-          {HOURLY_VOLUME_DELTA_CAPTION}
+          {HOURLY_VOLUME_SERIES_CAPTION}
         </p>
       ) : null}
       {!rolling && hasDaily ? (

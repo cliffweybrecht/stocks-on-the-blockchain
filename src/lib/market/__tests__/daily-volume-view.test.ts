@@ -11,8 +11,9 @@ import {
   pointerToViewBoxX,
   formatDeltaUsdCompact,
   formatDeltaUsdFull,
+  contiguousHourlyRuns,
   hourlyRollingVolumeDeltas,
-  HOURLY_VOLUME_DELTA_CAPTION,
+  HOURLY_VOLUME_SERIES_CAPTION,
   scaleVolumePoints,
   deskRangeVolumeHeadline,
   deskVolumeHeadline,
@@ -397,6 +398,19 @@ describe("volumeDeltaYTicks", () => {
   });
 });
 
+describe("contiguousHourlyRuns", () => {
+  it("keeps adjacent captures together and starts a new run at a missing hour", () => {
+    const points = [0, 1, 3].map((hour) => ({
+      t: DAY0 + hour * 3600,
+      volumeUsd: 1_000 + hour,
+      kind: "rolling_24h" as const,
+    }));
+    const runs = contiguousHourlyRuns(points);
+    expect(runs.map((run) => run.map((point) => point.t))).toEqual([[points[0]!.t, points[1]!.t], [points[2]!.t]]);
+    expect(runs.flat().some((point) => point.t === DAY0 + 2 * 3600)).toBe(false);
+  });
+});
+
 describe("hourlyRollingVolumeDeltas", () => {
   it("plots each later capture minus the prior one and omits the first hour", () => {
     const points = [100, 140, 90].map((volumeUsd, index) => ({
@@ -410,12 +424,15 @@ describe("hourlyRollingVolumeDeltas", () => {
       { t: points[2]!.t, priorT: points[1]!.t, volumeUsd: -50, kind: "rolling_24h" },
     ]);
     expect(deltas.some((point) => point.t === points[0]!.t)).toBe(false);
-    expect(HOURLY_VOLUME_DELTA_CAPTION).toMatch(/change in the DexScreener rolling 24h total/);
-    expect(HOURLY_VOLUME_DELTA_CAPTION).toMatch(/previous Eastern hour/);
-    expect(HOURLY_VOLUME_DELTA_CAPTION).toMatch(/Every hour in the window is shown/);
-    expect(HOURLY_VOLUME_DELTA_CAPTION).toMatch(/missing captures are left empty/);
-    expect(HOURLY_VOLUME_DELTA_CAPTION).not.toMatch(/Missing hours are omitted/);
-    expect(HOURLY_VOLUME_DELTA_CAPTION).not.toMatch(/24h total captured at that Eastern hour/);
+  });
+
+  it("describes the 24H series as the rolling total captured at each hour", () => {
+    expect(HOURLY_VOLUME_SERIES_CAPTION).toMatch(/rolling 24h desk total captured at that Eastern hour/);
+    expect(HOURLY_VOLUME_SERIES_CAPTION).toMatch(/not volume during that hour alone/);
+    expect(HOURLY_VOLUME_SERIES_CAPTION).toMatch(/Every hour in the window is shown/);
+    expect(HOURLY_VOLUME_SERIES_CAPTION).toMatch(/missing captures are left empty/);
+    expect(HOURLY_VOLUME_SERIES_CAPTION).not.toMatch(/change/);
+    expect(HOURLY_VOLUME_SERIES_CAPTION).not.toMatch(/previous Eastern hour/);
   });
 
   it("does not invent a zero for the first point or a delta across a missing hour", () => {
