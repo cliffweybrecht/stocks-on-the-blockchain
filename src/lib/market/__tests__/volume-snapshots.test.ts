@@ -324,6 +324,7 @@ describe("committed Solana desk snapshots", () => {
       "2026-09-26",
       "2026-09-27",
       "2026-09-28",
+      "2026-09-30",
     ]);
     expect(snapshots.map((row) => row.combined24hUsd)).toEqual([
       173522731.07,
@@ -332,6 +333,7 @@ describe("committed Solana desk snapshots", () => {
       56268835.52999999,
       76080265.64999995,
       113009159.34999996,
+      143757138.89999998,
     ]);
     const sep23 = snapshots[0];
     expect(sep23?.publicEquity24hUsd).toBeNull();
@@ -445,7 +447,9 @@ describe("committed Solana desk snapshots", () => {
     const throughSep27 = snapshots
       .filter((row) => row.date < "2026-09-28")
       .reduce((sum, row) => sum + (row.combined24hUsd ?? 0), 0);
-    const storedSum = snapshots.reduce((sum, row) => sum + (row.combined24hUsd ?? 0), 0);
+    const throughSep28 = snapshots
+      .filter((row) => row.date <= "2026-09-28")
+      .reduce((sum, row) => sum + (row.combined24hUsd ?? 0), 0);
     const cases = [
       {
         generatedAt: "2026-09-29T01:48:00.000Z", // 21:48 ET Sep 28; UTC date is already Sep 29
@@ -457,7 +461,7 @@ describe("committed Solana desk snapshots", () => {
         generatedAt: "2026-09-29T04:10:00.000Z", // 00:10 ET Sep 29; Sep 28 has closed
         date: "2026-09-29",
         labels: ["Sep 23", "Sep 24", "Sep 25", "Sep 26", "Sep 27", "Sep 28"],
-        headlineUsd: storedSum,
+        headlineUsd: throughSep28,
       },
     ] as const;
     for (const { generatedAt, date, labels: expectedLabels, headlineUsd } of cases) {
