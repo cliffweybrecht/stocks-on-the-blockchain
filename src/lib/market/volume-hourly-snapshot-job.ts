@@ -5,6 +5,7 @@ import { FileDeskHourlyVolumeSnapshotStore } from "./volume-hourly-snapshot-stor
 import {
   deskHourlyVolumeSnapshotLabel,
   recordDeskHourlyVolumeFromDetail,
+  resolvePinnedEasternHour,
   SOLANA_HOURLY_VOLUME_SNAPSHOT_FILE,
   type DeskHourlyVolumeSnapshotStore,
   type RecordDeskHourlyVolumeResult,
@@ -20,8 +21,20 @@ function formatUsdLeg(value: number | null): string {
 export async function runDeskHourlyVolumeSnapshotJob(input: {
   source: DeskHourlyVolumeSnapshotSource;
   store: DeskHourlyVolumeSnapshotStore;
+  /** Stamp clock when no target hour is pinned. Tests pass this; the CLI does not. */
   nowT?: number;
+  /**
+   * Scheduled America/New_York hour (`YYYY-MM-DDTHH` or with offset).
+   * The written key is this hour even when the fetch finishes after the clock rolls.
+   * Volume still comes from the live `getChain` result.
+   */
+  targetHour?: string | null;
+  /** Wall clock for the pin's lag check. Defaults to `Date.now()`. */
+  clockT?: number;
 }): Promise<RecordDeskHourlyVolumeResult> {
+  const clockT = input.clockT ?? Date.now() / 1000;
+  const pin = resolvePinnedEasternHour(input.targetHour, clockT);
+  if (!pin.ok) return { ok: false, reason: pin.reason };
   let detail;
   try {
     detail = await input.source.getChain("solana");
@@ -39,7 +52,32 @@ export async function runDeskHourlyVolumeSnapshotJob(input: {
   if (!generatedAt) {
     return { ok: false, reason: "Solana DexScreener hourly desk snapshot failed: missing provenance timestamp." };
   }
-  return recordDeskHourlyVolumeFromDetail(input.store, detail, generatedAt, input.nowT);
+  // A pin replaces the fetch-end stamp. `generatedAt` stays the real fetch time.
+  const stampT = pin.stamp ? pin.stamp.t : input.nowT;
+  return recordDeskHourlyVolumeFromDetail(input.store, detail, generatedAt, stampT);
+}
+
+export type HourlyTargetHourRead = { ok: true; hour: string | undefined } | { ok: false; reason: string };
+
+/** `--hour` / `--snapshot-hour` win over the environment. A bare flag is an error. */
+export function readHourlyTargetHour(env: MarketEnv, argv: readonly string[] = []): HourlyTargetHourRead {
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index] ?? "";
+    if (arg === "--hour" || arg === "--snapshot-hour") {
+      const value = argv[index + 1]?.trim() ?? "";
+      if (!value || value.startsWith("--")) {
+        return { ok: false, reason: `${arg} needs an America/New_York hour (YYYY-MM-DDTHH).` };
+      }
+      return { ok: true, hour: value };
+    }
+    if (arg.startsWith("--hour=") || arg.startsWith("--snapshot-hour=")) {
+      const value = arg.slice(arg.indexOf("=") + 1).trim();
+      if (!value) return { ok: false, reason: `${arg.split("=")[0]} needs an America/New_York hour (YYYY-MM-DDTHH).` };
+      return { ok: true, hour: value };
+    }
+  }
+  const fromEnv = env.HOURLY_TARGET_HOUR?.trim() || env.SNAPSHOT_HOUR?.trim();
+  return { ok: true, hour: fromEnv || undefined };
 }
 
 export function formatDeskHourlyVolumeSnapshotSuccess(
@@ -53,8 +91,10 @@ export function formatDeskHourlyVolumeSnapshotSuccess(
 
 export async function runDeskHourlyVolumeSnapshotCli(options: {
   env?: MarketEnv;
+  argv?: readonly string[];
   source?: DeskHourlyVolumeSnapshotSource;
   store?: DeskHourlyVolumeSnapshotStore;
+  clockT?: number;
   log?: (message: string) => void;
   error?: (message: string) => void;
 } = {}): Promise<number> {
@@ -77,8 +117,18 @@ export async function runDeskHourlyVolumeSnapshotCli(options: {
       // solana.json so an hourly run cannot replace the daily series.
       volumeSnapshotStore: new MemoryDeskVolumeSnapshotStore(),
     });
+  const target = readHourlyTargetHour(env, options.argv ?? []);
+  if (!target.ok) {
+    error(target.reason);
+    return 1;
+  }
   try {
-    const result = await runDeskHourlyVolumeSnapshotJob({ source, store });
+    const result = await runDeskHourlyVolumeSnapshotJob({
+      source,
+      store,
+      targetHour: target.hour,
+      clockT: options.clockT,
+    });
     if (!result.ok) {
       error(result.reason);
       return 1;

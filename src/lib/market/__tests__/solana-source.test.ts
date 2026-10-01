@@ -9,6 +9,7 @@ import {
 } from "../all-markets-volume-cache";
 import { BACKPACK_SUNRISE_BATCH_TICKERS, DEFAULT_SOLANA_DISCOVERY_QUERIES } from "../solana-discover";
 import { SolanaMarketDataSource, type SolanaMarketDataSourceOptions } from "../solana-source";
+import { MemoryDeskHourlyVolumeSnapshotStore, easternHourStamp } from "../volume-hourly-snapshots";
 import { MemoryDeskVolumeSnapshotStore } from "../volume-snapshots";
 
 const tslaMint = "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB";
@@ -906,6 +907,170 @@ describe("SolanaMarketDataSource", () => {
     expect(history.points.some((point) => point.kind === "calendar_day" && point.volumeUsd === 0)).toBe(false);
     expect(history.definition).toMatch(/DexScreener 24h snapshots/);
     expect(history.definition).not.toMatch(/No GeckoTerminal daily candles/);
+  });
+
+  it("reads hourly rolling 24h points from the hourly store and does not write the closed-day file", async () => {
+    const nowT = Math.floor(Date.now() / 1000);
+    const current = easternHourStamp(nowT);
+    const gapHour = easternHourStamp(nowT - 3_600);
+    const stale = easternHourStamp(nowT - 30 * 3_600);
+    expect(current).toBeTruthy();
+    expect(gapHour).toBeTruthy();
+    expect(stale).toBeTruthy();
+    if (!current || !gapHour || !stale) return;
+    const daily = new MemoryDeskVolumeSnapshotStore([
+      {
+        date: "2026-09-14",
+        t: Date.UTC(2026, 8, 14) / 1000,
+        publicEquity24hUsd: 10,
+        private24hUsd: null,
+        etfIndex24hUsd: null,
+        combined24hUsd: 10,
+        publicMintCount: 1,
+        publicPoolCount: 1,
+        generatedAt: "2026-09-14T12:00:00.000Z",
+      },
+    ]);
+    const hourly = new MemoryDeskHourlyVolumeSnapshotStore([
+      {
+        hour: stale.hour,
+        offset: stale.offset,
+        t: stale.t,
+        publicEquity24hUsd: 1,
+        private24hUsd: null,
+        etfIndex24hUsd: null,
+        combined24hUsd: 1,
+        publicLiquidityUsd: null,
+        privateLiquidityUsd: null,
+        etfIndexLiquidityUsd: null,
+        combinedLiquidityUsd: null,
+        generatedAt: "2026-09-28T00:00:00.000Z",
+      },
+      {
+        hour: gapHour.hour,
+        offset: gapHour.offset,
+        t: gapHour.t,
+        publicEquity24hUsd: null,
+        private24hUsd: null,
+        etfIndex24hUsd: null,
+        combined24hUsd: null,
+        publicLiquidityUsd: null,
+        privateLiquidityUsd: null,
+        etfIndexLiquidityUsd: null,
+        combinedLiquidityUsd: null,
+        generatedAt: "2026-09-29T00:00:00.000Z",
+      },
+      {
+        hour: current.hour,
+        offset: current.offset,
+        t: current.t,
+        publicEquity24hUsd: 4,
+        private24hUsd: 2,
+        etfIndex24hUsd: 3,
+        combined24hUsd: 9,
+        publicLiquidityUsd: null,
+        privateLiquidityUsd: null,
+        etfIndexLiquidityUsd: null,
+        combinedLiquidityUsd: null,
+        generatedAt: new Date(nowT * 1000).toISOString(),
+      },
+    ]);
+    const source = testSource({
+      volumeSnapshotStore: daily,
+      hourlyVolumeSnapshotStore: hourly,
+    });
+
+    const history = await source.getEquityHourlyRollingVolumeHistory();
+    expect(history.available).toBe(true);
+    expect(history.points).toEqual([{ t: current.t, volumeUsd: 9, kind: "rolling_24h" }]);
+    expect(history.points.some((point) => point.t === gapHour.t || point.t === stale.t)).toBe(false);
+    expect(history.definition).toMatch(/rolling h24/);
+    expect(await daily.load()).toEqual([
+      {
+        date: "2026-09-14",
+        t: Date.UTC(2026, 8, 14) / 1000,
+        publicEquity24hUsd: 10,
+        private24hUsd: null,
+        etfIndex24hUsd: null,
+        combined24hUsd: 10,
+        publicMintCount: 1,
+        publicPoolCount: 1,
+        generatedAt: "2026-09-14T12:00:00.000Z",
+      },
+    ]);
+  });
+
+  it("reads the live 24H headline from the desk cache without writing solana.json or refetching DexScreener", async () => {
+    const snapshots = new MemoryDeskVolumeSnapshotStore();
+    const urls: string[] = [];
+    const source = testSource({
+      cacheMs: 60_000,
+      volumeSnapshotStore: snapshots,
+      fetchImpl: async (input) => {
+        const url = String(input);
+        urls.push(url);
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [tslaPair()] });
+        if (url.includes("/token-pairs/")) return jsonResponse([tslaPair()]);
+        if (url.includes("/tokens/")) return jsonResponse([tslaPair()]);
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    const first = await source.getLiveDeskRolling24h();
+    expect(first?.publicVolume24hUsd).toBeCloseTo(1_250.25);
+    expect(first?.privateVolume24hUsd).toBeNull();
+    expect(first?.etfVolume24hUsd).toBeNull();
+    const calls = urls.length;
+    expect(calls).toBeGreaterThan(0);
+
+    const second = await source.getLiveDeskRolling24h();
+    expect(second?.publicVolume24hUsd).toBeCloseTo(1_250.25);
+    expect(urls).toHaveLength(calls);
+    expect(await snapshots.load()).toEqual([]);
+
+    await source.getEquityVolumeHistory();
+    expect(await snapshots.load()).toHaveLength(1);
+  });
+
+  it("picks up a new DexScreener total after the desk cache expires without writing solana.json", async () => {
+    const snapshots = new MemoryDeskVolumeSnapshotStore();
+    let hydrates = 0;
+    const source = testSource({
+      cacheMs: 30,
+      staleMs: 10_000,
+      volumeSnapshotStore: snapshots,
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [tslaPair()] });
+        if (url.includes("/token-pairs/")) {
+          hydrates += 1;
+          return jsonResponse([
+            {
+              ...tslaPair(),
+              volume: { h24: hydrates === 1 ? 1_250.25 : 4_000 },
+            },
+          ]);
+        }
+        if (url.includes("/tokens/")) return jsonResponse([tslaPair()]);
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    const first = await source.getLiveDeskRolling24h();
+    expect(first?.publicVolume24hUsd).toBeCloseTo(1_250.25);
+    expect(hydrates).toBe(1);
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    const stale = await source.getLiveDeskRolling24h();
+    expect(stale?.publicVolume24hUsd).toBeCloseTo(1_250.25);
+
+    for (let attempt = 0; attempt < 20 && hydrates < 2; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    const refreshed = await source.getLiveDeskRolling24h();
+    expect(hydrates).toBeGreaterThanOrEqual(2);
+    expect(refreshed?.publicVolume24hUsd).toBeCloseTo(4_000);
+    expect(await snapshots.load()).toEqual([]);
   });
 
   it("loads per-mint price closes from GeckoTerminal and never treats volume as price", async () => {

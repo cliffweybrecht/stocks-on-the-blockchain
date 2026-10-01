@@ -1,6 +1,6 @@
 import { runDeskHourlyVolumeSnapshotCli } from "../src/lib/market/volume-hourly-snapshot-job";
 
-runDeskHourlyVolumeSnapshotCli()
+runDeskHourlyVolumeSnapshotCli({ argv: process.argv.slice(2) })
   .then((code) => {
     process.exit(code);
   })

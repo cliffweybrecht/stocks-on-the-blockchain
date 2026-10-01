@@ -231,6 +231,13 @@ export interface VolumeHistoryPoint {
   kind?: VolumeHistoryPointKind;
 }
 
+/** Public, private, and ETF/index 24h legs. Null is unreported, not zero. */
+export interface DeskLiveRolling24h {
+  publicVolume24hUsd: number | null;
+  privateVolume24hUsd: number | null;
+  etfVolume24hUsd: number | null;
+}
+
 export interface EquityVolumeHistoryResult {
   available: boolean;
   points: VolumeHistoryPoint[];
@@ -315,6 +322,22 @@ export interface MarketDataSource {
   getChain(chainId: string): Promise<ChainDetailResult | null>;
   getAsset(chainId: string, symbol: string, options?: AssetReadOptions): Promise<AssetDetailResult | null>;
   getEquityVolumeHistory(): Promise<EquityVolumeHistoryResult>;
+  /**
+   * Last ~24 America/New_York hours of DexScreener rolling h24 desk totals
+   * from `solana-hourly.json`. Each point is `kind: "rolling_24h"` with
+   * `volumeUsd` = combined public + private + ETF/index and `t` = that
+   * Eastern hour’s unix start. Captured hours only — missing hours are not
+   * stored as points. The 24H chart still marks every Eastern hour in the
+   * window and leaves a miss empty. Does not read or write the closed-day file.
+   */
+  getEquityHourlyRollingVolumeHistory(): Promise<EquityVolumeHistoryResult>;
+  /**
+   * Live DexScreener all-markets 24h legs for the volume-chart headline.
+   * Reuses the in-memory desk snapshot (default fresh for 5 minutes).
+   * Does not write `solana.json` and does not read `solana-hourly.json`.
+   * Null means the snapshot is unavailable — callers keep the last headline.
+   */
+  getLiveDeskRolling24h(): Promise<DeskLiveRolling24h | null>;
   getAssetPriceHistory(chainId: string, symbol: string): Promise<AssetPriceHistoryResult>;
   /** Primary-pool Gecko hourly volume for card sparklines. Missing mints are omitted. */
   getEquityCardDayVolumeSeries(): Promise<Record<string, VolumeHistoryPoint[]>>;

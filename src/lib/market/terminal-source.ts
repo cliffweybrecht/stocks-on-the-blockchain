@@ -6,9 +6,10 @@ import {
   type TerminalAssetLiquidityProfile,
   type TerminalPriceComparison,
 } from "./map-terminal";
-import { ROBINHOOD_CHAIN_ID, emptyAllMarketsVolumeSnapshot, type AssetDetailResult, type AssetPriceHistoryResult, type ChainDetailResult, type ChainListResult, type EquityVolumeHistoryResult, type MarketDataSource, type VolumeHistoryPoint } from "./types";
+import { ROBINHOOD_CHAIN_ID, emptyAllMarketsVolumeSnapshot, type AssetDetailResult, type AssetPriceHistoryResult, type ChainDetailResult, type ChainListResult, type DeskLiveRolling24h, type EquityVolumeHistoryResult, type MarketDataSource, type VolumeHistoryPoint } from "./types";
 import { emptyAssetPriceHistory } from "./asset-price-history";
 import { emptyEquityVolumeHistory } from "./volume-history";
+import { emptyHourlyRollingVolumeHistory } from "./volume-hourly-snapshots";
 
 interface CachedSnapshot {
   mapped: ReturnType<typeof mapTerminalSnapshot>;
@@ -119,6 +120,16 @@ export class TerminalMarketDataSource implements MarketDataSource {
     return emptyEquityVolumeHistory(
       "Robinhood Terminal has no Solana desk snapshots. This series is DexScreener 24h history for classified Solana stocks only.",
     );
+  }
+
+  async getEquityHourlyRollingVolumeHistory(): Promise<EquityVolumeHistoryResult> {
+    return emptyHourlyRollingVolumeHistory(
+      "Robinhood Terminal has no Solana hourly desk snapshots. This series is DexScreener rolling 24h totals for Solana only.",
+    );
+  }
+
+  async getLiveDeskRolling24h(): Promise<DeskLiveRolling24h | null> {
+    return null;
   }
 
   async getAssetPriceHistory(): Promise<AssetPriceHistoryResult> {

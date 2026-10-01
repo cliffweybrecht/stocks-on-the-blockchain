@@ -1,21 +1,34 @@
 import { describe, expect, it } from "vitest";
 import {
+  deskChartHeadline,
   filterVolumeRange,
+  formatHourlyVolumeChartTick,
   formatVolumeChartTick,
+  hourlyVolumeChartXTicks,
+  isRollingVolumeChartRange,
   nearestVolumePoint,
   pointerToSvgX,
   pointerToViewBoxX,
+  formatDeltaUsdCompact,
+  formatDeltaUsdFull,
+  contiguousHourlyRuns,
+  hourlyRollingVolumeDeltas,
+  HOURLY_VOLUME_SERIES_CAPTION,
   scaleVolumePoints,
   deskRangeVolumeHeadline,
   deskVolumeHeadline,
   sumVolumePoints,
   volumeChartXTicks,
+  volumeDeltaYTicks,
   volumeHeadlineCopy,
+  VOLUME_CHART_INNER_H,
+  VOLUME_CHART_INNER_W,
   VOLUME_CHART_PAD,
   VOLUME_CHART_RANGES,
   VOLUME_CHART_WIDTH,
 } from "../daily-volume-view";
 import { UTC_DAY_SECONDS } from "../volume-history";
+import { closedSnapshotVolumePoints } from "../volume-snapshots";
 
 const DAY0 = 1_699_920_000;
 
@@ -28,9 +41,21 @@ function days(count: number) {
 }
 
 describe("filterVolumeRange", () => {
-  it("lists 7D, 14D, and 30D only", () => {
-    expect(VOLUME_CHART_RANGES.map((row) => row.label)).toEqual(["7D", "14D", "30D"]);
-    expect(VOLUME_CHART_RANGES.map((row) => row.id)).toEqual(["7d", "14d", "30d"]);
+  it("lists rolling 24H beside the closed 7D, 14D, and 30D windows", () => {
+    expect(VOLUME_CHART_RANGES.map((row) => row.label)).toEqual(["24H", "7D", "14D", "30D"]);
+    expect(VOLUME_CHART_RANGES.map((row) => row.id)).toEqual(["24h", "7d", "14d", "30d"]);
+    expect(isRollingVolumeChartRange("24h")).toBe(true);
+    expect(isRollingVolumeChartRange("7d")).toBe(false);
+    expect(isRollingVolumeChartRange("14d")).toBe(false);
+    expect(isRollingVolumeChartRange("30d")).toBe(false);
+  });
+
+  it("does not treat 24H as a slice of closed snapshot days", () => {
+    const points = days(40);
+    expect(filterVolumeRange(points, "24h")).toEqual([]);
+    const seven = filterVolumeRange(points, "7d");
+    expect(seven).toHaveLength(8);
+    expect(seven[0]?.t).toBe(points[32]?.t);
   });
 
   it("keeps a continuous 7-day window ending on the latest point", () => {
@@ -227,6 +252,43 @@ describe("deskRangeVolumeHeadline", () => {
     expect(empty.caption).toBe("14D · no desk snapshots in this window");
   });
 
+  it("uses the live public + private + ETF rollup for 24H and leaves closed-day sums unchanged", () => {
+    const points = days(40);
+    const seven = filterVolumeRange(points, "7d");
+    const rolling = {
+      publicVolume24hUsd: 1_250.25,
+      privateVolume24hUsd: 88_000,
+      etfVolume24hUsd: 13_000_000,
+    };
+    const day = deskChartHeadline("7d", seven, rolling);
+    expect(day.kind).toBe("range_sum");
+    expect(day.volumeUsd).toBeCloseTo(seven.reduce((sum, point) => sum + point.volumeUsd, 0));
+    expect(day.caption).toBe("7D · sum of desk snapshot days · public + private + ETF/index");
+
+    const live = deskChartHeadline("24h", seven, rolling);
+    expect(live.kind).toBe("combined_24h");
+    expect(live.volumeUsd).toBeCloseTo(13_089_250.25);
+    expect(live.caption).toBe("24h · public + private + ETF/index");
+    expect(live.volumeUsd).not.toBeCloseTo(day.volumeUsd ?? 0);
+
+    const hourly = [
+      { t: DAY0, volumeUsd: 4_000_000, kind: "rolling_24h" as const },
+      { t: DAY0 + 3600, volumeUsd: 5_000_000, kind: "rolling_24h" as const },
+    ];
+    const fromHourly = deskChartHeadline("24h", hourly, rolling);
+    expect(fromHourly.volumeUsd).toBeCloseTo(13_089_250.25);
+    expect(fromHourly.kind).toBe("combined_24h");
+
+    const missing = deskChartHeadline("24h", seven, {
+      publicVolume24hUsd: null,
+      privateVolume24hUsd: null,
+      etfVolume24hUsd: null,
+    });
+    expect(missing.volumeUsd).toBeNull();
+    expect(missing.kind).toBe("combined_24h");
+    expect(missing.caption).toBe("24h · no reported public, private, or ETF/index volume");
+  });
+
   it("leaves a live rolling tip out of the headline sum", () => {
     const points = [
       { t: DAY0, volumeUsd: 10, kind: "calendar_day" as const },
@@ -236,6 +298,199 @@ describe("deskRangeVolumeHeadline", () => {
     const headline = deskRangeVolumeHeadline(points, "7d");
     expect(headline.volumeUsd).toBe(10);
     expect(headline.caption).toMatch(/sum of desk snapshot days/);
+  });
+});
+
+describe("hourlyVolumeChartXTicks", () => {
+  it("keeps captured hours and does not fill gaps", () => {
+    const points = [0, 1, 3].map((hour) => ({
+      t: DAY0 + hour * 3600,
+      volumeUsd: 1_000,
+      kind: "rolling_24h" as const,
+    }));
+    expect(hourlyVolumeChartXTicks(points)).toEqual(points.map((point) => point.t));
+    expect(formatHourlyVolumeChartTick(points[0]!.t)).toMatch(/^\d{1,2}:\d{2}\s[AP]M$/);
+    expect(formatHourlyVolumeChartTick(points[0]!.t)).not.toMatch(/Sep|2026/);
+  });
+
+  it("thins labels when many hours exist and still includes the last capture", () => {
+    const points = Array.from({ length: 19 }, (_, index) => ({
+      t: DAY0 + index * 3600,
+      volumeUsd: 1_000 + index,
+      kind: "rolling_24h" as const,
+    }));
+    const ticks = hourlyVolumeChartXTicks(points);
+    expect(ticks.length).toBeLessThan(points.length);
+    expect(ticks[0]).toBe(points[0]!.t);
+    expect(ticks[ticks.length - 1]).toBe(points[18]!.t);
+    expect(ticks.every((t) => points.some((point) => point.t === t))).toBe(true);
+  });
+
+  it("does not park the newest hour on top of the previous tick", () => {
+    const points = Array.from({ length: 20 }, (_, index) => ({
+      t: DAY0 + index * 3600,
+      volumeUsd: 1_000,
+      kind: "rolling_24h" as const,
+    }));
+    const ticks = hourlyVolumeChartXTicks(points);
+    const map = scaleVolumePoints(points);
+    expect(ticks[ticks.length - 1]).toBe(points[19]!.t);
+    expect(ticks).not.toContain(points[18]!.t);
+    for (let index = 1; index < ticks.length; index += 1) {
+      expect(map.x(ticks[index]!) - map.x(ticks[index - 1]!)).toBeGreaterThanOrEqual(72);
+    }
+  });
+});
+
+describe("scaleVolumePoints", () => {
+  it("keeps a nonnegative series anchored at zero and the max", () => {
+    const points = days(3);
+    const map = scaleVolumePoints(points);
+    expect(map.minY).toBe(0);
+    expect(map.maxY).toBe(27_300_000);
+    expect(map.y(0)).toBeCloseTo(VOLUME_CHART_PAD.top + VOLUME_CHART_INNER_H);
+    expect(map.y(map.maxY)).toBeCloseTo(VOLUME_CHART_PAD.top);
+  });
+
+  it("keeps empty hours in an explicit time domain without inventing their volume", () => {
+    const domain = [0, 3600, 7200, 10_800];
+    const map = scaleVolumePoints([{ t: 3600, volumeUsd: 10, kind: "rolling_24h" }], {
+      domainT: domain,
+      xInset: 0,
+    });
+    expect(map.minT).toBe(0);
+    expect(map.maxT).toBe(10_800);
+    expect(map.x(0)).toBeCloseTo(VOLUME_CHART_PAD.left);
+    expect(map.x(10_800)).toBeCloseTo(VOLUME_CHART_PAD.left + VOLUME_CHART_INNER_W);
+    expect(map.maxY).toBe(10);
+    expect(map.minY).toBe(0);
+  });
+
+  it("puts the zero baseline between positive and negative deltas", () => {
+    const map = scaleVolumePoints([
+      { t: DAY0, volumeUsd: -10, kind: "rolling_24h" },
+      { t: DAY0 + 3600, volumeUsd: 30, kind: "rolling_24h" },
+    ]);
+    expect(map.minY).toBe(-10);
+    expect(map.maxY).toBe(30);
+    expect(map.y(30)).toBeCloseTo(VOLUME_CHART_PAD.top);
+    expect(map.y(-10)).toBeCloseTo(VOLUME_CHART_PAD.top + VOLUME_CHART_INNER_H);
+    expect(map.y(0)).toBeGreaterThan(map.y(30));
+    expect(map.y(0)).toBeLessThan(map.y(-10));
+  });
+});
+
+describe("volumeDeltaYTicks", () => {
+  it("labels a signed axis in delta dollars and always includes zero", () => {
+    expect(volumeDeltaYTicks(0, 40)).toEqual([0, 10, 20, 30, 40]);
+    expect(volumeDeltaYTicks(-10, 30)).toEqual([-10, -5, 0, 15, 30]);
+    expect(volumeDeltaYTicks(-8, 0)).toEqual([-8, -6, -4, -2, 0]);
+    expect(volumeDeltaYTicks(0, 0)).toEqual([0]);
+    const crowded = volumeDeltaYTicks(-1_620_000, 31_840_000);
+    expect(crowded).toContain(0);
+    expect(crowded).toContain(31_840_000);
+    expect(crowded.some((tick) => tick < 0)).toBe(false);
+    expect(formatDeltaUsdCompact(40)).toBe("+$40.0");
+    expect(formatDeltaUsdCompact(-8)).toBe("-$8.0");
+    expect(formatDeltaUsdCompact(0)).toBe("$0");
+    expect(formatDeltaUsdFull(1250.5).startsWith("+")).toBe(true);
+    expect(formatDeltaUsdFull(-1250.5).startsWith("-")).toBe(true);
+  });
+});
+
+describe("contiguousHourlyRuns", () => {
+  it("keeps adjacent captures together and starts a new run at a missing hour", () => {
+    const points = [0, 1, 3].map((hour) => ({
+      t: DAY0 + hour * 3600,
+      volumeUsd: 1_000 + hour,
+      kind: "rolling_24h" as const,
+    }));
+    const runs = contiguousHourlyRuns(points);
+    expect(runs.map((run) => run.map((point) => point.t))).toEqual([[points[0]!.t, points[1]!.t], [points[2]!.t]]);
+    expect(runs.flat().some((point) => point.t === DAY0 + 2 * 3600)).toBe(false);
+  });
+});
+
+describe("hourlyRollingVolumeDeltas", () => {
+  it("plots each later capture minus the prior one and omits the first hour", () => {
+    const points = [100, 140, 90].map((volumeUsd, index) => ({
+      t: DAY0 + index * 3600,
+      volumeUsd,
+      kind: "rolling_24h" as const,
+    }));
+    const deltas = hourlyRollingVolumeDeltas(points);
+    expect(deltas).toEqual([
+      { t: points[1]!.t, priorT: points[0]!.t, volumeUsd: 40, kind: "rolling_24h" },
+      { t: points[2]!.t, priorT: points[1]!.t, volumeUsd: -50, kind: "rolling_24h" },
+    ]);
+    expect(deltas.some((point) => point.t === points[0]!.t)).toBe(false);
+  });
+
+  it("describes the 24H series as the rolling total captured at each hour", () => {
+    expect(HOURLY_VOLUME_SERIES_CAPTION).toMatch(/rolling 24h desk total captured at that Eastern hour/);
+    expect(HOURLY_VOLUME_SERIES_CAPTION).toMatch(/not volume during that hour alone/);
+    expect(HOURLY_VOLUME_SERIES_CAPTION).toMatch(/Every hour in the window is shown/);
+    expect(HOURLY_VOLUME_SERIES_CAPTION).toMatch(/missing captures are left empty/);
+    expect(HOURLY_VOLUME_SERIES_CAPTION).not.toMatch(/change/);
+    expect(HOURLY_VOLUME_SERIES_CAPTION).not.toMatch(/previous Eastern hour/);
+  });
+
+  it("does not invent a zero for the first point or a delta across a missing hour", () => {
+    const points = [0, 1, 3].map((hour) => ({
+      t: DAY0 + hour * 3600,
+      volumeUsd: 1_000 + hour * 100,
+      kind: "rolling_24h" as const,
+    }));
+    const deltas = hourlyRollingVolumeDeltas(points);
+    expect(deltas.map((point) => point.t)).toEqual([points[1]!.t]);
+    expect(deltas.map((point) => point.t)).not.toContain(DAY0 + 2 * 3600);
+    expect(deltas.map((point) => point.t)).not.toContain(points[2]!.t);
+    expect(deltas[0]?.volumeUsd).toBe(points[1]!.volumeUsd - points[0]!.volumeUsd);
+    expect(deltas[0]?.priorT).toBe(points[0]!.t);
+    expect(hourlyRollingVolumeDeltas(points.slice(0, 1))).toEqual([]);
+  });
+
+  it("keeps a real zero change and sorts before differencing", () => {
+    const earlier = { t: DAY0, volumeUsd: 10, kind: "rolling_24h" as const };
+    const flat = { t: DAY0 + 3600, volumeUsd: 10, kind: "rolling_24h" as const };
+    const later = { t: DAY0 + 7200, volumeUsd: 4, kind: "rolling_24h" as const };
+    expect(hourlyRollingVolumeDeltas([later, earlier, flat])).toEqual([
+      { t: flat.t, priorT: earlier.t, volumeUsd: 0, kind: "rolling_24h" },
+      { t: later.t, priorT: flat.t, volumeUsd: -6, kind: "rolling_24h" },
+    ]);
+  });
+
+  it("skips invalid levels and closed days instead of treating them as a prior hour", () => {
+    const points = [
+      { t: DAY0, volumeUsd: 100, kind: "calendar_day" as const },
+      { t: DAY0 + 3600, volumeUsd: 10, kind: "rolling_24h" as const },
+      { t: DAY0 + 7200, volumeUsd: Number.NaN, kind: "rolling_24h" as const },
+      { t: DAY0 + 10_800, volumeUsd: -5, kind: "rolling_24h" as const },
+      { t: DAY0 + 14_400, volumeUsd: 8, kind: "rolling_24h" as const },
+    ];
+    expect(hourlyRollingVolumeDeltas(points)).toEqual([]);
+  });
+
+  it("replaces a repeated hour instead of plotting two bars at the same time", () => {
+    const points = [
+      { t: DAY0, volumeUsd: 10, kind: "rolling_24h" as const },
+      { t: DAY0, volumeUsd: 15, kind: "rolling_24h" as const },
+      { t: DAY0 + 3600, volumeUsd: 18, kind: "rolling_24h" as const },
+    ];
+    expect(hourlyRollingVolumeDeltas(points)).toEqual([
+      { t: DAY0 + 3600, priorT: DAY0, volumeUsd: 3, kind: "rolling_24h" },
+    ]);
+  });
+
+  it("does not run rolling hours through closedSnapshotVolumePoints", () => {
+    const points = [
+      { t: DAY0, volumeUsd: 10, kind: "rolling_24h" as const },
+      { t: DAY0 + 3600, volumeUsd: 14, kind: "rolling_24h" as const },
+    ];
+    expect(closedSnapshotVolumePoints(points, DAY0 + 10_000)).toEqual([]);
+    expect(hourlyRollingVolumeDeltas(points)).toEqual([
+      { t: DAY0 + 3600, priorT: DAY0, volumeUsd: 4, kind: "rolling_24h" },
+    ]);
   });
 });
 
