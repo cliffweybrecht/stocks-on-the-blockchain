@@ -323,6 +323,13 @@ export interface MarketDataSource {
   getAsset(chainId: string, symbol: string, options?: AssetReadOptions): Promise<AssetDetailResult | null>;
   getEquityVolumeHistory(): Promise<EquityVolumeHistoryResult>;
   /**
+   * Closed America/New_York desk snapshot days from `solana.json` for the
+   * 7D/14D/30D chart poll. Does not call DexScreener, does not write the
+   * snapshot file, and does not read `solana-hourly.json`. The in-progress
+   * Eastern day stays off the series.
+   */
+  getClosedDeskVolumeHistory(): Promise<EquityVolumeHistoryResult>;
+  /**
    * Last ~24 America/New_York hours of DexScreener rolling h24 desk totals
    * from `solana-hourly.json`. Each point is `kind: "rolling_24h"` with
    * `volumeUsd` = combined public + private + ETF/index and `t` = that

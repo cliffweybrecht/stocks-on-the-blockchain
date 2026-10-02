@@ -102,6 +102,10 @@ class FakeSource implements MarketDataSource {
     return Promise.resolve(emptyHourlyRollingVolumeHistory(`No hourly history on ${this.id}.`));
   }
 
+  getClosedDeskVolumeHistory() {
+    return Promise.resolve(emptyEquityVolumeHistory(`No closed desk history on ${this.id}.`));
+  }
+
   getLiveDeskRolling24h() {
     return Promise.resolve(null);
   }

@@ -10,7 +10,7 @@ import {
 import { BACKPACK_SUNRISE_BATCH_TICKERS, DEFAULT_SOLANA_DISCOVERY_QUERIES } from "../solana-discover";
 import { SolanaMarketDataSource, type SolanaMarketDataSourceOptions } from "../solana-source";
 import { MemoryDeskHourlyVolumeSnapshotStore, easternHourStamp } from "../volume-hourly-snapshots";
-import { MemoryDeskVolumeSnapshotStore } from "../volume-snapshots";
+import { MemoryDeskVolumeSnapshotStore, easternDayKey } from "../volume-snapshots";
 
 const tslaMint = "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB";
 const hoodMint = "XsNotAllowlisted1111111111111111111111111";
@@ -998,6 +998,47 @@ describe("SolanaMarketDataSource", () => {
         generatedAt: "2026-09-14T12:00:00.000Z",
       },
     ]);
+  });
+
+  it("reads closed snapshot days for multi-day charts and does not write or call DexScreener", async () => {
+    const nowT = Date.now() / 1000;
+    const today = easternDayKey(nowT);
+    expect(today).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    const closed = {
+      date: "2026-09-30",
+      t: Date.parse("2026-09-30T00:00:00.000Z") / 1000,
+      publicEquity24hUsd: 106_040_324,
+      private24hUsd: 22_864_503,
+      etfIndex24hUsd: 14_852_311,
+      combined24hUsd: 143_757_138,
+      publicMintCount: 1,
+      publicPoolCount: 1,
+      generatedAt: "2026-10-01T04:13:03.871Z",
+    };
+    const openDay = {
+      ...closed,
+      date: today,
+      t: Date.parse(`${today}T00:00:00.000Z`) / 1000,
+      combined24hUsd: 999,
+      generatedAt: new Date().toISOString(),
+    };
+    const daily = new MemoryDeskVolumeSnapshotStore([closed, openDay]);
+    const urls: string[] = [];
+    const source = testSource({
+      volumeSnapshotStore: daily,
+      fetchImpl: async (input) => {
+        urls.push(String(input));
+        return jsonResponse({ unexpected: true }, 500);
+      },
+    });
+
+    const history = await source.getClosedDeskVolumeHistory();
+    expect(urls).toEqual([]);
+    expect(history.available).toBe(true);
+    expect(history.points).toEqual([{ t: closed.t, volumeUsd: closed.combined24hUsd, kind: "calendar_day" }]);
+    expect(history.points.some((point) => point.volumeUsd === 999)).toBe(false);
+    expect(history.points.some((point) => point.kind === "rolling_24h")).toBe(false);
+    expect(await daily.load()).toEqual([closed, openDay]);
   });
 
   it("reads the live 24H headline from the desk cache without writing solana.json or refetching DexScreener", async () => {
