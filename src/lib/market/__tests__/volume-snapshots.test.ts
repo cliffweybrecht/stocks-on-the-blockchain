@@ -325,6 +325,7 @@ describe("committed Solana desk snapshots", () => {
       "2026-09-27",
       "2026-09-28",
       "2026-09-29",
+      "2026-09-30",
     ]);
     expect(snapshots.map((row) => row.combined24hUsd)).toEqual([
       173522731.07,
@@ -334,6 +335,7 @@ describe("committed Solana desk snapshots", () => {
       76080265.64999995,
       113009159.34999996,
       293070235.75999993,
+      143757138.89999998,
     ]);
     const sep23 = snapshots[0];
     expect(sep23?.publicEquity24hUsd).toBeNull();
@@ -448,7 +450,7 @@ describe("committed Solana desk snapshots", () => {
       .filter((row) => row.date < "2026-09-28")
       .reduce((sum, row) => sum + (row.combined24hUsd ?? 0), 0);
     const throughSep28 = snapshots
-      .filter((row) => row.date < "2026-09-29")
+      .filter((row) => row.date <= "2026-09-28")
       .reduce((sum, row) => sum + (row.combined24hUsd ?? 0), 0);
     const cases = [
       {
