@@ -1674,6 +1674,28 @@ export class SolanaMarketDataSource implements MarketDataSource {
   }
 
   /**
+   * Read path for 7D/14D/30D. Loads `solana.json` only.
+   * Closed Eastern snapshot days. Does not persist, does not call DexScreener,
+   * and does not read `solana-hourly.json`.
+   */
+  async getClosedDeskVolumeHistory(): Promise<EquityVolumeHistoryResult> {
+    const generatedAt = new Date().toISOString();
+    const nowT = Date.now() / 1000;
+    try {
+      const records = await this.deskSnapshots.load();
+      return buildSnapshotEquityVolumeHistory({
+        snapshots: records,
+        liveCombined24hUsd: null,
+        nowT,
+        generatedAt,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Desk volume snapshot read failed.";
+      return emptyEquityVolumeHistory(message, generatedAt);
+    }
+  }
+
+  /**
    * Live headline for the 24H chart. Uses the same desk snapshot as the page,
    * so DexScreener is not called again until `cacheMs` (default 5 minutes).
    * This path does not write `solana.json`.

@@ -154,6 +154,16 @@ export class CompositeMarketDataSource implements MarketDataSource {
     return solana.getEquityHourlyRollingVolumeHistory();
   }
 
+  async getClosedDeskVolumeHistory(): Promise<EquityVolumeHistoryResult> {
+    const solana = this.adapters.find((adapter) => adapter.id === "solana");
+    if (!solana) {
+      return emptyEquityVolumeHistory(
+        "No Solana adapter is configured, so there is no closed desk snapshot history to load.",
+      );
+    }
+    return solana.getClosedDeskVolumeHistory();
+  }
+
   async getLiveDeskRolling24h(): Promise<DeskLiveRolling24h | null> {
     const solana = this.adapters.find((adapter) => adapter.id === "solana");
     if (!solana) return null;

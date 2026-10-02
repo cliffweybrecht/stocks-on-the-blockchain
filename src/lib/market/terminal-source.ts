@@ -128,6 +128,12 @@ export class TerminalMarketDataSource implements MarketDataSource {
     );
   }
 
+  async getClosedDeskVolumeHistory(): Promise<EquityVolumeHistoryResult> {
+    return emptyEquityVolumeHistory(
+      "Robinhood Terminal has no Solana desk snapshots. This series is closed DexScreener days for Solana only.",
+    );
+  }
+
   async getLiveDeskRolling24h(): Promise<DeskLiveRolling24h | null> {
     return null;
   }

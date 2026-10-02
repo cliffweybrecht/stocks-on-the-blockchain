@@ -2,10 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   DESK_VOLUME_24H_POLL_MIN_GAP_MS,
   DESK_VOLUME_24H_POLL_MS,
+  DESK_VOLUME_HISTORY_POLL_MS,
   deskVolumePollDue,
+  parseDeskVolumeHistoryPayload,
   parseDeskVolumeLivePayload,
+  preferFresherClosedHistory,
   preferFresherHourlyHistory,
 } from "../desk-volume-live";
+import { emptyEquityVolumeHistory } from "../volume-history";
 import { emptyHourlyRollingVolumeHistory } from "../volume-hourly-snapshots";
 
 const generatedAt = "2026-09-30T20:40:00.000Z";
@@ -75,6 +79,55 @@ describe("desk volume 24H live payload", () => {
     expect(parseDeskVolumeLivePayload(null)).toBeNull();
     expect(parseDeskVolumeLivePayload({ rolling24h: { publicVolume24hUsd: 1 } })).toBeNull();
     expect(parseDeskVolumeLivePayload({ hourlyHistory: { points: [] } })).toBeNull();
+  });
+
+  it("polls closed snapshot days on the same cadence and drops rolling rows", () => {
+    expect(DESK_VOLUME_HISTORY_POLL_MS).toBe(45_000);
+    expect(DESK_VOLUME_HISTORY_POLL_MS).toBe(DESK_VOLUME_24H_POLL_MS);
+    const parsed = parseDeskVolumeHistoryPayload({
+      history: {
+        ...emptyEquityVolumeHistory("empty", generatedAt),
+        available: true,
+        emptyReason: null,
+        points: [
+          { t: 1_758_585_600, volumeUsd: 113_009_159, kind: "calendar_day" },
+          { t: 1_758_672_000, volumeUsd: 293_070_235, kind: "rolling_24h" },
+          { t: 1_758_758_400, volumeUsd: -5, kind: "calendar_day" },
+          { t: 1_758_844_800, volumeUsd: 143_757_138, kind: "calendar_day" },
+        ],
+      },
+    });
+    expect(parsed?.points).toEqual([
+      { t: 1_758_585_600, volumeUsd: 113_009_159, kind: "calendar_day" },
+      { t: 1_758_844_800, volumeUsd: 143_757_138, kind: "calendar_day" },
+    ]);
+  });
+
+  it("keeps plotted snapshot days when a later poll is empty", () => {
+    const current = {
+      ...emptyEquityVolumeHistory("empty", "2026-09-30T20:00:00.000Z"),
+      available: true,
+      emptyReason: null,
+      points: [{ t: 1_758_585_600, volumeUsd: 10, kind: "calendar_day" as const }],
+    };
+    const empty = emptyEquityVolumeHistory("read failed", "2026-09-30T21:00:00.000Z");
+    expect(preferFresherClosedHistory(current, empty)).toBe(current);
+    const newer = {
+      ...current,
+      generatedAt: "2026-09-30T21:00:00.000Z",
+      points: [
+        ...current.points,
+        { t: 1_758_844_800, volumeUsd: 12, kind: "calendar_day" as const },
+      ],
+    };
+    expect(preferFresherClosedHistory(current, newer)?.points).toHaveLength(2);
+    expect(preferFresherClosedHistory(newer, current)).toBe(newer);
+  });
+
+  it("rejects a closed-day payload that is not a history series", () => {
+    expect(parseDeskVolumeHistoryPayload(null)).toBeNull();
+    expect(parseDeskVolumeHistoryPayload({ history: null })).toBeNull();
+    expect(parseDeskVolumeHistoryPayload({ hourlyHistory: { points: [], generatedAt } })).toBeNull();
   });
 
   it("keeps an older poll when a stale server payload arrives later", () => {

@@ -57,6 +57,12 @@ export class MockMarketDataSource implements MarketDataSource {
     );
   }
 
+  async getClosedDeskVolumeHistory(): Promise<EquityVolumeHistoryResult> {
+    return emptyEquityVolumeHistory(
+      "Seed adapter does not invent closed desk snapshot days. Enable live Solana to read solana.json.",
+    );
+  }
+
   async getLiveDeskRolling24h(): Promise<DeskLiveRolling24h | null> {
     return null;
   }

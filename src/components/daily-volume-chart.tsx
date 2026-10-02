@@ -30,8 +30,12 @@ import {
 import {
   DESK_VOLUME_24H_LIVE_PATH,
   DESK_VOLUME_24H_POLL_MS,
+  DESK_VOLUME_HISTORY_PATH,
+  DESK_VOLUME_HISTORY_POLL_MS,
   deskVolumePollDue,
+  parseDeskVolumeHistoryPayload,
   parseDeskVolumeLivePayload,
+  preferFresherClosedHistory,
   preferFresherHourlyHistory,
 } from "@/lib/market/desk-volume-live";
 import { formatChartDay, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
@@ -123,7 +127,7 @@ function HourlyRollingArea({
 }
 
 export function DailyVolumeChart({
-  history,
+  history: historyProp,
   hourlyHistory: hourlyHistoryProp = null,
   rolling24h: rolling24hProp = null,
   initialRange = "7d",
@@ -142,14 +146,13 @@ export function DailyVolumeChart({
 }) {
   const [range, setRange] = useState<VolumeChartRangeId>(initialRange);
   const [hover, setHover] = useState<VolumeHistoryPoint | null>(null);
-  const [hourlyHistory, setHourlyHistory] = useState(hourlyHistoryProp);
+  const [polledHistory, setPolledHistory] = useState<EquityVolumeHistoryResult | null>(null);
+  const [polledHourly, setPolledHourly] = useState<EquityVolumeHistoryResult | null>(null);
   const [rolling24h, setRolling24h] = useState(rolling24hProp);
   const rollingFromPoll = useRef(false);
   const rolling = isRollingVolumeChartRange(range);
-
-  useEffect(() => {
-    setHourlyHistory((current) => preferFresherHourlyHistory(current, hourlyHistoryProp));
-  }, [hourlyHistoryProp]);
+  const history = preferFresherClosedHistory(historyProp, polledHistory) ?? historyProp;
+  const hourlyHistory = preferFresherHourlyHistory(hourlyHistoryProp, polledHourly);
 
   useEffect(() => {
     if (rollingFromPoll.current) return;
@@ -157,27 +160,37 @@ export function DailyVolumeChart({
   }, [rolling24hProp]);
 
   useEffect(() => {
-    if (!rolling) return;
     let cancelled = false;
     let timer = 0;
     let lastPull = 0;
+    const intervalMs = rolling ? DESK_VOLUME_24H_POLL_MS : DESK_VOLUME_HISTORY_POLL_MS;
 
     const pull = async () => {
       const now = Date.now();
       if (!deskVolumePollDue(now, lastPull)) return;
       lastPull = now;
       try {
-        const response = await fetch(DESK_VOLUME_24H_LIVE_PATH, { cache: "no-store" });
+        const response = await fetch(rolling ? DESK_VOLUME_24H_LIVE_PATH : DESK_VOLUME_HISTORY_PATH, {
+          cache: "no-store",
+        });
         if (!response.ok) return;
-        const parsed = parseDeskVolumeLivePayload(await response.json());
-        if (!parsed || cancelled) return;
-        setHourlyHistory((current) => preferFresherHourlyHistory(current, parsed.hourlyHistory));
-        if (parsed.rolling24h) {
-          rollingFromPoll.current = true;
-          setRolling24h(parsed.rolling24h);
+        const body = await response.json();
+        if (cancelled) return;
+        if (rolling) {
+          const parsed = parseDeskVolumeLivePayload(body);
+          if (!parsed) return;
+          setPolledHourly((current) => preferFresherHourlyHistory(current, parsed.hourlyHistory));
+          if (parsed.rolling24h) {
+            rollingFromPoll.current = true;
+            setRolling24h(parsed.rolling24h);
+          }
+          return;
         }
+        const parsed = parseDeskVolumeHistoryPayload(body);
+        if (!parsed) return;
+        setPolledHistory((current) => preferFresherClosedHistory(current, parsed));
       } catch {
-        // Keep the last headline and bars. A failed poll must not clear captured hours.
+        // Keep the last series. A failed poll must not clear captured days or hours.
       }
     };
 
@@ -188,7 +201,7 @@ export function DailyVolumeChart({
         void pull().finally(() => {
           if (!cancelled && document.visibilityState !== "hidden") arm();
         });
-      }, DESK_VOLUME_24H_POLL_MS);
+      }, intervalMs);
     };
 
     const onWake = () => {
@@ -278,8 +291,8 @@ export function DailyVolumeChart({
       data-hourly-rolling-count={hourlyHistory?.points.length ?? 0}
       data-hourly-axis-count={hourSlots.length}
       data-hourly-point-count={hourlyCaptures.length}
-      data-volume-refresh-ms={rolling ? DESK_VOLUME_24H_POLL_MS : undefined}
-      data-volume-live={rolling ? "24h" : undefined}
+      data-volume-refresh-ms={rolling ? DESK_VOLUME_24H_POLL_MS : DESK_VOLUME_HISTORY_POLL_MS}
+      data-volume-live={rolling ? "24h" : "closed-day"}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
