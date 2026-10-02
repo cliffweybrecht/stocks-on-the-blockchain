@@ -504,6 +504,46 @@ describe("committed Solana desk snapshots", () => {
       }
     }
   });
+
+  it("keeps 7D to the last 7 closed days after Sep 30 has closed", () => {
+    const history = buildSnapshotEquityVolumeHistory({
+      snapshots,
+      liveCombined24hUsd: 150_000_000,
+      nowT: Date.parse("2026-10-01T04:10:00.000Z") / 1000,
+      generatedAt: "2026-10-01T04:10:00.000Z",
+    });
+    const dayKey = (t: number) => new Date(t * 1000).toISOString().slice(0, 10);
+    const dates = history.points.map((point) => dayKey(point.t));
+    expect(dates).toEqual([
+      "2026-09-23",
+      "2026-09-24",
+      "2026-09-25",
+      "2026-09-26",
+      "2026-09-27",
+      "2026-09-28",
+      "2026-09-29",
+      "2026-09-30",
+    ]);
+    const seven = filterVolumeRange(history.points, "7d");
+    expect(seven.map((point) => dayKey(point.t))).toEqual([
+      "2026-09-24",
+      "2026-09-25",
+      "2026-09-26",
+      "2026-09-27",
+      "2026-09-28",
+      "2026-09-29",
+      "2026-09-30",
+    ]);
+    const sep23 = snapshots.find((row) => row.date === "2026-09-23")?.combined24hUsd ?? 0;
+    const allClosed = history.points.reduce((sum, point) => sum + point.volumeUsd, 0);
+    const headline = deskRangeVolumeHeadline(seven, "7d");
+    expect(headline.volumeUsd).toBeCloseTo(allClosed - sep23);
+    expect(headline.volumeUsd).not.toBeCloseTo(allClosed);
+    expect(headline.volumeUsd).not.toBeCloseTo(allClosed - sep23 + 150_000_000);
+    for (const range of ["14d", "30d"] as const) {
+      expect(filterVolumeRange(history.points, range).map((point) => dayKey(point.t))).toEqual(dates);
+    }
+  });
 });
 
 describe("FileDeskVolumeSnapshotStore", () => {

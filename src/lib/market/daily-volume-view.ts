@@ -16,8 +16,8 @@ import { EASTERN_HOUR_STEP_SECONDS } from "./volume-hourly-snapshots";
  * The 24H plot is the absolute rolling 24h desk total captured at each Eastern
  * hour (`combined24hUsd`), not the change versus the previous hour and not
  * volume during that hour alone. The axis includes every Eastern hour in the
- * window; a missing capture is an empty gap. 7D/14D/30D stay sums of closed
- * desk snapshot days.
+ * window; a missing capture is an empty gap. 7D/14D/30D stay sums of the last
+ * 7, 14, or 30 closed desk snapshot days. A missing day is not invented.
  */
 
 /** Footer under the 24H rolling-total area. The live headline copy stays a separate line. */
@@ -56,6 +56,33 @@ export const VOLUME_CHART_PAD = { top: 16, right: 16, bottom: 28, left: 52 };
 export const VOLUME_CHART_INNER_W = VOLUME_CHART_WIDTH - VOLUME_CHART_PAD.left - VOLUME_CHART_PAD.right;
 export const VOLUME_CHART_INNER_H = VOLUME_CHART_HEIGHT - VOLUME_CHART_PAD.top - VOLUME_CHART_PAD.bottom;
 
+/**
+ * Last `days` closed desk snapshot days, oldest first.
+ *
+ * Count recorded UTC days ending on the newest snapshot. Do not use
+ * `newest.t - days * 86400`: that cutoff is inclusive, so a daily series
+ * keeps `days + 1` points (Sep 23–30 is eight days on a 7D chart).
+ * A missing capture stays missing. Fewer than `days` snapshots are all shown.
+ * A live rolling-24h row is not a snapshot day.
+ */
+function lastClosedSnapshotDays(
+  points: readonly VolumeHistoryPoint[],
+  days: number,
+): VolumeHistoryPoint[] {
+  if (!Number.isFinite(days) || days <= 0) return [];
+  const byDay = new Map<number, VolumeHistoryPoint>();
+  for (const point of points) {
+    if (point.kind === "rolling_24h") continue;
+    if (!Number.isFinite(point.t) || point.t <= 0) continue;
+    const day = utcDayStart(point.t);
+    if (day <= 0) continue;
+    const previous = byDay.get(day);
+    if (!previous || point.t >= previous.t) byDay.set(day, point);
+  }
+  const closed = [...byDay.entries()].sort((a, b) => a[0] - b[0]).map((entry) => entry[1]);
+  return closed.length > days ? closed.slice(closed.length - days) : closed;
+}
+
 export function filterVolumeRange(
   points: readonly VolumeHistoryPoint[],
   range: VolumeChartRangeId,
@@ -65,11 +92,7 @@ export function filterVolumeRange(
   if (!spec) return [...points];
   // Rolling 24H is a live total, not a slice of closed snapshot days.
   if (!("days" in spec)) return [];
-  const last = points[points.length - 1];
-  if (!last) return [...points];
-  const cutoff = last.t - spec.days * 86_400;
-  const filtered = points.filter((point) => point.t >= cutoff);
-  return filtered.length > 0 ? filtered : [...points];
+  return lastClosedSnapshotDays(points, spec.days);
 }
 
 export function scaleVolumePoints(

@@ -54,32 +54,73 @@ describe("filterVolumeRange", () => {
     const points = days(40);
     expect(filterVolumeRange(points, "24h")).toEqual([]);
     const seven = filterVolumeRange(points, "7d");
-    expect(seven).toHaveLength(8);
-    expect(seven[0]?.t).toBe(points[32]?.t);
+    expect(seven).toHaveLength(7);
+    expect(seven[0]?.t).toBe(points[33]?.t);
+    expect(seven[seven.length - 1]?.t).toBe(points[39]?.t);
   });
 
-  it("keeps a continuous 7-day window ending on the latest point", () => {
+  it("keeps only the last 7 closed snapshot days", () => {
     const points = days(40);
     const visible = filterVolumeRange(points, "7d");
-    expect(visible).toHaveLength(8);
-    expect(visible[0]?.t).toBe(points[32]?.t);
+    expect(visible).toHaveLength(7);
+    expect(visible.map((point) => point.t)).toEqual(points.slice(-7).map((point) => point.t));
+    expect(filterVolumeRange([...points].reverse(), "7d").map((point) => point.t)).toEqual(
+      points.slice(-7).map((point) => point.t),
+    );
     expect(visible[visible.length - 1]?.kind).toBe("calendar_day");
+    // An inclusive `last.t - 7 * 86400` window would keep this eighth day.
+    expect(visible[0]?.t).not.toBe(points[32]?.t);
   });
 
-  it("keeps a continuous 14-day window ending on the latest point", () => {
+  it("keeps only the last 14 closed snapshot days", () => {
     const points = days(40);
     const visible = filterVolumeRange(points, "14d");
-    expect(visible).toHaveLength(15);
-    expect(visible[0]?.t).toBe(points[25]?.t);
+    expect(visible).toHaveLength(14);
+    expect(visible.map((point) => point.t)).toEqual(points.slice(-14).map((point) => point.t));
     expect(visible[visible.length - 1]?.kind).toBe("calendar_day");
   });
 
-  it("keeps a continuous 30-day window ending on the latest point", () => {
+  it("keeps only the last 30 closed snapshot days", () => {
     const points = days(40);
     const visible = filterVolumeRange(points, "30d");
-    expect(visible).toHaveLength(31);
-    expect(visible[0]?.t).toBe(points[9]?.t);
+    expect(visible).toHaveLength(30);
+    expect(visible.map((point) => point.t)).toEqual(points.slice(-30).map((point) => point.t));
     expect(visible[visible.length - 1]?.kind).toBe("calendar_day");
+  });
+
+  it("shows every recorded day when fewer than the range exist and does not fill a gap", () => {
+    const short = days(5);
+    expect(filterVolumeRange(short, "7d")).toEqual(short);
+    expect(filterVolumeRange(short, "14d")).toEqual(short);
+    expect(filterVolumeRange(short, "30d")).toEqual(short);
+
+    const withGap = days(10).filter((_, index) => index !== 6);
+    const visible = filterVolumeRange(withGap, "7d");
+    const missing = DAY0 + 6 * UTC_DAY_SECONDS;
+    expect(visible).toHaveLength(7);
+    expect(visible.map((point) => point.t)).toEqual(withGap.slice(-7).map((point) => point.t));
+    expect(visible.some((point) => point.t === missing)).toBe(false);
+  });
+
+  it("counts one snapshot day when two rows share a UTC day", () => {
+    const points = days(7);
+    const duplicate = { ...points[3]!, volumeUsd: 42 };
+    const visible = filterVolumeRange([...points, duplicate], "7d");
+    expect(visible).toHaveLength(7);
+    expect(visible.map((point) => point.t)).toEqual(points.map((point) => point.t));
+    expect(visible[3]?.volumeUsd).toBe(42);
+  });
+
+  it("drops a rolling tip so it cannot add an extra day to 7D", () => {
+    const points = [
+      ...days(8),
+      { t: DAY0 + 8 * UTC_DAY_SECONDS + 3600, volumeUsd: 99_000, kind: "rolling_24h" as const },
+    ];
+    const visible = filterVolumeRange(points, "7d");
+    expect(visible).toHaveLength(7);
+    expect(visible.every((point) => point.kind === "calendar_day")).toBe(true);
+    expect(visible[0]?.t).toBe(points[1]?.t);
+    expect(visible[visible.length - 1]?.t).toBe(points[7]?.t);
   });
 });
 

@@ -141,6 +141,50 @@ describe("DailyVolumeChart closed ranges", () => {
     }
   });
 
+  it("plots the last 7 closed snapshot days on 7D and every recorded day on 14D when fewer than 14 exist", () => {
+    const start = Date.UTC(2026, 8, 22) / 1000;
+    const points = Array.from({ length: 8 }, (_, index) => ({
+      t: start + index * 86_400,
+      volumeUsd: 1_000_000 * (index + 1),
+      kind: "calendar_day" as const,
+    }));
+    const ticksOf = (range: "7d" | "14d") => {
+      const html = renderToStaticMarkup(
+        createElement(DailyVolumeChart, {
+          history: history(points),
+          hourlyHistory: history([], "No hourly snapshots."),
+          rolling24h: live,
+          initialRange: range,
+        }),
+      );
+      return [...html.matchAll(/data-volume-tick="([^"]+)"/g)].map((match) => match[1]);
+    };
+    expect(ticksOf("7d")).toEqual(["Sep 23", "Sep 24", "Sep 25", "Sep 26", "Sep 27", "Sep 28", "Sep 29"]);
+    expect(ticksOf("14d")).toEqual([
+      "Sep 22",
+      "Sep 23",
+      "Sep 24",
+      "Sep 25",
+      "Sep 26",
+      "Sep 27",
+      "Sep 28",
+      "Sep 29",
+    ]);
+    const sevenHtml = renderToStaticMarkup(
+      createElement(DailyVolumeChart, {
+        history: history(points),
+        hourlyHistory: history([], "No hourly snapshots."),
+        rolling24h: live,
+        initialRange: "7d",
+      }),
+    );
+    const sevenSum = points.slice(1).reduce((sum, point) => sum + point.volumeUsd, 0);
+    expect(sevenHtml).toContain(`>${formatUsdCompact(sevenSum)}<`);
+    expect(sevenHtml).not.toContain(`>${formatUsdCompact(points[0]!.volumeUsd + sevenSum)}<`);
+    expect(sevenHtml).toContain('fill="url(#volume-area)"');
+    expect(sevenHtml).toContain('stroke="var(--volume)"');
+  });
+
   it("shows the hour axis and a single lime point when only one hourly capture exists", () => {
     const only = [{ t: easternHour("2026-09-30T10"), volumeUsd: 200_000_000, kind: "rolling_24h" as const }];
     const html = markup("24h", only);
