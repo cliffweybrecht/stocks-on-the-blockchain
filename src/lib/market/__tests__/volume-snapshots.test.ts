@@ -331,6 +331,7 @@ describe("committed Solana desk snapshots", () => {
       "2026-10-03",
       "2026-10-04",
       "2026-10-05",
+      "2026-10-06",
     ]);
     expect(snapshots.map((row) => row.combined24hUsd)).toEqual([
       173522731.07,
@@ -346,6 +347,7 @@ describe("committed Solana desk snapshots", () => {
       33065999.139999986,
       80079706.93999998,
       82265342.28,
+      103263530.24999994,
     ]);
     const sep23 = snapshots[0];
     expect(sep23?.publicEquity24hUsd).toBeNull();
