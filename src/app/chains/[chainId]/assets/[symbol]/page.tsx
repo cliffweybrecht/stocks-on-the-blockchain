@@ -13,6 +13,7 @@ import {
   RobinhoodAssetChartFallback,
 } from "@/components/robinhood-asset-sections";
 import { BaseAssetChart, BaseAssetChartFallback } from "@/components/base-asset-sections";
+import { BnbAssetChart, BnbAssetChartFallback } from "@/components/bnb-asset-sections";
 import {
   SolanaAssetChart,
   SolanaAssetChartFallback,
@@ -38,7 +39,9 @@ import { lookupRobinhoodChainAsset } from "@/lib/market/robinhood-chain-markets"
 import { enrichRobinhoodAssetDetail } from "@/lib/market/robinhood-asset-series";
 import { lookupBaseChainAsset } from "@/lib/market/base-chain-markets";
 import { enrichBaseAssetDetail } from "@/lib/market/base-asset-series";
-import { BASE_CHAIN_ID, ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type AssetDetailResult } from "@/lib/market/types";
+import { lookupBnbChainAsset } from "@/lib/market/bnb-chain-markets";
+import { enrichBnbAssetDetail } from "@/lib/market/bnb-asset-series";
+import { BASE_CHAIN_ID, BNB_CHAIN_ID, ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type AssetDetailResult } from "@/lib/market/types";
 
 export const dynamic = "force-dynamic";
 
@@ -54,12 +57,14 @@ export default async function AssetPage({
 
   const robinhoodChain = chainId === ROBINHOOD_CHAIN_ID;
   const baseChain = chainId === BASE_CHAIN_ID;
-  const [assetSettled, chainSettled, priceHistorySettled, robinhoodSettled, baseSettled] = await Promise.allSettled([
+  const bnbChain = chainId === BNB_CHAIN_ID;
+  const [assetSettled, chainSettled, priceHistorySettled, robinhoodSettled, baseSettled, bnbSettled] = await Promise.allSettled([
     source.getAsset(chainId, decoded, solanaFastPath ? { enrich: false } : undefined),
     solanaFastPath ? source.getChain(chainId) : Promise.resolve(null),
-    solanaFastPath || robinhoodChain || baseChain ? Promise.resolve(null) : source.getAssetPriceHistory(chainId, decoded),
+    solanaFastPath || robinhoodChain || baseChain || bnbChain ? Promise.resolve(null) : source.getAssetPriceHistory(chainId, decoded),
     robinhoodChain ? lookupRobinhoodChainAsset(decoded) : Promise.resolve(null),
     baseChain ? lookupBaseChainAsset(decoded) : Promise.resolve(null),
+    bnbChain ? lookupBnbChainAsset(decoded) : Promise.resolve(null),
   ]);
 
   const sourceAsset: AssetDetailResult | null =
@@ -68,15 +73,19 @@ export default async function AssetPage({
     robinhoodSettled.status === "fulfilled" ? robinhoodSettled.value : null;
   const discoveredBase: AssetDetailResult | null =
     baseSettled.status === "fulfilled" ? baseSettled.value : null;
-  const merged = baseChain ? discoveredBase : mergeRobinhoodAsset(sourceAsset, discoveredAsset);
+  const discoveredBnb: AssetDetailResult | null =
+    bnbSettled.status === "fulfilled" ? bnbSettled.value : null;
+  const merged = bnbChain ? discoveredBnb : baseChain ? discoveredBase : mergeRobinhoodAsset(sourceAsset, discoveredAsset);
   const result =
     merged && robinhoodChain
       ? await enrichRobinhoodAssetDetail(merged).catch(() => merged)
       : merged && baseChain
         ? await enrichBaseAssetDetail(merged).catch(() => merged)
-        : merged;
+        : merged && bnbChain
+          ? await enrichBnbAssetDetail(merged).catch(() => merged)
+          : merged;
 
-  if (!result && assetSettled.status === "rejected" && !robinhoodChain && !baseChain) {
+  if (!result && assetSettled.status === "rejected" && !robinhoodChain && !baseChain && !bnbChain) {
     const detail =
       assetSettled.reason instanceof Error ? assetSettled.reason.message : "Asset snapshot failed.";
     return (
@@ -89,14 +98,17 @@ export default async function AssetPage({
   if (
     !result &&
     ((robinhoodChain && robinhoodSettled.status === "rejected" && assetSettled.status === "rejected") ||
-      (baseChain && baseSettled.status === "rejected"))
+      (baseChain && baseSettled.status === "rejected") ||
+      (bnbChain && bnbSettled.status === "rejected"))
   ) {
     const reason =
-      baseChain && baseSettled.status === "rejected"
-        ? baseSettled.reason
-        : robinhoodSettled.status === "rejected"
-          ? robinhoodSettled.reason
-          : null;
+      bnbChain && bnbSettled.status === "rejected"
+        ? bnbSettled.reason
+        : baseChain && baseSettled.status === "rejected"
+          ? baseSettled.reason
+          : robinhoodSettled.status === "rejected"
+            ? robinhoodSettled.reason
+            : null;
     const detail = reason instanceof Error ? reason.message : "Asset snapshot failed.";
     return (
       <PageShell>
@@ -120,7 +132,8 @@ export default async function AssetPage({
   const isSolana = chain.id === SOLANA_CHAIN_ID;
   const isRobinhood = chain.id === ROBINHOOD_CHAIN_ID;
   const isBase = chain.id === BASE_CHAIN_ID;
-  const indexedDesk = isSolana || isRobinhood || isBase;
+  const isBnb = chain.id === BNB_CHAIN_ID;
+  const indexedDesk = isSolana || isRobinhood || isBase || isBnb;
   const rankedPools = sortPoolsByVolume(asset.pools);
   const priceHistory =
     priceHistorySettled.status === "fulfilled" && priceHistorySettled.value
@@ -160,6 +173,10 @@ export default async function AssetPage({
           ) : isBase ? (
             <Suspense fallback={<BaseAssetChartFallback chain={chain} asset={asset} />}>
               <BaseAssetChart chain={chain} asset={asset} />
+            </Suspense>
+          ) : isBnb ? (
+            <Suspense fallback={<BnbAssetChartFallback chain={chain} asset={asset} />}>
+              <BnbAssetChart chain={chain} asset={asset} />
             </Suspense>
           ) : (
             <AssetMarketPanel
@@ -256,7 +273,9 @@ export default async function AssetPage({
                   ? "No indexed Robinhood Chain pools"
                   : isBase
                     ? "No indexed Base pools"
-                    : asset.volumeCoverage === "hydrate_incomplete"
+                    : isBnb
+                      ? "No indexed BNB Chain pools"
+                      : asset.volumeCoverage === "hydrate_incomplete"
                       ? "Still hydrating"
                       : asset.volumeCoverage === "no_indexed_pools"
                         ? "Confirmed no indexed pools"
@@ -267,7 +286,9 @@ export default async function AssetPage({
                   ? "DexScreener did not return indexed pools for this contract on chain 4663. The desk does not invent markets."
                   : isBase
                     ? "DexScreener did not return indexed pools for this contract on Base (8453). The desk does not invent markets."
-                    : (asset.coverageNote ??
+                    : isBnb
+                      ? "DexScreener did not return indexed pools for this contract on BNB Chain (56). The desk does not invent markets."
+                      : (asset.coverageNote ??
                       (asset.volumeCoverage === "hydrate_incomplete"
                         ? "DexScreener lookup has not finished for this mint. Volume is unknown, not zero — not the same as confirmed no pools."
                         : "DexScreener lookup finished and found no indexed Solana pools for this mint. That is the public pair-index ceiling, not zero volume."))}

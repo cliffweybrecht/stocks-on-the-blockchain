@@ -15,6 +15,8 @@ import { robinhoodSnapshotChainShell } from "@/lib/market/robinhood-desk-volume"
 import { loadRobinhoodChainMarkets, robinhoodCatalogCount } from "@/lib/market/robinhood-chain-markets";
 import { BASE_DESK } from "@/lib/market/base-desk-volume";
 import { baseCatalogCount, loadBaseChainMarkets } from "@/lib/market/base-chain-markets";
+import { BNB_DESK } from "@/lib/market/bnb-desk-volume";
+import { bnbCatalogCount, loadBnbChainMarkets } from "@/lib/market/bnb-chain-markets";
 import { snapshotDeskChainShell } from "@/lib/market/snapshot-desk-volume";
 import {
   overlayTerminalReference,
@@ -32,7 +34,7 @@ import { parseAssetSortKey, sortAssets } from "@/lib/market/aggregate";
 import { toJumpAsset } from "@/lib/market/asset-search";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { findSnapshotDesk, loadClosedSnapshotDeskDays } from "@/lib/market/snapshot-desk-volume-file";
-import { BASE_CHAIN_ID, ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type AssetSummary, type EquityVolumeHistoryResult } from "@/lib/market/types";
+import { BASE_CHAIN_ID, BNB_CHAIN_ID, ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type AssetSummary, type EquityVolumeHistoryResult } from "@/lib/market/types";
 import { parseCoverageFilter } from "@/lib/market/volume-coverage";
 
 export const dynamic = "force-dynamic";
@@ -47,7 +49,7 @@ export default async function ChainPage({
   const { chainId } = await params;
   const query = await searchParams;
   const snapshotDesk = findSnapshotDesk(chainId);
-  if (snapshotDesk && snapshotDesk.chainId !== BASE_CHAIN_ID) {
+  if (snapshotDesk && snapshotDesk.chainId !== BASE_CHAIN_ID && snapshotDesk.chainId !== BNB_CHAIN_ID) {
     const days = await loadClosedSnapshotDeskDays(snapshotDesk);
     return (
       <PageShell>
@@ -67,6 +69,7 @@ export default async function ChainPage({
   const source = createMarketDataSource();
   const requestedRobinhood = chainId === ROBINHOOD_CHAIN_ID;
   const requestedBase = chainId === BASE_CHAIN_ID;
+  const requestedBnb = chainId === BNB_CHAIN_ID;
   const robinhoodNames = requestedRobinhood
     ? loadRobinhoodChainMarkets().then(
         (catalog) => ({ catalog, error: null as string | null }),
@@ -85,6 +88,15 @@ export default async function ChainPage({
         }),
       )
     : null;
+  const bnbNames = requestedBnb
+    ? loadBnbChainMarkets().then(
+        (catalog) => ({ catalog, error: null as string | null }),
+        (error: unknown) => ({
+          catalog: null,
+          error: error instanceof Error ? error.message : "BNB Chain names did not load.",
+        }),
+      )
+    : null;
 
   let result;
   let listError: string | null = null;
@@ -92,7 +104,7 @@ export default async function ChainPage({
     result = await source.getChain(chainId);
   } catch (error) {
     const detail = error instanceof Error ? error.message : "Chain snapshot failed.";
-    if (!requestedRobinhood && !requestedBase) {
+    if (!requestedRobinhood && !requestedBase && !requestedBnb) {
       return (
         <PageShell>
           <ErrorState title="Could not load this chain" detail={detail} />
@@ -103,7 +115,7 @@ export default async function ChainPage({
     result = null;
   }
 
-  if (!result && !requestedRobinhood && !requestedBase) {
+  if (!result && !requestedRobinhood && !requestedBase && !requestedBnb) {
     return (
       <PageShell>
         <EmptyState
@@ -115,22 +127,26 @@ export default async function ChainPage({
   }
 
   const hideSeedNames =
-    (requestedRobinhood || requestedBase) && result?.provenance.sourceId === "mock";
+    (requestedRobinhood || requestedBase || requestedBnb) && result?.provenance.sourceId === "mock";
   const chain =
     result && !hideSeedNames
       ? result.chain
       : requestedBase
         ? snapshotDeskChainShell(BASE_DESK)
-        : robinhoodSnapshotChainShell();
+        : requestedBnb
+          ? snapshotDeskChainShell(BNB_DESK)
+          : robinhoodSnapshotChainShell();
   let assets = result && !hideSeedNames ? result.assets : [];
   let etfAssets = result && !hideSeedNames ? (result.etfAssets ?? []) : [];
   let privateAssets = result && !hideSeedNames ? (result.privateAssets ?? []) : [];
-  let provenance = result && !hideSeedNames && !requestedBase ? result.provenance : undefined;
+  let provenance = result && !hideSeedNames && !requestedBase && !requestedBnb ? result.provenance : undefined;
   const isSolana = chain.id === SOLANA_CHAIN_ID;
   const isRobinhood = chain.id === ROBINHOOD_CHAIN_ID;
   const isBase = chain.id === BASE_CHAIN_ID;
+  const isBnb = chain.id === BNB_CHAIN_ID;
   let robinhoodVolumeHydrated = false;
   let baseVolumeHydrated = false;
+  let bnbVolumeHydrated = false;
   if (isRobinhood && robinhoodNames) {
     const loaded = await robinhoodNames;
     const terminalRows = [...assets, ...etfAssets, ...privateAssets];
@@ -163,8 +179,22 @@ export default async function ChainPage({
       listError = loaded.error;
     }
   }
+  if (isBnb && bnbNames) {
+    const loaded = await bnbNames;
+    if (loaded.catalog && bnbCatalogCount(loaded.catalog) > 0) {
+      assets = loaded.catalog.assets;
+      etfAssets = loaded.catalog.etfAssets;
+      privateAssets = loaded.catalog.privateAssets;
+      bnbVolumeHydrated = loaded.catalog.volumeHydrated;
+      provenance = loaded.catalog.provenance;
+      listError = null;
+    } else if (loaded.error) {
+      listError = loaded.error;
+    }
+  }
   const robinhoodDays = isRobinhood ? await loadClosedRobinhoodDeskDays() : [];
   const baseDays = isBase ? await loadClosedSnapshotDeskDays(BASE_DESK) : [];
+  const bnbDays = isBnb ? await loadClosedSnapshotDeskDays(BNB_DESK) : [];
   let volumeHistory: EquityVolumeHistoryResult;
   let hourlyVolumeHistory: EquityVolumeHistoryResult | null = null;
   if (isSolana) {
@@ -179,12 +209,13 @@ export default async function ChainPage({
     void source.getEquityCardDayVolumeSeries();
   }
   const lane = parseDeskLane(query.lane, { etf: etfAssets.length > 0, private: privateAssets.length > 0 });
-  const marketsDesk = isSolana || isRobinhood || isBase;
+  const marketsDesk = isSolana || isRobinhood || isBase || isBnb;
   const reportedVolume = [...assets, ...etfAssets, ...privateAssets].some((asset) => asset.volume24hUsd !== null);
   const defaultCoverage =
     isSolana ||
     (isRobinhood && robinhoodVolumeHydrated && reportedVolume) ||
-    (isBase && baseVolumeHydrated && reportedVolume)
+    (isBase && baseVolumeHydrated && reportedVolume) ||
+    (isBnb && bnbVolumeHydrated && reportedVolume)
       ? "with-volume"
       : "all";
   const coverageFilter = parseCoverageFilter(query.coverage, defaultCoverage);
@@ -206,7 +237,7 @@ export default async function ChainPage({
       priceTicker={selectEquityPriceTicker(assets)}
     >
       <div className="space-y-5">
-        {isSolana || isRobinhood || isBase ? null : (
+        {isSolana || isRobinhood || isBase || isBnb ? null : (
           <nav className="text-sm text-muted-foreground" data-chain-breadcrumb>
             <Link href="/" className="hover:text-foreground">
               Chains
@@ -217,7 +248,7 @@ export default async function ChainPage({
         )}
         <div>
           <h2 className="font-heading text-2xl font-semibold tracking-tight">{chain.name}</h2>
-          {isSolana || isRobinhood || isBase ? null : <p className="mt-1 text-sm text-muted-foreground">{chain.sourceLabel}</p>}
+          {isSolana || isRobinhood || isBase || isBnb ? null : <p className="mt-1 text-sm text-muted-foreground">{chain.sourceLabel}</p>}
         </div>
         {isSolana ? (
           <DailyVolumeChart
@@ -233,6 +264,8 @@ export default async function ChainPage({
           <RobinhoodVolumeDesk days={robinhoodDays} />
         ) : isBase ? (
           <SnapshotVolumeDesk desk={{ chainId: BASE_DESK.chainId, name: BASE_DESK.name }} days={baseDays} />
+        ) : isBnb ? (
+          <SnapshotVolumeDesk desk={{ chainId: BNB_DESK.chainId, name: BNB_DESK.name }} days={bnbDays} />
         ) : provenance ? (
           <>
             <ProvenanceBar provenance={provenance} compact />
@@ -267,7 +300,9 @@ export default async function ChainPage({
                 ? "No Robinhood Chain names in this snapshot"
                 : isBase
                   ? "No Base names in this snapshot"
-                  : "No stocks on this chain snapshot"
+                  : isBnb
+                    ? "No BNB Chain names in this snapshot"
+                    : "No stocks on this chain snapshot"
             }
             detail={
               isRobinhood
@@ -278,7 +313,11 @@ export default async function ChainPage({
                   ? listError
                     ? `Volume bars above are recorded DexScreener samples. The stock list did not load (${listError}). That is a missing list, not zero volume.`
                     : "Volume bars above are recorded DexScreener samples from base.json. Names come from Coinbase, ST0x, Centrifuge, Dinari, Backed, and Anchored on Base. An empty list is not zero volume."
-                  : "The source listed the chain but returned no asset rows. That is an empty snapshot, not zero volume. On Solana this usually means live discovery found no verifiable public equities."
+                  : isBnb
+                    ? listError
+                      ? `Volume bars above are recorded DexScreener samples. The stock list did not load (${listError}). That is a missing list, not zero volume.`
+                      : "Volume bars above are recorded DexScreener samples from bnb.json. Names come from Stocks On Chain, xStocks, bStocks, Colb, and Paimon on BNB Chain. An empty list is not zero volume."
+                    : "The source listed the chain but returned no asset rows. That is an empty snapshot, not zero volume. On Solana this usually means live discovery found no verifiable public equities."
             }
           />
         ) : (

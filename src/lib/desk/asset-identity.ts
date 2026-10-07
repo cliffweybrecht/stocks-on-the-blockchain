@@ -1,6 +1,6 @@
 import { formatAddress } from "@/lib/market/format";
 import { asHttpUrl } from "@/lib/market/numbers";
-import { BASE_CHAIN_ID, ROBINHOOD_CHAIN_ID, type InstrumentKind, type SourceKind } from "@/lib/market/types";
+import { BASE_CHAIN_ID, BNB_CHAIN_ID, ROBINHOOD_CHAIN_ID, type InstrumentKind, type SourceKind } from "@/lib/market/types";
 
 const SKIP_WORDS = new Set([
   "a",
@@ -58,7 +58,9 @@ export function instrumentKindMetaLabel(kind: InstrumentKind): string {
 
 export function sourceRowLabel(sourceId: SourceKind): string {
   if (sourceId === "mock") return "Demo row";
-  if (sourceId === "solana" || sourceId === "robinhood" || sourceId === "base") return "DexScreener row";
+  if (sourceId === "solana" || sourceId === "robinhood" || sourceId === "base" || sourceId === "bnb") {
+    return "DexScreener row";
+  }
   if (sourceId === "composite") return "Live sources";
   return "Terminal row";
 }
@@ -68,6 +70,7 @@ export function dexScreenerTokenUrl(chainId: string, mint: string): string | nul
   if (chainId === "solana") return `https://dexscreener.com/solana/${mint}`;
   if (chainId === ROBINHOOD_CHAIN_ID) return `https://dexscreener.com/robinhood/${mint}`;
   if (chainId === BASE_CHAIN_ID) return `https://dexscreener.com/base/${mint}`;
+  if (chainId === BNB_CHAIN_ID) return `https://dexscreener.com/bsc/${mint}`;
   return null;
 }
 
@@ -84,6 +87,7 @@ export function dexScreenerPairUrl(
   if (chainId === "solana") return `https://dexscreener.com/solana/${address}`;
   if (chainId === ROBINHOOD_CHAIN_ID) return `https://dexscreener.com/robinhood/${address}`;
   if (chainId === BASE_CHAIN_ID) return `https://dexscreener.com/base/${address}`;
+  if (chainId === BNB_CHAIN_ID) return `https://dexscreener.com/bsc/${address}`;
   return null;
 }
 
