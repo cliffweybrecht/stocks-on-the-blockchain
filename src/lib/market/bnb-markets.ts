@@ -31,7 +31,7 @@ export const BNB_DEX_CHAIN_SLUG = "bsc";
 export const BNB_MARKETS_SOURCE_LABEL = "DexScreener · BNB Chain";
 
 export const BNB_MARKETS_NOTE =
-  "BNB Chain names are live public registries: Stocks On Chain (Ondo and xStocks on bnb-chain), the xStocks token list and assets API, bStocks rows on Jumper whose chain is bsc, Colb’s BNB Chain token table, and Paimon’s published BSC tokens. Dinari is included only when a registry names a BNB Chain contract. The Ondo metadata API is not a name source when it does not return contracts. Commodities, treasuries, bonds, credit, crypto trusts, leveraged and inverse products, fan tokens, perps, and Paimon Prime are excluded. Card volume is the sum of DexScreener volume.h24 across unique pools. A missing figure stays missing. A card uses the DexScreener image when that pair lists the contract as the base token. Otherwise it keeps the issuer logo, or a monogram when no logo was published.";
+  "BNB Chain names are live public registries: the xStocks product catalogue (addresses.bsc only), Stocks On Chain (Ondo and xStocks on bnb-chain), the xStocks token list and assets API, bStocks rows on Jumper whose chain is bsc, Colb’s BNB Chain token table, and Paimon’s published BSC tokens. When the xStocks catalogue loads, an xStocks card must be one of those BSC addresses; the assets API cannot add a second contract for the same ticker. Dinari is included only when a registry names a BNB Chain contract. The Ondo metadata API is not a name source when it does not return contracts. Commodities, treasuries, bonds, credit, crypto trusts, leveraged and inverse products, fan tokens, perps, and Paimon Prime are excluded. One card is one lowercased contract. Card volume is the sum of DexScreener volume.h24 across unique pools. A missing figure stays missing. A card uses the DexScreener image when that pair lists the contract as the base token. Otherwise it keeps the issuer logo, or a monogram when no logo was published.";
 
 const EVM_ADDRESS = /^0x[a-fA-F0-9]{40}$/;
 
@@ -225,6 +225,51 @@ export function xStocksAssetsHasNextPage(payload: unknown): boolean {
 }
 
 /**
+ * Official xStocks product catalogue.
+ * A card exists only when `addresses.bsc` is a contract. Null and other networks add nothing.
+ * The same address on ethereum is not copied in: only the `bsc` field is read.
+ */
+export function parseXStocksProductCatalog(payload: unknown): BnbListedToken[] {
+  return collectTokens(readXStocksProducts(payload), (row) => {
+    if (!row || typeof row !== "object") return null;
+    const rec = row as {
+      symbol?: unknown;
+      name?: unknown;
+      iconUrl?: unknown;
+      logo?: unknown;
+      addresses?: unknown;
+    };
+    const addresses = rec.addresses;
+    if (!addresses || typeof addresses !== "object" || Array.isArray(addresses)) return null;
+    const bsc = (addresses as Record<string, unknown>).bsc;
+    if (bsc == null || bsc === "") return null;
+    return listedToken({
+      address: bsc,
+      symbol: rec.symbol,
+      name: rec.name,
+      logoUrl: rec.iconUrl ?? rec.logo,
+      issuer: XSTOCKS_ISSUER_LABEL,
+    });
+  });
+}
+
+/**
+ * When the xStocks catalogue published BSC addresses, other registries may not add an xStocks
+ * contract that catalogue left out. Other issuers are unchanged. A null allowlist means the
+ * catalogue did not load, so chain-56 rows from the other registries stay.
+ */
+export function retainVerifiedXStocks(
+  tokens: readonly BnbListedToken[],
+  catalogueAddresses: ReadonlySet<string> | null,
+): BnbListedToken[] {
+  if (!catalogueAddresses) return [...tokens];
+  return tokens.filter(
+    (token) =>
+      token.issuer !== XSTOCKS_ISSUER_LABEL || catalogueAddresses.has(token.address.toLowerCase()),
+  );
+}
+
+/**
  * Jumper issuer page embedded catalog.
  * Only xStocks, Ondo, and bStocks instances whose chain is bsc / 56.
  * Robinhood, Backpack, and Coinbase instances on that page are not BNB Chain stocks.
@@ -402,7 +447,11 @@ export function parseOndoBnbAssets(payload: unknown): BnbListedToken[] {
   });
 }
 
-/** First registry to claim an address wins. Later lookalikes on the same contract are ignored. */
+/**
+ * One card per lowercased contract. The first registry to claim an address wins.
+ * The same issuer and ticker with two different addresses stays two cards: those are
+ * distinct contracts, not a second copy of one deployment. Wrappers are not given a symbol here.
+ */
 export function mergeBnbTokens(groups: readonly (readonly BnbListedToken[])[]): BnbListedToken[] {
   return dedupeTokens(groups.flat());
 }
@@ -866,6 +915,23 @@ function extractJsonArray(text: string, key: string): unknown[] | null {
     }
   }
   return null;
+}
+
+function readXStocksProducts(payload: unknown): unknown[] {
+  if (payload && typeof payload === "object") {
+    const direct = arrayField(payload, "products");
+    if (direct.length > 0) return direct;
+    const pageProps = (payload as { props?: { pageProps?: { products?: unknown } } }).props?.pageProps?.products;
+    if (Array.isArray(pageProps)) return pageProps;
+  }
+  if (typeof payload !== "string" || !payload.includes("__NEXT_DATA__")) return [];
+  const match = payload.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+  if (!match?.[1]) return [];
+  try {
+    return readXStocksProducts(JSON.parse(match[1]) as unknown);
+  } catch {
+    return [];
+  }
 }
 
 function arrayField(payload: unknown, key: string): unknown[] {

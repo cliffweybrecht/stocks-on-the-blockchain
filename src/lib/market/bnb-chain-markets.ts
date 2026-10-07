@@ -21,7 +21,9 @@ import {
   parsePaimonTradePage,
   parseStocksonchainBnb,
   parseXStocksAssets,
+  parseXStocksProductCatalog,
   parseXStocksTokenList,
+  retainVerifiedXStocks,
   xStocksAssetsHasNextPage,
   type BnbListedToken,
   type BnbMarketLanes,
@@ -32,6 +34,8 @@ export const DEFAULT_STOCKSONCHAIN_URL = "https://stocksonchain.io/api/tokens.js
 export const DEFAULT_XSTOCKS_TOKENLIST_URL =
   "https://raw.githubusercontent.com/backed-fi/cowswap-xstocks-tokenlist/main/tokenlist.json";
 export const DEFAULT_XSTOCKS_ASSETS_URL = "https://api.xstocks.fi/api/v2/public/assets";
+/** Official lineup. Each product publishes `addresses.bsc` or leaves it null. */
+export const DEFAULT_XSTOCKS_PRODUCTS_URL = "https://xstocks.fi/us/products";
 export const DEFAULT_JUMPER_BSTOCKS_URL = "https://rwa.jumper.xyz/providers/bstocks";
 export const DEFAULT_COLB_DOCS_URL = "https://docs.colb.finance/getting-started/smart-contracts.md";
 export const DEFAULT_PAIMON_TRADE_URL = "https://app.paimon.finance/trade";
@@ -59,6 +63,7 @@ export interface LoadBnbChainMarketsOptions {
   stocksonchainUrl?: string;
   xstocksTokenlistUrl?: string;
   xstocksAssetsUrl?: string;
+  xstocksProductsUrl?: string;
   jumperUrl?: string;
   colbUrl?: string;
   paimonTradeUrl?: string;
@@ -91,6 +96,7 @@ function cacheKey(options: LoadBnbChainMarketsOptions): string {
     options.stocksonchainUrl ?? DEFAULT_STOCKSONCHAIN_URL,
     options.xstocksTokenlistUrl ?? DEFAULT_XSTOCKS_TOKENLIST_URL,
     options.xstocksAssetsUrl ?? DEFAULT_XSTOCKS_ASSETS_URL,
+    options.xstocksProductsUrl ?? DEFAULT_XSTOCKS_PRODUCTS_URL,
     options.jumperUrl ?? DEFAULT_JUMPER_BSTOCKS_URL,
     options.colbUrl ?? DEFAULT_COLB_DOCS_URL,
     options.paimonTradeUrl ?? DEFAULT_PAIMON_TRADE_URL,
@@ -122,7 +128,7 @@ export async function loadBnbChainMarkets(
   const nameTimeout = options.timeoutMs ?? NAME_TIMEOUT_MS;
   const dexBase = (options.dexBaseUrl ?? DEFAULT_BNB_DEX_BASE_URL).replace(/\/+$/, "");
 
-  const [stocksonchain, tokenlist, xstocksApi, jumper, colb, paimon, ondo] = await Promise.all([
+  const [stocksonchain, tokenlist, xstocksApi, xstocksProducts, jumper, colb, paimon, ondo] = await Promise.all([
     readNameSource(
       options.stocksonchainUrl ?? DEFAULT_STOCKSONCHAIN_URL,
       "Stocks On Chain",
@@ -138,6 +144,13 @@ export async function loadBnbChainMarkets(
       (payload) => parseXStocksTokenList(payload),
     ),
     readXStocksAssets(options.xstocksAssetsUrl ?? DEFAULT_XSTOCKS_ASSETS_URL, nameTimeout, fetchImpl),
+    readNameSource(
+      options.xstocksProductsUrl ?? DEFAULT_XSTOCKS_PRODUCTS_URL,
+      "xStocks product catalogue",
+      nameTimeout,
+      fetchImpl,
+      (payload) => parseXStocksProductCatalog(payload),
+    ),
     readNameSource(
       options.jumperUrl ?? DEFAULT_JUMPER_BSTOCKS_URL,
       "Jumper bStocks",
@@ -167,8 +180,8 @@ export async function loadBnbChainMarkets(
     ),
   ]);
 
-  const sourceFailures = [stocksonchain, tokenlist, xstocksApi, jumper, colb, paimon, ondo].flatMap((source) =>
-    source.error ? [{ sourceId: "bnb" as const, sourceLabel: source.label, message: source.error }] : [],
+  const sourceFailures = [stocksonchain, tokenlist, xstocksApi, xstocksProducts, jumper, colb, paimon, ondo].flatMap(
+    (source) => (source.error ? [{ sourceId: "bnb" as const, sourceLabel: source.label, message: source.error }] : []),
   );
   const dinariCount = stocksonchain.tokens.filter((token) => token.issuer === DINARI_ISSUER_LABEL).length;
   if (dinariCount === 0) {
@@ -197,11 +210,23 @@ export async function loadBnbChainMarkets(
     });
   }
 
+  const catalogueAddresses =
+    xstocksProducts.tokens.length > 0
+      ? new Set(xstocksProducts.tokens.map((token) => token.address.toLowerCase()))
+      : null;
+  if (!catalogueAddresses && !xstocksProducts.error) {
+    sourceFailures.push({
+      sourceId: "bnb",
+      sourceLabel: "xStocks product catalogue",
+      message: "xStocks product catalogue did not name a BNB Chain contract. Chain-56 rows from the other xStocks registries were kept.",
+    });
+  }
   const tokens = mergeBnbTokens([
-    stocksonchain.tokens,
-    xstocksApi.tokens,
-    tokenlist.tokens,
-    jumper.tokens,
+    retainVerifiedXStocks(xstocksProducts.tokens, catalogueAddresses),
+    retainVerifiedXStocks(stocksonchain.tokens, catalogueAddresses),
+    retainVerifiedXStocks(xstocksApi.tokens, catalogueAddresses),
+    retainVerifiedXStocks(tokenlist.tokens, catalogueAddresses),
+    retainVerifiedXStocks(jumper.tokens, catalogueAddresses),
     colb.tokens,
     paimon.tokens,
     ondo.tokens,

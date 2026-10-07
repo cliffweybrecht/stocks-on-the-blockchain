@@ -18,7 +18,9 @@ import {
   parsePaimonTradePage,
   parseStocksonchainBnb,
   parseXStocksAssets,
+  parseXStocksProductCatalog,
   parseXStocksTokenList,
+  retainVerifiedXStocks,
   selectBnbTokenLogo,
 } from "../bnb-markets";
 import { loadBnbChainMarkets } from "../bnb-chain-markets";
@@ -83,6 +85,61 @@ describe("BNB issuer parsers", () => {
     });
     expect(tokens.map((row) => row.symbol)).toEqual(["AAPLx"]);
     expect(tokens[0]).toMatchObject({ issuer: XSTOCKS_ISSUER_LABEL, kind: "equity", address: AAPLX });
+  });
+
+  it("keeps a product only when the catalogue names a bsc contract", () => {
+    const tokens = parseXStocksProductCatalog({
+      products: [
+        {
+          symbol: "AAPLx",
+          name: "Apple xStock",
+          iconUrl: "https://xstocks.fi/aaplx.png",
+          addresses: { ethereum: AAPLX, bsc: AAPLX },
+        },
+        {
+          symbol: "SHEINx",
+          name: "SHEIN xStock",
+          addresses: { ethereum: "0x1111111111111111111111111111111111111111", bsc: null },
+        },
+        {
+          symbol: "GLDx",
+          name: "Gold xStock",
+          addresses: { bsc: "0x9999999999999999999999999999999999999999" },
+        },
+      ],
+    });
+    expect(tokens.map((row) => row.symbol)).toEqual(["AAPLx"]);
+    expect(tokens[0]).toMatchObject({ issuer: XSTOCKS_ISSUER_LABEL, address: AAPLX, kind: "equity" });
+
+    const html = `<script id="__NEXT_DATA__" type="application/json">${JSON.stringify({
+      props: {
+        pageProps: {
+          products: [
+            {
+              symbol: "TSLAx",
+              name: "Tesla xStock",
+              addresses: { bsc: "0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0" },
+            },
+          ],
+        },
+      },
+    })}</script>`;
+    expect(parseXStocksProductCatalog(html).map((row) => row.symbol)).toEqual(["TSLAx"]);
+  });
+
+  it("drops xStocks the catalogue did not publish and still keeps other issuers", () => {
+    const catalogue = new Set([AAPLX.toLowerCase()]);
+    const sony = "0x8c06d627b8d57792803e3caed36f7af2ad883b01";
+    const gated = retainVerifiedXStocks(
+      [
+        { address: AAPLX, symbol: "AAPLx", name: "Apple xStock", issuer: XSTOCKS_ISSUER_LABEL, kind: "equity", logoUrl: null },
+        { address: sony, symbol: "SONYx", name: "Sony xStock", issuer: XSTOCKS_ISSUER_LABEL, kind: "equity", logoUrl: null },
+        { address: AAPLON, symbol: "AAPLon", name: "Apple Inc.", issuer: ONDO_ISSUER_LABEL, kind: "equity", logoUrl: null },
+      ],
+      catalogue,
+    );
+    expect(gated.map((row) => row.symbol).sort()).toEqual(["AAPLon", "AAPLx"]);
+    expect(retainVerifiedXStocks(gated, null)).toHaveLength(2);
   });
 
   it("reads Binance Smart Chain deployments and does not list the wrapper as its own card", () => {
@@ -262,6 +319,17 @@ describe("BNB market lanes", () => {
     expect(fromDex.assets[0]?.logoUrl).toBe(dexLogo);
   });
 
+  it("collapses one contract and keeps two live contracts for one ticker", () => {
+    const upper = AAPLX.toUpperCase();
+    const other = "0x8c06d627b8d57792803e3caed36f7af2ad883b01";
+    const merged = mergeBnbTokens([
+      parseXStocksTokenList({
+        tokens: [list("AAPLx", "Apple xStock", 56, AAPLX), list("AAPLx", "Apple xStock", 56, upper), list("AAPLx", "Apple xStock copy", 56, other)],
+      }),
+    ]);
+    expect(merged.map((row) => row.address.toLowerCase()).sort()).toEqual([AAPLX.toLowerCase(), other].sort());
+  });
+
   it("lets the first registry keep a shared contract", () => {
     const ondo = parseStocksonchainBnb({
       stocks: [soc("AAPL", "Apple Inc.", "stock", "ondo", "bnb-chain", "AAPLon", AAPLON)],
@@ -332,6 +400,41 @@ describe("loadBnbChainMarkets", () => {
       volume24hUsd: 12,
       dexMedianPriceUsd: 1.5,
     });
+  });
+
+  it("does not add an xStocks contract that the product catalogue left off BSC", async () => {
+    const sony = "0x8c06d627b8d57792803e3caed36f7af2ad883b01";
+    const fetchImpl = vi.fn(async (url: string) => {
+      if (url.includes("products")) {
+        return json({
+          products: [
+            { symbol: "AAPLx", name: "Apple xStock", addresses: { ethereum: AAPLX, bsc: AAPLX } },
+          ],
+        });
+      }
+      if (url.includes("tokenlist")) {
+        return json({
+          tokens: [list("AAPLx", "Apple xStock", 56, AAPLX), list("SONYx", "Sony xStock", 56, sony)],
+        });
+      }
+      if (url.includes("stocksonchain")) {
+        return json({
+          stocks: [
+            soc("AAPL", "Apple Inc.", "stock", "ondo", "bnb-chain", "AAPLon", AAPLON),
+            soc("SONY", "Sony", "stock", "backed-xstocks", "bnb-chain", "SONYx", sony),
+          ],
+        });
+      }
+      if (url.includes("/tokens/v1/bsc/")) return json([]);
+      return new Response("missing", { status: 404 });
+    });
+    const catalog = await loadBnbChainMarkets({
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      cache: false,
+    });
+    const symbols = [...catalog.assets, ...catalog.etfAssets, ...catalog.privateAssets].map((row) => row.symbol);
+    expect(symbols.sort()).toEqual(["AAPLon", "AAPLx"]);
+    expect(catalog.assets.find((row) => row.symbol === "AAPLx")?.volume24hUsd).toBeNull();
   });
 
   it("throws a missing list when no issuer returns a token", async () => {
