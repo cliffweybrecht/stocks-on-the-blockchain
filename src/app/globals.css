@@ -7,8 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  /* Geist first. Generic families stay outside the var() so a missing
-     or empty --font-geist-* token cannot fall through to the UA serif. */
+  /* Geist when next/font injects it. The var() fallback covers a missing
+     token; the families after it cover a face that never loads. Either way
+     the stack ends in a generic family, not the UA serif. */
   --font-sans: var(--font-geist-sans, ui-sans-serif), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: var(--font-geist-mono, ui-monospace), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --font-heading: var(--font-geist-sans, ui-sans-serif), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
