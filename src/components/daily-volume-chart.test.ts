@@ -3,10 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { DailyVolumeChart } from "./daily-volume-chart";
 import { HOURLY_VOLUME_SERIES_CAPTION } from "@/lib/market/daily-volume-view";
-import {
-  HOME_24H_ROBINHOOD_PLOT_NOTE,
-  HOME_CLOSED_RANGE_WITH_ROBINHOOD_FOOTER,
-} from "@/lib/market/home-desk-volume";
+import { HOME_24H_ROBINHOOD_HEADLINE } from "@/lib/market/home-desk-volume";
 import { parseRobinhoodDeskDays, type RobinhoodDeskDay } from "@/lib/market/robinhood-desk-volume";
 import { DESK_CHART_STROKE } from "@/lib/desk/chart-curve";
 import { DESK_VOLUME_24H_POLL_MS, DESK_VOLUME_HISTORY_POLL_MS } from "@/lib/market/desk-volume-live";
@@ -208,7 +205,8 @@ describe("DailyVolumeChart closed ranges", () => {
     expect(html).toContain(HOURLY_VOLUME_SERIES_CAPTION);
     expect(html).toContain(`>${formatUsdCompact(220_500_000)}<`);
     expect(html).toContain('data-volume-kind="combined_24h"');
-    expect(html).not.toContain(HOME_24H_ROBINHOOD_PLOT_NOTE);
+    expect(html).not.toMatch(/trailing h24/i);
+    expect(html).not.toContain("data-volume-robinhood-24h-note");
   });
 });
 
@@ -266,23 +264,48 @@ describe("DailyVolumeChart home Robinhood days", () => {
     expect(html).toContain(`>${formatUsdCompact(solanaSum + 1_000_000 + 5_000_000)}<`);
     expect(html).not.toContain(`>${formatUsdCompact(solanaSum)}<`);
     expect(html).not.toContain(formatUsdCompact(9_000_000));
-    expect(html).toContain(HOME_CLOSED_RANGE_WITH_ROBINHOOD_FOOTER);
+    expect(html).not.toContain("data-volume-history-note");
+    expect(html).not.toMatch(/trailing h24/i);
+    expect(html).not.toContain("12:00");
     expect(html).toContain('data-volume-includes-robinhood="true"');
     expect(html).toContain("Solana + Robinhood Chain");
-    expect(html).toContain("not a true 12:00–11:59 PM ET window");
+    expect(html).toContain('data-volume-ranges');
+    expect(html).toContain("flex-nowrap");
+    expect(html).toContain("justify-self-end");
   });
 
   it("adds the last closed Robinhood day to the 24H headline and leaves the hourly area on Solana", () => {
     const html = withRobinhood("24h");
     expect(html).toContain(`>${formatUsdCompact(220_500_000 + 5_000_000)}<`);
     expect(html).not.toContain(`>${formatUsdCompact(220_500_000)}<`);
-    expect(html).toContain("last closed Robinhood Chain snapshot");
-    expect(html).toContain(HOME_24H_ROBINHOOD_PLOT_NOTE);
+    expect(html).toContain(HOME_24H_ROBINHOOD_HEADLINE);
+    expect(html).not.toContain("data-volume-robinhood-24h-note");
+    expect(html).not.toMatch(/trailing h24/i);
     expect(html).toContain('data-volume-usd="200000000"');
     expect(html).toContain('data-volume-usd="210000000"');
     expect(html).toContain('data-volume-usd="205000000"');
     expect(html).toContain('data-volume-usd="190000000"');
     expect(html).not.toContain('data-volume-usd="5000000"');
     expect(html).not.toContain(formatUsdCompact(999_000_000));
+  });
+});
+
+describe("DailyVolumeChart range shell", () => {
+  it("keeps 24H 7D 14D 30D pinned top-right even when the series is empty", () => {
+    const html = renderToStaticMarkup(
+      createElement(DailyVolumeChart, {
+        history: history([], "Historical volume series is unavailable."),
+        hourlyHistory: history([], "No hourly snapshots."),
+        rolling24h: null,
+      }),
+    );
+    expect(html).toContain('data-volume-ranges');
+    expect(html).toContain("grid-cols-[minmax(0,1fr)_auto]");
+    expect(html).toContain("flex-nowrap");
+    expect(html).toContain("justify-self-end");
+    expect(html).not.toContain("flex-wrap");
+    for (const id of ["24h", "7d", "14d", "30d"]) {
+      expect(html).toContain(`data-volume-range="${id}"`);
+    }
   });
 });

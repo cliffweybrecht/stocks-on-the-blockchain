@@ -74,8 +74,9 @@ describe("ChainVolumeCard", () => {
     expect(html).toContain("Public 24h");
     expect(html).toContain("Private 24h");
     expect(html).toContain("ETF/index 24h");
-    expect(html).toContain("2026-10-05 America/New_York");
-    expect(html).toContain("not a 12:00–11:59 PM ET window");
+    expect(html).toContain("2026-10-05 America/New_York · last closed snapshot.");
+    expect(html).not.toMatch(/trailing h24/i);
+    expect(html).not.toContain("12:00");
     expect(html).not.toContain(">$0<");
   });
 

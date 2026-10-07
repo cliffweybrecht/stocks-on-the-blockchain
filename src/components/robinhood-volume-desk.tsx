@@ -85,8 +85,8 @@ export function RobinhoodVolumeDesk({
       data-robinhood-volume-desk
       data-volume-live="closed-day"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3">
+        <div className="min-w-0">
           <h2 className="font-heading text-[9px] leading-tight font-medium tracking-wide text-foreground/90">
             Total Daily Tokenized Stock Volume
           </h2>
@@ -104,11 +104,14 @@ export function RobinhoodVolumeDesk({
               —
             </p>
           )}
-          <p className="mt-1 max-w-xl text-[11px] leading-snug text-muted-foreground" data-volume-caption>
+          <p className="mt-1 text-[11px] leading-snug text-muted-foreground" data-volume-caption>
             {headline.caption}
           </p>
         </div>
-        <div className="flex flex-wrap gap-1" data-volume-ranges>
+        <div
+          className="flex shrink-0 flex-nowrap items-center justify-end gap-1 justify-self-end self-start"
+          data-volume-ranges
+        >
           {VOLUME_CHART_RANGES.map((row) => (
             <button
               key={row.id}
@@ -119,7 +122,7 @@ export function RobinhoodVolumeDesk({
                 setRange(row.id);
                 setHover(null);
               }}
-              className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+              className={`rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap ${
                 range === row.id
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"

@@ -147,7 +147,10 @@ describe("closed Robinhood ranges", () => {
     const kpi = robinhoodDaysForRange(closed, "24h");
     expect(kpi.map((row) => row.date)).toEqual(["2026-10-06"]);
     expect(robinhoodDeskHeadline(kpi, "24h").volumeUsd).toBe(400);
-    expect(robinhoodDeskHeadline(kpi, "24h").caption).toContain("not a 12:00–11:59 PM ET window");
+    expect(robinhoodDeskHeadline(kpi, "24h").caption).toBe(
+      "24H · 2026-10-06 America/New_York · last closed snapshot",
+    );
+    expect(robinhoodDeskHeadline(kpi, "24h").caption).not.toMatch(/trailing h24/i);
     expect(robinhoodDaysForRange(closed, "7d").map((row) => row.date)).toEqual([
       "2026-10-03",
       "2026-10-04",

@@ -51,7 +51,12 @@ describe("RobinhoodVolumeDesk", () => {
     expect(html).toContain('data-volume-series="closed-day-kpi"');
     expect(html).not.toContain("<svg");
     expect(html).toContain(formatUsdCompact(3_500_000));
-    expect(html).toContain("not a 12:00–11:59 PM ET window");
+    expect(html).toContain("last closed snapshot");
+    expect(html).not.toMatch(/trailing h24/i);
+    expect(html).not.toContain("12:00");
+    expect(html).toContain('data-volume-ranges');
+    expect(html).toContain("flex-nowrap");
+    expect(html).toContain("grid-cols-[minmax(0,1fr)_auto]");
     expect(html).toContain("data-robinhood-lane-split");
     expect(html).toContain("data-robinhood-liquidity");
     expect(html).toContain('data-issuer="ondo"');
@@ -63,5 +68,10 @@ describe("RobinhoodVolumeDesk", () => {
     expect(html).toContain('data-volume-range="30d"');
     expect(html).toContain("are not invented");
     expect(html).toContain('data-volume-kind="empty"');
+    expect(html).toContain('data-volume-ranges');
+    expect(html).toContain("flex-nowrap");
+    expect(html).toContain("justify-self-end");
+    expect(html).not.toContain("flex-wrap");
+    expect(html).not.toMatch(/trailing h24/i);
   });
 });

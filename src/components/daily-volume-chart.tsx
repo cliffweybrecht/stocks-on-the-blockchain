@@ -40,8 +40,6 @@ import {
 } from "@/lib/market/desk-volume-live";
 import { formatChartDay, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
 import {
-  HOME_24H_ROBINHOOD_PLOT_NOTE,
-  HOME_CLOSED_RANGE_WITH_ROBINHOOD_FOOTER,
   includeRobinhoodInDeskHeadline,
   lastReportedRobinhoodDay,
   mergeHomeDeskSnapshotPoints,
@@ -294,7 +292,6 @@ export function DailyVolumeChart({
     : deskChartHeadline(range, rolling ? points : visible, rolling24h);
   const robinhoodInSeries = snapshotSeriesIncludesRobinhood(points, robinhoodClosed);
   const hasDaily = points.length > 0;
-  const showRanges = hasDaily || hourlyCaptures.length > 0;
   const showHeadline = headline.volumeUsd !== null;
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((frac) => map.maxY * frac);
   const xTicks = showHourlyAxis
@@ -330,8 +327,8 @@ export function DailyVolumeChart({
       data-volume-live={rolling ? "24h" : "closed-day"}
       data-volume-includes-robinhood={robinhoodInView ? "true" : "false"}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3">
+        <div className="min-w-0">
           <h2 className="font-heading text-[9px] leading-tight font-medium tracking-wide text-foreground/90">
             Total Daily Tokenized Stock Volume
           </h2>
@@ -353,29 +350,30 @@ export function DailyVolumeChart({
             </>
           ) : null}
         </div>
-        {showRanges ? (
-          <div className="flex flex-wrap gap-1">
-            {VOLUME_CHART_RANGES.map((row) => (
-              <button
-                key={row.id}
-                type="button"
-                data-volume-range={row.id}
-                aria-pressed={range === row.id}
-                onClick={() => {
-                  setRange(row.id);
-                  setHover(null);
-                }}
-                className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                  range === row.id
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
-              >
-                {row.label}
-              </button>
-            ))}
-          </div>
-        ) : null}
+        <div
+          className="flex shrink-0 flex-nowrap items-center justify-end gap-1 justify-self-end self-start"
+          data-volume-ranges
+        >
+          {VOLUME_CHART_RANGES.map((row) => (
+            <button
+              key={row.id}
+              type="button"
+              data-volume-range={row.id}
+              aria-pressed={range === row.id}
+              onClick={() => {
+                setRange(row.id);
+                setHover(null);
+              }}
+              className={`rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap ${
+                range === row.id
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+            >
+              {row.label}
+            </button>
+          ))}
+        </div>
       </div>
       {showHourlyAxis || (!rolling && visible.length > 0) ? (
         <div
@@ -398,7 +396,7 @@ export function DailyVolumeChart({
               rolling
                 ? HOURLY_VOLUME_SERIES_ARIA
                 : robinhoodInView
-                  ? "Daily tokenized stock volume from Solana and Robinhood Chain desk DexScreener snapshots. Headline is the sum of snapshot days in the selected range. Robinhood bars are trailing h24 samples, not a true 12:00 AM–11:59 PM ET window."
+                  ? "Daily tokenized stock volume from Solana and Robinhood Chain desk snapshots. Headline is the sum of snapshot days in the selected range."
                   : "Daily Solana tokenized stock volume from desk DexScreener snapshots. Headline is the sum of snapshot days in the selected range."
             }
           >
@@ -539,16 +537,10 @@ export function DailyVolumeChart({
           {HOURLY_VOLUME_SERIES_CAPTION}
         </p>
       ) : null}
-      {rolling && robinhoodInView ? (
-        <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-volume-robinhood-24h-note>
-          {HOME_24H_ROBINHOOD_PLOT_NOTE}
-        </p>
-      ) : null}
-      {!rolling && hasDaily ? (
+      {!rolling && hasDaily && !robinhoodInSeries ? (
         <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-volume-history-note>
-          {robinhoodInSeries
-            ? HOME_CLOSED_RANGE_WITH_ROBINHOOD_FOOTER
-            : "History from closed desk DexScreener snapshots. The in-progress Eastern day is omitted until that America/New_York date has closed."}
+          History from closed desk DexScreener snapshots. The in-progress Eastern day is omitted until that
+          America/New_York date has closed.
         </p>
       ) : null}
     </section>

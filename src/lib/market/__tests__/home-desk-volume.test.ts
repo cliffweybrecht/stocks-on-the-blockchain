@@ -94,7 +94,8 @@ describe("includeRobinhoodInDeskHeadline", () => {
     );
     expect(next.volumeUsd).toBe(125);
     expect(next.caption).toContain("last closed Robinhood Chain snapshot");
-    expect(next.caption).toContain("not a true 12:00–11:59 PM ET window");
+    expect(next.caption).not.toMatch(/trailing h24/i);
+    expect(next.caption).not.toContain("12:00");
   });
 
   it("leaves a Solana-only headline unchanged when Robinhood has no closed day", () => {
@@ -110,8 +111,10 @@ describe("includeRobinhoodInDeskHeadline", () => {
       days,
     );
     expect(next.volumeUsd).toBe(890);
-    expect(next.caption).toContain("Solana + Robinhood Chain");
-    expect(next.caption).toContain("trailing h24");
+    expect(next.caption).toBe(
+      "7D · sum of desk snapshot days · public + private + ETF/index · Solana + Robinhood Chain",
+    );
+    expect(next.caption).not.toMatch(/trailing h24/i);
   });
 });
 
@@ -138,8 +141,8 @@ describe("home chain rows", () => {
     expect(row.volume24hUsd).toBe(30);
     expect(row.privateVolume24hUsd).toBe(2);
     expect(row.etfVolume24hUsd).toBe(16);
-    expect(robinhoodHomeVolumeDetail(days)).toContain("2026-10-05");
-    expect(robinhoodHomeVolumeDetail(days)).toContain("not a 12:00–11:59 PM ET window");
+    expect(robinhoodHomeVolumeDetail(days)).toBe("2026-10-05 America/New_York · last closed snapshot.");
+    expect(robinhoodHomeVolumeDetail(days)).not.toMatch(/trailing h24/i);
   });
 
   it("does not invent volume when no closed day exists", () => {

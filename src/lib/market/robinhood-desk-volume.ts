@@ -21,7 +21,7 @@ import { easternDayKey, utcInstantForDayKey } from "./volume-snapshots";
 export const ROBINHOOD_VOLUME_SNAPSHOT_FILE = "robinhood.json";
 
 export const ROBINHOOD_DESK_VOLUME_NOTE =
-  "Each bar is DexScreener trailing volume.h24 for that America/New_York date (public equity + private + ETF/index, null omitted not $0). It is not a true 12:00 AM–11:59 PM ET window. The in-progress Eastern day is omitted. Days before snapshots began are not invented.";
+  "Public equity, private, and ETF/index are summed with null omitted, not stored as $0. The in-progress Eastern day is omitted. Days before snapshots began are not invented.";
 
 export interface RobinhoodIssuerCell {
   slug: string;
@@ -76,8 +76,7 @@ export function robinhoodSnapshotChainShell(): ChainVolume {
     assetsWithNoIndexedPools: 0,
     reportedPoolCount: 0,
     peakDexCount: 0,
-    coverageNote:
-      "Robinhood Chain volume bars are DexScreener trailing h24 samples keyed by America/New_York date (chain 4663). They are not a true 12:00–11:59 PM ET window. Names stay empty until Robinhood Liquidity Terminal responds.",
+    coverageNote: "Names stay empty until Robinhood Liquidity Terminal responds.",
   };
 }
 
@@ -156,7 +155,7 @@ export function robinhoodDeskHeadline(
     }
     return {
       volumeUsd: day.combined24hUsd,
-      caption: `24H · ${day.date} America/New_York · last closed snapshot · DexScreener trailing h24, not a 12:00–11:59 PM ET window`,
+      caption: `24H · ${day.date} America/New_York · last closed snapshot`,
       kind: "closed_day",
     };
   }

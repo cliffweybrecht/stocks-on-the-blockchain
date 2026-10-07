@@ -16,14 +16,8 @@ import { ROBINHOOD_CHAIN_ID, type ChainVolume, type VolumeHistoryPoint } from ".
  * sample. Robinhood has no hourly series.
  */
 
-export const HOME_CLOSED_RANGE_WITH_ROBINHOOD_FOOTER =
-  "History from closed desk DexScreener snapshots for Solana and Robinhood Chain. The in-progress Eastern day is omitted until that America/New_York date has closed. Robinhood bars are DexScreener trailing h24 samples, not a true 12:00 AM–11:59 PM ET window.";
-
 export const HOME_24H_ROBINHOOD_HEADLINE =
-  "24h · Solana live public + private + ETF/index, plus the last closed Robinhood Chain snapshot. Missing legs are omitted, not zero. Robinhood is a DexScreener trailing h24 sample, not a true 12:00–11:59 PM ET window.";
-
-export const HOME_24H_ROBINHOOD_PLOT_NOTE =
-  "The 24H headline adds the last closed Robinhood Chain snapshot day to the Solana live total. Robinhood has no hourly series, so this area stays Solana. That Robinhood figure is a DexScreener trailing h24 sample, not a true 12:00 AM–11:59 PM ET window.";
+  "24h · Solana live public + private + ETF/index, plus the last closed Robinhood Chain snapshot. Missing legs are omitted, not zero.";
 
 /** True when a plotted day is also a Robinhood snapshot day. Same `t` means that day was summed. */
 export function snapshotSeriesIncludesRobinhood(
@@ -107,7 +101,7 @@ export function includeRobinhoodInDeskHeadline<T extends { volumeUsd: number | n
   if (headline.volumeUsd === null) return headline;
   return {
     ...headline,
-    caption: `${headline.caption} · Solana + Robinhood Chain · Robinhood is a DexScreener trailing h24 sample, not a true 12:00–11:59 PM ET window`,
+    caption: `${headline.caption} · Solana + Robinhood Chain`,
   };
 }
 
@@ -122,8 +116,7 @@ export function robinhoodHomeChainVolume(days: readonly RobinhoodDeskDay[] | nul
     privateVolume24hUsd: day.private24hUsd,
     etfVolume24hUsd: day.etfIndex24hUsd,
     displayedLiquidityUsd: day.displayedLiquidityUsd,
-    coverageNote:
-      "Robinhood Chain 24H on the home desk is the last closed America/New_York snapshot. It is a DexScreener trailing h24 sample, not a true 12:00 AM–11:59 PM ET window.",
+    coverageNote: "Robinhood Chain 24H on the home desk is the last closed America/New_York snapshot.",
   };
 }
 
@@ -132,7 +125,7 @@ export function robinhoodHomeVolumeDetail(days: readonly RobinhoodDeskDay[] | nu
   if (!day) {
     return "No closed Robinhood snapshot day yet. Missing volume is not reported as zero.";
   }
-  return `${day.date} America/New_York · last closed snapshot · DexScreener trailing h24, not a 12:00–11:59 PM ET window.`;
+  return `${day.date} America/New_York · last closed snapshot.`;
 }
 
 /** Most combined 24H first. Unreported volume ranks last. One Robinhood row. */
