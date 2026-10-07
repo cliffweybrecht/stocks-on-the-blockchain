@@ -5,6 +5,9 @@ import { DailyVolumeChart } from "./daily-volume-chart";
 import { HOURLY_VOLUME_SERIES_CAPTION } from "@/lib/market/daily-volume-view";
 import { HOME_24H_ROBINHOOD_HEADLINE } from "@/lib/market/home-desk-volume";
 import { parseRobinhoodDeskDays, type RobinhoodDeskDay } from "@/lib/market/robinhood-desk-volume";
+import { parseSnapshotDeskDays, type SnapshotDeskDay } from "@/lib/market/snapshot-desk-volume";
+import { BASE_DESK } from "@/lib/market/base-desk-volume";
+import { BNB_DESK } from "@/lib/market/bnb-desk-volume";
 import { DESK_CHART_STROKE } from "@/lib/desk/chart-curve";
 import { DESK_VOLUME_24H_POLL_MS, DESK_VOLUME_HISTORY_POLL_MS } from "@/lib/market/desk-volume-live";
 import { formatUsdCompact } from "@/lib/market/format";
@@ -287,6 +290,94 @@ describe("DailyVolumeChart home Robinhood days", () => {
     expect(html).toContain('data-volume-usd="190000000"');
     expect(html).not.toContain('data-volume-usd="5000000"');
     expect(html).not.toContain(formatUsdCompact(999_000_000));
+  });
+});
+
+describe("DailyVolumeChart Base and BNB days", () => {
+  const robinhoodDays: RobinhoodDeskDay[] = parseRobinhoodDeskDays({
+    records: [
+      {
+        date: "2026-09-20",
+        publicEquity24hUsd: 1_000_000,
+        private24hUsd: null,
+        etfIndex24hUsd: null,
+        combined24hUsd: 1_000_000,
+        generatedAt: "2026-09-21T04:00:00.000Z",
+        sources: { chainId: 4663 },
+      },
+      {
+        date: "2026-09-24",
+        publicEquity24hUsd: 5_000_000,
+        private24hUsd: null,
+        etfIndex24hUsd: null,
+        combined24hUsd: 5_000_000,
+        generatedAt: "2026-09-25T04:00:00.000Z",
+        sources: { chainId: 4663 },
+      },
+      {
+        date: "2026-09-30",
+        publicEquity24hUsd: 9_000_000,
+        private24hUsd: null,
+        etfIndex24hUsd: null,
+        combined24hUsd: 9_000_000,
+        generatedAt: "2026-10-01T04:00:00.000Z",
+        sources: { chainId: 4663 },
+      },
+    ],
+  });
+
+  function extra(config: typeof BASE_DESK, date: string, usd: number): SnapshotDeskDay[] {
+    return parseSnapshotDeskDays(
+      {
+        records: [
+          {
+            date,
+            publicEquity24hUsd: usd,
+            private24hUsd: null,
+            etfIndex24hUsd: null,
+            combined24hUsd: usd,
+            sources: { chainId: Number(config.nativeChainId), chainSlug: config.chainSlug },
+          },
+        ],
+      },
+      config,
+    );
+  }
+
+  function withExtras(initialRange: "24h" | "7d") {
+    return renderToStaticMarkup(
+      createElement(DailyVolumeChart, {
+        history: history(closedDays),
+        hourlyHistory: history(hourlyLevels),
+        rolling24h: live,
+        robinhoodDays,
+        extraDeskDays: [
+          { label: "Base", days: extra(BASE_DESK, "2026-09-24", 1_000_000) },
+          { label: "BNB Chain", days: extra(BNB_DESK, "2026-09-24", 2_000_000) },
+        ],
+        initialRange,
+      }),
+    );
+  }
+
+  it("adds Base and BNB to the 7D sum and the chain list in the caption", () => {
+    const html = withExtras("7d");
+    const solanaSum = closedDays.reduce((sum, point) => sum + point.volumeUsd, 0);
+    expect(html).toContain(`>${formatUsdCompact(solanaSum + 1_000_000 + 5_000_000 + 1_000_000 + 2_000_000)}<`);
+    expect(html).toContain("Solana + Robinhood Chain + Base + BNB Chain");
+    expect(html).toContain('data-volume-chain-labels="Robinhood Chain + Base + BNB Chain"');
+    expect(html).not.toMatch(/trailing h24/i);
+    expect(html).not.toContain("data-volume-history-note");
+  });
+
+  it("adds the last closed Base and BNB days to the 24H headline and leaves hourly points on Solana", () => {
+    const html = withExtras("24h");
+    expect(html).toContain(`>${formatUsdCompact(220_500_000 + 5_000_000 + 1_000_000 + 2_000_000)}<`);
+    expect(html).toContain("Robinhood Chain, Base, and BNB Chain");
+    expect(html).not.toMatch(/trailing h24/i);
+    expect(html).toContain('data-volume-usd="200000000"');
+    expect(html).not.toContain('data-volume-usd="1000000"');
+    expect(html).not.toContain('data-volume-usd="2000000"');
   });
 });
 

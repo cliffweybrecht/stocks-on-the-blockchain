@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { chainCombinedVolume24h } from "@/lib/market/aggregate";
 import { formatUsdCompact, volumeShare } from "@/lib/market/format";
-import { ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type ChainVolume } from "@/lib/market/types";
+import { BASE_CHAIN_ID, BNB_CHAIN_ID, ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type ChainVolume } from "@/lib/market/types";
 
 export function ChainVolumeCard({
   chain,
@@ -17,7 +17,8 @@ export function ChainVolumeCard({
   detail?: string | null;
 }) {
   const isSolana = chain.id === SOLANA_CHAIN_ID;
-  const showLanes = isSolana || chain.id === ROBINHOOD_CHAIN_ID;
+  const showLanes =
+    isSolana || chain.id === ROBINHOOD_CHAIN_ID || chain.id === BASE_CHAIN_ID || chain.id === BNB_CHAIN_ID;
   const combinedVolume = chainCombinedVolume24h(chain);
   const share = volumeShare(combinedVolume, maxVolume);
 

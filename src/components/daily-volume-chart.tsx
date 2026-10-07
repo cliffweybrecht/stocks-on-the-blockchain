@@ -40,12 +40,15 @@ import {
 } from "@/lib/market/desk-volume-live";
 import { formatChartDay, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
 import {
-  includeRobinhoodInDeskHeadline,
+  includeHomeSnapshotChainsInDeskHeadline,
   lastReportedRobinhoodDay,
+  mergeAdditionalDeskDays,
   mergeHomeDeskSnapshotPoints,
   snapshotSeriesIncludesRobinhood,
+  type HomeSnapshotChainContribution,
 } from "@/lib/market/home-desk-volume";
 import { closedRobinhoodDeskDays, type RobinhoodDeskDay } from "@/lib/market/robinhood-desk-volume";
+import { closedSnapshotDeskDays, type SnapshotDeskDay } from "@/lib/market/snapshot-desk-volume";
 import type { EquityVolumeHistoryResult, VolumeHistoryPoint } from "@/lib/market/types";
 import { easternRollingHourStarts } from "@/lib/market/volume-hourly-snapshots";
 import { closedSnapshotVolumePoints } from "@/lib/market/volume-snapshots";
@@ -138,6 +141,7 @@ export function DailyVolumeChart({
   hourlyHistory: hourlyHistoryProp = null,
   rolling24h: rolling24hProp = null,
   robinhoodDays = null,
+  extraDeskDays = null,
   initialRange = "7d",
 }: {
   history: EquityVolumeHistoryResult;
@@ -155,6 +159,12 @@ export function DailyVolumeChart({
    * Robinhood has no hourly series; the 24H area stays Solana.
    */
   robinhoodDays?: readonly RobinhoodDeskDay[] | null;
+  /**
+   * Other closed snapshot desks (Base, BNB Chain). Home adds them the same way
+   * as Robinhood: Eastern day keys on 7D/14D/30D, newest closed day on the 24H
+   * headline. They have no hourly series, so the 24H area stays Solana.
+   */
+  extraDeskDays?: readonly { label: string; days: readonly SnapshotDeskDay[] }[] | null;
   /** Closed-day ranges stay the default. Tests pin 24H without a click. */
   initialRange?: VolumeChartRangeId;
 }) {
@@ -247,11 +257,20 @@ export function DailyVolumeChart({
     () => closedRobinhoodDeskDays(robinhoodDays ?? [], deskNowT),
     [deskNowT, robinhoodDays],
   );
+  const extraClosed = useMemo(
+    () =>
+      (extraDeskDays ?? []).map((desk) => ({
+        label: desk.label,
+        days: closedSnapshotDeskDays(desk.days, deskNowT),
+      })),
+    [deskNowT, extraDeskDays],
+  );
   const points = useMemo(() => {
     // Closed snapshot days only. A rolling ~24h tip is not an Eastern snapshot day.
     const closed = closedSnapshotVolumePoints(history.points, deskNowT);
-    return mergeHomeDeskSnapshotPoints(closed, robinhoodClosed);
-  }, [deskNowT, history.points, robinhoodClosed]);
+    const withRobinhood = mergeHomeDeskSnapshotPoints(closed, robinhoodClosed);
+    return extraClosed.reduce((series, desk) => mergeAdditionalDeskDays(series, desk.days), withRobinhood);
+  }, [deskNowT, extraClosed, history.points, robinhoodClosed]);
 
   const hourlyNowT = useMemo(() => {
     const parsed = Date.parse(hourlyHistory?.generatedAt ?? "");
@@ -278,19 +297,33 @@ export function DailyVolumeChart({
     [hourSlots, showHourlyAxis, visible],
   );
   // 24H headline ignores the plotted series and reads the live Solana rollup,
-  // then adds Robinhood's newest closed snapshot when the home desk passed days.
-  // Closed ranges mention Robinhood only when a visible day actually includes it.
-  const robinhoodInView = rolling
-    ? lastReportedRobinhoodDay(robinhoodClosed) !== null
-    : snapshotSeriesIncludesRobinhood(visible, robinhoodClosed);
-  const headline = robinhoodInView
-    ? includeRobinhoodInDeskHeadline(
-        deskChartHeadline(range, rolling ? points : visible, rolling24h),
-        range,
-        robinhoodClosed,
-      )
-    : deskChartHeadline(range, rolling ? points : visible, rolling24h);
+  // then adds each chain's newest closed snapshot. Closed ranges mention a chain
+  // only when a visible day actually includes it. Hourly points stay Solana.
+  const snapshotContributions = useMemo(() => {
+    const rows: HomeSnapshotChainContribution[] = [];
+    const robinhoodLatest = lastReportedRobinhoodDay(robinhoodClosed);
+    const robinhoodInView = rolling
+      ? robinhoodLatest !== null
+      : snapshotSeriesIncludesRobinhood(visible, robinhoodClosed);
+    if (robinhoodInView) {
+      rows.push({ label: "Robinhood Chain", latestUsd: robinhoodLatest?.combined24hUsd ?? null });
+    }
+    for (const desk of extraClosed) {
+      const latest = lastReportedRobinhoodDay(desk.days);
+      const inView = rolling ? latest !== null : snapshotSeriesIncludesRobinhood(visible, desk.days);
+      if (!inView) continue;
+      rows.push({ label: desk.label, latestUsd: latest?.combined24hUsd ?? null });
+    }
+    return rows;
+  }, [extraClosed, robinhoodClosed, rolling, visible]);
+  const baseHeadline = deskChartHeadline(range, rolling ? points : visible, rolling24h);
+  const headline =
+    snapshotContributions.length > 0
+      ? includeHomeSnapshotChainsInDeskHeadline(baseHeadline, range, snapshotContributions)
+      : baseHeadline;
+  const robinhoodInView = snapshotContributions.some((row) => row.label === "Robinhood Chain");
   const robinhoodInSeries = snapshotSeriesIncludesRobinhood(points, robinhoodClosed);
+  const extraInSeries = extraClosed.some((desk) => snapshotSeriesIncludesRobinhood(points, desk.days));
   const hasDaily = points.length > 0;
   const showHeadline = headline.volumeUsd !== null;
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((frac) => map.maxY * frac);
@@ -326,6 +359,7 @@ export function DailyVolumeChart({
       data-volume-refresh-ms={rolling ? DESK_VOLUME_24H_POLL_MS : DESK_VOLUME_HISTORY_POLL_MS}
       data-volume-live={rolling ? "24h" : "closed-day"}
       data-volume-includes-robinhood={robinhoodInView ? "true" : "false"}
+      data-volume-chain-labels={snapshotContributions.map((row) => row.label).join(" + ")}
     >
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3">
         <div className="min-w-0">
@@ -395,8 +429,8 @@ export function DailyVolumeChart({
             aria-label={
               rolling
                 ? HOURLY_VOLUME_SERIES_ARIA
-                : robinhoodInView
-                  ? "Daily tokenized stock volume from Solana and Robinhood Chain desk snapshots. Headline is the sum of snapshot days in the selected range."
+                : snapshotContributions.length > 0
+                  ? `Daily tokenized stock volume from Solana and ${snapshotContributions.map((row) => row.label).join(" + ")} desk snapshots. Headline is the sum of snapshot days in the selected range.`
                   : "Daily Solana tokenized stock volume from desk DexScreener snapshots. Headline is the sum of snapshot days in the selected range."
             }
           >
@@ -537,7 +571,7 @@ export function DailyVolumeChart({
           {HOURLY_VOLUME_SERIES_CAPTION}
         </p>
       ) : null}
-      {!rolling && hasDaily && !robinhoodInSeries ? (
+      {!rolling && hasDaily && !robinhoodInSeries && !extraInSeries ? (
         <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-volume-history-note>
           History from closed desk DexScreener snapshots. The in-progress Eastern day is omitted until that
           America/New_York date has closed.

@@ -368,3 +368,11 @@ export interface EquityCardDayVolumeSeriesSnapshot {
 
 export const ROBINHOOD_CHAIN_ID = "robinhood-chain";
 export const ROBINHOOD_CHAIN_NATIVE_ID = "4663";
+
+/** Base mainnet. DexScreener slug `base`. */
+export const BASE_CHAIN_ID = "base";
+export const BASE_CHAIN_NATIVE_ID = "8453";
+
+/** BNB Chain. DexScreener slug `bsc`. The desk id stays `bnb`. */
+export const BNB_CHAIN_ID = "bnb";
+export const BNB_CHAIN_NATIVE_ID = "56";

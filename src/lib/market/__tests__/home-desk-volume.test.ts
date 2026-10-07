@@ -3,7 +3,9 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { filterVolumeRange, sumVolumePoints } from "../daily-volume-view";
 import {
+  home24hSnapshotCaption,
   homeChainsWithRobinhood,
+  includeHomeSnapshotChainsInDeskHeadline,
   includeRobinhoodInDeskHeadline,
   mergeHomeDeskSnapshotPoints,
   robinhoodHomeChainVolume,
@@ -217,5 +219,41 @@ describe("recorded Solana and Robinhood snapshots", () => {
     expect(row.privateVolume24hUsd).toBeCloseTo(2_352_414.29, 1);
     expect(row.etfVolume24hUsd).toBeCloseTo(15_750_857.01, 1);
     expect(robinhoodHomeVolumeDetail(robinhood)).toContain("2026-10-05");
+  });
+});
+
+describe("includeHomeSnapshotChainsInDeskHeadline", () => {
+  it("names every closed snapshot chain and does not mention a trailing window", () => {
+    const next = includeHomeSnapshotChainsInDeskHeadline(
+      { volumeUsd: 100, caption: "24h · public + private + ETF/index", kind: "combined_24h" },
+      "24h",
+      [
+        { label: "Robinhood Chain", latestUsd: 25 },
+        { label: "Base", latestUsd: 10 },
+        { label: "BNB Chain", latestUsd: 4 },
+      ],
+    );
+    expect(next.volumeUsd).toBe(139);
+    expect(next.caption).toBe(home24hSnapshotCaption(["Robinhood Chain", "Base", "BNB Chain"]));
+    expect(next.caption).toContain("Robinhood Chain, Base, and BNB Chain");
+    expect(next.caption).not.toMatch(/trailing h24/i);
+
+    const range = includeHomeSnapshotChainsInDeskHeadline(
+      { volumeUsd: 890, caption: "14D · sum of desk snapshot days · public + private + ETF/index", kind: "range_sum" },
+      "14d",
+      [
+        { label: "Robinhood Chain", latestUsd: 25 },
+        { label: "Base", latestUsd: 10 },
+        { label: "BNB Chain", latestUsd: 4 },
+      ],
+    );
+    expect(range.volumeUsd).toBe(890);
+    expect(range.caption).toBe(
+      "14D · sum of desk snapshot days · public + private + ETF/index · Solana + Robinhood Chain + Base + BNB Chain",
+    );
+  });
+
+  it("keeps the locked Robinhood-only 24H sentence", () => {
+    expect(home24hSnapshotCaption(["Robinhood Chain"])).toContain("last closed Robinhood Chain snapshot");
   });
 });

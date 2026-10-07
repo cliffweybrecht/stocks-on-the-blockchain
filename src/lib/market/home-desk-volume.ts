@@ -6,6 +6,7 @@ import {
   robinhoodSnapshotChainShell,
   type RobinhoodDeskDay,
 } from "./robinhood-desk-volume";
+import { snapshotDeskChainShell, type SnapshotDeskConfig, type SnapshotDeskDay } from "./snapshot-desk-volume";
 import { ROBINHOOD_CHAIN_ID, type ChainVolume, type VolumeHistoryPoint } from "./types";
 
 /**
@@ -22,7 +23,7 @@ export const HOME_24H_ROBINHOOD_HEADLINE =
 /** True when a plotted day is also a Robinhood snapshot day. Same `t` means that day was summed. */
 export function snapshotSeriesIncludesRobinhood(
   points: readonly VolumeHistoryPoint[],
-  robinhoodDays: readonly RobinhoodDeskDay[] | null | undefined,
+  robinhoodDays: readonly { t: number; combined24hUsd: number | null }[] | null | undefined,
 ): boolean {
   if (!robinhoodDays || robinhoodDays.length === 0 || points.length === 0) return false;
   const times = new Set(
@@ -31,9 +32,9 @@ export function snapshotSeriesIncludesRobinhood(
   return points.some((point) => times.has(point.t));
 }
 
-export function lastReportedRobinhoodDay(
-  days: readonly RobinhoodDeskDay[] | null | undefined,
-): RobinhoodDeskDay | null {
+export function lastReportedRobinhoodDay<T extends { t: number; combined24hUsd: number | null }>(
+  days: readonly T[] | null | undefined,
+): T | null {
   if (!days || days.length === 0) return null;
   const reported = days.filter((day) => day.combined24hUsd !== null && day.t > 0);
   reported.sort((a, b) => a.t - b.t);
@@ -143,4 +144,117 @@ export function homeChainsWithRobinhood(
 ): ChainVolume[] {
   const rest = listed.filter((chain) => chain.id !== ROBINHOOD_CHAIN_ID);
   return rankHomeChains([...rest, robinhoodHomeChainVolume(robinhoodDays)]);
+}
+
+/**
+ * Add another chain's closed snapshot days onto an already merged home series.
+ * A day present on only one side keeps that side. Null volume is omitted, not $0.
+ */
+export function mergeAdditionalDeskDays(
+  points: readonly VolumeHistoryPoint[],
+  days: readonly { t: number; combined24hUsd: number | null }[] | null | undefined,
+): VolumeHistoryPoint[] {
+  const byT = new Map<number, number | null>();
+  for (const point of points) {
+    if (point.kind === "rolling_24h") continue;
+    if (!Number.isFinite(point.t) || point.t <= 0) continue;
+    if (!Number.isFinite(point.volumeUsd) || point.volumeUsd < 0) continue;
+    byT.set(point.t, point.volumeUsd);
+  }
+  for (const day of days ?? []) {
+    if (!Number.isFinite(day.t) || day.t <= 0) continue;
+    if (day.combined24hUsd === null || day.combined24hUsd < 0) continue;
+    const previous = byT.get(day.t) ?? null;
+    byT.set(day.t, sumNullable([previous, day.combined24hUsd]));
+  }
+  const merged: VolumeHistoryPoint[] = [];
+  for (const [t, volumeUsd] of byT) {
+    if (volumeUsd === null) continue;
+    merged.push({ t, volumeUsd, kind: "calendar_day" });
+  }
+  merged.sort((a, b) => a.t - b.t);
+  return merged;
+}
+
+export interface HomeSnapshotChainContribution {
+  label: string;
+  /** Newest closed combined total. Added to the 24H headline only. */
+  latestUsd: number | null;
+}
+
+function humanList(labels: readonly string[]): string {
+  if (labels.length === 1) return labels[0] ?? "";
+  if (labels.length === 2) return `${labels[0]} and ${labels[1]}`;
+  return `${labels.slice(0, -1).join(", ")}, and ${labels[labels.length - 1]}`;
+}
+
+/** 24H hero caption. One Robinhood chain keeps the locked sentence. */
+export function home24hSnapshotCaption(labels: readonly string[]): string {
+  if (labels.length === 1 && labels[0] === "Robinhood Chain") return HOME_24H_ROBINHOOD_HEADLINE;
+  const noun = labels.length === 1 ? "snapshot" : "snapshots";
+  return `24h · Solana live public + private + ETF/index, plus the last closed ${humanList(labels)} ${noun}. Missing legs are omitted, not zero.`;
+}
+
+/**
+ * Closed ranges already include these chains in `headline.volumeUsd`.
+ * 24H adds each chain's newest closed snapshot on top of the live Solana total.
+ */
+export function includeHomeSnapshotChainsInDeskHeadline<T extends { volumeUsd: number | null; caption: string }>(
+  headline: T,
+  range: VolumeChartRangeId,
+  chains: readonly HomeSnapshotChainContribution[],
+): T {
+  const included = chains.filter((chain) => (range === "24h" ? chain.latestUsd !== null : chain.label.trim().length > 0));
+  if (included.length === 0) return headline;
+  const labels = included.map((chain) => chain.label);
+
+  if (range === "24h") {
+    const volumeUsd = sumNullable([headline.volumeUsd, ...included.map((chain) => chain.latestUsd)]);
+    if (volumeUsd === null) return headline;
+    return { ...headline, volumeUsd, caption: home24hSnapshotCaption(labels) };
+  }
+
+  if (headline.volumeUsd === null) return headline;
+  return {
+    ...headline,
+    caption: `${headline.caption} · Solana + ${labels.join(" + ")}`,
+  };
+}
+
+/** Home chain row. Volume legs are the last closed snapshot. No closed day stays null. */
+export function snapshotHomeChainVolume(
+  config: SnapshotDeskConfig,
+  days: readonly SnapshotDeskDay[] | null | undefined,
+): ChainVolume {
+  const shell = snapshotDeskChainShell(config);
+  const day = lastReportedRobinhoodDay(days);
+  if (!day) return shell;
+  return {
+    ...shell,
+    volume24hUsd: day.publicEquity24hUsd,
+    privateVolume24hUsd: day.private24hUsd,
+    etfVolume24hUsd: day.etfIndex24hUsd,
+    displayedLiquidityUsd: day.displayedLiquidityUsd,
+    coverageNote: `${config.name} 24H on the home desk is the last closed America/New_York snapshot.`,
+  };
+}
+
+export function snapshotHomeVolumeDetail(
+  days: readonly SnapshotDeskDay[] | null | undefined,
+  chainName: string,
+): string {
+  const day = lastReportedRobinhoodDay(days);
+  if (!day) {
+    return `No closed ${chainName} snapshot day yet. Missing volume is not reported as zero.`;
+  }
+  return `${day.date} America/New_York · last closed snapshot.`;
+}
+
+/** Most combined 24H first. Snapshot desks replace any listed row with the same id. */
+export function homeChainsWithSnapshotDesks(
+  listed: readonly ChainVolume[],
+  desks: readonly ChainVolume[],
+): ChainVolume[] {
+  const ids = new Set(desks.map((row) => row.id));
+  return rankHomeChains([...listed.filter((chain) => !ids.has(chain.id)), ...desks]);
 }

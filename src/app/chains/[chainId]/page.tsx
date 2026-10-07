@@ -7,6 +7,7 @@ import { PageShell } from "@/components/page-shell";
 import { ProvenanceBar } from "@/components/provenance-bar";
 import { DailyVolumeChart } from "@/components/daily-volume-chart";
 import { RobinhoodVolumeDesk } from "@/components/robinhood-volume-desk";
+import { SnapshotVolumeDesk } from "@/components/snapshot-volume-desk";
 import { emptyEquityVolumeHistory } from "@/lib/market/volume-history";
 import { formatCount, formatUsdCompact } from "@/lib/market/format";
 import { loadClosedRobinhoodDeskDays } from "@/lib/market/robinhood-desk-volume-file";
@@ -27,6 +28,7 @@ import { selectEquityPriceTicker } from "@/lib/desk/price-ticker";
 import { parseAssetSortKey, sortAssets } from "@/lib/market/aggregate";
 import { toJumpAsset } from "@/lib/market/asset-search";
 import { createMarketDataSource } from "@/lib/market/factory";
+import { findSnapshotDesk, loadClosedSnapshotDeskDays } from "@/lib/market/snapshot-desk-volume-file";
 import { ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type AssetSummary, type EquityVolumeHistoryResult } from "@/lib/market/types";
 import { parseCoverageFilter } from "@/lib/market/volume-coverage";
 
@@ -41,6 +43,24 @@ export default async function ChainPage({
 }) {
   const { chainId } = await params;
   const query = await searchParams;
+  const snapshotDesk = findSnapshotDesk(chainId);
+  if (snapshotDesk) {
+    const days = await loadClosedSnapshotDeskDays(snapshotDesk);
+    return (
+      <PageShell>
+        <div className="space-y-5">
+          <div>
+            <h2 className="font-heading text-2xl font-semibold tracking-tight">{snapshotDesk.name}</h2>
+          </div>
+          <SnapshotVolumeDesk desk={{ chainId: snapshotDesk.chainId, name: snapshotDesk.name }} days={days} />
+          <EmptyState
+            title={`No ${snapshotDesk.name} markets catalog`}
+            detail={`Volume bars above are recorded DexScreener samples from ${snapshotDesk.file}. A Solana-style name list is not on this desk, so missing cards are not zero volume.`}
+          />
+        </div>
+      </PageShell>
+    );
+  }
   const source = createMarketDataSource();
   const requestedRobinhood = chainId === ROBINHOOD_CHAIN_ID;
   const robinhoodNames = requestedRobinhood

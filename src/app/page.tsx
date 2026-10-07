@@ -7,11 +7,21 @@ import { selectEquityPriceTicker } from "@/lib/desk/price-ticker";
 import { chainCombinedVolume24h } from "@/lib/market/aggregate";
 import { toJumpAsset } from "@/lib/market/asset-search";
 import { createMarketDataSource } from "@/lib/market/factory";
-import { homeChainsWithRobinhood, robinhoodHomeVolumeDetail } from "@/lib/market/home-desk-volume";
+import { BASE_DESK } from "@/lib/market/base-desk-volume";
+import { BNB_DESK } from "@/lib/market/bnb-desk-volume";
+import {
+  homeChainsWithSnapshotDesks,
+  robinhoodHomeChainVolume,
+  robinhoodHomeVolumeDetail,
+  snapshotHomeChainVolume,
+  snapshotHomeVolumeDetail,
+} from "@/lib/market/home-desk-volume";
 import { maxNullable } from "@/lib/market/numbers";
 import { loadClosedRobinhoodDeskDays } from "@/lib/market/robinhood-desk-volume-file";
 import type { RobinhoodDeskDay } from "@/lib/market/robinhood-desk-volume";
-import { ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type AssetSummary } from "@/lib/market/types";
+import { loadClosedSnapshotDeskDays } from "@/lib/market/snapshot-desk-volume-file";
+import type { SnapshotDeskDay } from "@/lib/market/snapshot-desk-volume";
+import { BASE_CHAIN_ID, BNB_CHAIN_ID, ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type AssetSummary } from "@/lib/market/types";
 import { emptyEquityVolumeHistory } from "@/lib/market/volume-history";
 import { emptyHourlyRollingVolumeHistory } from "@/lib/market/volume-hourly-snapshots";
 
@@ -78,13 +88,29 @@ export default async function HomePage() {
     }
   }
   let robinhoodDays: RobinhoodDeskDay[] = [];
+  let baseDays: SnapshotDeskDay[] = [];
+  let bnbDays: SnapshotDeskDay[] = [];
   try {
     robinhoodDays = await loadClosedRobinhoodDeskDays();
   } catch {
     // Missing Robinhood snapshots leave the Solana desk in place. Do not invent volume.
     robinhoodDays = [];
   }
-  const rankedChains = homeChainsWithRobinhood(chains, robinhoodDays);
+  try {
+    [baseDays, bnbDays] = await Promise.all([
+      loadClosedSnapshotDeskDays(BASE_DESK),
+      loadClosedSnapshotDeskDays(BNB_DESK),
+    ]);
+  } catch {
+    // A missing Base or BNB file leaves that chain's volume null. Do not invent bars.
+    baseDays = [];
+    bnbDays = [];
+  }
+  const rankedChains = homeChainsWithSnapshotDesks(chains, [
+    robinhoodHomeChainVolume(robinhoodDays),
+    snapshotHomeChainVolume(BASE_DESK, baseDays),
+    snapshotHomeChainVolume(BNB_DESK, bnbDays),
+  ]);
   const maxVolume = maxNullable(rankedChains.map(chainCombinedVolume24h));
   const priceTicker = selectEquityPriceTicker(tickerAssets);
   const solanaChain = chains.find((chain) => chain.id === SOLANA_CHAIN_ID) ?? null;
@@ -109,6 +135,10 @@ export default async function HomePage() {
               : null
           }
           robinhoodDays={robinhoodDays}
+          extraDeskDays={[
+            { label: BASE_DESK.name, days: baseDays },
+            { label: BNB_DESK.name, days: bnbDays },
+          ]}
         />
         <section className="space-y-3">
           <h2 className="font-heading text-lg font-medium">Chain volume</h2>
@@ -125,7 +155,15 @@ export default async function HomePage() {
                   chain={chain}
                   rank={index + 1}
                   maxVolume={maxVolume}
-                  detail={chain.id === ROBINHOOD_CHAIN_ID ? robinhoodHomeVolumeDetail(robinhoodDays) : null}
+                  detail={
+                    chain.id === ROBINHOOD_CHAIN_ID
+                      ? robinhoodHomeVolumeDetail(robinhoodDays)
+                      : chain.id === BASE_CHAIN_ID
+                        ? snapshotHomeVolumeDetail(baseDays, BASE_DESK.name)
+                        : chain.id === BNB_CHAIN_ID
+                          ? snapshotHomeVolumeDetail(bnbDays, BNB_DESK.name)
+                          : null
+                  }
                 />
               ))}
             </div>
