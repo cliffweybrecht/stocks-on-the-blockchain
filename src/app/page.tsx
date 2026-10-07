@@ -73,18 +73,23 @@ export default async function HomePage() {
   const tickerAssets: AssetSummary[] = [];
   let jumpAssets: ReturnType<typeof toJumpAsset>[] = [];
   const chains = [...listedChains];
-  for (const [index, chain] of listedChains.entries()) {
-    try {
-      const detail = await source.getChain(chain.id);
-      if (!detail) continue;
-      tickerAssets.push(...detail.assets);
-      if (chain.id === SOLANA_CHAIN_ID) {
-        // Prefer the all-pools desk rollup for the headline and Solana card.
-        chains[index] = detail.chain;
-        jumpAssets = [...detail.assets, ...(detail.etfAssets ?? [])].map(toJumpAsset);
+  const chainDetails = await Promise.all(
+    listedChains.map(async (chain, index) => {
+      try {
+        return { index, chainId: chain.id, detail: await source.getChain(chain.id) };
+      } catch {
+        // Skip a chain that listed but failed to hydrate. Do not invent ticker rows.
+        return { index, chainId: chain.id, detail: null };
       }
-    } catch {
-      // Skip a chain that listed but failed to hydrate. Do not invent ticker rows.
+    }),
+  );
+  for (const { index, chainId, detail } of chainDetails) {
+    if (!detail) continue;
+    tickerAssets.push(...detail.assets);
+    if (chainId === SOLANA_CHAIN_ID) {
+      // Prefer the all-pools desk rollup for the headline and Solana card.
+      chains[index] = detail.chain;
+      jumpAssets = [...detail.assets, ...(detail.etfAssets ?? [])].map(toJumpAsset);
     }
   }
   let robinhoodDays: RobinhoodDeskDay[] = [];

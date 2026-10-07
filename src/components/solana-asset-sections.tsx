@@ -25,7 +25,6 @@ export function SolanaAssetChartFallback({ chain, asset }: { chain: ChainVolume;
       history={emptyAssetPriceHistory("Price history is still loading.")}
       chartPending
       allMarkets24hUsd={asset.volume24hUsd}
-      allMarketsSymbol={asset.symbol}
     />
   );
 }

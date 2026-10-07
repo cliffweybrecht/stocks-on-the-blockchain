@@ -1344,6 +1344,31 @@ export class SolanaMarketDataSource implements MarketDataSource {
 
   async getChain(chainId: string): Promise<ChainDetailResult | null> {
     if (chainId !== SOLANA_CHAIN_ID) return null;
+    const now = Date.now();
+    const full = this.cacheSatisfies("full", now);
+    if (full) {
+      this.scheduleEnrichment();
+      return {
+        chain: full.mapped.chain,
+        assets: full.mapped.assets,
+        etfAssets: full.mapped.etfAssets,
+        privateAssets: full.mapped.privateAssets,
+        provenance: full.mapped.provenance,
+      };
+    }
+    // A warm light home snapshot is enough for the ticker and chain cards.
+    // Do not stall the document on a cold every-pool hydrate (fullBudgetMs).
+    const light = this.cacheSatisfies("light", now);
+    if (light) {
+      void this.loadCached("full").catch(() => undefined);
+      return {
+        chain: light.mapped.chain,
+        assets: light.mapped.assets,
+        etfAssets: light.mapped.etfAssets,
+        privateAssets: light.mapped.privateAssets,
+        provenance: light.mapped.provenance,
+      };
+    }
     const cached = await this.loadCached("full");
     return {
       chain: cached.mapped.chain,
@@ -2117,7 +2142,28 @@ export class SolanaMarketDataSource implements MarketDataSource {
     let mint = "";
     let pools: { pairAddress: string; volume24hUsd: number | null }[] = [];
     try {
-      const snapshot = await this.loadCached("full");
+      const nowMs = Date.now();
+      // Poll clients must not wait on a cold DexScreener full hydrate (up to fullBudgetMs).
+      const snapshot =
+        this.cacheSatisfies("full", nowMs) ?? this.cacheSatisfies("light", nowMs);
+      if (!snapshot) {
+        void this.loadCached("full").catch(() => undefined);
+        return {
+          pending: true,
+          complete: false,
+          daily: [],
+          resolvedPools: 0,
+          totalPools: 0,
+          hourly: [],
+          hourlyPending: false,
+          hourlyComplete: false,
+          hourlyResolvedPools: 0,
+          hourlyTotalPools: 0,
+        };
+      }
+      if (snapshot.aggregation !== "all-pools") {
+        void this.loadCached("full").catch(() => undefined);
+      }
       const asset = findAssetByKey(
         [...snapshot.mapped.details, ...snapshot.mapped.etfDetails, ...snapshot.mapped.privateDetails],
         symbol,
