@@ -15,7 +15,7 @@ import {
 } from "@/lib/market/snapshot-desk-volume";
 import { sumVolumePoints } from "@/lib/market/daily-volume-view";
 
-const nowT = Date.parse("2026-10-07T03:00:00Z") / 1000;
+const nowT = Date.parse("2026-10-08T03:00:00Z") / 1000;
 
 function closed(file: string, config: typeof BASE_DESK) {
   const payload = JSON.parse(readFileSync(join(process.cwd(), "data/volume-snapshots", file), "utf8"));
