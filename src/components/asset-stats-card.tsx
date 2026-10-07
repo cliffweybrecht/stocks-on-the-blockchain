@@ -3,7 +3,7 @@ import { CircleHelp } from "lucide-react";
 import { PriceChangeText } from "@/components/asset-price-chart";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatCount, formatTokenAmount, formatUsdCompact } from "@/lib/market/format";
-import { ROBINHOOD_CHAIN_ID, type AssetDetail } from "@/lib/market/types";
+import { BASE_CHAIN_ID, ROBINHOOD_CHAIN_ID, type AssetDetail } from "@/lib/market/types";
 
 const STATS: readonly {
   key: string;
@@ -74,6 +74,11 @@ const STATS: readonly {
 ];
 
 function statHint(stat: (typeof STATS)[number], asset: AssetDetail): string {
+  if (asset.chainId === BASE_CHAIN_ID || asset.sourceId === "base") {
+    return stat.robinhoodHint
+      .replaceAll("Robinhood Chain (4663)", "Base (8453)")
+      .replaceAll("Robinhood Chain pair", "Base pair");
+  }
   return asset.chainId === ROBINHOOD_CHAIN_ID || asset.sourceId === "robinhood" ? stat.robinhoodHint : stat.hint;
 }
 
