@@ -12,6 +12,7 @@ import {
   overlayTerminalReference,
   parseRhjRegistry,
   robinhoodLanesFromTerminal,
+  selectRobinhoodTokenLogo,
 } from "../robinhood-markets";
 import { loadRobinhoodChainMarkets } from "../robinhood-chain-markets";
 import type { AssetSummary } from "../types";
@@ -170,6 +171,42 @@ describe("Robinhood Chain name rules", () => {
     expect(overlaid?.issuer).toBe(RHJ_ISSUER_LABEL);
   });
 
+  it("uses a DexScreener base image and otherwise keeps the RHJ mark", () => {
+    const feather = `https://cdn.robinhood.com/logos/${NVDA}.png`;
+    const dexLogo = "https://cdn.dexscreener.com/cms/images/nvda.png";
+    expect(selectRobinhoodTokenLogo({ dexLogoUrl: dexLogo, registryLogoUrl: feather })).toBe(dexLogo);
+    expect(selectRobinhoodTokenLogo({ dexLogoUrl: "javascript:alert(1)", registryLogoUrl: feather })).toBe(feather);
+    expect(selectRobinhoodTokenLogo({ registryLogoUrl: feather })).toBe(feather);
+    expect(selectRobinhoodTokenLogo({ registryLogoUrl: "data:image/png;base64,aaaa" })).toBeNull();
+
+    const tokens = parseRhjRegistry({
+      assets: [rhj("NVDA", "NVIDIA • Robinhood Token", NVDA)],
+    });
+    const quoteOnly = buildRobinhoodMarketLanes(tokens, [
+      pair({
+        base: { address: "0xusdg", symbol: "USDG", name: "Global Dollar" },
+        quote: { address: NVDA, symbol: "NVDA", name: "NVIDIA • Robinhood Token" },
+        infoImageUrl: dexLogo,
+        volume: 4,
+      }),
+    ]);
+    expect(quoteOnly.assets[0]?.logoUrl).toBe(feather);
+    expect(quoteOnly.assets[0]?.pools[0]?.baseLogoUrl).toBeNull();
+
+    const fromDex = buildRobinhoodMarketLanes(tokens, [
+      pair({
+        base: { address: NVDA.toLowerCase(), symbol: "NVDA", name: "NVIDIA • Robinhood Token" },
+        infoImageUrl: dexLogo,
+        volume: 9,
+      }),
+    ]);
+    expect(fromDex.assets[0]?.logoUrl).toBe(dexLogo);
+    expect(fromDex.assets[0]?.pools[0]?.baseLogoUrl).toBe(dexLogo);
+
+    const featherOnly = buildRobinhoodMarketLanes(tokens, []);
+    expect(featherOnly.assets[0]?.logoUrl).toBe(feather);
+  });
+
   it("classifies a Terminal fallback without keeping junk", () => {
     const lanes = robinhoodLanesFromTerminal([
       summary({ symbol: "QQQ", name: "Invesco QQQ • Robinhood Token", contractAddress: QQQ }),
@@ -201,6 +238,7 @@ describe("loadRobinhoodChainMarkets", () => {
     expect(catalog.assets[0]?.volume24hUsd).toBeNull();
     expect(catalog.volumeHydrated).toBe(false);
     expect(catalog.assets[0]?.issuer).toBe(RHJ_ISSUER_LABEL);
+    expect(catalog.assets[0]?.logoUrl).toBe(`https://cdn.robinhood.com/logos/${NVDA}.png`);
   });
 
   it("still lists Ondo-named tokens when the RHJ registry is down", async () => {
@@ -243,6 +281,47 @@ describe("loadRobinhoodChainMarkets", () => {
     });
     expect(catalog.assets[0]?.issuer).not.toBe("Ondo");
   });
+
+  it("lets a DexScreener base image replace the RHJ mark for that contract only", async () => {
+    const dexLogo = "https://cdn.dexscreener.com/cms/images/crcl.png";
+    const fetchImpl = vi.fn(async (url: string) => {
+      if (url.includes("rhj/assets")) {
+        return json({
+          assets: [
+            rhj("NVDA", "NVIDIA • Robinhood Token", NVDA),
+            rhj("CRCL", "Circle Internet Group • Robinhood Token", "0x5555555555555555555555555555555555555555"),
+          ],
+        });
+      }
+      if (url.includes("/latest/dex/search")) return json({ pairs: [] });
+      if (url.includes("/tokens/v1/robinhood/")) {
+        return json([
+          pair({
+            base: { address: "0x5555555555555555555555555555555555555555", symbol: "CRCL", name: "Circle" },
+            infoImageUrl: dexLogo,
+            volume: 8,
+          }),
+          pair({
+            base: { address: "0xusdg", symbol: "USDG", name: "Global Dollar" },
+            quote: { address: NVDA, symbol: "NVDA", name: "NVIDIA • Robinhood Token" },
+            infoImageUrl: "https://cdn.dexscreener.com/cms/images/not-nvda.png",
+            volume: 3,
+          }),
+        ]);
+      }
+      return new Response("missing", { status: 404 });
+    });
+    const catalog = await loadRobinhoodChainMarkets({
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      cache: false,
+      searchQueries: ["Tokenized Stock (Ondo)"],
+    });
+    expect(fetchImpl.mock.calls.some(([url]) => String(url).includes("geckoterminal"))).toBe(false);
+    expect(catalog.assets.find((row) => row.symbol === "CRCL")?.logoUrl).toBe(dexLogo);
+    expect(catalog.assets.find((row) => row.symbol === "NVDA")?.logoUrl).toBe(
+      `https://cdn.robinhood.com/logos/${NVDA}.png`,
+    );
+  });
 });
 
 function pair(input: {
@@ -253,6 +332,7 @@ function pair(input: {
   volume?: number;
   liquidity?: number;
   price?: number;
+  infoImageUrl?: string;
 }): DexScreenerPair {
   return {
     chainId: input.chainId ?? "robinhood",
@@ -261,6 +341,7 @@ function pair(input: {
     url: "https://dexscreener.com/robinhood/0xpair",
     baseToken: input.base,
     quoteToken: input.quote ?? { address: "0xweth", symbol: "WETH", name: "WETH" },
+    info: input.infoImageUrl ? { imageUrl: input.infoImageUrl } : undefined,
     priceUsd: input.price ?? null,
     priceChange: { h24: input.price != null ? 0.32 : null },
     volume: { h24: input.volume ?? null },

@@ -32,7 +32,7 @@ export const ROBINHOOD_DEX_CHAIN_SLUG = "robinhood";
 export const ROBINHOOD_MARKETS_SOURCE_LABEL = "DexScreener · Robinhood Chain";
 
 export const ROBINHOOD_MARKETS_NOTE =
-  "Robinhood Chain names are the public RHJ registry plus Ondo-named tokens DexScreener search returned on chain 4663. Ondo-named (unverified) is not official Ondo. Rialto, launchpad xStock and PreStocks, Backpack lookalikes, Arcus, and HOODon/BMNRon/CPERon are excluded. Card volume is the sum of DexScreener volume.h24 across unique pools. A missing figure stays missing.";
+  "Robinhood Chain names are the public RHJ registry plus Ondo-named tokens DexScreener search returned on chain 4663. Ondo-named (unverified) is not official Ondo. Rialto, launchpad xStock and PreStocks, Backpack lookalikes, Arcus, and HOODon/BMNRon/CPERon are excluded. Card volume is the sum of DexScreener volume.h24 across unique pools. A missing figure stays missing. A card uses the DexScreener image when that pair lists one for the contract. Otherwise it keeps the RHJ mark. GeckoTerminal's image for these contracts is that same shared mark.";
 
 /** DexScreener search probes. Capped and noisy — not an admission list. */
 export const ROBINHOOD_ONDO_SEARCH_QUERIES = [
@@ -152,6 +152,20 @@ export interface RobinhoodMarketLanes {
   etfAssets: AssetSummary[];
   privateAssets: AssetSummary[];
   details: AssetDetail[];
+}
+
+/**
+ * Card and header logo for one Robinhood Chain contract.
+ * DexScreener's base-token image wins. The RHJ registry URL is the fallback.
+ * That registry file is the shared Robinhood feather, and GeckoTerminal's
+ * `image_url` for these contracts is the same artwork, so it is not a second
+ * logo. Never match by ticker. The caller must not pass a quote-side image.
+ */
+export function selectRobinhoodTokenLogo(input: {
+  dexLogoUrl?: string | null;
+  registryLogoUrl?: string | null;
+}): string | null {
+  return asHttpUrl(input.dexLogoUrl) ?? asHttpUrl(input.registryLogoUrl);
 }
 
 export function buildRobinhoodMarketLanes(
@@ -377,11 +391,21 @@ function toDetail(token: RobinhoodListedToken, bucket: PairBucket, volumeHydrate
     poolCount,
     hydrateFailed: !volumeHydrated && poolCount === 0 && volume24hUsd === null,
   });
-  const pools = [...bucket.pools].sort((a, b) => {
-    const byVolume = compareNullableDesc(a.volume24hUsd, b.volume24hUsd);
-    if (byVolume !== 0) return byVolume;
-    return compareNullableDesc(a.liquidityUsd, b.liquidityUsd);
+  const logoUrl = selectRobinhoodTokenLogo({
+    dexLogoUrl: bucket.logoUrl,
+    registryLogoUrl: token.logoUrl,
   });
+  const listed = token.address.toLowerCase();
+  const pools = [...bucket.pools]
+    .map((pool) => {
+      if (pool.baseAddress?.toLowerCase() !== listed || pool.baseLogoUrl) return pool;
+      return logoUrl ? { ...pool, baseLogoUrl: logoUrl } : pool;
+    })
+    .sort((a, b) => {
+      const byVolume = compareNullableDesc(a.volume24hUsd, b.volume24hUsd);
+      if (byVolume !== 0) return byVolume;
+      return compareNullableDesc(a.liquidityUsd, b.liquidityUsd);
+    });
   const dexes = dexSlices(bucket, displayedLiquidityUsd);
   const quoteAssets = quoteSlices(bucket, displayedLiquidityUsd);
   const summary: AssetSummary = {
@@ -392,7 +416,7 @@ function toDetail(token: RobinhoodListedToken, bucket: PairBucket, volumeHydrate
     name: token.name,
     contractAddress: token.address,
     issuer: token.issuer,
-    logoUrl: token.logoUrl ?? bucket.logoUrl,
+    logoUrl,
     volume24hUsd,
     displayedLiquidityUsd,
     usdGLiquidityUsd,
