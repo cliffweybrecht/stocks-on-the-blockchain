@@ -154,9 +154,9 @@ export default async function AssetPage({
             <AssetStatsCard asset={asset} />
           )}
 
-          {isSolana ? null : <TrustBanner />}
+          {isSolana || isRobinhood ? null : <TrustBanner />}
 
-          {!isSolana ? (
+          {!isSolana && !isRobinhood ? (
             <>
               <section className="space-y-3">
                 <h3 className="font-heading text-lg font-medium">Identity</h3>
