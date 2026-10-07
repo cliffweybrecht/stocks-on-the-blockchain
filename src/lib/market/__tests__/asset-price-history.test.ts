@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildAssetPriceHistory,
   emptyAssetPriceHistory,
+  mergePolledCloses,
   parseGeckoTerminalOhlcvSeries,
   parseGeckoTerminalPriceOhlcv,
   rankPoolsForMintPrice,
@@ -184,5 +185,25 @@ describe("buildAssetPriceHistory", () => {
     expect(empty.dailyVolume).toEqual([]);
     expect(empty.hourlyVolume).toEqual([]);
     expect(empty.pairAddress).toBeNull();
+  });
+});
+
+describe("mergePolledCloses", () => {
+  it("fills only the resolutions that are still empty", () => {
+    const history = buildAssetPriceHistory({
+      pairAddress: "pool-a",
+      daily: [{ t: T0, priceUsd: 10 }],
+      hourly: [],
+      dailyVolume: [{ t: T0, volumeUsd: 4 }],
+    });
+    const merged = mergePolledCloses(history, {
+      daily: [{ t: T0, priceUsd: 99 }],
+      hourly: [{ t: T0 + HOUR, priceUsd: 11 }],
+    });
+    expect(merged.daily).toEqual([{ t: T0, priceUsd: 10 }]);
+    expect(merged.hourly).toEqual([{ t: T0 + HOUR, priceUsd: 11 }]);
+    expect(merged.dailyVolume).toEqual([{ t: T0, volumeUsd: 4 }]);
+    expect(merged.available).toBe(true);
+    expect(mergePolledCloses(history, { daily: [], hourly: [] })).toBe(history);
   });
 });

@@ -298,6 +298,16 @@ export interface AssetAllMarketsVolumeSnapshot {
   hourlyComplete: boolean;
   hourlyResolvedPools: number;
   hourlyTotalPools: number;
+  /**
+   * Sum of pools that have returned candles so far.
+   * Set before `complete`. Not an all-markets total — unresolved pools are omitted, not $0.
+   */
+  observedDaily?: VolumeHistoryPoint[];
+  observedHourly?: VolumeHistoryPoint[];
+  /** USD closes from the highest-volume resolved pool whose OHLCV base is this mint. */
+  priceDaily?: PriceHistoryPoint[];
+  priceHourly?: PriceHistoryPoint[];
+  pricePairAddress?: string | null;
 }
 
 export function emptyAllMarketsVolumeSnapshot(): AssetAllMarketsVolumeSnapshot {
