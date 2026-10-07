@@ -1,4 +1,5 @@
 import {
+  ASSET_PRICE_HISTORY_SOURCE_LABEL,
   ASSET_PRICE_POOL_ATTEMPTS,
   buildAssetPriceHistory,
   emptyAssetPriceHistory,
@@ -8,10 +9,17 @@ import {
 } from "./asset-price-history";
 import { assembleAllMarketsDaily, uniqueAllMarketsPools } from "./asset-volume-headline";
 import { mapWithConcurrency } from "./async-pool";
+import {
+  DEXSCREENER_OHLCV_DEFINITION,
+  DEXSCREENER_OHLCV_SOURCE_LABEL,
+  dexScreenerOhlcvPath,
+  parseDexScreenerOhlcvBars,
+} from "./dexscreener-ohlcv";
 import { DEFAULT_GECKOTERMINAL_BASE_URL, geckoTerminalOhlcvPath } from "./solana-geckoterminal";
 import { fetchJsonOrText, isDefinitiveFetchMiss, responseStatusFromError, SourceRequestError, type FetchLike } from "./solana-http";
+import { DEFAULT_DEXSCREENER_IO_BASE_URL } from "./solana-holders";
 import { unwrapDexScreenerPairs, type DexScreenerPair } from "./map-solana";
-import { asNonNegativeNumber } from "./numbers";
+import { asNonNegativeNumber, compareNullableDesc } from "./numbers";
 import { DEFAULT_ROBINHOOD_DEX_BASE_URL } from "./robinhood-chain-markets";
 import {
   ONDO_NAMED_UNVERIFIED_LABEL,
@@ -28,6 +36,7 @@ import {
   type AssetDetail,
   type AssetDetailResult,
   type AssetPriceHistoryResult,
+  type PriceHistoryPoint,
   type VolumeHistoryPoint,
 } from "./types";
 
@@ -47,10 +56,16 @@ export interface RobinhoodAssetFetchOptions {
   /** Process cache is for the live desk. Tests pass false or a custom fetch. */
   cache?: boolean;
   nowMs?: number;
+  /** io.dexscreener.com host for chart bars. Used only after Gecko's primary pool fails. */
+  dexIoBaseUrl?: string;
 }
 
 interface CandleSlot {
   points: VolumeHistoryPoint[] | null;
+  /** USD closes. Null until the fetch resolves. Empty when the base is a different token. */
+  prices: PriceHistoryPoint[] | null;
+  /** True only when Gecko named this mint as the OHLCV base. */
+  baseMatches: boolean;
   definitiveMiss: boolean;
 }
 
@@ -62,6 +77,7 @@ interface PoolSlot {
 }
 
 interface AllMarketsJob {
+  mint: string;
   pools: PoolSlot[];
 }
 
@@ -261,25 +277,51 @@ export async function loadRobinhoodAssetPriceHistory(
   const geckoBase = (options.geckoBaseUrl ?? DEFAULT_GECKOTERMINAL_BASE_URL).replace(/\/+$/, "");
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   let lastPair = ranked[0] ?? null;
+  let rateLimited = false;
 
   try {
     for (const pairAddress of ranked) {
       lastPair = pairAddress;
       const loaded = await loadPoolCloses(geckoBase, pairAddress, mint, timeoutMs, fetchImpl, options.nowMs);
-      if (loaded.kind === "stop") break;
+      if (loaded.kind === "stop") {
+        rateLimited = loaded.rateLimited;
+        break;
+      }
       if (loaded.kind === "skip") continue;
-      return buildAssetPriceHistory({
+      return withDexVolumeFallback(
+        buildAssetPriceHistory({
+          pairAddress,
+          daily: loaded.daily.prices,
+          hourly: loaded.hourly.prices,
+          dailyVolume: loaded.daily.volumes,
+          hourlyVolume: loaded.hourly.volumes,
+        }),
         pairAddress,
-        daily: loaded.daily.prices,
-        hourly: loaded.hourly.prices,
-        dailyVolume: loaded.daily.volumes,
-        hourlyVolume: loaded.hourly.volumes,
-      });
+        options,
+        fetchImpl,
+        timeoutMs,
+      );
     }
   } catch (error) {
     return emptyAssetPriceHistory(
       error instanceof Error ? error.message : "GeckoTerminal price history failed. The desk does not invent a series.",
     );
+  }
+
+  const dexCandidates = rateLimited ? ranked.slice(0, 1) : ranked;
+  for (const pairAddress of dexCandidates) {
+    const dex = await loadDexPairBars(pairAddress, options, fetchImpl, timeoutMs);
+    if (!dex) continue;
+    if (dex.daily.prices.length === 0 && dex.hourly.prices.length === 0) continue;
+    return buildAssetPriceHistory({
+      pairAddress,
+      daily: dex.daily.prices,
+      hourly: dex.hourly.prices,
+      dailyVolume: dex.daily.volumes,
+      hourlyVolume: dex.hourly.volumes,
+      sourceLabel: DEXSCREENER_OHLCV_SOURCE_LABEL,
+      definition: DEXSCREENER_OHLCV_DEFINITION,
+    });
   }
 
   return buildAssetPriceHistory({
@@ -371,6 +413,14 @@ async function readHolderCount(
   }
 }
 
+interface CandleFetch {
+  payload: unknown | null;
+  /** 429 or the shared cooldown. The next Gecko pool would fail the same way. */
+  rateLimited: boolean;
+  /** Gecko rejected this pool. Another pool may still have candles. */
+  definitiveMiss: boolean;
+}
+
 async function loadPoolCloses(
   geckoBase: string,
   pairAddress: string,
@@ -385,9 +435,9 @@ async function loadPoolCloses(
       hourly: ReturnType<typeof parseGeckoTerminalOhlcvSeries>;
     }
   | { kind: "skip" }
-  | { kind: "stop" }
+  | { kind: "stop"; rateLimited: boolean }
 > {
-  const [dailyPayload, hourlyPayload] = await mapWithConcurrency(
+  const [dailyFetch, hourlyFetch] = await mapWithConcurrency(
     [
       ohlcvUrl(geckoBase, pairAddress, "day", 90),
       ohlcvUrl(geckoBase, pairAddress, "hour", 24),
@@ -395,13 +445,23 @@ async function loadPoolCloses(
     1,
     (url) => fetchOhlcv(url, timeoutMs, fetchImpl, nowMs),
   );
-  if (!dailyPayload && !hourlyPayload) return { kind: "stop" };
+  const dailyPayload = dailyFetch.payload;
+  const hourlyPayload = hourlyFetch.payload;
+  if (!dailyPayload && !hourlyPayload) {
+    if (dailyFetch.definitiveMiss || hourlyFetch.definitiveMiss) return { kind: "skip" };
+    return { kind: "stop", rateLimited: dailyFetch.rateLimited || hourlyFetch.rateLimited };
+  }
   const basePayload = dailyPayload ?? hourlyPayload;
   if (basePayload && !geckoOhlcvBaseMatchesMint(basePayload, mint)) return { kind: "skip" };
   const daily = dailyPayload ? parseGeckoTerminalOhlcvSeries(dailyPayload) : { prices: [], volumes: [] };
   const hourly = hourlyPayload ? parseGeckoTerminalOhlcvSeries(hourlyPayload) : { prices: [], volumes: [] };
   if (daily.prices.length === 0 && hourly.prices.length === 0) {
-    return dailyPayload === null || hourlyPayload === null ? { kind: "stop" } : { kind: "skip" };
+    const incomplete = !dailyPayload || !hourlyPayload;
+    const missed = dailyFetch.definitiveMiss || hourlyFetch.definitiveMiss;
+    if (incomplete && !missed) {
+      return { kind: "stop", rateLimited: dailyFetch.rateLimited || hourlyFetch.rateLimited };
+    }
+    return { kind: "skip" };
   }
   return { kind: "use", daily, hourly };
 }
@@ -411,19 +471,90 @@ async function fetchOhlcv(
   timeoutMs: number,
   fetchImpl: FetchLike,
   nowMs: number | undefined,
-): Promise<unknown | null> {
+): Promise<CandleFetch> {
   const store = seriesStore();
   const now = nowMs ?? Date.now();
-  if (store.coolingUntil > now) return null;
+  if (store.coolingUntil > now) return { payload: null, rateLimited: true, definitiveMiss: false };
   try {
-    return await fetchJsonOrText(url, timeoutMs, fetchImpl, "GeckoTerminal", 0);
+    return {
+      payload: await fetchJsonOrText(url, timeoutMs, fetchImpl, "GeckoTerminal", 0),
+      rateLimited: false,
+      definitiveMiss: false,
+    };
   } catch (error) {
     if (responseStatusFromError(error) === 429) {
       const header = error instanceof SourceRequestError ? error.retryAfterHeader : null;
       store.coolingUntil = now + cooldownMs(header);
+      return { payload: null, rateLimited: true, definitiveMiss: false };
     }
+    if (isDefinitiveFetchMiss(error)) return { payload: null, rateLimited: false, definitiveMiss: true };
+    return { payload: null, rateLimited: false, definitiveMiss: false };
+  }
+}
+
+interface ParsedBars {
+  prices: PriceHistoryPoint[];
+  volumes: VolumeHistoryPoint[];
+}
+
+/**
+ * Same-pool DexScreener volume when Gecko returned closes and no volume.
+ * A chart miss leaves the Gecko series unchanged. Points are not invented.
+ */
+async function withDexVolumeFallback(
+  history: AssetPriceHistoryResult,
+  pairAddress: string,
+  options: RobinhoodAssetFetchOptions,
+  fetchImpl: FetchLike,
+  timeoutMs: number,
+): Promise<AssetPriceHistoryResult> {
+  if (history.dailyVolume.length > 0 || history.hourlyVolume.length > 0) return history;
+  const dex = await loadDexPairBars(pairAddress, options, fetchImpl, timeoutMs);
+  if (!dex) return history;
+  if (dex.daily.volumes.length === 0 && dex.hourly.volumes.length === 0) return history;
+  return buildAssetPriceHistory({
+    pairAddress,
+    daily: history.daily,
+    hourly: history.hourly,
+    dailyVolume: dex.daily.volumes,
+    hourlyVolume: dex.hourly.volumes,
+    generatedAt: history.generatedAt,
+    sourceLabel: `${ASSET_PRICE_HISTORY_SOURCE_LABEL}; ${DEXSCREENER_OHLCV_SOURCE_LABEL}`,
+  });
+}
+
+async function loadDexPairBars(
+  pairAddress: string,
+  options: RobinhoodAssetFetchOptions,
+  fetchImpl: FetchLike,
+  timeoutMs: number,
+): Promise<{ daily: ParsedBars; hourly: ParsedBars } | null> {
+  const ioBase = (options.dexIoBaseUrl ?? DEFAULT_DEXSCREENER_IO_BASE_URL).replace(/\/+$/, "");
+  const [dailyPayload, hourlyPayload] = await mapWithConcurrency(
+    [
+      `${ioBase}${dexScreenerOhlcvPath(pairAddress, { timeframe: "day", limit: 90 })}`,
+      `${ioBase}${dexScreenerOhlcvPath(pairAddress, { timeframe: "hour", limit: 24 })}`,
+    ],
+    1,
+    async (url) => {
+      try {
+        return await fetchJsonOrText(url, timeoutMs, fetchImpl, "DexScreener chart", 0);
+      } catch {
+        return null;
+      }
+    },
+  );
+  const daily = dailyPayload ? parseDexScreenerOhlcvBars(dailyPayload) : { prices: [], volumes: [] };
+  const hourly = hourlyPayload ? parseDexScreenerOhlcvBars(hourlyPayload) : { prices: [], volumes: [] };
+  if (
+    daily.prices.length === 0 &&
+    hourly.prices.length === 0 &&
+    daily.volumes.length === 0 &&
+    hourly.volumes.length === 0
+  ) {
     return null;
   }
+  return { daily, hourly };
 }
 
 function ohlcvUrl(geckoBase: string, pairAddress: string, timeframe: "day" | "hour", limit: number): string {
@@ -442,10 +573,11 @@ function ensureJob(
   const key = mint.trim().toLowerCase();
   const existing = store.jobs.get(key);
   if (!existing) {
-    const created = { pools: pools.map(freshPool) };
+    const created = { mint: mint.trim(), pools: pools.map(freshPool) };
     store.jobs.set(key, created);
     return created;
   }
+  existing.mint = mint.trim();
   const previous = new Map(existing.pools.map((pool) => [pool.pairAddress.toLowerCase(), pool]));
   existing.pools = pools.map((pool) => {
     const kept = previous.get(pool.pairAddress.toLowerCase());
@@ -461,8 +593,8 @@ function freshPool(pool: { pairAddress: string; volume24hUsd: number | null }): 
   return {
     pairAddress: pool.pairAddress,
     volume24hUsd: pool.volume24hUsd,
-    daily: { points: null, definitiveMiss: false },
-    hourly: { points: null, definitiveMiss: false },
+    daily: { points: null, prices: null, baseMatches: false, definitiveMiss: false },
+    hourly: { points: null, prices: null, baseMatches: false, definitiveMiss: false },
   };
 }
 
@@ -479,7 +611,11 @@ async function stepJob(job: AllMarketsJob, options: RobinhoodAssetFetchOptions):
   const url = ohlcvUrl(geckoBase, open.pool.pairAddress, open.timeframe, limit);
   try {
     const payload = await fetchJsonOrText(url, timeoutMs, fetchImpl, "GeckoTerminal", 0);
-    open.slot.points = parseGeckoTerminalOhlcvSeries(payload).volumes;
+    const series = parseGeckoTerminalOhlcvSeries(payload);
+    const baseMatches = geckoOhlcvBaseMatchesMint(payload, job.mint);
+    open.slot.points = series.volumes;
+    open.slot.prices = baseMatches ? series.prices : [];
+    open.slot.baseMatches = baseMatches;
     open.slot.definitiveMiss = false;
   } catch (error) {
     if (isDefinitiveFetchMiss(error)) {
@@ -527,6 +663,8 @@ function snapshotFromJob(job: AllMarketsJob): AssetAllMarketsVolumeSnapshot {
   );
   const dailyOpen = job.pools.some((pool) => pool.daily.points === null && !pool.daily.definitiveMiss);
   const hourlyOpen = job.pools.some((pool) => pool.hourly.points === null && !pool.hourly.definitiveMiss);
+  const dailyPrice = bestCloses(job.pools, "day");
+  const hourlyPrice = bestCloses(job.pools, "hour");
   return {
     pending: dailyOpen,
     complete: daily.complete,
@@ -534,11 +672,47 @@ function snapshotFromJob(job: AllMarketsJob): AssetAllMarketsVolumeSnapshot {
     resolvedPools: job.pools.filter((pool) => pool.daily.points !== null || pool.daily.definitiveMiss).length,
     totalPools: job.pools.length,
     hourly: hourly.complete ? hourly.daily : [],
-    hourlyPending: daily.complete && hourlyOpen,
+    hourlyPending: !dailyOpen && hourlyOpen,
     hourlyComplete: hourly.complete,
     hourlyResolvedPools: job.pools.filter((pool) => pool.hourly.points !== null || pool.hourly.definitiveMiss).length,
     hourlyTotalPools: job.pools.length,
+    observedDaily: observedVolume(job.pools, "day"),
+    observedHourly: observedVolume(job.pools, "hour"),
+    priceDaily: dailyPrice.prices,
+    priceHourly: hourlyPrice.prices,
+    pricePairAddress: dailyPrice.pairAddress ?? hourlyPrice.pairAddress,
   };
+}
+
+/** Sum of pools that already returned candles. Unresolved pools are left out, not written as $0. */
+function observedVolume(pools: readonly PoolSlot[], timeframe: "day" | "hour"): VolumeHistoryPoint[] {
+  const resolved = pools.filter((pool) => (timeframe === "day" ? pool.daily : pool.hourly).points !== null);
+  if (resolved.length === 0) return [];
+  return assembleAllMarketsDaily(
+    resolved.map((pool) => {
+      const slot = timeframe === "day" ? pool.daily : pool.hourly;
+      return {
+        pairAddress: pool.pairAddress,
+        volume24hUsd: pool.volume24hUsd,
+        points: slot.points,
+        definitiveMiss: false,
+      };
+    }),
+  ).daily;
+}
+
+/** Closes from the highest-volume resolved pool whose OHLCV base is this mint. */
+function bestCloses(
+  pools: readonly PoolSlot[],
+  timeframe: "day" | "hour",
+): { pairAddress: string | null; prices: PriceHistoryPoint[] } {
+  const ranked = [...pools].sort((a, b) => compareNullableDesc(a.volume24hUsd, b.volume24hUsd));
+  for (const pool of ranked) {
+    const slot = timeframe === "day" ? pool.daily : pool.hourly;
+    if (!slot.baseMatches || !slot.prices || slot.prices.length === 0) continue;
+    return { pairAddress: pool.pairAddress, prices: slot.prices };
+  }
+  return { pairAddress: null, prices: [] };
 }
 
 function cooldownMs(header: string | null): number {

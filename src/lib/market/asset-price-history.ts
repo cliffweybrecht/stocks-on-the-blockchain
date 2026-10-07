@@ -157,6 +157,8 @@ export function buildAssetPriceHistory(input: {
   fallbackDailyVolume?: readonly VolumeHistoryPoint[];
   generatedAt?: string;
   emptyReason?: string;
+  sourceLabel?: string;
+  definition?: string;
 }): AssetPriceHistoryResult {
   const generatedAt = input.generatedAt ?? new Date().toISOString();
   const daily = [...input.daily].sort((a, b) => a.t - b.t);
@@ -170,8 +172,8 @@ export function buildAssetPriceHistory(input: {
   return {
     available,
     pairAddress: input.pairAddress,
-    sourceLabel: ASSET_PRICE_HISTORY_SOURCE_LABEL,
-    definition: ASSET_PRICE_HISTORY_DEFINITION,
+    sourceLabel: input.sourceLabel ?? ASSET_PRICE_HISTORY_SOURCE_LABEL,
+    definition: input.definition ?? ASSET_PRICE_HISTORY_DEFINITION,
     daily,
     hourly,
     dailyVolume,
@@ -181,5 +183,29 @@ export function buildAssetPriceHistory(input: {
       ? null
       : (input.emptyReason ??
         "GeckoTerminal did not return usable USD closes for this mint’s primary pool."),
+  };
+}
+
+/**
+ * Fill a missing close series from a later poll.
+ * A resolution that already has closes is left alone. Polled points are not
+ * copied into the volume arrays — volume has its own aggregate path.
+ */
+export function mergePolledCloses(
+  history: AssetPriceHistoryResult,
+  polled: { daily?: readonly PriceHistoryPoint[] | null; hourly?: readonly PriceHistoryPoint[] | null } | null,
+): AssetPriceHistoryResult {
+  if (!polled) return history;
+  const daily = history.daily.length > 0 ? history.daily : polled.daily && polled.daily.length > 0 ? [...polled.daily] : history.daily;
+  const hourly =
+    history.hourly.length > 0 ? history.hourly : polled.hourly && polled.hourly.length > 0 ? [...polled.hourly] : history.hourly;
+  if (daily === history.daily && hourly === history.hourly) return history;
+  const available = daily.length > 0 || hourly.length > 0;
+  return {
+    ...history,
+    available,
+    daily,
+    hourly,
+    emptyReason: available ? null : history.emptyReason,
   };
 }

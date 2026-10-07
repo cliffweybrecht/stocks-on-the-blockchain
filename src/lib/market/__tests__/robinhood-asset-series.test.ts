@@ -246,6 +246,7 @@ describe("loadRobinhoodAssetPriceHistory", () => {
     const asset = detail([pair({ pairAddress: "0xpool", volume: 1, price: 10 })]);
     const history = await loadRobinhoodAssetPriceHistory(asset, {
       geckoBaseUrl: "https://gecko.example/api/v2",
+      dexIoBaseUrl: "https://io.example",
       fetchImpl: async () => jsonResponse({ data: { attributes: { ohlcv_list: [] } } }, 200),
     });
     expect(history.available).toBe(false);
@@ -254,6 +255,87 @@ describe("loadRobinhoodAssetPriceHistory", () => {
     expect(history.dailyVolume).toEqual([]);
     expect(history.hourlyVolume).toEqual([]);
     expect(history.emptyReason).toMatch(/does not invent|did not return/i);
+  });
+
+  it("skips a Gecko miss and uses the next pool", async () => {
+    const asset = detail([
+      pair({ pairAddress: "0xmissing", volume: 30, price: 1 }),
+      pair({ pairAddress: "0xright", volume: 10, price: 240 }),
+    ]);
+    const history = await loadRobinhoodAssetPriceHistory(asset, {
+      geckoBaseUrl: "https://gecko.example/api/v2",
+      dexIoBaseUrl: "https://io.example",
+      fetchImpl: async (url) => {
+        if (String(url).includes("0xmissing")) return jsonResponse({ error: "missing" }, 404);
+        if (String(url).includes("/ohlcv/day")) return jsonResponse(ohlcv([[1_700_000_000, 1, 1, 1, 240, 80]]));
+        return jsonResponse(ohlcv([[1_700_003_600, 1, 1, 1, 241, 8]]));
+      },
+    });
+    expect(history.available).toBe(true);
+    expect(history.pairAddress).toBe("0xright");
+    expect(history.daily).toEqual([{ t: 1_700_000_000, priceUsd: 240 }]);
+    expect(history.dailyVolume).toEqual([{ t: 1_700_000_000, volumeUsd: 80 }]);
+  });
+
+  it("uses DexScreener bars when Gecko's primary pool has no candles", async () => {
+    const asset = detail([pair({ pairAddress: "0xpool", volume: 12, price: 200 })]);
+    const urls: string[] = [];
+    const history = await loadRobinhoodAssetPriceHistory(asset, {
+      geckoBaseUrl: "https://gecko.example/api/v2",
+      dexIoBaseUrl: "https://io.example",
+      fetchImpl: async (url) => {
+        urls.push(String(url));
+        if (String(url).includes("/dex/chart/")) {
+          const hourly = String(url).includes("res=60");
+          return jsonResponse({
+            bars: [
+              {
+                timestamp: hourly ? 1_700_003_600_000 : 1_700_000_000_000,
+                closeUsd: hourly ? "241.5" : "240.5",
+                volumeUsd: hourly ? "12" : "900",
+              },
+            ],
+          });
+        }
+        return jsonResponse({ data: { attributes: { ohlcv_list: [] } } });
+      },
+    });
+    expect(history.available).toBe(true);
+    expect(history.sourceLabel).toMatch(/DexScreener/);
+    expect(history.daily).toEqual([{ t: 1_700_000_000, priceUsd: 240.5 }]);
+    expect(history.hourlyVolume).toEqual([{ t: 1_700_003_600, volumeUsd: 12 }]);
+    expect(history.dailyVolume).toEqual([{ t: 1_700_000_000, volumeUsd: 900 }]);
+    expect(urls.some((url) => url.includes("/dex/chart/amm/v3/robinhood/0xpool"))).toBe(true);
+  });
+
+  it("keeps Gecko closes and fills volume from DexScreener when the candle has no volume element", async () => {
+    const asset = detail([pair({ pairAddress: "0xpool", volume: 12, price: 200 })]);
+    const history = await loadRobinhoodAssetPriceHistory(asset, {
+      geckoBaseUrl: "https://gecko.example/api/v2",
+      dexIoBaseUrl: "https://io.example",
+      fetchImpl: async (url) => {
+        if (String(url).includes("/dex/chart/")) {
+          const hourly = String(url).includes("res=60") && !String(url).includes("res=1440");
+          return jsonResponse({
+            bars: [
+              {
+                timestamp: hourly ? 1_700_003_600 : 1_700_000_000,
+                closeUsd: "1",
+                volumeUsd: hourly ? "4" : "70",
+              },
+            ],
+          });
+        }
+        if (String(url).includes("/ohlcv/day")) return jsonResponse(ohlcv([[1_700_000_000, 1, 1, 1, 240]]));
+        return jsonResponse(ohlcv([[1_700_003_600, 1, 1, 1, 241]]));
+      },
+    });
+    expect(history.daily).toEqual([{ t: 1_700_000_000, priceUsd: 240 }]);
+    expect(history.hourly).toEqual([{ t: 1_700_003_600, priceUsd: 241 }]);
+    expect(history.dailyVolume).toEqual([{ t: 1_700_000_000, volumeUsd: 70 }]);
+    expect(history.hourlyVolume).toEqual([{ t: 1_700_003_600, volumeUsd: 4 }]);
+    expect(history.sourceLabel).toMatch(/GeckoTerminal/);
+    expect(history.sourceLabel).toMatch(/DexScreener/);
   });
 });
 
@@ -329,5 +411,49 @@ describe("advanceRobinhoodAllMarkets", () => {
     const ready = await advanceRobinhoodAllMarkets(asset, { ...options, nowMs: 40_000 });
     expect(ready.complete).toBe(true);
     expect(ready.daily).toEqual([{ t: 1_700_000_000, volumeUsd: 80 }]);
+  });
+
+  it("sums resolved pools before every pool finishes and does not price a different base", async () => {
+    const asset = detail([
+      pair({ pairAddress: "0xaaa", volume: 100, price: 1 }),
+      pair({ pairAddress: "0xbbb", volume: 5, price: 240 }),
+    ]);
+    const fetchImpl = async (url: string) => {
+      if (url.includes("0xaaa")) return jsonResponse(ohlcv([[1_700_000_000, 1, 1, 1, 1, 40]], OTHER));
+      return jsonResponse(ohlcv([[1_700_000_000, 1, 1, 1, 240, 10]]));
+    };
+    const options = { geckoBaseUrl: "https://gecko.example/api/v2", fetchImpl };
+    const first = await advanceRobinhoodAllMarkets(asset, options);
+    expect(first.complete).toBe(false);
+    expect(first.pending).toBe(true);
+    expect(first.daily).toEqual([]);
+    expect(first.observedDaily).toEqual([{ t: 1_700_000_000, volumeUsd: 40 }]);
+    expect(first.priceDaily).toEqual([]);
+
+    const second = await advanceRobinhoodAllMarkets(asset, options);
+    expect(second.complete).toBe(true);
+    expect(second.observedDaily).toEqual([{ t: 1_700_000_000, volumeUsd: 50 }]);
+    expect(second.priceDaily).toEqual([{ t: 1_700_000_000, priceUsd: 240 }]);
+    expect(second.pricePairAddress).toBe("0xbbb");
+  });
+
+  it("keeps the resolved sum when a live pool is a Gecko miss", async () => {
+    const asset = detail([
+      pair({ pairAddress: "0xaaa", volume: 10, price: 1 }),
+      pair({ pairAddress: "0xbbb", volume: 4, price: 1 }),
+    ]);
+    const fetchImpl = async (url: string) => {
+      if (url.includes("0xbbb")) return jsonResponse({ error: "missing" }, 404);
+      return jsonResponse(ohlcv([[1_700_000_000, 1, 1, 1, 240, 100]]));
+    };
+    const options = { geckoBaseUrl: "https://gecko.example/api/v2", fetchImpl };
+    await advanceRobinhoodAllMarkets(asset, options);
+    const done = await advanceRobinhoodAllMarkets(asset, options);
+    expect(done.complete).toBe(false);
+    expect(done.pending).toBe(false);
+    expect(done.daily).toEqual([]);
+    expect(done.observedDaily).toEqual([{ t: 1_700_000_000, volumeUsd: 100 }]);
+    expect(done.priceDaily).toEqual([{ t: 1_700_000_000, priceUsd: 240 }]);
+    expect(done.hourlyPending).toBe(true);
   });
 });
