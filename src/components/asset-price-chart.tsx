@@ -120,7 +120,7 @@ export function AssetMarketPanel({
       : null);
 
   useEffect(() => {
-    if (!pollHref || (dailySettled && hourlySettled)) return;
+    if (chartPending || !pollHref || (dailySettled && hourlySettled)) return;
     let cancelled = false;
     let timer = 0;
 
@@ -221,7 +221,7 @@ export function AssetMarketPanel({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [pollHref, dailySettled, hourlySettled]);
+  }, [chartPending, pollHref, dailySettled, hourlySettled]);
 
   const plottedHistory = useMemo(() => mergePolledCloses(history, polledCloses), [history, polledCloses]);
   const nowT = useMemo(() => priceHistoryNowT(plottedHistory), [plottedHistory]);
