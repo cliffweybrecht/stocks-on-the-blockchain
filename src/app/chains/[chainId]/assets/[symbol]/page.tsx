@@ -12,6 +12,7 @@ import {
   RobinhoodAssetChart,
   RobinhoodAssetChartFallback,
 } from "@/components/robinhood-asset-sections";
+import { BaseAssetChart, BaseAssetChartFallback } from "@/components/base-asset-sections";
 import {
   SolanaAssetChart,
   SolanaAssetChartFallback,
@@ -35,7 +36,9 @@ import { createMarketDataSource } from "@/lib/market/factory";
 import { toJumpAsset } from "@/lib/market/asset-search";
 import { lookupRobinhoodChainAsset } from "@/lib/market/robinhood-chain-markets";
 import { enrichRobinhoodAssetDetail } from "@/lib/market/robinhood-asset-series";
-import { ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type AssetDetailResult } from "@/lib/market/types";
+import { lookupBaseChainAsset } from "@/lib/market/base-chain-markets";
+import { enrichBaseAssetDetail } from "@/lib/market/base-asset-series";
+import { BASE_CHAIN_ID, ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type AssetDetailResult } from "@/lib/market/types";
 
 export const dynamic = "force-dynamic";
 
@@ -50,24 +53,30 @@ export default async function AssetPage({
   const solanaFastPath = chainId === SOLANA_CHAIN_ID;
 
   const robinhoodChain = chainId === ROBINHOOD_CHAIN_ID;
-  const [assetSettled, chainSettled, priceHistorySettled, robinhoodSettled] = await Promise.allSettled([
+  const baseChain = chainId === BASE_CHAIN_ID;
+  const [assetSettled, chainSettled, priceHistorySettled, robinhoodSettled, baseSettled] = await Promise.allSettled([
     source.getAsset(chainId, decoded, solanaFastPath ? { enrich: false } : undefined),
     solanaFastPath ? source.getChain(chainId) : Promise.resolve(null),
-    solanaFastPath || robinhoodChain ? Promise.resolve(null) : source.getAssetPriceHistory(chainId, decoded),
+    solanaFastPath || robinhoodChain || baseChain ? Promise.resolve(null) : source.getAssetPriceHistory(chainId, decoded),
     robinhoodChain ? lookupRobinhoodChainAsset(decoded) : Promise.resolve(null),
+    baseChain ? lookupBaseChainAsset(decoded) : Promise.resolve(null),
   ]);
 
   const sourceAsset: AssetDetailResult | null =
     assetSettled.status === "fulfilled" ? assetSettled.value : null;
   const discoveredAsset: AssetDetailResult | null =
     robinhoodSettled.status === "fulfilled" ? robinhoodSettled.value : null;
-  const merged = mergeRobinhoodAsset(sourceAsset, discoveredAsset);
+  const discoveredBase: AssetDetailResult | null =
+    baseSettled.status === "fulfilled" ? baseSettled.value : null;
+  const merged = baseChain ? discoveredBase : mergeRobinhoodAsset(sourceAsset, discoveredAsset);
   const result =
     merged && robinhoodChain
       ? await enrichRobinhoodAssetDetail(merged).catch(() => merged)
-      : merged;
+      : merged && baseChain
+        ? await enrichBaseAssetDetail(merged).catch(() => merged)
+        : merged;
 
-  if (!result && assetSettled.status === "rejected" && !robinhoodChain) {
+  if (!result && assetSettled.status === "rejected" && !robinhoodChain && !baseChain) {
     const detail =
       assetSettled.reason instanceof Error ? assetSettled.reason.message : "Asset snapshot failed.";
     return (
@@ -77,8 +86,17 @@ export default async function AssetPage({
     );
   }
 
-  if (!result && robinhoodChain && robinhoodSettled.status === "rejected" && assetSettled.status === "rejected") {
-    const reason = robinhoodSettled.reason;
+  if (
+    !result &&
+    ((robinhoodChain && robinhoodSettled.status === "rejected" && assetSettled.status === "rejected") ||
+      (baseChain && baseSettled.status === "rejected"))
+  ) {
+    const reason =
+      baseChain && baseSettled.status === "rejected"
+        ? baseSettled.reason
+        : robinhoodSettled.status === "rejected"
+          ? robinhoodSettled.reason
+          : null;
     const detail = reason instanceof Error ? reason.message : "Asset snapshot failed.";
     return (
       <PageShell>
@@ -101,6 +119,8 @@ export default async function AssetPage({
   const { chain, asset, provenance } = result;
   const isSolana = chain.id === SOLANA_CHAIN_ID;
   const isRobinhood = chain.id === ROBINHOOD_CHAIN_ID;
+  const isBase = chain.id === BASE_CHAIN_ID;
+  const indexedDesk = isSolana || isRobinhood || isBase;
   const rankedPools = sortPoolsByVolume(asset.pools);
   const priceHistory =
     priceHistorySettled.status === "fulfilled" && priceHistorySettled.value
@@ -137,6 +157,10 @@ export default async function AssetPage({
             <Suspense fallback={<RobinhoodAssetChartFallback chain={chain} asset={asset} />}>
               <RobinhoodAssetChart chain={chain} asset={asset} />
             </Suspense>
+          ) : isBase ? (
+            <Suspense fallback={<BaseAssetChartFallback chain={chain} asset={asset} />}>
+              <BaseAssetChart chain={chain} asset={asset} />
+            </Suspense>
           ) : (
             <AssetMarketPanel
               key={asset.contractAddress}
@@ -154,9 +178,9 @@ export default async function AssetPage({
             <AssetStatsCard asset={asset} />
           )}
 
-          {isSolana || isRobinhood ? null : <TrustBanner />}
+          {indexedDesk ? null : <TrustBanner />}
 
-          {!isSolana && !isRobinhood ? (
+          {!indexedDesk ? (
             <>
               <section className="space-y-3">
                 <h3 className="font-heading text-lg font-medium">Identity</h3>
@@ -225,24 +249,28 @@ export default async function AssetPage({
             ) : (
               <MarketsTable asset={asset} pools={rankedPools} />
             )
-          ) : isSolana || isRobinhood ? (
+          ) : indexedDesk ? (
             <section className="rounded-xl border border-dashed border-border bg-card px-4 py-6" data-markets>
               <h3 className="font-heading text-lg font-medium">
                 {isRobinhood
                   ? "No indexed Robinhood Chain pools"
-                  : asset.volumeCoverage === "hydrate_incomplete"
-                    ? "Still hydrating"
-                    : asset.volumeCoverage === "no_indexed_pools"
-                      ? "Confirmed no indexed pools"
-                      : "No indexed Solana pools"}
+                  : isBase
+                    ? "No indexed Base pools"
+                    : asset.volumeCoverage === "hydrate_incomplete"
+                      ? "Still hydrating"
+                      : asset.volumeCoverage === "no_indexed_pools"
+                        ? "Confirmed no indexed pools"
+                        : "No indexed Solana pools"}
               </h3>
               <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
                 {isRobinhood
                   ? "DexScreener did not return indexed pools for this contract on chain 4663. The desk does not invent markets."
-                  : (asset.coverageNote ??
-                    (asset.volumeCoverage === "hydrate_incomplete"
-                      ? "DexScreener lookup has not finished for this mint. Volume is unknown, not zero — not the same as confirmed no pools."
-                      : "DexScreener lookup finished and found no indexed Solana pools for this mint. That is the public pair-index ceiling, not zero volume."))}
+                  : isBase
+                    ? "DexScreener did not return indexed pools for this contract on Base (8453). The desk does not invent markets."
+                    : (asset.coverageNote ??
+                      (asset.volumeCoverage === "hydrate_incomplete"
+                        ? "DexScreener lookup has not finished for this mint. Volume is unknown, not zero — not the same as confirmed no pools."
+                        : "DexScreener lookup finished and found no indexed Solana pools for this mint. That is the public pair-index ceiling, not zero volume."))}
               </p>
             </section>
           ) : null}
