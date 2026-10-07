@@ -6,7 +6,7 @@
  * (`robinhood-chain`). Additional chains come from other adapters later.
  */
 
-export type SourceKind = "mock" | "terminal" | "solana" | "composite";
+export type SourceKind = "mock" | "terminal" | "solana" | "robinhood" | "composite";
 export type TrustKind = "fact" | "interpretive";
 export type InstrumentKind = "equity" | "etf" | "private";
 export type VolumeAggregation = "all-pools" | "primary-pair" | "none";

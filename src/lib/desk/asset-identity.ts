@@ -58,7 +58,7 @@ export function instrumentKindMetaLabel(kind: InstrumentKind): string {
 
 export function sourceRowLabel(sourceId: SourceKind): string {
   if (sourceId === "mock") return "Demo row";
-  if (sourceId === "solana") return "DexScreener row";
+  if (sourceId === "solana" || sourceId === "robinhood") return "DexScreener row";
   if (sourceId === "composite") return "Live sources";
   return "Terminal row";
 }

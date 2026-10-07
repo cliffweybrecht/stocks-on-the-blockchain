@@ -8,6 +8,7 @@ export function headerStatusLabel(provenance: DataProvenance): string | null {
   if (provenance.sourceId === "mock") return "Seed / demo data";
   if (
     provenance.sourceId === "solana" ||
+    provenance.sourceId === "robinhood" ||
     (provenance.sourceId === "composite" && provenance.sourceLabel.toLowerCase().includes("solana"))
   ) {
     return null;

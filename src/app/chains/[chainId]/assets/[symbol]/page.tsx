@@ -29,7 +29,8 @@ import { deskSpotPriceUsd, selectEquityPriceTicker } from "@/lib/desk/price-tick
 import { sortPoolsByVolume } from "@/lib/desk/pool-sort";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { toJumpAsset } from "@/lib/market/asset-search";
-import { SOLANA_CHAIN_ID } from "@/lib/market/types";
+import { lookupRobinhoodChainAsset } from "@/lib/market/robinhood-chain-markets";
+import { ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type AssetDetailResult } from "@/lib/market/types";
 
 export const dynamic = "force-dynamic";
 
@@ -43,13 +44,21 @@ export default async function AssetPage({
   const decoded = decodeURIComponent(symbol);
   const solanaFastPath = chainId === SOLANA_CHAIN_ID;
 
-  const [assetSettled, chainSettled, priceHistorySettled] = await Promise.allSettled([
+  const robinhoodChain = chainId === ROBINHOOD_CHAIN_ID;
+  const [assetSettled, chainSettled, priceHistorySettled, robinhoodSettled] = await Promise.allSettled([
     source.getAsset(chainId, decoded, solanaFastPath ? { enrich: false } : undefined),
     solanaFastPath ? source.getChain(chainId) : Promise.resolve(null),
     solanaFastPath ? Promise.resolve(null) : source.getAssetPriceHistory(chainId, decoded),
+    robinhoodChain ? lookupRobinhoodChainAsset(decoded) : Promise.resolve(null),
   ]);
 
-  if (assetSettled.status === "rejected") {
+  const sourceAsset: AssetDetailResult | null =
+    assetSettled.status === "fulfilled" ? assetSettled.value : null;
+  const discoveredAsset: AssetDetailResult | null =
+    robinhoodSettled.status === "fulfilled" ? robinhoodSettled.value : null;
+  const result = mergeRobinhoodAsset(sourceAsset, discoveredAsset);
+
+  if (!result && assetSettled.status === "rejected" && !robinhoodChain) {
     const detail =
       assetSettled.reason instanceof Error ? assetSettled.reason.message : "Asset snapshot failed.";
     return (
@@ -59,7 +68,16 @@ export default async function AssetPage({
     );
   }
 
-  const result = assetSettled.value;
+  if (!result && robinhoodChain && robinhoodSettled.status === "rejected" && assetSettled.status === "rejected") {
+    const reason = robinhoodSettled.reason;
+    const detail = reason instanceof Error ? reason.message : "Asset snapshot failed.";
+    return (
+      <PageShell>
+        <ErrorState title="Could not load this stock" detail={detail} />
+      </PageShell>
+    );
+  }
+
   if (!result) {
     return (
       <PageShell>
@@ -276,4 +294,32 @@ export default async function AssetPage({
         </div>
       </PageShell>
     );
+}
+
+function mergeRobinhoodAsset(
+  sourceAsset: AssetDetailResult | null,
+  discovered: AssetDetailResult | null,
+): AssetDetailResult | null {
+  if (!discovered) return sourceAsset;
+  if (!sourceAsset) return discovered;
+  const terminal = sourceAsset.asset;
+  return {
+    ...discovered,
+    chain: sourceAsset.chain.id === ROBINHOOD_CHAIN_ID ? sourceAsset.chain : discovered.chain,
+    asset: {
+      ...discovered.asset,
+      robinhoodReferencePriceUsd:
+        discovered.asset.robinhoodReferencePriceUsd ?? terminal.robinhoodReferencePriceUsd,
+      premiumDiscountPct: discovered.asset.premiumDiscountPct ?? terminal.premiumDiscountPct,
+      price: {
+        ...discovered.asset.price,
+        robinhoodReferenceUsd: discovered.asset.price.robinhoodReferenceUsd ?? terminal.price.robinhoodReferenceUsd,
+        robinhoodBidUsd: terminal.price.robinhoodBidUsd,
+        robinhoodAskUsd: terminal.price.robinhoodAskUsd,
+        robinhoodGeneratedAt: terminal.price.robinhoodGeneratedAt,
+        isTradingHalt: terminal.price.isTradingHalt,
+        premiumDiscountPct: discovered.asset.price.premiumDiscountPct ?? terminal.price.premiumDiscountPct,
+      },
+    },
+  };
 }

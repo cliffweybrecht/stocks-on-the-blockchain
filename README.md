@@ -256,7 +256,7 @@ Same all-pools DexScreener desk read as `snapshot:volume`. No Gecko backfill. Th
 | **Bar** | DexScreener trailing `volume.h24` sampled near the end of that Eastern date. Not a true 12:00 AM–11:59 PM ET window |
 | **Lanes** | Public equity, ETF/index, and private. Issuer × type is shown when the row recorded it. **RHJ** is the verified issuer. **Ondo-named (unverified)** is not official Ondo |
 
-The stock list still comes from Robinhood Liquidity Terminal (`TERMINAL_BASE_URL`). Snapshot volume renders even when that list is empty. Seed/mock names are not shown on this desk.
+The stock list uses the public RHJ registry (`https://api.robinhood.com/rhj/assets`) and DexScreener markets on chain 4663, with the same Equities / ETF / Private, issuer, and Volume | Liquidity card desk as Solana. Ondo-named tokens stay labeled unverified. `TERMINAL_BASE_URL` is optional: when it is set, Terminal reference marks are kept, and Terminal rows are the fallback if discovery does not load. Snapshot volume renders even when that list is empty. Seed/mock names are not shown on this desk.
 
 Nightly capture is not in this app process. `npm run snapshot:robinhood-volume` points at `scripts/snapshot-robinhood-volume.py`, which is not on `main` yet (draft snapshot PRs). Cron, when that writer lands, is `CRON_TZ=America/New_York 59 23 * * *`. Auto-land via `snapshot:land --push-main` still waits on the shared day-key drafts. Until the next snapshot lands, the desk shows the bars committed in `robinhood.json` and does not invent later days.
 
