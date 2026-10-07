@@ -56,9 +56,6 @@ export interface SnapshotDeskConfig {
   issuerPresentation: (slug: string) => { label: string; official: boolean };
 }
 
-export const SNAPSHOT_DESK_VOLUME_NOTE =
-  "Public equity, private, and ETF/index are summed with null omitted, not stored as $0. The in-progress Eastern day is omitted. Days before snapshots began are not invented.";
-
 const LANE_KEYS = ["equity", "etf", "private"] as const;
 type LaneKey = (typeof LANE_KEYS)[number];
 
