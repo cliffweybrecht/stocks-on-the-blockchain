@@ -1,5 +1,5 @@
 import { sortByVolumeThenLiquidity } from "./aggregate";
-import type { DexScreenerPair } from "./map-solana";
+import { parsePairCreatedAt, type DexScreenerPair } from "./map-solana";
 import {
   asHttpUrl,
   asNonEmptyString,
@@ -358,7 +358,7 @@ function addPair(bucket: PairBucket, pair: DexScreenerPair, tokenAddress: string
     trades24h: buys !== null && sells !== null ? buys + sells : null,
     wallets24h: null,
     pairHolderCount: null,
-    pairCreatedAt: null,
+    pairCreatedAt: parsePairCreatedAt(pair.pairCreatedAt),
     tradesChange24hPct: null,
     walletsChange24hPct: null,
   };

@@ -9,6 +9,10 @@ import { MarketsTable } from "@/components/markets-table";
 import { Metric } from "@/components/metric";
 import { PageShell } from "@/components/page-shell";
 import {
+  RobinhoodAssetChart,
+  RobinhoodAssetChartFallback,
+} from "@/components/robinhood-asset-sections";
+import {
   SolanaAssetChart,
   SolanaAssetChartFallback,
   SolanaAssetMarkets,
@@ -30,6 +34,7 @@ import { sortPoolsByVolume } from "@/lib/desk/pool-sort";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { toJumpAsset } from "@/lib/market/asset-search";
 import { lookupRobinhoodChainAsset } from "@/lib/market/robinhood-chain-markets";
+import { enrichRobinhoodAssetDetail } from "@/lib/market/robinhood-asset-series";
 import { ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type AssetDetailResult } from "@/lib/market/types";
 
 export const dynamic = "force-dynamic";
@@ -48,7 +53,7 @@ export default async function AssetPage({
   const [assetSettled, chainSettled, priceHistorySettled, robinhoodSettled] = await Promise.allSettled([
     source.getAsset(chainId, decoded, solanaFastPath ? { enrich: false } : undefined),
     solanaFastPath ? source.getChain(chainId) : Promise.resolve(null),
-    solanaFastPath ? Promise.resolve(null) : source.getAssetPriceHistory(chainId, decoded),
+    solanaFastPath || robinhoodChain ? Promise.resolve(null) : source.getAssetPriceHistory(chainId, decoded),
     robinhoodChain ? lookupRobinhoodChainAsset(decoded) : Promise.resolve(null),
   ]);
 
@@ -56,7 +61,11 @@ export default async function AssetPage({
     assetSettled.status === "fulfilled" ? assetSettled.value : null;
   const discoveredAsset: AssetDetailResult | null =
     robinhoodSettled.status === "fulfilled" ? robinhoodSettled.value : null;
-  const result = mergeRobinhoodAsset(sourceAsset, discoveredAsset);
+  const merged = mergeRobinhoodAsset(sourceAsset, discoveredAsset);
+  const result =
+    merged && robinhoodChain
+      ? await enrichRobinhoodAssetDetail(merged).catch(() => merged)
+      : merged;
 
   if (!result && assetSettled.status === "rejected" && !robinhoodChain) {
     const detail =
@@ -91,6 +100,7 @@ export default async function AssetPage({
 
   const { chain, asset, provenance } = result;
   const isSolana = chain.id === SOLANA_CHAIN_ID;
+  const isRobinhood = chain.id === ROBINHOOD_CHAIN_ID;
   const rankedPools = sortPoolsByVolume(asset.pools);
   const priceHistory =
     priceHistorySettled.status === "fulfilled" && priceHistorySettled.value
@@ -122,6 +132,10 @@ export default async function AssetPage({
           {isSolana ? (
             <Suspense fallback={<SolanaAssetChartFallback chain={chain} asset={asset} />}>
               <SolanaAssetChart chain={chain} asset={asset} routeSymbol={decoded} />
+            </Suspense>
+          ) : isRobinhood ? (
+            <Suspense fallback={<RobinhoodAssetChartFallback chain={chain} asset={asset} />}>
+              <RobinhoodAssetChart chain={chain} asset={asset} />
             </Suspense>
           ) : (
             <AssetMarketPanel
@@ -211,20 +225,24 @@ export default async function AssetPage({
             ) : (
               <MarketsTable asset={asset} pools={rankedPools} />
             )
-          ) : isSolana ? (
-            <section className="rounded-xl border border-dashed border-border bg-card px-4 py-6">
+          ) : isSolana || isRobinhood ? (
+            <section className="rounded-xl border border-dashed border-border bg-card px-4 py-6" data-markets>
               <h3 className="font-heading text-lg font-medium">
-                {asset.volumeCoverage === "hydrate_incomplete"
-                  ? "Still hydrating"
-                  : asset.volumeCoverage === "no_indexed_pools"
-                    ? "Confirmed no indexed pools"
-                    : "No indexed Solana pools"}
+                {isRobinhood
+                  ? "No indexed Robinhood Chain pools"
+                  : asset.volumeCoverage === "hydrate_incomplete"
+                    ? "Still hydrating"
+                    : asset.volumeCoverage === "no_indexed_pools"
+                      ? "Confirmed no indexed pools"
+                      : "No indexed Solana pools"}
               </h3>
               <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-                {asset.coverageNote ??
-                  (asset.volumeCoverage === "hydrate_incomplete"
-                    ? "DexScreener lookup has not finished for this mint. Volume is unknown, not zero — not the same as confirmed no pools."
-                    : "DexScreener lookup finished and found no indexed Solana pools for this mint. That is the public pair-index ceiling, not zero volume.")}
+                {isRobinhood
+                  ? "DexScreener did not return indexed pools for this contract on chain 4663. The desk does not invent markets."
+                  : (asset.coverageNote ??
+                    (asset.volumeCoverage === "hydrate_incomplete"
+                      ? "DexScreener lookup has not finished for this mint. Volume is unknown, not zero — not the same as confirmed no pools."
+                      : "DexScreener lookup finished and found no indexed Solana pools for this mint. That is the public pair-index ceiling, not zero volume."))}
               </p>
             </section>
           ) : null}

@@ -74,6 +74,7 @@ export function AssetMarketPanel({
   history,
   allMarkets24hUsd = null,
   allMarketsSymbol = null,
+  allMarketsHref = null,
   initialAllMarketsDaily = null,
   initialAllMarketsHourly = null,
   chartPending = false,
@@ -86,6 +87,8 @@ export function AssetMarketPanel({
   allMarkets24hUsd?: number | null;
   /** Set for Solana so the volume series can fill from the background cache. */
   allMarketsSymbol?: string | null;
+  /** Overrides the Solana poll URL. Robinhood Chain uses its own route. */
+  allMarketsHref?: string | null;
   /** Warm daily cache from disk. Null means the client may poll. */
   initialAllMarketsDaily?: VolumeHistoryPoint[] | null;
   /** Warm hourly cache from disk. Null means the 24H line may still be the primary pool. */
@@ -104,8 +107,14 @@ export function AssetMarketPanel({
   const [allMarketsFill, setAllMarketsFill] = useState<{ resolvedPools: number; totalPools: number } | null>(null);
   const [hourlyFill, setHourlyFill] = useState<{ resolvedPools: number; totalPools: number } | null>(null);
 
+  const pollHref =
+    allMarketsHref ??
+    (allMarketsSymbol
+      ? `/api/solana/asset-all-markets-volume?symbol=${encodeURIComponent(allMarketsSymbol)}`
+      : null);
+
   useEffect(() => {
-    if (!allMarketsSymbol || (dailySettled && hourlySettled)) return;
+    if (!pollHref || (dailySettled && hourlySettled)) return;
     let cancelled = false;
     let timer = 0;
 
@@ -126,10 +135,7 @@ export function AssetMarketPanel({
       let dailyDone = dailySettled;
       let hourlyDone = hourlySettled;
       try {
-        const response = await fetch(
-          `/api/solana/asset-all-markets-volume?symbol=${encodeURIComponent(allMarketsSymbol)}`,
-          { cache: "no-store" },
-        );
+        const response = await fetch(pollHref, { cache: "no-store" });
         if (!response.ok) throw new Error("all-markets volume unavailable");
         const body = (await response.json()) as {
           pending?: boolean;
@@ -189,7 +195,7 @@ export function AssetMarketPanel({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [allMarketsSymbol, dailySettled, hourlySettled]);
+  }, [pollHref, dailySettled, hourlySettled]);
 
   const nowT = useMemo(() => priceHistoryNowT(history), [history]);
   const visiblePrice = useMemo(() => filterPriceRange(history, range, nowT), [history, range, nowT]);

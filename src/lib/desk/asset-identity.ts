@@ -1,6 +1,6 @@
 import { formatAddress } from "@/lib/market/format";
 import { asHttpUrl } from "@/lib/market/numbers";
-import type { InstrumentKind, SourceKind } from "@/lib/market/types";
+import { ROBINHOOD_CHAIN_ID, type InstrumentKind, type SourceKind } from "@/lib/market/types";
 
 const SKIP_WORDS = new Set([
   "a",
@@ -64,11 +64,13 @@ export function sourceRowLabel(sourceId: SourceKind): string {
 }
 
 export function dexScreenerTokenUrl(chainId: string, mint: string): string | null {
-  if (chainId !== "solana" || !mint.trim()) return null;
-  return `https://dexscreener.com/solana/${mint}`;
+  if (!mint.trim()) return null;
+  if (chainId === "solana") return `https://dexscreener.com/solana/${mint}`;
+  if (chainId === ROBINHOOD_CHAIN_ID) return `https://dexscreener.com/robinhood/${mint}`;
+  return null;
 }
 
-/** Prefer a reported DexScreener pair URL; otherwise build one from a Solana pair address. */
+/** Prefer a reported DexScreener pair URL; otherwise build one for Solana or Robinhood Chain. */
 export function dexScreenerPairUrl(
   chainId: string,
   pairAddress: string | null | undefined,
@@ -77,8 +79,10 @@ export function dexScreenerPairUrl(
   const reported = asHttpUrl(reportedUrl);
   if (reported) return reported;
   const address = pairAddress?.trim();
-  if (chainId !== "solana" || !address) return null;
-  return `https://dexscreener.com/solana/${address}`;
+  if (!address) return null;
+  if (chainId === "solana") return `https://dexscreener.com/solana/${address}`;
+  if (chainId === ROBINHOOD_CHAIN_ID) return `https://dexscreener.com/robinhood/${address}`;
+  return null;
 }
 
 /** Last breadcrumb crumb — ordinary foreground, never yellow / primary / interpretive. */
