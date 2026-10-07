@@ -1,4 +1,4 @@
-import { ChainVolumeCard } from "@/components/chain-volume-card";
+import { ChainVolumeTable } from "@/components/chain-volume-card";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { PageShell } from "@/components/page-shell";
@@ -153,25 +153,21 @@ export default async function HomePage() {
               detail="The configured market sources returned zero chains. A live adapter that failed is listed in provenance rather than filled with invented volume."
             />
           ) : (
-            <div className="grid gap-4">
-              {rankedChains.map((chain, index) => (
-                <ChainVolumeCard
-                  key={chain.id}
-                  chain={chain}
-                  rank={index + 1}
-                  maxVolume={maxVolume}
-                  detail={
-                    chain.id === ROBINHOOD_CHAIN_ID
-                      ? robinhoodHomeVolumeDetail(robinhoodDays)
-                      : chain.id === BASE_CHAIN_ID
-                        ? snapshotHomeVolumeDetail(baseDays, BASE_DESK.name)
-                        : chain.id === BNB_CHAIN_ID
-                          ? snapshotHomeVolumeDetail(bnbDays, BNB_DESK.name)
-                          : null
-                  }
-                />
-              ))}
-            </div>
+            <ChainVolumeTable
+              rows={rankedChains.map((chain, index) => ({
+                chain,
+                rank: index + 1,
+                maxVolume,
+                detail:
+                  chain.id === ROBINHOOD_CHAIN_ID
+                    ? robinhoodHomeVolumeDetail(robinhoodDays)
+                    : chain.id === BASE_CHAIN_ID
+                      ? snapshotHomeVolumeDetail(baseDays, BASE_DESK.name)
+                      : chain.id === BNB_CHAIN_ID
+                        ? snapshotHomeVolumeDetail(bnbDays, BNB_DESK.name)
+                        : null,
+              }))}
+            />
           )}
         </section>
       </div>

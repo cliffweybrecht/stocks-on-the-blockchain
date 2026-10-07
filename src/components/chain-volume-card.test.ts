@@ -17,7 +17,7 @@ vi.mock("next/link", () => ({
   },
 }));
 
-import { ChainVolumeCard } from "./chain-volume-card";
+import { CHAIN_VOLUME_TRACKS, ChainVolumeCard, ChainVolumeTable } from "./chain-volume-card";
 import { formatUsdCompact } from "@/lib/market/format";
 import { robinhoodHomeChainVolume, robinhoodHomeVolumeDetail } from "@/lib/market/home-desk-volume";
 import { parseRobinhoodDeskDays, robinhoodSnapshotChainShell } from "@/lib/market/robinhood-desk-volume";
@@ -65,15 +65,21 @@ describe("ChainVolumeCard", () => {
     expect(html).toContain('href="/chains/robinhood-chain"');
     expect(html).toContain(">Robinhood Chain<");
     expect(html).toContain(">#2<");
-    expect(html).toContain("24h volume · public + private + ETF/index");
+    expect(html).not.toContain("24h volume · public + private + ETF/index");
+    expect(html).not.toContain("Public 24h");
+    expect(html).not.toContain("Private 24h");
+    expect(html).not.toContain("ETF/index 24h");
+    expect(html).not.toContain(">24H Volume<");
+    expect(html).not.toContain(">Public 24H<");
+    expect(html).not.toContain(">Private 24H<");
+    expect(html).not.toContain(">ETF/Index 24H<");
     expect(html).toContain('data-chain-volume-split="true"');
+    expect(html).toContain("data-volume-share-bar");
+    expect(html).toContain("grid-cols-subgrid");
     expect(html).toContain(`>${formatUsdCompact(48_555_668.9)}<`);
     expect(html).toContain(`>${formatUsdCompact(30_452_397.6)}<`);
     expect(html).toContain(`>${formatUsdCompact(2_352_414.29)}<`);
     expect(html).toContain(`>${formatUsdCompact(15_750_857.01)}<`);
-    expect(html).toContain("Public 24h");
-    expect(html).toContain("Private 24h");
-    expect(html).toContain("ETF/index 24h");
     expect(html).toContain("2026-10-05 America/New_York · last closed snapshot.");
     expect(html).not.toMatch(/trailing h24/i);
     expect(html).not.toContain("12:00");
@@ -94,6 +100,40 @@ describe("ChainVolumeCard", () => {
     expect(html).toContain('data-chain-volume-split="true"');
     expect(html).toContain(`>${formatUsdCompact(103_700_000)}<`);
     expect(html).not.toContain("data-chain-volume-note");
+    expect(html).toContain("data-volume-share-bar");
+    expect(html).not.toContain(">Public 24H<");
+  });
+
+  it("puts one header over the bubbles and lines every row up to the same tracks", () => {
+    const robinhood = robinhoodHomeChainVolume(days);
+    const html = renderToStaticMarkup(
+      createElement(ChainVolumeTable, {
+        rows: [
+          { chain: solanaChain(), rank: 1, maxVolume: 103_700_000, detail: null },
+          {
+            chain: robinhood,
+            rank: 2,
+            maxVolume: 103_700_000,
+            detail: robinhoodHomeVolumeDetail(days),
+          },
+        ],
+      }),
+    );
+    const headerAt = html.indexOf("data-chain-volume-header");
+    const solanaAt = html.indexOf('data-chain-id="solana"');
+    expect(headerAt).toBeGreaterThan(-1);
+    expect(solanaAt).toBeGreaterThan(headerAt);
+    expect(html).toContain(CHAIN_VOLUME_TRACKS);
+    expect(html.match(/grid-cols-subgrid/g)?.length).toBe(3);
+    expect(html.match(/>24H Volume</g)?.length).toBe(1);
+    expect(html.match(/>Public 24H</g)?.length).toBe(1);
+    expect(html.match(/>Private 24H</g)?.length).toBe(1);
+    expect(html.match(/>ETF\/Index 24H</g)?.length).toBe(1);
+    expect(html.match(/>Snapshot</g)?.length).toBe(1);
+    expect(html).toContain(">Chain<");
+    expect(html).toContain(">#<");
+    expect(html.indexOf(">#1<")).toBeGreaterThan(headerAt);
+    expect(html.indexOf(">#2<")).toBeGreaterThan(html.indexOf(">#1<"));
   });
 
   it("renders an empty Robinhood row without inventing zero", () => {
