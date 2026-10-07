@@ -7,8 +7,11 @@ import { selectEquityPriceTicker } from "@/lib/desk/price-ticker";
 import { chainCombinedVolume24h } from "@/lib/market/aggregate";
 import { toJumpAsset } from "@/lib/market/asset-search";
 import { createMarketDataSource } from "@/lib/market/factory";
+import { homeChainsWithRobinhood, robinhoodHomeVolumeDetail } from "@/lib/market/home-desk-volume";
 import { maxNullable } from "@/lib/market/numbers";
-import { SOLANA_CHAIN_ID, type AssetSummary } from "@/lib/market/types";
+import { loadClosedRobinhoodDeskDays } from "@/lib/market/robinhood-desk-volume-file";
+import type { RobinhoodDeskDay } from "@/lib/market/robinhood-desk-volume";
+import { ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type AssetSummary } from "@/lib/market/types";
 import { emptyEquityVolumeHistory } from "@/lib/market/volume-history";
 import { emptyHourlyRollingVolumeHistory } from "@/lib/market/volume-hourly-snapshots";
 
@@ -74,7 +77,15 @@ export default async function HomePage() {
       // Skip a chain that listed but failed to hydrate. Do not invent ticker rows.
     }
   }
-  const maxVolume = maxNullable(chains.map(chainCombinedVolume24h));
+  let robinhoodDays: RobinhoodDeskDay[] = [];
+  try {
+    robinhoodDays = await loadClosedRobinhoodDeskDays();
+  } catch {
+    // Missing Robinhood snapshots leave the Solana desk in place. Do not invent volume.
+    robinhoodDays = [];
+  }
+  const rankedChains = homeChainsWithRobinhood(chains, robinhoodDays);
+  const maxVolume = maxNullable(rankedChains.map(chainCombinedVolume24h));
   const priceTicker = selectEquityPriceTicker(tickerAssets);
   const solanaChain = chains.find((chain) => chain.id === SOLANA_CHAIN_ID) ?? null;
 
@@ -97,22 +108,24 @@ export default async function HomePage() {
                 }
               : null
           }
+          robinhoodDays={robinhoodDays}
         />
         <section className="space-y-3">
           <h2 className="font-heading text-lg font-medium">Chain volume</h2>
-          {chains.length === 0 ? (
+          {rankedChains.length === 0 ? (
             <EmptyState
               title="No chains reported"
               detail="The configured market sources returned zero chains. A live adapter that failed is listed in provenance rather than filled with invented volume."
             />
           ) : (
             <div className="grid gap-4">
-              {chains.map((chain, index) => (
+              {rankedChains.map((chain, index) => (
                 <ChainVolumeCard
                   key={chain.id}
                   chain={chain}
                   rank={index + 1}
                   maxVolume={maxVolume}
+                  detail={chain.id === ROBINHOOD_CHAIN_ID ? robinhoodHomeVolumeDetail(robinhoodDays) : null}
                 />
               ))}
             </div>

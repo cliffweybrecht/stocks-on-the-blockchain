@@ -39,6 +39,15 @@ import {
   preferFresherHourlyHistory,
 } from "@/lib/market/desk-volume-live";
 import { formatChartDay, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
+import {
+  HOME_24H_ROBINHOOD_PLOT_NOTE,
+  HOME_CLOSED_RANGE_WITH_ROBINHOOD_FOOTER,
+  includeRobinhoodInDeskHeadline,
+  lastReportedRobinhoodDay,
+  mergeHomeDeskSnapshotPoints,
+  snapshotSeriesIncludesRobinhood,
+} from "@/lib/market/home-desk-volume";
+import { closedRobinhoodDeskDays, type RobinhoodDeskDay } from "@/lib/market/robinhood-desk-volume";
 import type { EquityVolumeHistoryResult, VolumeHistoryPoint } from "@/lib/market/types";
 import { easternRollingHourStarts } from "@/lib/market/volume-hourly-snapshots";
 import { closedSnapshotVolumePoints } from "@/lib/market/volume-snapshots";
@@ -130,6 +139,7 @@ export function DailyVolumeChart({
   history: historyProp,
   hourlyHistory: hourlyHistoryProp = null,
   rolling24h: rolling24hProp = null,
+  robinhoodDays = null,
   initialRange = "7d",
 }: {
   history: EquityVolumeHistoryResult;
@@ -141,6 +151,12 @@ export function DailyVolumeChart({
   hourlyHistory?: EquityVolumeHistoryResult | null;
   /** Live Solana ChainVolume 24h legs. Used only for the 24H headline. */
   rolling24h?: DeskRolling24hVolumes | null;
+  /**
+   * Closed Robinhood desk days. Home passes these so 7D/14D/30D add the same
+   * Eastern day and 24H adds the newest closed snapshot. Omit on the Solana desk.
+   * Robinhood has no hourly series; the 24H area stays Solana.
+   */
+  robinhoodDays?: readonly RobinhoodDeskDay[] | null;
   /** Closed-day ranges stay the default. Tests pin 24H without a click. */
   initialRange?: VolumeChartRangeId;
 }) {
@@ -224,13 +240,20 @@ export function DailyVolumeChart({
     };
   }, [rolling]);
 
-  const points = useMemo(() => {
+  const deskNowT = useMemo(() => {
     const parsedGeneratedAt = Date.parse(history.generatedAt);
     const fallbackT = history.points[history.points.length - 1]?.t ?? 0;
-    const nowT = Number.isFinite(parsedGeneratedAt) ? parsedGeneratedAt / 1000 : fallbackT;
-    // Closed snapshot days only. A rolling ~24h tip is not an Eastern snapshot day.
-    return closedSnapshotVolumePoints(history.points, nowT);
+    return Number.isFinite(parsedGeneratedAt) ? parsedGeneratedAt / 1000 : fallbackT;
   }, [history.generatedAt, history.points]);
+  const robinhoodClosed = useMemo(
+    () => closedRobinhoodDeskDays(robinhoodDays ?? [], deskNowT),
+    [deskNowT, robinhoodDays],
+  );
+  const points = useMemo(() => {
+    // Closed snapshot days only. A rolling ~24h tip is not an Eastern snapshot day.
+    const closed = closedSnapshotVolumePoints(history.points, deskNowT);
+    return mergeHomeDeskSnapshotPoints(closed, robinhoodClosed);
+  }, [deskNowT, history.points, robinhoodClosed]);
 
   const hourlyNowT = useMemo(() => {
     const parsed = Date.parse(hourlyHistory?.generatedAt ?? "");
@@ -256,8 +279,20 @@ export function DailyVolumeChart({
       }),
     [hourSlots, showHourlyAxis, visible],
   );
-  // 24H headline ignores the plotted series and reads the live rollup.
-  const headline = deskChartHeadline(range, rolling ? points : visible, rolling24h);
+  // 24H headline ignores the plotted series and reads the live Solana rollup,
+  // then adds Robinhood's newest closed snapshot when the home desk passed days.
+  // Closed ranges mention Robinhood only when a visible day actually includes it.
+  const robinhoodInView = rolling
+    ? lastReportedRobinhoodDay(robinhoodClosed) !== null
+    : snapshotSeriesIncludesRobinhood(visible, robinhoodClosed);
+  const headline = robinhoodInView
+    ? includeRobinhoodInDeskHeadline(
+        deskChartHeadline(range, rolling ? points : visible, rolling24h),
+        range,
+        robinhoodClosed,
+      )
+    : deskChartHeadline(range, rolling ? points : visible, rolling24h);
+  const robinhoodInSeries = snapshotSeriesIncludesRobinhood(points, robinhoodClosed);
   const hasDaily = points.length > 0;
   const showRanges = hasDaily || hourlyCaptures.length > 0;
   const showHeadline = headline.volumeUsd !== null;
@@ -293,6 +328,7 @@ export function DailyVolumeChart({
       data-hourly-point-count={hourlyCaptures.length}
       data-volume-refresh-ms={rolling ? DESK_VOLUME_24H_POLL_MS : DESK_VOLUME_HISTORY_POLL_MS}
       data-volume-live={rolling ? "24h" : "closed-day"}
+      data-volume-includes-robinhood={robinhoodInView ? "true" : "false"}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -361,7 +397,9 @@ export function DailyVolumeChart({
             aria-label={
               rolling
                 ? HOURLY_VOLUME_SERIES_ARIA
-                : "Daily Solana tokenized stock volume from desk DexScreener snapshots. Headline is the sum of snapshot days in the selected range."
+                : robinhoodInView
+                  ? "Daily tokenized stock volume from Solana and Robinhood Chain desk DexScreener snapshots. Headline is the sum of snapshot days in the selected range. Robinhood bars are trailing h24 samples, not a true 12:00 AM–11:59 PM ET window."
+                  : "Daily Solana tokenized stock volume from desk DexScreener snapshots. Headline is the sum of snapshot days in the selected range."
             }
           >
             <defs>
@@ -501,9 +539,16 @@ export function DailyVolumeChart({
           {HOURLY_VOLUME_SERIES_CAPTION}
         </p>
       ) : null}
+      {rolling && robinhoodInView ? (
+        <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-volume-robinhood-24h-note>
+          {HOME_24H_ROBINHOOD_PLOT_NOTE}
+        </p>
+      ) : null}
       {!rolling && hasDaily ? (
-        <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
-          History from closed desk DexScreener snapshots. The in-progress Eastern day is omitted until that America/New_York date has closed.
+        <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-volume-history-note>
+          {robinhoodInSeries
+            ? HOME_CLOSED_RANGE_WITH_ROBINHOOD_FOOTER
+            : "History from closed desk DexScreener snapshots. The in-progress Eastern day is omitted until that America/New_York date has closed."}
         </p>
       ) : null}
     </section>
