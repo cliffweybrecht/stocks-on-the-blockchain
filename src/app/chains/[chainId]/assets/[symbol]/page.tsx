@@ -9,6 +9,10 @@ import { MarketsTable } from "@/components/markets-table";
 import { Metric } from "@/components/metric";
 import { PageShell } from "@/components/page-shell";
 import {
+  RobinhoodAssetChart,
+  RobinhoodAssetChartFallback,
+} from "@/components/robinhood-asset-sections";
+import {
   SolanaAssetChart,
   SolanaAssetChartFallback,
   SolanaAssetMarkets,
@@ -29,7 +33,9 @@ import { deskSpotPriceUsd, selectEquityPriceTicker } from "@/lib/desk/price-tick
 import { sortPoolsByVolume } from "@/lib/desk/pool-sort";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { toJumpAsset } from "@/lib/market/asset-search";
-import { SOLANA_CHAIN_ID } from "@/lib/market/types";
+import { lookupRobinhoodChainAsset } from "@/lib/market/robinhood-chain-markets";
+import { enrichRobinhoodAssetDetail } from "@/lib/market/robinhood-asset-series";
+import { ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type AssetDetailResult } from "@/lib/market/types";
 
 export const dynamic = "force-dynamic";
 
@@ -43,13 +49,25 @@ export default async function AssetPage({
   const decoded = decodeURIComponent(symbol);
   const solanaFastPath = chainId === SOLANA_CHAIN_ID;
 
-  const [assetSettled, chainSettled, priceHistorySettled] = await Promise.allSettled([
+  const robinhoodChain = chainId === ROBINHOOD_CHAIN_ID;
+  const [assetSettled, chainSettled, priceHistorySettled, robinhoodSettled] = await Promise.allSettled([
     source.getAsset(chainId, decoded, solanaFastPath ? { enrich: false } : undefined),
     solanaFastPath ? source.getChain(chainId) : Promise.resolve(null),
-    solanaFastPath ? Promise.resolve(null) : source.getAssetPriceHistory(chainId, decoded),
+    solanaFastPath || robinhoodChain ? Promise.resolve(null) : source.getAssetPriceHistory(chainId, decoded),
+    robinhoodChain ? lookupRobinhoodChainAsset(decoded) : Promise.resolve(null),
   ]);
 
-  if (assetSettled.status === "rejected") {
+  const sourceAsset: AssetDetailResult | null =
+    assetSettled.status === "fulfilled" ? assetSettled.value : null;
+  const discoveredAsset: AssetDetailResult | null =
+    robinhoodSettled.status === "fulfilled" ? robinhoodSettled.value : null;
+  const merged = mergeRobinhoodAsset(sourceAsset, discoveredAsset);
+  const result =
+    merged && robinhoodChain
+      ? await enrichRobinhoodAssetDetail(merged).catch(() => merged)
+      : merged;
+
+  if (!result && assetSettled.status === "rejected" && !robinhoodChain) {
     const detail =
       assetSettled.reason instanceof Error ? assetSettled.reason.message : "Asset snapshot failed.";
     return (
@@ -59,7 +77,16 @@ export default async function AssetPage({
     );
   }
 
-  const result = assetSettled.value;
+  if (!result && robinhoodChain && robinhoodSettled.status === "rejected" && assetSettled.status === "rejected") {
+    const reason = robinhoodSettled.reason;
+    const detail = reason instanceof Error ? reason.message : "Asset snapshot failed.";
+    return (
+      <PageShell>
+        <ErrorState title="Could not load this stock" detail={detail} />
+      </PageShell>
+    );
+  }
+
   if (!result) {
     return (
       <PageShell>
@@ -73,6 +100,7 @@ export default async function AssetPage({
 
   const { chain, asset, provenance } = result;
   const isSolana = chain.id === SOLANA_CHAIN_ID;
+  const isRobinhood = chain.id === ROBINHOOD_CHAIN_ID;
   const rankedPools = sortPoolsByVolume(asset.pools);
   const priceHistory =
     priceHistorySettled.status === "fulfilled" && priceHistorySettled.value
@@ -105,6 +133,10 @@ export default async function AssetPage({
             <Suspense fallback={<SolanaAssetChartFallback chain={chain} asset={asset} />}>
               <SolanaAssetChart chain={chain} asset={asset} routeSymbol={decoded} />
             </Suspense>
+          ) : isRobinhood ? (
+            <Suspense fallback={<RobinhoodAssetChartFallback chain={chain} asset={asset} />}>
+              <RobinhoodAssetChart chain={chain} asset={asset} />
+            </Suspense>
           ) : (
             <AssetMarketPanel
               key={asset.contractAddress}
@@ -122,9 +154,9 @@ export default async function AssetPage({
             <AssetStatsCard asset={asset} />
           )}
 
-          {isSolana ? null : <TrustBanner />}
+          {isSolana || isRobinhood ? null : <TrustBanner />}
 
-          {!isSolana ? (
+          {!isSolana && !isRobinhood ? (
             <>
               <section className="space-y-3">
                 <h3 className="font-heading text-lg font-medium">Identity</h3>
@@ -193,20 +225,24 @@ export default async function AssetPage({
             ) : (
               <MarketsTable asset={asset} pools={rankedPools} />
             )
-          ) : isSolana ? (
-            <section className="rounded-xl border border-dashed border-border bg-card px-4 py-6">
+          ) : isSolana || isRobinhood ? (
+            <section className="rounded-xl border border-dashed border-border bg-card px-4 py-6" data-markets>
               <h3 className="font-heading text-lg font-medium">
-                {asset.volumeCoverage === "hydrate_incomplete"
-                  ? "Still hydrating"
-                  : asset.volumeCoverage === "no_indexed_pools"
-                    ? "Confirmed no indexed pools"
-                    : "No indexed Solana pools"}
+                {isRobinhood
+                  ? "No indexed Robinhood Chain pools"
+                  : asset.volumeCoverage === "hydrate_incomplete"
+                    ? "Still hydrating"
+                    : asset.volumeCoverage === "no_indexed_pools"
+                      ? "Confirmed no indexed pools"
+                      : "No indexed Solana pools"}
               </h3>
               <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-                {asset.coverageNote ??
-                  (asset.volumeCoverage === "hydrate_incomplete"
-                    ? "DexScreener lookup has not finished for this mint. Volume is unknown, not zero — not the same as confirmed no pools."
-                    : "DexScreener lookup finished and found no indexed Solana pools for this mint. That is the public pair-index ceiling, not zero volume.")}
+                {isRobinhood
+                  ? "DexScreener did not return indexed pools for this contract on chain 4663. The desk does not invent markets."
+                  : (asset.coverageNote ??
+                    (asset.volumeCoverage === "hydrate_incomplete"
+                      ? "DexScreener lookup has not finished for this mint. Volume is unknown, not zero — not the same as confirmed no pools."
+                      : "DexScreener lookup finished and found no indexed Solana pools for this mint. That is the public pair-index ceiling, not zero volume."))}
               </p>
             </section>
           ) : null}
@@ -276,4 +312,32 @@ export default async function AssetPage({
         </div>
       </PageShell>
     );
+}
+
+function mergeRobinhoodAsset(
+  sourceAsset: AssetDetailResult | null,
+  discovered: AssetDetailResult | null,
+): AssetDetailResult | null {
+  if (!discovered) return sourceAsset;
+  if (!sourceAsset) return discovered;
+  const terminal = sourceAsset.asset;
+  return {
+    ...discovered,
+    chain: sourceAsset.chain.id === ROBINHOOD_CHAIN_ID ? sourceAsset.chain : discovered.chain,
+    asset: {
+      ...discovered.asset,
+      robinhoodReferencePriceUsd:
+        discovered.asset.robinhoodReferencePriceUsd ?? terminal.robinhoodReferencePriceUsd,
+      premiumDiscountPct: discovered.asset.premiumDiscountPct ?? terminal.premiumDiscountPct,
+      price: {
+        ...discovered.asset.price,
+        robinhoodReferenceUsd: discovered.asset.price.robinhoodReferenceUsd ?? terminal.price.robinhoodReferenceUsd,
+        robinhoodBidUsd: terminal.price.robinhoodBidUsd,
+        robinhoodAskUsd: terminal.price.robinhoodAskUsd,
+        robinhoodGeneratedAt: terminal.price.robinhoodGeneratedAt,
+        isTradingHalt: terminal.price.isTradingHalt,
+        premiumDiscountPct: discovered.asset.price.premiumDiscountPct ?? terminal.price.premiumDiscountPct,
+      },
+    },
+  };
 }

@@ -41,10 +41,15 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Local DexScreener snapshot experiments. solana.json (closed days) is already
-# tracked. solana-hourly.json is the compact hourly totals series the routine commits.
+# Local DexScreener snapshot experiments. Closed-day files are tracked:
+# solana.json, robinhood.json, base.json, and bnb.json. solana-hourly.json is the
+# compact hourly totals series the routine commits.
 /data/volume-snapshots/*.json
 !/data/volume-snapshots/solana-hourly.json
+!/data/volume-snapshots/solana.json
+!/data/volume-snapshots/robinhood.json
+!/data/volume-snapshots/base.json
+!/data/volume-snapshots/bnb.json
 
 # Cached cross-pool Gecko daily volume. Rebuilt in the background.
 /data/cache/

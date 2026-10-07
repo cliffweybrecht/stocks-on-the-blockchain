@@ -1,7 +1,7 @@
 import type { PriceChartRangeId, VolumeHistoryPoint } from "./types";
 import { isClosedEasternSnapshotDay } from "./volume-snapshots";
 
-export type AssetVolumeHeadlineScope = "all_markets" | "primary_pool";
+export type AssetVolumeHeadlineScope = "all_markets" | "primary_pool" | "observed_pools";
 
 export interface AssetVolumeHeadline {
   /** Null when nothing was observed. Never a fabricated $0. */
@@ -227,6 +227,12 @@ export function selectAssetVolumeHeadline(input: {
   allMarkets24hUsd: number | null | undefined;
   primaryPoolPoints: readonly Pick<VolumeHistoryPoint, "volumeUsd">[];
   allMarketsDaily: readonly VolumeHistoryPoint[] | null;
+  /**
+   * In-window sum of pools that already returned candles.
+   * Used only when the primary series is empty and all-markets is not ready.
+   * It is not labeled all-markets.
+   */
+  observedPoints?: readonly Pick<VolumeHistoryPoint, "volumeUsd">[] | null;
 }): AssetVolumeHeadline {
   if (input.range === "24h") {
     const allMarkets = reportedVolumeUsd(input.allMarkets24hUsd);
@@ -253,8 +259,16 @@ export function selectAssetVolumeHeadline(input: {
     };
   }
 
+  const primarySum = sumObservedVolumeUsd(input.primaryPoolPoints);
+  if (primarySum === null && input.observedPoints && input.observedPoints.length > 0) {
+    return {
+      volumeUsd: sumObservedVolumeUsd(input.observedPoints),
+      label: headlineLabel(input.range, "observed_pools"),
+      scope: "observed_pools",
+    };
+  }
   return {
-    volumeUsd: sumObservedVolumeUsd(input.primaryPoolPoints),
+    volumeUsd: primarySum,
     label: headlineLabel(input.range, "primary_pool"),
     scope: "primary_pool",
   };
@@ -281,6 +295,12 @@ export function selectAssetVolumeSeries(input: {
   primaryPoolPoints: readonly VolumeHistoryPoint[];
   allMarketsDaily: readonly VolumeHistoryPoint[] | null;
   allMarketsHourly: readonly Pick<VolumeHistoryPoint, "t" | "volumeUsd">[] | null;
+  /**
+   * Already inside the chart window. Plotted only when this range's primary
+   * series is empty and the all-markets series is not ready. A finished
+   * all-markets window that happens to be empty stays empty.
+   */
+  observedPoints?: readonly VolumeHistoryPoint[] | null;
 }): AssetVolumeSeries {
   if (input.range === "24h" && input.allMarketsHourly !== null) {
     return {
@@ -292,6 +312,12 @@ export function selectAssetVolumeSeries(input: {
     return {
       points: closedDailyPointsInWindow(input.allMarketsDaily, input.nowT, input.windowSeconds),
       scope: "all_markets",
+    };
+  }
+  if (input.primaryPoolPoints.length === 0 && input.observedPoints && input.observedPoints.length > 0) {
+    return {
+      points: input.observedPoints.map((point) => ({ t: point.t, volumeUsd: point.volumeUsd })),
+      scope: "observed_pools",
     };
   }
   return {

@@ -21,7 +21,7 @@ import {
 } from "@/lib/desk/asset-price-view";
 import { DESK_CHART_STROKE, monotoneAreaPath, monotoneLinePath } from "@/lib/desk/chart-curve";
 import { selectAssetVolumeHeadline, selectAssetVolumeSeries } from "@/lib/market/asset-volume-headline";
-import { ASSET_VOLUME_HISTORY_EMPTY_REASON } from "@/lib/market/asset-price-history";
+import { ASSET_VOLUME_HISTORY_EMPTY_REASON, mergePolledCloses } from "@/lib/market/asset-price-history";
 import { formatChartDate, formatPct, formatPrice, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
 import type {
   AssetChartMode,
@@ -74,6 +74,7 @@ export function AssetMarketPanel({
   history,
   allMarkets24hUsd = null,
   allMarketsSymbol = null,
+  allMarketsHref = null,
   initialAllMarketsDaily = null,
   initialAllMarketsHourly = null,
   chartPending = false,
@@ -86,6 +87,8 @@ export function AssetMarketPanel({
   allMarkets24hUsd?: number | null;
   /** Set for Solana so the volume series can fill from the background cache. */
   allMarketsSymbol?: string | null;
+  /** Overrides the Solana poll URL. Robinhood Chain uses its own route. */
+  allMarketsHref?: string | null;
   /** Warm daily cache from disk. Null means the client may poll. */
   initialAllMarketsDaily?: VolumeHistoryPoint[] | null;
   /** Warm hourly cache from disk. Null means the 24H line may still be the primary pool. */
@@ -103,9 +106,21 @@ export function AssetMarketPanel({
   const [hourlySettled, setHourlySettled] = useState(initialAllMarketsHourly !== null);
   const [allMarketsFill, setAllMarketsFill] = useState<{ resolvedPools: number; totalPools: number } | null>(null);
   const [hourlyFill, setHourlyFill] = useState<{ resolvedPools: number; totalPools: number } | null>(null);
+  const [observedDaily, setObservedDaily] = useState<VolumeHistoryPoint[] | null>(null);
+  const [observedHourly, setObservedHourly] = useState<VolumeHistoryPoint[] | null>(null);
+  const [polledCloses, setPolledCloses] = useState<{
+    daily: PriceHistoryPoint[];
+    hourly: PriceHistoryPoint[];
+  } | null>(null);
+
+  const pollHref =
+    allMarketsHref ??
+    (allMarketsSymbol
+      ? `/api/solana/asset-all-markets-volume?symbol=${encodeURIComponent(allMarketsSymbol)}`
+      : null);
 
   useEffect(() => {
-    if (!allMarketsSymbol || (dailySettled && hourlySettled)) return;
+    if (!pollHref || (dailySettled && hourlySettled)) return;
     let cancelled = false;
     let timer = 0;
 
@@ -126,10 +141,7 @@ export function AssetMarketPanel({
       let dailyDone = dailySettled;
       let hourlyDone = hourlySettled;
       try {
-        const response = await fetch(
-          `/api/solana/asset-all-markets-volume?symbol=${encodeURIComponent(allMarketsSymbol)}`,
-          { cache: "no-store" },
-        );
+        const response = await fetch(pollHref, { cache: "no-store" });
         if (!response.ok) throw new Error("all-markets volume unavailable");
         const body = (await response.json()) as {
           pending?: boolean;
@@ -142,8 +154,28 @@ export function AssetMarketPanel({
           hourlyComplete?: boolean;
           hourlyResolvedPools?: number;
           hourlyTotalPools?: number;
+          observedDaily?: { t: number; volumeUsd: number }[];
+          observedHourly?: { t: number; volumeUsd: number }[];
+          priceDaily?: { t: number; priceUsd: number }[];
+          priceHourly?: { t: number; priceUsd: number }[];
         };
         if (cancelled) return;
+        if (Array.isArray(body.observedDaily)) setObservedDaily(keep(body.observedDaily));
+        if (Array.isArray(body.observedHourly)) setObservedHourly(keep(body.observedHourly));
+        const keepPrices = (points: { t: number; priceUsd: number }[] | undefined) =>
+          (points ?? []).filter(
+            (point) =>
+              Number.isFinite(point.t) &&
+              point.t > 0 &&
+              Number.isFinite(point.priceUsd) &&
+              point.priceUsd > 0,
+          );
+        if (Array.isArray(body.priceDaily) || Array.isArray(body.priceHourly)) {
+          setPolledCloses({
+            daily: keepPrices(body.priceDaily),
+            hourly: keepPrices(body.priceHourly),
+          });
+        }
         const dailyReady = body.complete === true && Array.isArray(body.daily);
         const dailyFailed = body.pending !== true && body.complete !== true;
         if (dailyReady) {
@@ -189,12 +221,28 @@ export function AssetMarketPanel({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [allMarketsSymbol, dailySettled, hourlySettled]);
+  }, [pollHref, dailySettled, hourlySettled]);
 
-  const nowT = useMemo(() => priceHistoryNowT(history), [history]);
-  const visiblePrice = useMemo(() => filterPriceRange(history, range, nowT), [history, range, nowT]);
+  const plottedHistory = useMemo(() => mergePolledCloses(history, polledCloses), [history, polledCloses]);
+  const nowT = useMemo(() => priceHistoryNowT(plottedHistory), [plottedHistory]);
+  const visiblePrice = useMemo(
+    () => filterPriceRange(plottedHistory, range, nowT),
+    [plottedHistory, range, nowT],
+  );
   const primaryVolume = useMemo(() => filterVolumeRange(history, range, nowT), [history, range, nowT]);
   const rangeSpec = PRICE_CHART_RANGES.find((row) => row.id === range);
+  const resolutionMissing = range === "24h" ? history.hourlyVolume.length === 0 : history.dailyVolume.length === 0;
+  const observedWindow = useMemo(
+    () =>
+      resolutionMissing
+        ? filterVolumeRange(
+            { dailyVolume: observedDaily ?? [], hourlyVolume: observedHourly ?? [] },
+            range,
+            nowT,
+          )
+        : [],
+    [observedDaily, observedHourly, nowT, range, resolutionMissing],
+  );
   const volumeSeries = useMemo(
     () =>
       selectAssetVolumeSeries({
@@ -204,8 +252,9 @@ export function AssetMarketPanel({
         primaryPoolPoints: primaryVolume,
         allMarketsDaily,
         allMarketsHourly,
+        observedPoints: observedWindow,
       }),
-    [allMarketsDaily, allMarketsHourly, nowT, primaryVolume, range, rangeSpec?.seconds],
+    [allMarketsDaily, allMarketsHourly, nowT, observedWindow, primaryVolume, range, rangeSpec?.seconds],
   );
   const visibleVolume = volumeSeries.points;
   const priceMap = useMemo(() => scalePricePoints(visiblePrice), [visiblePrice]);
@@ -224,13 +273,14 @@ export function AssetMarketPanel({
         allMarkets24hUsd,
         primaryPoolPoints: primaryVolume,
         allMarketsDaily,
+        observedPoints: observedWindow,
       }),
-    [allMarkets24hUsd, allMarketsDaily, nowT, primaryVolume, range, rangeSpec?.seconds],
+    [allMarkets24hUsd, allMarketsDaily, nowT, observedWindow, primaryVolume, range, rangeSpec?.seconds],
   );
   const dailyProgressLabel =
     isVolume &&
     (range === "7d" || range === "30d") &&
-    volumeSeries.scope === "primary_pool" &&
+    (volumeSeries.scope === "primary_pool" || volumeSeries.scope === "observed_pools") &&
     allMarketsFill !== null &&
     allMarketsFill.totalPools > 0
       ? `${allMarketsFill.resolvedPools}/${allMarketsFill.totalPools} markets`
@@ -238,7 +288,7 @@ export function AssetMarketPanel({
   const hourlyProgressLabel =
     isVolume &&
     range === "24h" &&
-    volumeSeries.scope === "primary_pool" &&
+    (volumeSeries.scope === "primary_pool" || volumeSeries.scope === "observed_pools") &&
     hourlyFill !== null &&
     hourlyFill.totalPools > 0
       ? `Chart ${hourlyFill.resolvedPools}/${hourlyFill.totalPools} markets`
@@ -304,11 +354,11 @@ export function AssetMarketPanel({
   const curve = visible.map((point) => ({ x: map.x(point.t), y: yOf(point) }));
 
   const emptyCopy = isVolume
-    ? history.dailyVolume.length === 0 && history.hourlyVolume.length === 0
+    ? history.dailyVolume.length === 0 && history.hourlyVolume.length === 0 && observedWindow.length === 0
       ? ASSET_VOLUME_HISTORY_EMPTY_REASON
       : "No GeckoTerminal volume in this window. The desk does not invent points."
-    : (history.emptyReason ??
-      (history.available
+    : (plottedHistory.emptyReason ??
+      (plottedHistory.available
         ? "No GeckoTerminal closes in this window. The desk does not invent points."
         : "Historical close series is unavailable. The desk does not invent prices."));
 
@@ -429,7 +479,9 @@ export function AssetMarketPanel({
                   ? range === "24h"
                     ? "Observed hourly USD volume summed across every pool for this mint."
                     : "Observed daily USD volume summed across every pool for this mint."
-                  : "Observed USD volume for this mint’s primary pool."
+                  : volumeSeries.scope === "observed_pools"
+                    ? "Observed USD volume summed across pools that returned candles. Pools with no candle stay out of the sum."
+                    : "Observed USD volume for this mint’s primary pool."
                 : "Observed USD close prices for this mint’s primary pool."
             }
           >
