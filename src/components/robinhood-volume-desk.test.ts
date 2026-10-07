@@ -1,0 +1,67 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it } from "vitest";
+import { RobinhoodVolumeDesk } from "./robinhood-volume-desk";
+import { parseRobinhoodDeskDays, type RobinhoodDeskDay } from "@/lib/market/robinhood-desk-volume";
+import { formatUsdCompact } from "@/lib/market/format";
+
+function days(): RobinhoodDeskDay[] {
+  return parseRobinhoodDeskDays({
+    records: [1, 2, 3].map((n) => ({
+      date: `2026-10-0${n}`,
+      publicEquity24hUsd: n * 1_000_000,
+      private24hUsd: null,
+      etfIndex24hUsd: 500_000,
+      combined24hUsd: n * 1_000_000 + 500_000,
+      displayedLiquidityUsd: n === 3 ? 12_000 : null,
+      generatedAt: "2026-10-04T04:00:00.000Z",
+      sources: { chainId: 4663 },
+      issuersByLane: {
+        equity: {
+          rhj: { usd: n * 1_000_000 },
+          ondo: { usd: n === 3 ? 40 : null },
+        },
+        etf: { rhj: { usd: 500_000 }, ondo: { usd: null } },
+        private: { rhj: { usd: null } },
+      },
+    })),
+  });
+}
+
+describe("RobinhoodVolumeDesk", () => {
+  it("renders the range shell and a 7D chart from closed days", () => {
+    const html = renderToStaticMarkup(createElement(RobinhoodVolumeDesk, { days: days() }));
+    expect(html).toContain('data-robinhood-volume-desk');
+    expect(html).toContain('data-volume-range="24h"');
+    expect(html).toContain('data-volume-range="7d"');
+    expect(html).toContain('data-volume-range="14d"');
+    expect(html).toContain('data-volume-range="30d"');
+    expect(html).toContain('aria-pressed="true"');
+    expect(html).toContain('data-volume-series="closed-day"');
+    expect(html).toContain('stroke="var(--volume)"');
+    expect(html).toContain(formatUsdCompact(1_000_000 + 2_000_000 + 3_000_000 + 1_500_000));
+    expect(html).toContain("Ondo-named (unverified)");
+    expect(html).not.toContain(">Ondo<");
+  });
+
+  it("keeps the shell and shows the last closed day as a 24H KPI, not a chart", () => {
+    const html = renderToStaticMarkup(
+      createElement(RobinhoodVolumeDesk, { days: days(), initialRange: "24h" }),
+    );
+    expect(html).toContain('data-volume-series="closed-day-kpi"');
+    expect(html).not.toContain("<svg");
+    expect(html).toContain(formatUsdCompact(3_500_000));
+    expect(html).toContain("not a 12:00–11:59 PM ET window");
+    expect(html).toContain("data-robinhood-lane-split");
+    expect(html).toContain("data-robinhood-liquidity");
+    expect(html).toContain('data-issuer="ondo"');
+    expect(html).toContain('data-issuer-official="false"');
+  });
+
+  it("still renders the range shell when no bars exist", () => {
+    const html = renderToStaticMarkup(createElement(RobinhoodVolumeDesk, { days: [] }));
+    expect(html).toContain('data-volume-range="30d"');
+    expect(html).toContain("are not invented");
+    expect(html).toContain('data-volume-kind="empty"');
+  });
+});
