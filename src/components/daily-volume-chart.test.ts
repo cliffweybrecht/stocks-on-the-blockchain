@@ -3,6 +3,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { DailyVolumeChart } from "./daily-volume-chart";
 import { HOURLY_VOLUME_SERIES_CAPTION } from "@/lib/market/daily-volume-view";
+import { HOME_24H_ROBINHOOD_HEADLINE } from "@/lib/market/home-desk-volume";
+import { parseRobinhoodDeskDays, type RobinhoodDeskDay } from "@/lib/market/robinhood-desk-volume";
+import { parseSnapshotDeskDays, type SnapshotDeskDay } from "@/lib/market/snapshot-desk-volume";
+import { BASE_DESK } from "@/lib/market/base-desk-volume";
+import { BNB_DESK } from "@/lib/market/bnb-desk-volume";
 import { DESK_CHART_STROKE } from "@/lib/desk/chart-curve";
 import { DESK_VOLUME_24H_POLL_MS, DESK_VOLUME_HISTORY_POLL_MS } from "@/lib/market/desk-volume-live";
 import { formatUsdCompact } from "@/lib/market/format";
@@ -133,6 +138,8 @@ describe("DailyVolumeChart closed ranges", () => {
       expect(html).not.toContain('data-volume-y="+$');
       expect(html).toContain('fill="url(#volume-area)"');
       expect(html).toContain("History from closed desk DexScreener snapshots");
+      expect(html).toContain('data-volume-includes-robinhood="false"');
+      expect(html).not.toContain("Robinhood Chain");
       expect(html).toContain(`data-volume-refresh-ms="${DESK_VOLUME_HISTORY_POLL_MS}"`);
       expect(html).toContain('data-volume-live="closed-day"');
       expect(html).not.toContain('data-volume-live="24h"');
@@ -201,5 +208,195 @@ describe("DailyVolumeChart closed ranges", () => {
     expect(html).toContain(HOURLY_VOLUME_SERIES_CAPTION);
     expect(html).toContain(`>${formatUsdCompact(220_500_000)}<`);
     expect(html).toContain('data-volume-kind="combined_24h"');
+    expect(html).not.toMatch(/trailing h24/i);
+    expect(html).not.toContain("data-volume-robinhood-24h-note");
+  });
+});
+
+describe("DailyVolumeChart home Robinhood days", () => {
+  const robinhoodDays: RobinhoodDeskDay[] = parseRobinhoodDeskDays({
+    records: [
+      {
+        date: "2026-09-20",
+        publicEquity24hUsd: 1_000_000,
+        private24hUsd: null,
+        etfIndex24hUsd: null,
+        combined24hUsd: 1_000_000,
+        generatedAt: "2026-09-21T04:00:00.000Z",
+        sources: { chainId: 4663 },
+      },
+      {
+        date: "2026-09-24",
+        publicEquity24hUsd: 5_000_000,
+        private24hUsd: null,
+        etfIndex24hUsd: null,
+        combined24hUsd: 5_000_000,
+        generatedAt: "2026-09-25T04:00:00.000Z",
+        sources: { chainId: 4663 },
+      },
+      {
+        date: "2026-09-30",
+        publicEquity24hUsd: 9_000_000,
+        private24hUsd: null,
+        etfIndex24hUsd: null,
+        combined24hUsd: 9_000_000,
+        generatedAt: "2026-10-01T04:00:00.000Z",
+        sources: { chainId: 4663 },
+      },
+    ],
+  });
+
+  function withRobinhood(initialRange: "24h" | "7d") {
+    return renderToStaticMarkup(
+      createElement(DailyVolumeChart, {
+        history: history([
+          ...closedDays,
+          { t: Date.UTC(2026, 8, 30) / 1000, volumeUsd: 999_000_000, kind: "rolling_24h" },
+        ]),
+        hourlyHistory: history(hourlyLevels),
+        rolling24h: live,
+        robinhoodDays,
+        initialRange,
+      }),
+    );
+  }
+
+  it("adds closed Robinhood days to the 7D sum and leaves the in-progress day out", () => {
+    const html = withRobinhood("7d");
+    const solanaSum = closedDays.reduce((sum, point) => sum + point.volumeUsd, 0);
+    expect(html).toContain(`>${formatUsdCompact(solanaSum + 1_000_000 + 5_000_000)}<`);
+    expect(html).not.toContain(`>${formatUsdCompact(solanaSum)}<`);
+    expect(html).not.toContain(formatUsdCompact(9_000_000));
+    expect(html).not.toContain("data-volume-history-note");
+    expect(html).not.toMatch(/trailing h24/i);
+    expect(html).not.toContain("12:00");
+    expect(html).toContain('data-volume-includes-robinhood="true"');
+    expect(html).toContain("Solana + Robinhood Chain");
+    expect(html).toContain('data-volume-ranges');
+    expect(html).toContain("flex-nowrap");
+    expect(html).toContain("justify-self-end");
+  });
+
+  it("adds the last closed Robinhood day to the 24H headline and leaves the hourly area on Solana", () => {
+    const html = withRobinhood("24h");
+    expect(html).toContain(`>${formatUsdCompact(220_500_000 + 5_000_000)}<`);
+    expect(html).not.toContain(`>${formatUsdCompact(220_500_000)}<`);
+    expect(html).toContain(HOME_24H_ROBINHOOD_HEADLINE);
+    expect(html).not.toContain("data-volume-robinhood-24h-note");
+    expect(html).not.toMatch(/trailing h24/i);
+    expect(html).toContain('data-volume-usd="200000000"');
+    expect(html).toContain('data-volume-usd="210000000"');
+    expect(html).toContain('data-volume-usd="205000000"');
+    expect(html).toContain('data-volume-usd="190000000"');
+    expect(html).not.toContain('data-volume-usd="5000000"');
+    expect(html).not.toContain(formatUsdCompact(999_000_000));
+  });
+});
+
+describe("DailyVolumeChart Base and BNB days", () => {
+  const robinhoodDays: RobinhoodDeskDay[] = parseRobinhoodDeskDays({
+    records: [
+      {
+        date: "2026-09-20",
+        publicEquity24hUsd: 1_000_000,
+        private24hUsd: null,
+        etfIndex24hUsd: null,
+        combined24hUsd: 1_000_000,
+        generatedAt: "2026-09-21T04:00:00.000Z",
+        sources: { chainId: 4663 },
+      },
+      {
+        date: "2026-09-24",
+        publicEquity24hUsd: 5_000_000,
+        private24hUsd: null,
+        etfIndex24hUsd: null,
+        combined24hUsd: 5_000_000,
+        generatedAt: "2026-09-25T04:00:00.000Z",
+        sources: { chainId: 4663 },
+      },
+      {
+        date: "2026-09-30",
+        publicEquity24hUsd: 9_000_000,
+        private24hUsd: null,
+        etfIndex24hUsd: null,
+        combined24hUsd: 9_000_000,
+        generatedAt: "2026-10-01T04:00:00.000Z",
+        sources: { chainId: 4663 },
+      },
+    ],
+  });
+
+  function extra(config: typeof BASE_DESK, date: string, usd: number): SnapshotDeskDay[] {
+    return parseSnapshotDeskDays(
+      {
+        records: [
+          {
+            date,
+            publicEquity24hUsd: usd,
+            private24hUsd: null,
+            etfIndex24hUsd: null,
+            combined24hUsd: usd,
+            sources: { chainId: Number(config.nativeChainId), chainSlug: config.chainSlug },
+          },
+        ],
+      },
+      config,
+    );
+  }
+
+  function withExtras(initialRange: "24h" | "7d") {
+    return renderToStaticMarkup(
+      createElement(DailyVolumeChart, {
+        history: history(closedDays),
+        hourlyHistory: history(hourlyLevels),
+        rolling24h: live,
+        robinhoodDays,
+        extraDeskDays: [
+          { label: "Base", days: extra(BASE_DESK, "2026-09-24", 1_000_000) },
+          { label: "BNB Chain", days: extra(BNB_DESK, "2026-09-24", 2_000_000) },
+        ],
+        initialRange,
+      }),
+    );
+  }
+
+  it("adds Base and BNB to the 7D sum and the chain list in the caption", () => {
+    const html = withExtras("7d");
+    const solanaSum = closedDays.reduce((sum, point) => sum + point.volumeUsd, 0);
+    expect(html).toContain(`>${formatUsdCompact(solanaSum + 1_000_000 + 5_000_000 + 1_000_000 + 2_000_000)}<`);
+    expect(html).toContain("Solana + Robinhood Chain + Base + BNB Chain");
+    expect(html).toContain('data-volume-chain-labels="Robinhood Chain + Base + BNB Chain"');
+    expect(html).not.toMatch(/trailing h24/i);
+    expect(html).not.toContain("data-volume-history-note");
+  });
+
+  it("adds the last closed Base and BNB days to the 24H headline and leaves hourly points on Solana", () => {
+    const html = withExtras("24h");
+    expect(html).toContain(`>${formatUsdCompact(220_500_000 + 5_000_000 + 1_000_000 + 2_000_000)}<`);
+    expect(html).toContain("Robinhood Chain, Base, and BNB Chain");
+    expect(html).not.toMatch(/trailing h24/i);
+    expect(html).toContain('data-volume-usd="200000000"');
+    expect(html).not.toContain('data-volume-usd="1000000"');
+    expect(html).not.toContain('data-volume-usd="2000000"');
+  });
+});
+
+describe("DailyVolumeChart range shell", () => {
+  it("keeps 24H 7D 14D 30D pinned top-right even when the series is empty", () => {
+    const html = renderToStaticMarkup(
+      createElement(DailyVolumeChart, {
+        history: history([], "Historical volume series is unavailable."),
+        hourlyHistory: history([], "No hourly snapshots."),
+        rolling24h: null,
+      }),
+    );
+    expect(html).toContain('data-volume-ranges');
+    expect(html).toContain("grid-cols-[minmax(0,1fr)_auto]");
+    expect(html).toContain("flex-nowrap");
+    expect(html).toContain("justify-self-end");
+    expect(html).not.toContain("flex-wrap");
+    for (const id of ["24h", "7d", "14d", "30d"]) {
+      expect(html).toContain(`data-volume-range="${id}"`);
+    }
   });
 });

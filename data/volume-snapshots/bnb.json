@@ -1,0 +1,1638 @@
+{
+  "version": 1,
+  "records": [
+    {
+      "date": "2026-09-23",
+      "t": 1790121600,
+      "publicEquity24hUsd": 207180.70999999993,
+      "private24hUsd": 65.53999999999999,
+      "etfIndex24hUsd": 4138523.82,
+      "combined24hUsd": 4345770.069999999,
+      "publicMintCount": 779,
+      "publicPoolCount": 36,
+      "etfMintCount": 104,
+      "etfPoolCount": 13,
+      "preipoMintCount": 2,
+      "preipoPoolCount": 2,
+      "withVolumeEquityCount": 36,
+      "generatedAt": "2026-09-23T15:28:46.632709Z",
+      "sources": {
+        "universe": "https://docs.ondo.finance/ondo-stocks/overview",
+        "universeSecondary": "https://stocksonchain.io/api/tokens.json",
+        "volume": "DexScreener tokens/v1/bsc volume.h24 all-pools sum",
+        "chainId": 56,
+        "chainSlug": "bsc",
+        "issuers": {
+          "backed-xstocks": 616,
+          "ondo": 269
+        },
+        "kindCounts": {
+          "equity": 779,
+          "etf": 104,
+          "preipo": 2
+        }
+      },
+      "method": "equity ranking excludes etf+preipo; null means no reported DexScreener volume (not zero)"
+    },
+    {
+      "date": "2026-09-24",
+      "t": 1790222400,
+      "publicEquity24hUsd": 9825406.930000002,
+      "private24hUsd": 1720436.5200000003,
+      "etfIndex24hUsd": 22589858.880000003,
+      "combined24hUsd": 34135702.330000006,
+      "publicMintCount": 1321,
+      "publicPoolCount": 72,
+      "etfMintCount": 116,
+      "etfPoolCount": 11,
+      "preipoMintCount": 11,
+      "preipoPoolCount": 5,
+      "withVolumeEquityCount": 72,
+      "generatedAt": "2026-09-25T04:02:33.806079Z",
+      "sources": {
+        "universe": "BNB chainId 56 equity/pre-IPO/ETF union by contract address",
+        "volume": "DexScreener tokens/v1/bsc volume.h24 all-pools sum",
+        "chainId": 56,
+        "chainSlug": "bsc",
+        "issuers": {
+          "xstocks": 1115,
+          "ondo": 266,
+          "bstocks": 60,
+          "colb": 3,
+          "paimon": 4
+        },
+        "kindCounts": {
+          "equity": 1321,
+          "etf": 116,
+          "preipo": 11
+        },
+        "registries": {
+          "stocksonchain": {
+            "url": "https://stocksonchain.io/api/tokens.json",
+            "status": "ok",
+            "added": 879
+          },
+          "ondo-gm": {
+            "url": "https://api.gm.ondo.finance/v1/assets/all/metadata",
+            "status": 403
+          },
+          "xstocks-tokenlist": {
+            "url": "https://raw.githubusercontent.com/backed-fi/cowswap-xstocks-tokenlist/main/tokenlist.json",
+            "status": "ok",
+            "added": 486
+          },
+          "jumper-bstocks": {
+            "url": "https://rwa.jumper.xyz/providers/bstocks",
+            "status": "ok",
+            "added": 60
+          },
+          "colb": {
+            "url": "https://docs.colb.finance/getting-started/smart-contracts.md",
+            "status": "ok",
+            "added": 3
+          },
+          "bstocks-finance": {
+            "url": "https://www.bstocks.finance/en/",
+            "status": 403
+          },
+          "xstocks": {
+            "url": "https://api.xstocks.fi/api/v2/public/assets",
+            "status": "ok",
+            "added": 16
+          },
+          "paimon": {
+            "url": "https://app.paimon.finance/trade",
+            "docs": "https://paimon-finance.gitbook.io/paimon.finance",
+            "status": "ok",
+            "added": 4
+          }
+        },
+        "addedBySource": {
+          "stocksonchain": 879,
+          "xstocks-tokenlist": 486,
+          "jumper-bstocks": 60,
+          "colb": 3,
+          "xstocks": 16,
+          "paimon": 4
+        },
+        "skipped": {
+          "leveraged": 30,
+          "duplicate": 1669
+        }
+      },
+      "method": "BNB chainId 56 only; public equity, pre-IPO, and ETF for every issuer; leveraged/inverse, perps, fan tokens, treasuries, and Paimon Prime excluded; equity ranking excludes etf+preipo; null means no reported DexScreener volume (not zero)"
+    },
+    {
+      "date": "2026-09-25",
+      "t": 1790308800,
+      "publicEquity24hUsd": 9247554.21,
+      "private24hUsd": 138020.06999999998,
+      "etfIndex24hUsd": 9729089.629999999,
+      "combined24hUsd": 19114663.91,
+      "publicMintCount": 1321,
+      "publicPoolCount": 73,
+      "etfMintCount": 115,
+      "etfPoolCount": 11,
+      "preipoMintCount": 9,
+      "preipoPoolCount": 4,
+      "withVolumeEquityCount": 73,
+      "generatedAt": "2026-09-26T04:03:58.469832Z",
+      "sources": {
+        "universe": "BNB chainId 56 equity/pre-IPO/ETF union by contract address",
+        "volume": "DexScreener tokens/v1/bsc volume.h24 unique-pool sumNullable",
+        "chainId": 56,
+        "chainSlug": "bsc",
+        "issuers": {
+          "xstocks": 1114,
+          "ondo": 265,
+          "bstocks": 59,
+          "colb": 3,
+          "paimon": 4
+        },
+        "kindCounts": {
+          "equity": 1321,
+          "etf": 115,
+          "preipo": 9
+        },
+        "registries": {
+          "stocksonchain": {
+            "url": "https://stocksonchain.io/api/tokens.json",
+            "status": "ok",
+            "added": 878
+          },
+          "ondo-gm": {
+            "url": "https://api.gm.ondo.finance/v1/assets/all/metadata",
+            "status": 403
+          },
+          "xstocks-tokenlist": {
+            "url": "https://raw.githubusercontent.com/backed-fi/cowswap-xstocks-tokenlist/main/tokenlist.json",
+            "status": "ok",
+            "added": 485
+          },
+          "jumper-bstocks": {
+            "url": "https://rwa.jumper.xyz/providers/bstocks",
+            "status": "ok",
+            "added": 59
+          },
+          "colb": {
+            "url": "https://docs.colb.finance/getting-started/smart-contracts.md",
+            "status": "ok",
+            "added": 3
+          },
+          "bstocks-finance": {
+            "url": "https://www.bstocks.finance/en/",
+            "status": 403
+          },
+          "xstocks": {
+            "url": "https://api.xstocks.fi/api/v2/public/assets",
+            "status": "ok",
+            "added": 16
+          },
+          "paimon": {
+            "url": "https://app.paimon.finance/trade",
+            "docs": "https://paimon-finance.gitbook.io/paimon.finance",
+            "status": "ok",
+            "added": 4
+          }
+        },
+        "addedBySource": {
+          "stocksonchain": 878,
+          "xstocks-tokenlist": 485,
+          "jumper-bstocks": 59,
+          "colb": 3,
+          "xstocks": 16,
+          "paimon": 4
+        },
+        "skipped": {
+          "leveraged": 30,
+          "generic": 1,
+          "private": 4,
+          "duplicate": 1667
+        }
+      },
+      "method": "BNB chainId 56 only; classify ETF/index before private; private admits Colb, Paimon, or registry kind preipo|private with a private-company signal; crypto, commodities, generic baskets, copycats, leveraged/inverse, perps, fan tokens, treasuries, and Paimon Prime stay out; public equity, pre-IPO, and ETF for every issuer; sumNullable of DexScreener volume.h24 across unique BNB pools; null means no reported volume (not zero)"
+    },
+    {
+      "date": "2026-09-26",
+      "t": 1790395200,
+      "publicEquity24hUsd": 3136201.5,
+      "private24hUsd": 530004.22,
+      "etfIndex24hUsd": 6582284.089999999,
+      "combined24hUsd": 10248489.81,
+      "publicMintCount": 1321,
+      "publicPoolCount": 63,
+      "etfMintCount": 115,
+      "etfPoolCount": 12,
+      "preipoMintCount": 10,
+      "preipoPoolCount": 4,
+      "withVolumeEquityCount": 63,
+      "generatedAt": "2026-09-27T04:01:59.423946Z",
+      "sources": {
+        "universe": "BNB chainId 56 equity/pre-IPO/ETF union by contract address",
+        "volume": "DexScreener tokens/v1/bsc volume.h24 unique-pool sumNullable",
+        "chainId": 56,
+        "chainSlug": "bsc",
+        "issuers": {
+          "xstocks": 1114,
+          "ondo": 265,
+          "bstocks": 59,
+          "colb": 3,
+          "paimon": 5
+        },
+        "kindCounts": {
+          "equity": 1321,
+          "etf": 115,
+          "preipo": 10
+        },
+        "registries": {
+          "stocksonchain": {
+            "url": "https://stocksonchain.io/api/tokens.json",
+            "status": "ok",
+            "added": 878
+          },
+          "ondo-gm": {
+            "url": "https://api.gm.ondo.finance/v1/assets/all/metadata",
+            "status": 403
+          },
+          "xstocks-tokenlist": {
+            "url": "https://raw.githubusercontent.com/backed-fi/cowswap-xstocks-tokenlist/main/tokenlist.json",
+            "status": "ok",
+            "added": 485
+          },
+          "jumper-bstocks": {
+            "url": "https://rwa.jumper.xyz/providers/bstocks",
+            "status": "ok",
+            "added": 59
+          },
+          "colb": {
+            "url": "https://docs.colb.finance/getting-started/smart-contracts.md",
+            "status": "ok",
+            "added": 3
+          },
+          "bstocks-finance": {
+            "url": "https://www.bstocks.finance/en/",
+            "status": 403
+          },
+          "xstocks": {
+            "url": "https://api.xstocks.fi/api/v2/public/assets",
+            "status": "ok",
+            "added": 16
+          },
+          "paimon": {
+            "url": "https://app.paimon.finance/trade",
+            "docs": "https://paimon-finance.gitbook.io/paimon.finance",
+            "status": "ok",
+            "added": 5
+          }
+        },
+        "addedBySource": {
+          "stocksonchain": 878,
+          "xstocks-tokenlist": 485,
+          "jumper-bstocks": 59,
+          "colb": 3,
+          "xstocks": 16,
+          "paimon": 5
+        },
+        "skipped": {
+          "leveraged": 30,
+          "generic": 1,
+          "private": 4,
+          "duplicate": 1667
+        }
+      },
+      "method": "BNB chainId 56 only; classify ETF/index before private; private admits Colb, Paimon, or registry kind preipo|private with a private-company signal; crypto, commodities, generic baskets, copycats, leveraged/inverse, perps, fan tokens, treasuries, and Paimon Prime stay out; public equity, pre-IPO, and ETF for every issuer; sumNullable of DexScreener volume.h24 across unique BNB pools; null means no reported volume (not zero)"
+    },
+    {
+      "date": "2026-09-27",
+      "t": 1790481600,
+      "publicEquity24hUsd": 4155613.8099999996,
+      "private24hUsd": 108312.01,
+      "etfIndex24hUsd": 7710694.32,
+      "combined24hUsd": 11974620.139999999,
+      "issuersByLane": {
+        "equity": {
+          "bstocks": {
+            "usd": 3879351.4,
+            "mints": 54,
+            "pools": 37
+          },
+          "ondo": {
+            "usd": 275985.2899999999,
+            "mints": 197,
+            "pools": 28
+          },
+          "xstocks": {
+            "usd": 277.12,
+            "mints": 1070,
+            "pools": 4
+          }
+        },
+        "etf": {
+          "bstocks": {
+            "usd": 5187611.26,
+            "mints": 5,
+            "pools": 4
+          },
+          "ondo": {
+            "usd": 2523083.06,
+            "mints": 67,
+            "pools": 6
+          },
+          "xstocks": {
+            "usd": null,
+            "mints": 43,
+            "pools": 0
+          }
+        },
+        "private": {
+          "colb": {
+            "usd": null,
+            "mints": 3,
+            "pools": 0
+          },
+          "ondo": {
+            "usd": 42.46,
+            "mints": 1,
+            "pools": 1
+          },
+          "paimon": {
+            "usd": 108269.54999999999,
+            "mints": 5,
+            "pools": 3
+          },
+          "xstocks": {
+            "usd": null,
+            "mints": 1,
+            "pools": 0
+          }
+        }
+      },
+      "publicMintCount": 1321,
+      "publicPoolCount": 69,
+      "etfMintCount": 115,
+      "etfPoolCount": 10,
+      "preipoMintCount": 10,
+      "preipoPoolCount": 4,
+      "withVolumeEquityCount": 69,
+      "generatedAt": "2026-09-28T04:03:29.733196Z",
+      "sources": {
+        "universe": "BNB chainId 56 equity/pre-IPO/ETF union by contract address",
+        "volume": "DexScreener tokens/v1/bsc volume.h24 unique-pool sumNullable",
+        "chainId": 56,
+        "chainSlug": "bsc",
+        "issuers": {
+          "xstocks": 1114,
+          "ondo": 265,
+          "bstocks": 59,
+          "colb": 3,
+          "paimon": 5
+        },
+        "kindCounts": {
+          "equity": 1321,
+          "etf": 115,
+          "preipo": 10
+        },
+        "registries": {
+          "stocksonchain": {
+            "url": "https://stocksonchain.io/api/tokens.json",
+            "status": "ok",
+            "added": 878
+          },
+          "ondo-gm": {
+            "url": "https://api.gm.ondo.finance/v1/assets/all/metadata",
+            "status": 403
+          },
+          "xstocks-tokenlist": {
+            "url": "https://raw.githubusercontent.com/backed-fi/cowswap-xstocks-tokenlist/main/tokenlist.json",
+            "status": "ok",
+            "added": 485
+          },
+          "jumper-bstocks": {
+            "url": "https://rwa.jumper.xyz/providers/bstocks",
+            "status": "ok",
+            "added": 59
+          },
+          "colb": {
+            "url": "https://docs.colb.finance/getting-started/smart-contracts.md",
+            "status": "ok",
+            "added": 3
+          },
+          "bstocks-finance": {
+            "url": "https://www.bstocks.finance/en/",
+            "status": 403
+          },
+          "xstocks": {
+            "url": "https://api.xstocks.fi/api/v2/public/assets",
+            "status": "ok",
+            "added": 16
+          },
+          "paimon": {
+            "url": "https://app.paimon.finance/trade",
+            "docs": "https://paimon-finance.gitbook.io/paimon.finance",
+            "status": "ok",
+            "added": 5
+          }
+        },
+        "addedBySource": {
+          "stocksonchain": 878,
+          "xstocks-tokenlist": 485,
+          "jumper-bstocks": 59,
+          "colb": 3,
+          "xstocks": 16,
+          "paimon": 5
+        },
+        "skipped": {
+          "leveraged": 30,
+          "generic": 1,
+          "private": 4,
+          "duplicate": 1667
+        }
+      },
+      "method": "BNB chainId 56 only; classify ETF/index before private; private admits Colb, Paimon, or registry kind preipo|private with a private-company signal; crypto, commodities, generic baskets, copycats, leveraged/inverse, perps, fan tokens, treasuries, and Paimon Prime stay out; public equity, pre-IPO, and ETF for every issuer; sumNullable of DexScreener volume.h24 across unique BNB pools; issuersByLane is that sum partitioned by issuer inside equity, etf, and private; null means no reported volume (not zero)"
+    },
+    {
+      "date": "2026-09-28",
+      "t": 1790568000,
+      "publicEquity24hUsd": 11113122.370000003,
+      "private24hUsd": 178996.94,
+      "etfIndex24hUsd": 17485163.7,
+      "combined24hUsd": 28777283.01,
+      "issuersByLane": {
+        "equity": {
+          "bstocks": {
+            "usd": 11050359.000000004,
+            "mints": 54,
+            "pools": 43
+          },
+          "ondo": {
+            "usd": 62744.46,
+            "mints": 332,
+            "pools": 38
+          },
+          "xstocks": {
+            "usd": 18.91,
+            "mints": 1070,
+            "pools": 3
+          }
+        },
+        "etf": {
+          "bstocks": {
+            "usd": 8470502.0,
+            "mints": 5,
+            "pools": 3
+          },
+          "ondo": {
+            "usd": 9014661.69,
+            "mints": 111,
+            "pools": 10
+          },
+          "xstocks": {
+            "usd": 0.01,
+            "mints": 43,
+            "pools": 1
+          }
+        },
+        "private": {
+          "colb": {
+            "usd": null,
+            "mints": 3,
+            "pools": 0
+          },
+          "ondo": {
+            "usd": 430.25,
+            "mints": 1,
+            "pools": 1
+          },
+          "paimon": {
+            "usd": 178565.76,
+            "mints": 5,
+            "pools": 3
+          },
+          "xstocks": {
+            "usd": 0.93,
+            "mints": 1,
+            "pools": 1
+          }
+        }
+      },
+      "publicMintCount": 1456,
+      "publicPoolCount": 84,
+      "etfMintCount": 159,
+      "etfPoolCount": 14,
+      "preipoMintCount": 10,
+      "preipoPoolCount": 5,
+      "withVolumeEquityCount": 84,
+      "generatedAt": "2026-09-29T04:04:44.545500Z",
+      "sources": {
+        "universe": "BNB chainId 56 equity/pre-IPO/ETF union by contract address",
+        "volume": "DexScreener tokens/v1/bsc volume.h24 unique-pool sumNullable",
+        "chainId": 56,
+        "chainSlug": "bsc",
+        "issuers": {
+          "xstocks": 1114,
+          "ondo": 444,
+          "bstocks": 59,
+          "colb": 3,
+          "paimon": 5
+        },
+        "kindCounts": {
+          "equity": 1456,
+          "etf": 159,
+          "preipo": 10
+        },
+        "registries": {
+          "stocksonchain": {
+            "url": "https://stocksonchain.io/api/tokens.json",
+            "status": "ok",
+            "added": 1057
+          },
+          "ondo-gm": {
+            "url": "https://api.gm.ondo.finance/v1/assets/all/metadata",
+            "status": 403
+          },
+          "xstocks-tokenlist": {
+            "url": "https://raw.githubusercontent.com/backed-fi/cowswap-xstocks-tokenlist/main/tokenlist.json",
+            "status": "ok",
+            "added": 485
+          },
+          "jumper-bstocks": {
+            "url": "https://rwa.jumper.xyz/providers/bstocks",
+            "status": "ok",
+            "added": 59
+          },
+          "colb": {
+            "url": "https://docs.colb.finance/getting-started/smart-contracts.md",
+            "status": "ok",
+            "added": 3
+          },
+          "bstocks-finance": {
+            "url": "https://www.bstocks.finance/en/",
+            "status": 403
+          },
+          "xstocks": {
+            "url": "https://api.xstocks.fi/api/v2/public/assets",
+            "status": "ok",
+            "added": 16
+          },
+          "paimon": {
+            "url": "https://app.paimon.finance/trade",
+            "docs": "https://paimon-finance.gitbook.io/paimon.finance",
+            "status": "ok",
+            "added": 5
+          }
+        },
+        "addedBySource": {
+          "stocksonchain": 1057,
+          "xstocks-tokenlist": 485,
+          "jumper-bstocks": 59,
+          "colb": 3,
+          "xstocks": 16,
+          "paimon": 5
+        },
+        "skipped": {
+          "leveraged": 32,
+          "generic": 1,
+          "private": 4,
+          "duplicate": 1667
+        }
+      },
+      "method": "BNB chainId 56 only; classify ETF/index before private; private admits Colb, Paimon, or registry kind preipo|private with a private-company signal; crypto, commodities, generic baskets, copycats, leveraged/inverse, perps, fan tokens, treasuries, and Paimon Prime stay out; public equity, pre-IPO, and ETF for every issuer; sumNullable of DexScreener volume.h24 across unique BNB pools; issuersByLane is that sum partitioned by issuer inside equity, etf, and private; null means no reported volume (not zero)"
+    },
+    {
+      "date": "2026-09-29",
+      "t": 1790654400,
+      "publicEquity24hUsd": 8863196.38,
+      "private24hUsd": 198082.06,
+      "etfIndex24hUsd": 15314852.79,
+      "combined24hUsd": 24376131.23,
+      "issuersByLane": {
+        "equity": {
+          "bstocks": {
+            "usd": 8709411.55,
+            "mints": 54,
+            "pools": 40
+          },
+          "ondo": {
+            "usd": 40927.29,
+            "mints": 332,
+            "pools": 36
+          },
+          "xstocks": {
+            "usd": 112857.54,
+            "mints": 1071,
+            "pools": 4
+          }
+        },
+        "etf": {
+          "bstocks": {
+            "usd": 7574850.35,
+            "mints": 5,
+            "pools": 3
+          },
+          "ondo": {
+            "usd": 7740001.13,
+            "mints": 111,
+            "pools": 9
+          },
+          "xstocks": {
+            "usd": 1.31,
+            "mints": 43,
+            "pools": 1
+          }
+        },
+        "private": {
+          "colb": {
+            "usd": null,
+            "mints": 3,
+            "pools": 0
+          },
+          "ondo": {
+            "usd": 2309.07,
+            "mints": 1,
+            "pools": 1
+          },
+          "paimon": {
+            "usd": 195772.48,
+            "mints": 5,
+            "pools": 3
+          },
+          "xstocks": {
+            "usd": 0.51,
+            "mints": 1,
+            "pools": 1
+          }
+        }
+      },
+      "publicMintCount": 1457,
+      "publicPoolCount": 80,
+      "etfMintCount": 159,
+      "etfPoolCount": 13,
+      "preipoMintCount": 10,
+      "preipoPoolCount": 5,
+      "withVolumeEquityCount": 80,
+      "generatedAt": "2026-09-30T04:09:40.684204Z",
+      "sources": {
+        "universe": "BNB chainId 56 equity/pre-IPO/ETF union by contract address",
+        "volume": "DexScreener tokens/v1/bsc volume.h24 unique-pool sumNullable",
+        "chainId": 56,
+        "chainSlug": "bsc",
+        "issuers": {
+          "xstocks": 1115,
+          "ondo": 444,
+          "bstocks": 59,
+          "colb": 3,
+          "paimon": 5
+        },
+        "kindCounts": {
+          "equity": 1457,
+          "etf": 159,
+          "preipo": 10
+        },
+        "registries": {
+          "stocksonchain": {
+            "url": "https://stocksonchain.io/api/tokens.json",
+            "status": "ok",
+            "added": 1057
+          },
+          "ondo-gm": {
+            "url": "https://api.gm.ondo.finance/v1/assets/all/metadata",
+            "status": 403
+          },
+          "xstocks-tokenlist": {
+            "url": "https://raw.githubusercontent.com/backed-fi/cowswap-xstocks-tokenlist/main/tokenlist.json",
+            "status": "ok",
+            "added": 485
+          },
+          "jumper-bstocks": {
+            "url": "https://rwa.jumper.xyz/providers/bstocks",
+            "status": "ok",
+            "added": 59
+          },
+          "colb": {
+            "url": "https://docs.colb.finance/getting-started/smart-contracts.md",
+            "status": "ok",
+            "added": 3
+          },
+          "bstocks-finance": {
+            "url": "https://www.bstocks.finance/en/",
+            "status": 403
+          },
+          "xstocks": {
+            "url": "https://api.xstocks.fi/api/v2/public/assets",
+            "status": "ok",
+            "added": 17
+          },
+          "paimon": {
+            "url": "https://app.paimon.finance/trade",
+            "docs": "https://paimon-finance.gitbook.io/paimon.finance",
+            "status": "ok",
+            "added": 5
+          }
+        },
+        "addedBySource": {
+          "stocksonchain": 1057,
+          "xstocks-tokenlist": 485,
+          "jumper-bstocks": 59,
+          "colb": 3,
+          "xstocks": 17,
+          "paimon": 5
+        },
+        "skipped": {
+          "leveraged": 32,
+          "generic": 1,
+          "private": 4,
+          "duplicate": 1667
+        }
+      },
+      "method": "BNB chainId 56 only; classify ETF/index before private; private admits Colb, Paimon, or registry kind preipo|private with a private-company signal; crypto, commodities, generic baskets, copycats, leveraged/inverse, perps, fan tokens, treasuries, and Paimon Prime stay out; public equity, pre-IPO, and ETF for every issuer; sumNullable of DexScreener volume.h24 across unique BNB pools; issuersByLane is that sum partitioned by issuer inside equity, etf, and private; null means no reported volume (not zero)"
+    },
+    {
+      "date": "2026-09-30",
+      "t": 1790740800,
+      "publicEquity24hUsd": 20267975.689999998,
+      "private24hUsd": 61963.16,
+      "etfIndex24hUsd": 19278627.310000002,
+      "combined24hUsd": 39608566.16,
+      "issuersByLane": {
+        "equity": {
+          "bstocks": {
+            "usd": 17865312.349999998,
+            "mints": 54,
+            "pools": 36
+          },
+          "ondo": {
+            "usd": 2402636.5300000003,
+            "mints": 332,
+            "pools": 35
+          },
+          "xstocks": {
+            "usd": 26.81,
+            "mints": 1097,
+            "pools": 6
+          }
+        },
+        "etf": {
+          "bstocks": {
+            "usd": 8644491.520000001,
+            "mints": 5,
+            "pools": 3
+          },
+          "ondo": {
+            "usd": 10634135.790000001,
+            "mints": 111,
+            "pools": 10
+          },
+          "xstocks": {
+            "usd": null,
+            "mints": 52,
+            "pools": 0
+          }
+        },
+        "private": {
+          "colb": {
+            "usd": null,
+            "mints": 3,
+            "pools": 0
+          },
+          "ondo": {
+            "usd": 309.98,
+            "mints": 1,
+            "pools": 1
+          },
+          "paimon": {
+            "usd": 61653.18,
+            "mints": 5,
+            "pools": 3
+          },
+          "xstocks": {
+            "usd": null,
+            "mints": 1,
+            "pools": 0
+          }
+        }
+      },
+      "publicMintCount": 1483,
+      "publicPoolCount": 77,
+      "etfMintCount": 168,
+      "etfPoolCount": 13,
+      "preipoMintCount": 10,
+      "preipoPoolCount": 4,
+      "withVolumeEquityCount": 77,
+      "generatedAt": "2026-10-01T04:04:20.643502Z",
+      "sources": {
+        "universe": "BNB chainId 56 equity/pre-IPO/ETF union by contract address",
+        "volume": "DexScreener tokens/v1/bsc volume.h24 unique-pool sumNullable",
+        "chainId": 56,
+        "chainSlug": "bsc",
+        "issuers": {
+          "xstocks": 1150,
+          "ondo": 444,
+          "bstocks": 59,
+          "colb": 3,
+          "paimon": 5
+        },
+        "kindCounts": {
+          "equity": 1483,
+          "etf": 168,
+          "preipo": 10
+        },
+        "registries": {
+          "stocksonchain": {
+            "url": "https://stocksonchain.io/api/tokens.json",
+            "status": "ok",
+            "added": 1057
+          },
+          "ondo-gm": {
+            "url": "https://api.gm.ondo.finance/v1/assets/all/metadata",
+            "status": 403
+          },
+          "xstocks-tokenlist": {
+            "url": "https://raw.githubusercontent.com/backed-fi/cowswap-xstocks-tokenlist/main/tokenlist.json",
+            "status": "ok",
+            "added": 485
+          },
+          "jumper-bstocks": {
+            "url": "https://rwa.jumper.xyz/providers/bstocks",
+            "status": "ok",
+            "added": 59
+          },
+          "colb": {
+            "url": "https://docs.colb.finance/getting-started/smart-contracts.md",
+            "status": "ok",
+            "added": 3
+          },
+          "bstocks-finance": {
+            "url": "https://www.bstocks.finance/en/",
+            "status": 403
+          },
+          "xstocks": {
+            "url": "https://api.xstocks.fi/api/v2/public/assets",
+            "status": "ok",
+            "added": 52
+          },
+          "paimon": {
+            "url": "https://app.paimon.finance/trade",
+            "docs": "https://paimon-finance.gitbook.io/paimon.finance",
+            "status": "ok",
+            "added": 5
+          }
+        },
+        "addedBySource": {
+          "stocksonchain": 1057,
+          "xstocks-tokenlist": 485,
+          "jumper-bstocks": 59,
+          "colb": 3,
+          "xstocks": 52,
+          "paimon": 5
+        },
+        "skipped": {
+          "leveraged": 41,
+          "generic": 1,
+          "private": 4,
+          "duplicate": 1667
+        }
+      },
+      "method": "BNB chainId 56 only; classify ETF/index before private; private admits Colb, Paimon, or registry kind preipo|private with a private-company signal; crypto, commodities, generic baskets, copycats, leveraged/inverse, perps, fan tokens, treasuries, and Paimon Prime stay out; public equity, pre-IPO, and ETF for every issuer; sumNullable of DexScreener volume.h24 across unique BNB pools; issuersByLane is that sum partitioned by issuer inside equity, etf, and private; null means no reported volume (not zero)"
+    },
+    {
+      "date": "2026-10-01",
+      "t": 1790827200,
+      "publicEquity24hUsd": 16650693.930000002,
+      "private24hUsd": 37933.81,
+      "etfIndex24hUsd": 17100915.369999997,
+      "combined24hUsd": 33789543.11,
+      "issuersByLane": {
+        "equity": {
+          "bstocks": {
+            "usd": 16379048.49,
+            "mints": 54,
+            "pools": 39
+          },
+          "ondo": {
+            "usd": 271638.5700000001,
+            "mints": 332,
+            "pools": 36
+          },
+          "xstocks": {
+            "usd": 6.87,
+            "mints": 1199,
+            "pools": 4
+          }
+        },
+        "etf": {
+          "bstocks": {
+            "usd": 8428660.1,
+            "mints": 5,
+            "pools": 4
+          },
+          "ondo": {
+            "usd": 8672255.269999998,
+            "mints": 111,
+            "pools": 9
+          },
+          "xstocks": {
+            "usd": null,
+            "mints": 52,
+            "pools": 0
+          }
+        },
+        "private": {
+          "colb": {
+            "usd": null,
+            "mints": 3,
+            "pools": 0
+          },
+          "ondo": {
+            "usd": 372.6,
+            "mints": 1,
+            "pools": 1
+          },
+          "paimon": {
+            "usd": 37545.0,
+            "mints": 5,
+            "pools": 3
+          },
+          "xstocks": {
+            "usd": 16.21,
+            "mints": 1,
+            "pools": 1
+          }
+        }
+      },
+      "publicMintCount": 1585,
+      "publicPoolCount": 79,
+      "etfMintCount": 168,
+      "etfPoolCount": 13,
+      "preipoMintCount": 10,
+      "preipoPoolCount": 5,
+      "withVolumeEquityCount": 79,
+      "generatedAt": "2026-10-02T04:06:42.651901Z",
+      "sources": {
+        "universe": "BNB chainId 56 equity/pre-IPO/ETF union by contract address",
+        "volume": "DexScreener tokens/v1/bsc volume.h24 unique-pool sumNullable",
+        "chainId": 56,
+        "chainSlug": "bsc",
+        "issuers": {
+          "xstocks": 1252,
+          "ondo": 444,
+          "bstocks": 59,
+          "colb": 3,
+          "paimon": 5
+        },
+        "kindCounts": {
+          "equity": 1585,
+          "etf": 168,
+          "preipo": 10
+        },
+        "registries": {
+          "stocksonchain": {
+            "url": "https://stocksonchain.io/api/tokens.json",
+            "status": "ok",
+            "added": 1057
+          },
+          "ondo-gm": {
+            "url": "https://api.gm.ondo.finance/v1/assets/all/metadata",
+            "status": 403
+          },
+          "xstocks-tokenlist": {
+            "url": "https://raw.githubusercontent.com/backed-fi/cowswap-xstocks-tokenlist/main/tokenlist.json",
+            "status": "ok",
+            "added": 485
+          },
+          "jumper-bstocks": {
+            "url": "https://rwa.jumper.xyz/providers/bstocks",
+            "status": "ok",
+            "added": 59
+          },
+          "colb": {
+            "url": "https://docs.colb.finance/getting-started/smart-contracts.md",
+            "status": "ok",
+            "added": 3
+          },
+          "bstocks-finance": {
+            "url": "https://www.bstocks.finance/en/",
+            "status": 403
+          },
+          "xstocks": {
+            "url": "https://api.xstocks.fi/api/v2/public/assets",
+            "status": "ok",
+            "added": 154
+          },
+          "paimon": {
+            "url": "https://app.paimon.finance/trade",
+            "docs": "https://paimon-finance.gitbook.io/paimon.finance",
+            "status": "ok",
+            "added": 5
+          }
+        },
+        "addedBySource": {
+          "stocksonchain": 1057,
+          "xstocks-tokenlist": 485,
+          "jumper-bstocks": 59,
+          "colb": 3,
+          "xstocks": 154,
+          "paimon": 5
+        },
+        "skipped": {
+          "leveraged": 41,
+          "generic": 1,
+          "private": 4,
+          "duplicate": 1667
+        }
+      },
+      "method": "BNB chainId 56 only; classify ETF/index before private; private admits Colb, Paimon, or registry kind preipo|private with a private-company signal; crypto, commodities, generic baskets, copycats, leveraged/inverse, perps, fan tokens, treasuries, and Paimon Prime stay out; public equity, pre-IPO, and ETF for every issuer; sumNullable of DexScreener volume.h24 across unique BNB pools; issuersByLane is that sum partitioned by issuer inside equity, etf, and private; null means no reported volume (not zero)"
+    },
+    {
+      "date": "2026-10-02",
+      "t": 1790913600,
+      "publicEquity24hUsd": 17880150.940000005,
+      "private24hUsd": 9532.95,
+      "etfIndex24hUsd": 12534807.53,
+      "combined24hUsd": 30424491.420000006,
+      "issuersByLane": {
+        "equity": {
+          "bstocks": {
+            "usd": 17706496.520000003,
+            "mints": 54,
+            "pools": 39
+          },
+          "ondo": {
+            "usd": 173645.27000000002,
+            "mints": 332,
+            "pools": 36
+          },
+          "xstocks": {
+            "usd": 9.15,
+            "mints": 1199,
+            "pools": 4
+          }
+        },
+        "etf": {
+          "bstocks": {
+            "usd": 10289908.45,
+            "mints": 5,
+            "pools": 4
+          },
+          "ondo": {
+            "usd": 2244899.0799999996,
+            "mints": 111,
+            "pools": 10
+          },
+          "xstocks": {
+            "usd": 0.0,
+            "mints": 52,
+            "pools": 1
+          }
+        },
+        "private": {
+          "colb": {
+            "usd": null,
+            "mints": 3,
+            "pools": 0
+          },
+          "ondo": {
+            "usd": 629.98,
+            "mints": 1,
+            "pools": 1
+          },
+          "paimon": {
+            "usd": 8816.96,
+            "mints": 5,
+            "pools": 3
+          },
+          "xstocks": {
+            "usd": 86.01,
+            "mints": 1,
+            "pools": 1
+          }
+        }
+      },
+      "publicMintCount": 1585,
+      "publicPoolCount": 79,
+      "etfMintCount": 168,
+      "etfPoolCount": 15,
+      "preipoMintCount": 10,
+      "preipoPoolCount": 5,
+      "withVolumeEquityCount": 79,
+      "generatedAt": "2026-10-03T04:09:56.447107Z",
+      "sources": {
+        "universe": "BNB chainId 56 equity/pre-IPO/ETF union by contract address",
+        "volume": "DexScreener tokens/v1/bsc volume.h24 unique-pool sumNullable",
+        "chainId": 56,
+        "chainSlug": "bsc",
+        "issuers": {
+          "xstocks": 1252,
+          "ondo": 444,
+          "bstocks": 59,
+          "colb": 3,
+          "paimon": 5
+        },
+        "kindCounts": {
+          "equity": 1585,
+          "etf": 168,
+          "preipo": 10
+        },
+        "registries": {
+          "stocksonchain": {
+            "url": "https://stocksonchain.io/api/tokens.json",
+            "status": "ok",
+            "added": 1057
+          },
+          "ondo-gm": {
+            "url": "https://api.gm.ondo.finance/v1/assets/all/metadata",
+            "status": 403
+          },
+          "xstocks-tokenlist": {
+            "url": "https://raw.githubusercontent.com/backed-fi/cowswap-xstocks-tokenlist/main/tokenlist.json",
+            "status": "ok",
+            "added": 485
+          },
+          "jumper-bstocks": {
+            "url": "https://rwa.jumper.xyz/providers/bstocks",
+            "status": "ok",
+            "added": 59
+          },
+          "colb": {
+            "url": "https://docs.colb.finance/getting-started/smart-contracts.md",
+            "status": "ok",
+            "added": 3
+          },
+          "bstocks-finance": {
+            "url": "https://www.bstocks.finance/en/",
+            "status": 403
+          },
+          "xstocks": {
+            "url": "https://api.xstocks.fi/api/v2/public/assets",
+            "status": "ok",
+            "added": 154
+          },
+          "paimon": {
+            "url": "https://app.paimon.finance/trade",
+            "docs": "https://paimon-finance.gitbook.io/paimon.finance",
+            "status": "ok",
+            "added": 5
+          }
+        },
+        "addedBySource": {
+          "stocksonchain": 1057,
+          "xstocks-tokenlist": 485,
+          "jumper-bstocks": 59,
+          "colb": 3,
+          "xstocks": 154,
+          "paimon": 5
+        },
+        "skipped": {
+          "leveraged": 41,
+          "generic": 1,
+          "private": 4,
+          "duplicate": 1667
+        }
+      },
+      "method": "BNB chainId 56 only; classify ETF/index before private; private admits Colb, Paimon, or registry kind preipo|private with a private-company signal; crypto, commodities, generic baskets, copycats, leveraged/inverse, perps, fan tokens, treasuries, and Paimon Prime stay out; public equity, pre-IPO, and ETF for every issuer; sumNullable of DexScreener volume.h24 across unique BNB pools; issuersByLane is that sum partitioned by issuer inside equity, etf, and private; null means no reported volume (not zero)"
+    },
+    {
+      "date": "2026-10-03",
+      "t": 1791000000,
+      "publicEquity24hUsd": 14771094.240000002,
+      "private24hUsd": 30798.88,
+      "etfIndex24hUsd": 8558367.85,
+      "combined24hUsd": 23360260.970000003,
+      "issuersByLane": {
+        "equity": {
+          "bstocks": {
+            "usd": 14760365.020000001,
+            "mints": 54,
+            "pools": 43
+          },
+          "ondo": {
+            "usd": 10726.92,
+            "mints": 332,
+            "pools": 20
+          },
+          "xstocks": {
+            "usd": 2.3,
+            "mints": 1199,
+            "pools": 5
+          }
+        },
+        "etf": {
+          "bstocks": {
+            "usd": 6388426.359999999,
+            "mints": 5,
+            "pools": 3
+          },
+          "ondo": {
+            "usd": 2169941.0,
+            "mints": 111,
+            "pools": 11
+          },
+          "xstocks": {
+            "usd": 0.49,
+            "mints": 52,
+            "pools": 1
+          }
+        },
+        "private": {
+          "colb": {
+            "usd": null,
+            "mints": 3,
+            "pools": 0
+          },
+          "ondo": {
+            "usd": 208.39,
+            "mints": 1,
+            "pools": 1
+          },
+          "paimon": {
+            "usd": 30563.84,
+            "mints": 5,
+            "pools": 3
+          },
+          "xstocks": {
+            "usd": 26.65,
+            "mints": 1,
+            "pools": 1
+          }
+        }
+      },
+      "publicMintCount": 1585,
+      "publicPoolCount": 68,
+      "etfMintCount": 168,
+      "etfPoolCount": 15,
+      "preipoMintCount": 10,
+      "preipoPoolCount": 5,
+      "withVolumeEquityCount": 68,
+      "generatedAt": "2026-10-04T04:05:47.617083Z",
+      "sources": {
+        "universe": "BNB chainId 56 equity/pre-IPO/ETF union by contract address",
+        "volume": "DexScreener tokens/v1/bsc volume.h24 unique-pool sumNullable",
+        "chainId": 56,
+        "chainSlug": "bsc",
+        "issuers": {
+          "xstocks": 1252,
+          "ondo": 444,
+          "bstocks": 59,
+          "colb": 3,
+          "paimon": 5
+        },
+        "kindCounts": {
+          "equity": 1585,
+          "etf": 168,
+          "preipo": 10
+        },
+        "registries": {
+          "stocksonchain": {
+            "url": "https://stocksonchain.io/api/tokens.json",
+            "status": "ok",
+            "added": 1057
+          },
+          "ondo-gm": {
+            "url": "https://api.gm.ondo.finance/v1/assets/all/metadata",
+            "status": 403
+          },
+          "xstocks-tokenlist": {
+            "url": "https://raw.githubusercontent.com/backed-fi/cowswap-xstocks-tokenlist/main/tokenlist.json",
+            "status": "ok",
+            "added": 485
+          },
+          "jumper-bstocks": {
+            "url": "https://rwa.jumper.xyz/providers/bstocks",
+            "status": "ok",
+            "added": 59
+          },
+          "colb": {
+            "url": "https://docs.colb.finance/getting-started/smart-contracts.md",
+            "status": "ok",
+            "added": 3
+          },
+          "bstocks-finance": {
+            "url": "https://www.bstocks.finance/en/",
+            "status": 403
+          },
+          "xstocks": {
+            "url": "https://api.xstocks.fi/api/v2/public/assets",
+            "status": "ok",
+            "added": 154
+          },
+          "paimon": {
+            "url": "https://app.paimon.finance/trade",
+            "docs": "https://paimon-finance.gitbook.io/paimon.finance",
+            "status": "ok",
+            "added": 5
+          }
+        },
+        "addedBySource": {
+          "stocksonchain": 1057,
+          "xstocks-tokenlist": 485,
+          "jumper-bstocks": 59,
+          "colb": 3,
+          "xstocks": 154,
+          "paimon": 5
+        },
+        "skipped": {
+          "leveraged": 41,
+          "generic": 1,
+          "private": 4,
+          "duplicate": 1667
+        }
+      },
+      "method": "BNB chainId 56 only; classify ETF/index before private; private admits Colb, Paimon, or registry kind preipo|private with a private-company signal; crypto, commodities, generic baskets, copycats, leveraged/inverse, perps, fan tokens, treasuries, and Paimon Prime stay out; public equity, pre-IPO, and ETF for every issuer; sumNullable of DexScreener volume.h24 across unique BNB pools; issuersByLane is that sum partitioned by issuer inside equity, etf, and private; null means no reported volume (not zero)"
+    },
+    {
+      "date": "2026-10-04",
+      "t": 1791086400,
+      "publicEquity24hUsd": 7016611.769999999,
+      "private24hUsd": 78153.07,
+      "etfIndex24hUsd": 11714206.15,
+      "combined24hUsd": 18808970.99,
+      "issuersByLane": {
+        "equity": {
+          "bstocks": {
+            "usd": 6802917.6099999985,
+            "mints": 54,
+            "pools": 37
+          },
+          "ondo": {
+            "usd": 213694.16,
+            "mints": 332,
+            "pools": 25
+          },
+          "xstocks": {
+            "usd": 0.0,
+            "mints": 1199,
+            "pools": 2
+          }
+        },
+        "etf": {
+          "bstocks": {
+            "usd": 5392188.17,
+            "mints": 5,
+            "pools": 3
+          },
+          "ondo": {
+            "usd": 6322017.98,
+            "mints": 111,
+            "pools": 10
+          },
+          "xstocks": {
+            "usd": null,
+            "mints": 52,
+            "pools": 0
+          }
+        },
+        "private": {
+          "colb": {
+            "usd": null,
+            "mints": 3,
+            "pools": 0
+          },
+          "ondo": {
+            "usd": 256.67,
+            "mints": 1,
+            "pools": 1
+          },
+          "paimon": {
+            "usd": 77889.23000000001,
+            "mints": 5,
+            "pools": 3
+          },
+          "xstocks": {
+            "usd": 7.17,
+            "mints": 1,
+            "pools": 1
+          }
+        }
+      },
+      "publicMintCount": 1585,
+      "publicPoolCount": 64,
+      "etfMintCount": 168,
+      "etfPoolCount": 13,
+      "preipoMintCount": 10,
+      "preipoPoolCount": 5,
+      "withVolumeEquityCount": 64,
+      "generatedAt": "2026-10-05T04:07:25.152850Z",
+      "sources": {
+        "universe": "BNB chainId 56 equity/pre-IPO/ETF union by contract address",
+        "volume": "DexScreener tokens/v1/bsc volume.h24 unique-pool sumNullable",
+        "chainId": 56,
+        "chainSlug": "bsc",
+        "issuers": {
+          "xstocks": 1252,
+          "ondo": 444,
+          "bstocks": 59,
+          "colb": 3,
+          "paimon": 5
+        },
+        "kindCounts": {
+          "equity": 1585,
+          "etf": 168,
+          "preipo": 10
+        },
+        "registries": {
+          "stocksonchain": {
+            "url": "https://stocksonchain.io/api/tokens.json",
+            "status": "ok",
+            "added": 1057
+          },
+          "ondo-gm": {
+            "url": "https://api.gm.ondo.finance/v1/assets/all/metadata",
+            "status": 403
+          },
+          "xstocks-tokenlist": {
+            "url": "https://raw.githubusercontent.com/backed-fi/cowswap-xstocks-tokenlist/main/tokenlist.json",
+            "status": "ok",
+            "added": 485
+          },
+          "jumper-bstocks": {
+            "url": "https://rwa.jumper.xyz/providers/bstocks",
+            "status": "ok",
+            "added": 59
+          },
+          "colb": {
+            "url": "https://docs.colb.finance/getting-started/smart-contracts.md",
+            "status": "ok",
+            "added": 3
+          },
+          "bstocks-finance": {
+            "url": "https://www.bstocks.finance/en/",
+            "status": 403
+          },
+          "xstocks": {
+            "url": "https://api.xstocks.fi/api/v2/public/assets",
+            "status": "ok",
+            "added": 154
+          },
+          "paimon": {
+            "url": "https://app.paimon.finance/trade",
+            "docs": "https://paimon-finance.gitbook.io/paimon.finance",
+            "status": "ok",
+            "added": 5
+          }
+        },
+        "addedBySource": {
+          "stocksonchain": 1057,
+          "xstocks-tokenlist": 485,
+          "jumper-bstocks": 59,
+          "colb": 3,
+          "xstocks": 154,
+          "paimon": 5
+        },
+        "skipped": {
+          "leveraged": 41,
+          "generic": 1,
+          "private": 4,
+          "duplicate": 1667
+        }
+      },
+      "method": "BNB chainId 56 only; classify ETF/index before private; private admits Colb, Paimon, or registry kind preipo|private with a private-company signal; crypto, commodities, generic baskets, copycats, leveraged/inverse, perps, fan tokens, treasuries, and Paimon Prime stay out; public equity, pre-IPO, and ETF for every issuer; sumNullable of DexScreener volume.h24 across unique BNB pools; issuersByLane is that sum partitioned by issuer inside equity, etf, and private; null means no reported volume (not zero)"
+    },
+    {
+      "date": "2026-10-05",
+      "t": 1791172800,
+      "publicEquity24hUsd": 17388261.13,
+      "private24hUsd": 22529.28,
+      "etfIndex24hUsd": 9756028.220000003,
+      "combined24hUsd": 27166818.630000003,
+      "issuersByLane": {
+        "equity": {
+          "bstocks": {
+            "usd": 16634238.970000003,
+            "mints": 54,
+            "pools": 43
+          },
+          "ondo": {
+            "usd": 753952.5000000002,
+            "mints": 332,
+            "pools": 54
+          },
+          "xstocks": {
+            "usd": 69.66000000000001,
+            "mints": 1199,
+            "pools": 6
+          }
+        },
+        "etf": {
+          "bstocks": {
+            "usd": 6663923.81,
+            "mints": 5,
+            "pools": 4
+          },
+          "ondo": {
+            "usd": 3092100.2800000003,
+            "mints": 111,
+            "pools": 13
+          },
+          "xstocks": {
+            "usd": 4.13,
+            "mints": 52,
+            "pools": 1
+          }
+        },
+        "private": {
+          "colb": {
+            "usd": null,
+            "mints": 3,
+            "pools": 0
+          },
+          "ondo": {
+            "usd": 4886.71,
+            "mints": 1,
+            "pools": 1
+          },
+          "paimon": {
+            "usd": 17573.15,
+            "mints": 5,
+            "pools": 3
+          },
+          "xstocks": {
+            "usd": 69.42,
+            "mints": 1,
+            "pools": 1
+          }
+        }
+      },
+      "publicMintCount": 1585,
+      "publicPoolCount": 103,
+      "etfMintCount": 168,
+      "etfPoolCount": 18,
+      "preipoMintCount": 10,
+      "preipoPoolCount": 5,
+      "withVolumeEquityCount": 103,
+      "generatedAt": "2026-10-06T04:02:18.346210Z",
+      "sources": {
+        "universe": "BNB chainId 56 equity/pre-IPO/ETF union by contract address",
+        "volume": "DexScreener tokens/v1/bsc volume.h24 unique-pool sumNullable",
+        "chainId": 56,
+        "chainSlug": "bsc",
+        "issuers": {
+          "xstocks": 1252,
+          "ondo": 444,
+          "bstocks": 59,
+          "colb": 3,
+          "paimon": 5
+        },
+        "kindCounts": {
+          "equity": 1585,
+          "etf": 168,
+          "preipo": 10
+        },
+        "registries": {
+          "stocksonchain": {
+            "url": "https://stocksonchain.io/api/tokens.json",
+            "status": "ok",
+            "added": 1057
+          },
+          "ondo-gm": {
+            "url": "https://api.gm.ondo.finance/v1/assets/all/metadata",
+            "status": 403
+          },
+          "xstocks-tokenlist": {
+            "url": "https://raw.githubusercontent.com/backed-fi/cowswap-xstocks-tokenlist/main/tokenlist.json",
+            "status": "ok",
+            "added": 485
+          },
+          "jumper-bstocks": {
+            "url": "https://rwa.jumper.xyz/providers/bstocks",
+            "status": "ok",
+            "added": 59
+          },
+          "colb": {
+            "url": "https://docs.colb.finance/getting-started/smart-contracts.md",
+            "status": "ok",
+            "added": 3
+          },
+          "bstocks-finance": {
+            "url": "https://www.bstocks.finance/en/",
+            "status": 403
+          },
+          "xstocks": {
+            "url": "https://api.xstocks.fi/api/v2/public/assets",
+            "status": "ok",
+            "added": 154
+          },
+          "paimon": {
+            "url": "https://app.paimon.finance/trade",
+            "docs": "https://paimon-finance.gitbook.io/paimon.finance",
+            "status": "ok",
+            "added": 5
+          }
+        },
+        "addedBySource": {
+          "stocksonchain": 1057,
+          "xstocks-tokenlist": 485,
+          "jumper-bstocks": 59,
+          "colb": 3,
+          "xstocks": 154,
+          "paimon": 5
+        },
+        "skipped": {
+          "leveraged": 41,
+          "generic": 1,
+          "private": 4,
+          "duplicate": 1667
+        }
+      },
+      "method": "BNB chainId 56 only; classify ETF/index before private; private admits Colb, Paimon, or registry kind preipo|private with a private-company signal; crypto, commodities, generic baskets, copycats, leveraged/inverse, perps, fan tokens, treasuries, and Paimon Prime stay out; public equity, pre-IPO, and ETF for every issuer; sumNullable of DexScreener volume.h24 across unique BNB pools; issuersByLane is that sum partitioned by issuer inside equity, etf, and private; null means no reported volume (not zero)"
+    }
+  ]
+}

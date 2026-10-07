@@ -20,7 +20,7 @@ import {
 } from "@/lib/desk/issuer-filter";
 import { assetRouteKey } from "@/lib/market/identity";
 import type { AssetSummary, InstrumentKind, VolumeHistoryPoint } from "@/lib/market/types";
-import { SOLANA_CHAIN_ID } from "@/lib/market/types";
+import { ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID } from "@/lib/market/types";
 import { PIN_COMPARE_MAX, selectPinnedCompareRows, shouldShowPinCompare } from "@/lib/desk/pin-compare";
 import { type CoverageFilter } from "@/lib/market/volume-coverage";
 
@@ -47,8 +47,17 @@ function emptyCopy(input: {
   pinnedOnly: boolean;
   coverageFilter: CoverageFilter;
   issuerFilter: IssuerFilter;
+  chainId: string;
 }): string {
+  const robinhood = input.chainId === ROBINHOOD_CHAIN_ID;
   if (input.totalInLane === 0) {
+    if (robinhood) {
+      if (input.lane === "etf") return "No Robinhood Chain ETF/index names in this snapshot.";
+      if (input.lane === "private") {
+        return "No Robinhood Chain private-market names in this snapshot.";
+      }
+      return "No Robinhood Chain equities in this snapshot.";
+    }
     if (input.lane === "etf") return "No verifiable Solana ETF/index products in this snapshot.";
     if (input.lane === "private") {
       return "No verifiable Solana private-market / PreStocks names in this snapshot. Discovery is fail-closed and does not invent mints.";
@@ -68,7 +77,9 @@ function emptyCopy(input: {
     return "No pinned Solana names in this view. Pin a row with the star, or switch coverage to All — pins are mint-specific, not ticker-merged.";
   }
   if (input.coverageFilter === "with-volume") {
-    return "No stocks with reported DexScreener volume in this snapshot. Null volume stays hidden here because it is unknown, not zero.";
+    return robinhood
+      ? "No Robinhood Chain names with reported DexScreener volume in this snapshot. Null volume stays hidden here because it is unknown, not zero."
+      : "No stocks with reported DexScreener volume in this snapshot. Null volume stays hidden here because it is unknown, not zero.";
   }
   if (input.coverageFilter === "hydrating") {
     return "Nothing is still hydrating. DexScreener lookup finished for this snapshot.";
@@ -192,7 +203,10 @@ export function AssetTable({
       pinned: next.pinned ?? pinnedOnly,
       issuer: next.issuer ?? issuerFilter,
     });
-  const showIssuerFilter = enableFavorites && (issuerFacets.length > 0 || unknownIssuerCount > 0);
+  const solanaDesk = chainId === SOLANA_CHAIN_ID;
+  /** Solana and Robinhood Chain share the Volume | Liquidity markets strip. */
+  const marketsDesk = solanaDesk || chainId === ROBINHOOD_CHAIN_ID;
+  const showIssuerFilter = (marketsDesk || enableFavorites) && (issuerFacets.length > 0 || unknownIssuerCount > 0);
   const activeIssuerLabel = issuerFilterLabel(issuerFilter, issuerFacets);
 
   const rows = useMemo(() => {
@@ -211,8 +225,7 @@ export function AssetTable({
   }, [catalog, enableFavorites, favorites.favoriteMints]);
   const compareHidden = Math.max(0, favorites.favoriteMints.length - compareRows.length);
   const hydratingVisible = rows.filter((asset) => asset.volumeCoverage === "hydrate_incomplete").length;
-  const solanaDesk = chainId === SOLANA_CHAIN_ID;
-  const sortColumns = deskSortOptions({ solanaDesk, showRobinhoodMarks });
+  const sortColumns = deskSortOptions({ solanaDesk: marketsDesk, showRobinhoodMarks });
 
   const coverageChips: Array<[CoverageFilter, string]> = [
     ["all", "All"],
@@ -279,8 +292,8 @@ export function AssetTable({
   );
 
   return (
-    <div className="space-y-3">
-      {solanaDesk ? (
+    <div className="space-y-3" data-markets-desk={marketsDesk ? chainId : undefined}>
+      {marketsDesk ? (
         <div className="flex items-start justify-between gap-x-3 gap-y-1" data-filter-strip>
           {laneChips || issuerChips ? (
             <div className="flex min-w-0 flex-col gap-1" data-lane-issuers>
@@ -300,17 +313,19 @@ export function AssetTable({
       ) : null}
       {lane === "etf" ? (
         <p className="text-xs text-muted-foreground">
-          ETF and index products are catalogued here and are not mixed into the public-equity ranking.
+          {chainId === ROBINHOOD_CHAIN_ID
+            ? "ETF and index products on Robinhood Chain are listed here and are not mixed into the public-equity ranking."
+            : "ETF and index products are catalogued here and are not mixed into the public-equity ranking."}
         </p>
       ) : null}
       {lane === "private" ? (
         <p className="text-xs text-muted-foreground">
-          Private-market, PreStocks, and Tessera T-Token names are catalogued here. Volume is DexScreener 24h
-          per mint across Solana pools. This lane is not mixed into public-equity ranking; reported 24h is
-          included in the Daily Volume headline.
+          {chainId === ROBINHOOD_CHAIN_ID
+            ? "Private-market names on Robinhood Chain stay in this lane. They are not mixed into the public-equity ranking."
+            : "Private-market, PreStocks, and Tessera T-Token names are catalogued here. Volume is DexScreener 24h per mint across Solana pools. This lane is not mixed into public-equity ranking; reported 24h is included in the Daily Volume headline."}
         </p>
       ) : null}
-      {solanaDesk ? null : (
+      {marketsDesk ? null : (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <input
             value={query}
@@ -336,7 +351,7 @@ export function AssetTable({
           hiddenCount={compareHidden}
         />
       ) : null}
-      {solanaDesk ? null : (
+      {marketsDesk ? null : (
         <div className="flex flex-wrap gap-2 text-xs">
           {coverageChips.map(([key, label]) => (
             <Link key={key} href={hrefFor({ coverage: key })} scroll={false} className={chipClass(coverageFilter === key)}>
@@ -350,7 +365,7 @@ export function AssetTable({
           ) : null}
         </div>
       )}
-      {solanaDesk ? null : (
+      {marketsDesk ? null : (
         <p className="text-xs text-muted-foreground" aria-live="polite">
           Ranked by {SORT_LABELS[sortKey]}
           {sortKey === "volume24hUsd" ? " (coverage, then volume, liquidity, pools)" : ""}
@@ -367,7 +382,7 @@ export function AssetTable({
             ? " and will appear under With volume once a pair reports 24h volume. Reload to pick up background enrichment."
             : " — that is not the same as confirmed no pools. Volume is unknown, not zero."}
         </p>
-      ) : !solanaDesk && coverageFilter === "no-pools" ? (
+      ) : !marketsDesk && coverageFilter === "no-pools" ? (
         <p className="text-xs text-muted-foreground">
           Confirmed no pools means DexScreener lookup finished empty. It is not still hydrating, and it is not zero
           volume.
@@ -393,7 +408,7 @@ export function AssetTable({
 
       {rows.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-          {emptyCopy({ totalInLane, lane, query, pinnedOnly, coverageFilter, issuerFilter })}
+          {emptyCopy({ totalInLane, lane, query, pinnedOnly, coverageFilter, issuerFilter, chainId })}
         </p>
       ) : null}
     </div>

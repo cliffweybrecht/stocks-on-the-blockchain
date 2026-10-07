@@ -6,7 +6,7 @@
  * (`robinhood-chain`). Additional chains come from other adapters later.
  */
 
-export type SourceKind = "mock" | "terminal" | "solana" | "composite";
+export type SourceKind = "mock" | "terminal" | "solana" | "robinhood" | "composite";
 export type TrustKind = "fact" | "interpretive";
 export type InstrumentKind = "equity" | "etf" | "private";
 export type VolumeAggregation = "all-pools" | "primary-pair" | "none";
@@ -298,6 +298,16 @@ export interface AssetAllMarketsVolumeSnapshot {
   hourlyComplete: boolean;
   hourlyResolvedPools: number;
   hourlyTotalPools: number;
+  /**
+   * Sum of pools that have returned candles so far.
+   * Set before `complete`. Not an all-markets total — unresolved pools are omitted, not $0.
+   */
+  observedDaily?: VolumeHistoryPoint[];
+  observedHourly?: VolumeHistoryPoint[];
+  /** USD closes from the highest-volume resolved pool whose OHLCV base is this mint. */
+  priceDaily?: PriceHistoryPoint[];
+  priceHourly?: PriceHistoryPoint[];
+  pricePairAddress?: string | null;
 }
 
 export function emptyAllMarketsVolumeSnapshot(): AssetAllMarketsVolumeSnapshot {
@@ -368,3 +378,11 @@ export interface EquityCardDayVolumeSeriesSnapshot {
 
 export const ROBINHOOD_CHAIN_ID = "robinhood-chain";
 export const ROBINHOOD_CHAIN_NATIVE_ID = "4663";
+
+/** Base mainnet. DexScreener slug `base`. */
+export const BASE_CHAIN_ID = "base";
+export const BASE_CHAIN_NATIVE_ID = "8453";
+
+/** BNB Chain. DexScreener slug `bsc`. The desk id stays `bnb`. */
+export const BNB_CHAIN_ID = "bnb";
+export const BNB_CHAIN_NATIVE_ID = "56";

@@ -6,8 +6,18 @@ import { Metric } from "@/components/metric";
 import { PageShell } from "@/components/page-shell";
 import { ProvenanceBar } from "@/components/provenance-bar";
 import { DailyVolumeChart } from "@/components/daily-volume-chart";
+import { RobinhoodVolumeDesk } from "@/components/robinhood-volume-desk";
+import { SnapshotVolumeDesk } from "@/components/snapshot-volume-desk";
 import { emptyEquityVolumeHistory } from "@/lib/market/volume-history";
 import { formatCount, formatUsdCompact } from "@/lib/market/format";
+import { loadClosedRobinhoodDeskDays } from "@/lib/market/robinhood-desk-volume-file";
+import { robinhoodSnapshotChainShell } from "@/lib/market/robinhood-desk-volume";
+import { loadRobinhoodChainMarkets, robinhoodCatalogCount } from "@/lib/market/robinhood-chain-markets";
+import {
+  overlayTerminalReference,
+  robinhoodLanesFromTerminal,
+  type RobinhoodMarketLanes,
+} from "@/lib/market/robinhood-markets";
 import { parseIssuerFilter } from "@/lib/desk/issuer-filter";
 import { toPinCompareAsset } from "@/lib/desk/pin-compare";
 import { displayedIssuerFacets, displayedLaneCount, assetsMatchingListView } from "@/lib/desk/displayed-list-counts";
@@ -18,7 +28,8 @@ import { selectEquityPriceTicker } from "@/lib/desk/price-ticker";
 import { parseAssetSortKey, sortAssets } from "@/lib/market/aggregate";
 import { toJumpAsset } from "@/lib/market/asset-search";
 import { createMarketDataSource } from "@/lib/market/factory";
-import { SOLANA_CHAIN_ID, type EquityVolumeHistoryResult } from "@/lib/market/types";
+import { findSnapshotDesk, loadClosedSnapshotDeskDays } from "@/lib/market/snapshot-desk-volume-file";
+import { ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type AssetSummary, type EquityVolumeHistoryResult } from "@/lib/market/types";
 import { parseCoverageFilter } from "@/lib/market/volume-coverage";
 
 export const dynamic = "force-dynamic";
@@ -32,21 +43,54 @@ export default async function ChainPage({
 }) {
   const { chainId } = await params;
   const query = await searchParams;
+  const snapshotDesk = findSnapshotDesk(chainId);
+  if (snapshotDesk) {
+    const days = await loadClosedSnapshotDeskDays(snapshotDesk);
+    return (
+      <PageShell>
+        <div className="space-y-5">
+          <div>
+            <h2 className="font-heading text-2xl font-semibold tracking-tight">{snapshotDesk.name}</h2>
+          </div>
+          <SnapshotVolumeDesk desk={{ chainId: snapshotDesk.chainId, name: snapshotDesk.name }} days={days} />
+          <EmptyState
+            title={`No ${snapshotDesk.name} markets catalog`}
+            detail={`Volume bars above are recorded DexScreener samples from ${snapshotDesk.file}. A Solana-style name list is not on this desk, so missing cards are not zero volume.`}
+          />
+        </div>
+      </PageShell>
+    );
+  }
   const source = createMarketDataSource();
+  const requestedRobinhood = chainId === ROBINHOOD_CHAIN_ID;
+  const robinhoodNames = requestedRobinhood
+    ? loadRobinhoodChainMarkets().then(
+        (catalog) => ({ catalog, error: null as string | null }),
+        (error: unknown) => ({
+          catalog: null,
+          error: error instanceof Error ? error.message : "Robinhood Chain names did not load.",
+        }),
+      )
+    : null;
 
   let result;
+  let listError: string | null = null;
   try {
     result = await source.getChain(chainId);
   } catch (error) {
     const detail = error instanceof Error ? error.message : "Chain snapshot failed.";
-    return (
-      <PageShell>
-        <ErrorState title="Could not load this chain" detail={detail} />
-      </PageShell>
-    );
+    if (!requestedRobinhood) {
+      return (
+        <PageShell>
+          <ErrorState title="Could not load this chain" detail={detail} />
+        </PageShell>
+      );
+    }
+    listError = detail;
+    result = null;
   }
 
-  if (!result) {
+  if (!result && !requestedRobinhood) {
     return (
       <PageShell>
         <EmptyState
@@ -57,8 +101,35 @@ export default async function ChainPage({
     );
   }
 
-  const { chain, assets, etfAssets = [], privateAssets = [], provenance } = result;
+  const hideSeedNames = requestedRobinhood && result?.provenance.sourceId === "mock";
+  const chain = result && !hideSeedNames ? result.chain : robinhoodSnapshotChainShell();
+  let assets = result && !hideSeedNames ? result.assets : [];
+  let etfAssets = result && !hideSeedNames ? (result.etfAssets ?? []) : [];
+  let privateAssets = result && !hideSeedNames ? (result.privateAssets ?? []) : [];
+  const provenance = result && !hideSeedNames ? result.provenance : undefined;
   const isSolana = chain.id === SOLANA_CHAIN_ID;
+  const isRobinhood = chain.id === ROBINHOOD_CHAIN_ID;
+  let robinhoodVolumeHydrated = false;
+  if (isRobinhood && robinhoodNames) {
+    const loaded = await robinhoodNames;
+    const terminalRows = [...assets, ...etfAssets, ...privateAssets];
+    if (loaded.catalog && robinhoodCatalogCount(loaded.catalog) > 0) {
+      const lanes = overlayLanes(loaded.catalog, terminalRows);
+      assets = lanes.assets;
+      etfAssets = lanes.etfAssets;
+      privateAssets = lanes.privateAssets;
+      robinhoodVolumeHydrated = loaded.catalog.volumeHydrated;
+      listError = null;
+    } else if (terminalRows.length > 0) {
+      const lanes = robinhoodLanesFromTerminal(terminalRows);
+      assets = lanes.assets;
+      etfAssets = lanes.etfAssets;
+      privateAssets = lanes.privateAssets;
+    } else if (loaded.error) {
+      listError = loaded.error;
+    }
+  }
+  const robinhoodDays = isRobinhood ? await loadClosedRobinhoodDeskDays() : [];
   let volumeHistory: EquityVolumeHistoryResult;
   let hourlyVolumeHistory: EquityVolumeHistoryResult | null = null;
   if (isSolana) {
@@ -73,17 +144,22 @@ export default async function ChainPage({
     void source.getEquityCardDayVolumeSeries();
   }
   const lane = parseDeskLane(query.lane, { etf: etfAssets.length > 0, private: privateAssets.length > 0 });
-  const defaultCoverage = isSolana ? "with-volume" : "all";
+  const marketsDesk = isSolana || isRobinhood;
+  const robinhoodHasReportedVolume = [...assets, ...etfAssets, ...privateAssets].some(
+    (asset) => asset.volume24hUsd !== null,
+  );
+  const defaultCoverage =
+    isSolana || (isRobinhood && robinhoodVolumeHydrated && robinhoodHasReportedVolume) ? "with-volume" : "all";
   const coverageFilter = parseCoverageFilter(query.coverage, defaultCoverage);
-  const sortKey = resolveDeskSortKey(parseAssetSortKey(query.sort), isSolana);
+  const sortKey = resolveDeskSortKey(parseAssetSortKey(query.sort), marketsDesk);
   const pinnedOnly = parsePinnedFilter(query.pinned);
-  const issuerFilter = isSolana ? parseIssuerFilter(query.issuer) : "all";
+  const issuerFilter = marketsDesk ? parseIssuerFilter(query.issuer) : "all";
   const laneAssets = lane === "etf" ? etfAssets : lane === "private" ? privateAssets : assets;
-  const issuerFacets = isSolana
+  const issuerFacets = marketsDesk
     ? displayedIssuerFacets(laneAssets, coverageFilter)
     : { issuers: [], unknownCount: 0 };
   const visibleAssets = sortAssets(assetsMatchingListView(laneAssets, coverageFilter, issuerFilter), sortKey);
-  const jumpAssets = isSolana ? [...assets, ...etfAssets, ...privateAssets].map(toJumpAsset) : [];
+  const jumpAssets = marketsDesk ? [...assets, ...etfAssets, ...privateAssets].map(toJumpAsset) : [];
   const catalogRows = [...assets, ...etfAssets, ...privateAssets].map(toPinCompareAsset);
 
   return (
@@ -93,7 +169,7 @@ export default async function ChainPage({
       priceTicker={selectEquityPriceTicker(assets)}
     >
       <div className="space-y-5">
-        {isSolana ? null : (
+        {isSolana || isRobinhood ? null : (
           <nav className="text-sm text-muted-foreground" data-chain-breadcrumb>
             <Link href="/" className="hover:text-foreground">
               Chains
@@ -104,7 +180,7 @@ export default async function ChainPage({
         )}
         <div>
           <h2 className="font-heading text-2xl font-semibold tracking-tight">{chain.name}</h2>
-          {isSolana ? null : <p className="mt-1 text-sm text-muted-foreground">{chain.sourceLabel}</p>}
+          {isSolana || isRobinhood ? null : <p className="mt-1 text-sm text-muted-foreground">{chain.sourceLabel}</p>}
         </div>
         {isSolana ? (
           <DailyVolumeChart
@@ -116,7 +192,9 @@ export default async function ChainPage({
               etfVolume24hUsd: chain.etfVolume24hUsd,
             }}
           />
-        ) : (
+        ) : isRobinhood ? (
+          <RobinhoodVolumeDesk days={robinhoodDays} />
+        ) : provenance ? (
           <>
             <ProvenanceBar provenance={provenance} compact />
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -142,11 +220,17 @@ export default async function ChainPage({
               />
             </div>
           </>
-        )}
+        ) : null}
         {assets.length === 0 && etfAssets.length === 0 && privateAssets.length === 0 ? (
           <EmptyState
-            title="No stocks on this chain snapshot"
-            detail="The source listed the chain but returned no asset rows. That is an empty snapshot, not zero volume. On Solana this usually means live discovery found no verifiable public equities."
+            title={isRobinhood ? "No Robinhood Chain names in this snapshot" : "No stocks on this chain snapshot"}
+            detail={
+              isRobinhood
+                ? listError
+                  ? `Volume bars above are recorded DexScreener samples. The stock list did not load (${listError}). That is a missing list, not zero volume.`
+                  : "Volume bars above are recorded DexScreener samples from robinhood.json. Names come from the RHJ registry and DexScreener on chain 4663. An empty list is not zero volume."
+                : "The source listed the chain but returned no asset rows. That is an empty snapshot, not zero volume. On Solana this usually means live discovery found no verifiable public equities."
+            }
           />
         ) : (
           <AssetTable
@@ -167,11 +251,20 @@ export default async function ChainPage({
             issuerFacets={issuerFacets.issuers}
             unknownIssuerCount={issuerFacets.unknownCount}
             chainId={chain.id}
-            showRobinhoodMarks={!isSolana}
-            enableFavorites={isSolana}
+            showRobinhoodMarks={!marketsDesk}
+            enableFavorites={marketsDesk}
           />
         )}
       </div>
     </PageShell>
   );
+}
+
+function overlayLanes(lanes: RobinhoodMarketLanes, terminal: readonly AssetSummary[]): RobinhoodMarketLanes {
+  return {
+    assets: overlayTerminalReference(lanes.assets, terminal),
+    etfAssets: overlayTerminalReference(lanes.etfAssets, terminal),
+    privateAssets: overlayTerminalReference(lanes.privateAssets, terminal),
+    details: overlayTerminalReference(lanes.details, terminal),
+  };
 }

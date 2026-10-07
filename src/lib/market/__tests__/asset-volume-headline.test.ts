@@ -277,6 +277,45 @@ describe("selectAssetVolumeSeries", () => {
     expect(pending.scope).toBe("primary_pool");
     expect(pending.points).toEqual([{ t: NOW - DAY, volumeUsd: 187_000 }]);
   });
+
+  it("plots the resolved-pool sum only when the primary series is empty", () => {
+    const filled = selectAssetVolumeSeries({
+      range: "7d",
+      nowT: NOW,
+      windowSeconds: 7 * DAY,
+      primaryPoolPoints: [],
+      allMarketsDaily: null,
+      allMarketsHourly: null,
+      observedPoints: [{ t: NOW - DAY, volumeUsd: 40 }],
+    });
+    expect(filled).toEqual({
+      scope: "observed_pools",
+      points: [{ t: NOW - DAY, volumeUsd: 40 }],
+    });
+
+    const primaryWins = selectAssetVolumeSeries({
+      range: "7d",
+      nowT: NOW,
+      windowSeconds: 7 * DAY,
+      primaryPoolPoints: [{ t: NOW - DAY, volumeUsd: 9 }],
+      allMarketsDaily: null,
+      allMarketsHourly: null,
+      observedPoints: [{ t: NOW - DAY, volumeUsd: 40 }],
+    });
+    expect(primaryWins.scope).toBe("primary_pool");
+    expect(primaryWins.points).toEqual([{ t: NOW - DAY, volumeUsd: 9 }]);
+
+    const completeWins = selectAssetVolumeSeries({
+      range: "7d",
+      nowT: NOW,
+      windowSeconds: 7 * DAY,
+      primaryPoolPoints: [],
+      allMarketsDaily: [{ t: NOW - 40 * DAY, volumeUsd: 8_000_000 }],
+      allMarketsHourly: null,
+      observedPoints: [{ t: NOW - DAY, volumeUsd: 40 }],
+    });
+    expect(completeWins).toEqual({ scope: "all_markets", points: [] });
+  });
 });
 
 describe("assembleAllMarketsDaily", () => {

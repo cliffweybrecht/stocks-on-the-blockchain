@@ -50,8 +50,11 @@ export function AssetIdentityHeader({
   const halt = asset.price.isTradingHalt;
   const meta = assetIdentityMetaParts(asset);
   const screenerUrl =
-    asset.sourceId === "solana" ? dexScreenerTokenUrl(chain.id, asset.contractAddress) : null;
-  const sourceBadge = asset.sourceId === "solana" ? null : sourceRowLabel(asset.sourceId);
+    asset.sourceId === "solana" || asset.sourceId === "robinhood"
+      ? dexScreenerTokenUrl(chain.id, asset.contractAddress)
+      : null;
+  const sourceBadge =
+    asset.sourceId === "solana" || asset.sourceId === "robinhood" ? null : sourceRowLabel(asset.sourceId);
   const blurb = description?.trim() || null;
 
   return (

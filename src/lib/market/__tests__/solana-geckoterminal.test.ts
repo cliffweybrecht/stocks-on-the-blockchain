@@ -59,4 +59,10 @@ describe("geckoTerminalOhlcvPath", () => {
     expect(path).toContain("limit=24");
     expect(path).toContain("currency=usd");
   });
+
+  it("can ask Robinhood Chain (Gecko network robinhood) for the same USD candles", () => {
+    const path = geckoTerminalOhlcvPath("0xpool", { timeframe: "day", limit: 90, network: "robinhood" });
+    expect(path).toContain("/networks/robinhood/pools/0xpool/ohlcv/day");
+    expect(path).toContain("currency=usd");
+  });
 });

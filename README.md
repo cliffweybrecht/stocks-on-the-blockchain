@@ -244,6 +244,22 @@ HOURLY_TARGET_HOUR=2026-09-30T10 SOLANA_MARKET_ENABLED=true npm run snapshot:vol
 
 Same all-pools DexScreener desk read as `snapshot:volume`. No Gecko backfill. The process writes `solana-hourly.json` only — it does not update `solana.json`. Commit that hourly file. Do not nest these rows inside `solana.json`; the daily writer does not keep a side section, and the chart must not treat a rolling hour as a closed day.
 
+## Robinhood Chain desk
+
+`/chains/robinhood-chain` is the Robinhood Chain volume desk (EVM id **4663**, DexScreener slug `robinhood`). It uses the same range shell as Solana: **24H | 7D | 14D | 30D**, lime accent, closed America/New_York days only.
+
+| | |
+| --- | --- |
+| **File** | `data/volume-snapshots/robinhood.json` (tracked; the `*.json` ignore does not untrack it) |
+| **24H** | Last closed Eastern snapshot day, as a KPI. Not an intraday chart. Robinhood has no hourly file |
+| **7D / 14D / 30D** | Newest N recorded closed days. A missing day is omitted, not drawn as $0 |
+| **Bar** | DexScreener trailing `volume.h24` sampled near the end of that Eastern date. Not a true 12:00 AM–11:59 PM ET window |
+| **Lanes** | Public equity, ETF/index, and private. Issuer × type is shown when the row recorded it. **RHJ** is the verified issuer. **Ondo-named (unverified)** is not official Ondo |
+
+The stock list uses the public RHJ registry (`https://api.robinhood.com/rhj/assets`) and DexScreener markets on chain 4663, with the same Equities / ETF / Private, issuer, and Volume | Liquidity card desk as Solana. Ondo-named tokens stay labeled unverified. `TERMINAL_BASE_URL` is optional: when it is set, Terminal reference marks are kept, and Terminal rows are the fallback if discovery does not load. Snapshot volume renders even when that list is empty. Seed/mock names are not shown on this desk.
+
+Nightly capture is not in this app process. `npm run snapshot:robinhood-volume` points at `scripts/snapshot-robinhood-volume.py`, which is not on `main` yet (draft snapshot PRs). Cron, when that writer lands, is `CRON_TZ=America/New_York 59 23 * * *`. Auto-land via `snapshot:land --push-main` still waits on the shared day-key drafts. Until the next snapshot lands, the desk shows the bars committed in `robinhood.json` and does not invent later days.
+
 ## Trust labeling
 
 - Persistent disclaimer in the site footer only (no gold trust card; provenance on pages is a thin source · time line)
