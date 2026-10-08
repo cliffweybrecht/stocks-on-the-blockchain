@@ -20,7 +20,7 @@ import {
 } from "@/lib/desk/issuer-filter";
 import { assetRouteKey } from "@/lib/market/identity";
 import type { AssetSummary, InstrumentKind, VolumeHistoryPoint } from "@/lib/market/types";
-import { BASE_CHAIN_ID, ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID } from "@/lib/market/types";
+import { BASE_CHAIN_ID, BNB_CHAIN_ID, ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID } from "@/lib/market/types";
 import { PIN_COMPARE_MAX, selectPinnedCompareRows, shouldShowPinCompare } from "@/lib/desk/pin-compare";
 import { type CoverageFilter } from "@/lib/market/volume-coverage";
 
@@ -204,8 +204,8 @@ export function AssetTable({
       issuer: next.issuer ?? issuerFilter,
     });
   const solanaDesk = chainId === SOLANA_CHAIN_ID;
-  /** Solana, Robinhood Chain, and Base share the Volume | Liquidity markets strip. */
-  const marketsDesk = solanaDesk || chainId === ROBINHOOD_CHAIN_ID || chainId === BASE_CHAIN_ID;
+  /** Solana, Robinhood Chain, Base, and BNB Chain share the Volume | Liquidity markets strip. */
+  const marketsDesk = solanaDesk || chainId === ROBINHOOD_CHAIN_ID || chainId === BASE_CHAIN_ID || chainId === BNB_CHAIN_ID;
   const showIssuerFilter = (marketsDesk || enableFavorites) && (issuerFacets.length > 0 || unknownIssuerCount > 0);
   const activeIssuerLabel = issuerFilterLabel(issuerFilter, issuerFacets);
 
@@ -317,7 +317,9 @@ export function AssetTable({
             ? "ETF and index products on Robinhood Chain are listed here and are not mixed into the public-equity ranking."
             : chainId === BASE_CHAIN_ID
               ? "ETF and index products on Base are listed here and are not mixed into the public-equity ranking."
-              : "ETF and index products are catalogued here and are not mixed into the public-equity ranking."}
+              : chainId === BNB_CHAIN_ID
+                ? "ETF and index products on BNB Chain are listed here and are not mixed into the public-equity ranking."
+                : "ETF and index products are catalogued here and are not mixed into the public-equity ranking."}
         </p>
       ) : null}
       {lane === "private" ? (
@@ -326,7 +328,9 @@ export function AssetTable({
             ? "Private-market names on Robinhood Chain stay in this lane. They are not mixed into the public-equity ranking."
             : chainId === BASE_CHAIN_ID
               ? "Private-market names on Base stay in this lane. They are not mixed into the public-equity ranking."
-              : "Private-market, PreStocks, and Tessera T-Token names are catalogued here. Volume is DexScreener 24h per mint across Solana pools. This lane is not mixed into public-equity ranking; reported 24h is included in the Daily Volume headline."}
+              : chainId === BNB_CHAIN_ID
+                ? "Private-market names on BNB Chain stay in this lane. They are not mixed into the public-equity ranking."
+                : "Private-market, PreStocks, and Tessera T-Token names are catalogued here. Volume is DexScreener 24h per mint across Solana pools. This lane is not mixed into public-equity ranking; reported 24h is included in the Daily Volume headline."}
         </p>
       ) : null}
       {marketsDesk ? null : (

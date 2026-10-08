@@ -78,12 +78,13 @@ describe("logo and DexScreener URLs", () => {
     expect(asHttpUrl("https://dd.dexscreener.com/ds-data/tokens/solana/x.png")).toMatch(/^https:\/\//);
   });
 
-  it("links DexScreener for Solana mints, Robinhood Chain contracts, and Base contracts", () => {
+  it("links DexScreener for Solana mints, Robinhood Chain, Base, and BNB Chain contracts", () => {
     expect(dexScreenerTokenUrl("solana", "Mint111")).toBe("https://dexscreener.com/solana/Mint111");
     expect(dexScreenerTokenUrl("robinhood-chain", "0xabc")).toBe("https://dexscreener.com/robinhood/0xabc");
     expect(dexScreenerTokenUrl("base", "0xabc")).toBe("https://dexscreener.com/base/0xabc");
+    expect(dexScreenerTokenUrl("bnb", "0xabc")).toBe("https://dexscreener.com/bsc/0xabc");
     expect(dexScreenerTokenUrl("solana", "")).toBeNull();
-    expect(dexScreenerTokenUrl("bnb", "0xabc")).toBeNull();
+    expect(dexScreenerTokenUrl("ethereum", "0xabc")).toBeNull();
   });
 
   it("prefers a reported pair URL and otherwise builds a Solana or Robinhood pair href", () => {
@@ -96,6 +97,7 @@ describe("logo and DexScreener URLs", () => {
     expect(dexScreenerPairUrl("solana", "pair-nke")).toBe("https://dexscreener.com/solana/pair-nke");
     expect(dexScreenerPairUrl("robinhood-chain", "0xabc")).toBe("https://dexscreener.com/robinhood/0xabc");
     expect(dexScreenerPairUrl("base", "0xabc")).toBe("https://dexscreener.com/base/0xabc");
+    expect(dexScreenerPairUrl("bnb", "0xabc")).toBe("https://dexscreener.com/bsc/0xabc");
     expect(dexScreenerPairUrl("solana", "")).toBeNull();
   });
 });

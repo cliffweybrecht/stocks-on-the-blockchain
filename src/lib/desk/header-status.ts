@@ -10,6 +10,7 @@ export function headerStatusLabel(provenance: DataProvenance): string | null {
     provenance.sourceId === "solana" ||
     provenance.sourceId === "robinhood" ||
     provenance.sourceId === "base" ||
+    provenance.sourceId === "bnb" ||
     (provenance.sourceId === "composite" && provenance.sourceLabel.toLowerCase().includes("solana"))
   ) {
     return null;
