@@ -27,12 +27,14 @@ const GECKO_BASE = "https://api.geckoterminal.com/api/v2";
 const CACHE_DIR = process.env.GECKO_HOURLY_CACHE?.trim() || "/tmp/gecko-hourly-et-cache";
 const CONCURRENCY = 1;
 /**
- * Four requests a minute. CoinGecko documents the keyless GeckoTerminal cap
- * near ten calls a minute, and a burst above that closes the window for a
- * long time. Stay under it, and on 429 stop completely instead of retrying.
+ * One request a minute to start. CoinGecko documents the keyless GeckoTerminal
+ * cap near ten calls a minute; this IP is still cooling off from an earlier
+ * burst, so begin far under that and only speed up after a long clean stretch.
+ * On 429, stop completely instead of retrying into a longer ban.
  */
-const BASE_SPACING_MS = 15_000;
-const MAX_SPACING_MS = 30_000;
+const BASE_SPACING_MS = 60_000;
+const MIN_SPACING_MS = 20_000;
+const MAX_SPACING_MS = 180_000;
 const SNAPSHOT_DIR = join(process.cwd(), "data", "volume-snapshots");
 
 const CHAINS: Record<string, { network: string; snapshot: string; out: string; live: "snapshot" | "robinhood" | "catalog" }> = {
@@ -231,16 +233,20 @@ async function takeSlot(): Promise<void> {
   if (start > now) await sleep(start - now);
 }
 
+function stamp(): string {
+  return new Date().toISOString();
+}
+
 function noteFetchSuccess(): void {
   if (consecutiveRateLimits > 0) {
-    console.log(`recovered spacing=${spacingMs} after=${consecutiveRateLimits}`);
+    console.log(`${stamp()} recovered spacing=${spacingMs} after=${consecutiveRateLimits}`);
   }
   consecutiveRateLimits = 0;
   successesSinceEase += 1;
-  if (successesSinceEase >= 80 && spacingMs > BASE_SPACING_MS) {
-    spacingMs -= 5_000;
+  if (successesSinceEase >= 40 && spacingMs > MIN_SPACING_MS) {
+    spacingMs = Math.max(MIN_SPACING_MS, spacingMs - 10_000);
     successesSinceEase = 0;
-    console.log(`easing spacing=${spacingMs}`);
+    console.log(`${stamp()} easing spacing=${spacingMs}`);
   }
 }
 
@@ -248,9 +254,9 @@ function noteFetchSuccess(): void {
 async function coolDownAfterRateLimit(status: number): Promise<void> {
   consecutiveRateLimits += 1;
   successesSinceEase = 0;
-  spacingMs = Math.min(MAX_SPACING_MS, spacingMs + 5_000);
-  const pause = Math.min(40 * 60_000, 20 * 60_000 * 2 ** (consecutiveRateLimits - 1));
-  console.log(`cooldown status=${status} pause=${pause} spacing=${spacingMs} streak=${consecutiveRateLimits}`);
+  spacingMs = Math.min(MAX_SPACING_MS, spacingMs + 30_000);
+  const pause = Math.min(30 * 60_000, 15 * 60_000 * 2 ** (consecutiveRateLimits - 1));
+  console.log(`${stamp()} cooldown status=${status} pause=${pause} spacing=${spacingMs} streak=${consecutiveRateLimits}`);
   nextStart = Date.now() + pause + spacingMs;
   await sleep(pause);
 }
@@ -322,7 +328,7 @@ async function fetchPools(
         deferred.set(pool, tries);
         if (tries < 8) {
           const pause = Math.min(120_000, 5_000 * 2 ** (tries - 1));
-          console.log(`retry ${network} ${pool} try=${tries} pause=${pause} reason=${result.reason ?? ""}`);
+          console.log(`${stamp()} retry ${network} ${pool} try=${tries} pause=${pause} reason=${result.reason ?? ""}`);
           await sleep(pause);
           pools.push(pool);
           continue;
@@ -335,8 +341,8 @@ async function fetchPools(
       done += 1;
       fetchedNew += 1;
       if (onProgress && fetchedNew % 100 === 0) await onProgress(done);
-      if (fetchedNew % 25 === 0 || done === pools.length) {
-        console.log(`fetched ${done}/${pools.length} ${network} new=${fetchedNew}`);
+      if (fetchedNew <= 8 || fetchedNew % 25 === 0 || done === pools.length) {
+        console.log(`${stamp()} fetched ${done}/${pools.length} ${network} new=${fetchedNew} spacing=${spacingMs}`);
       }
     }
   };
