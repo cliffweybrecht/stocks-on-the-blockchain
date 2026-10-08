@@ -30,10 +30,10 @@ function readDesk(file: string) {
 
 describe("Base snapshot file", () => {
   const days = parseSnapshotDeskDays(readDesk("base.json"), BASE_DESK);
-  const nowT = Date.parse("2026-10-08T03:00:00Z") / 1000;
+  const nowT = Date.parse("2026-10-09T03:00:00Z") / 1000;
   const closed = closedSnapshotDeskDays(days, nowT);
 
-  it("reads the authoritative series from 2026-09-25 through 2026-10-06", () => {
+  it("reads the authoritative series from 2026-09-25 through 2026-10-07", () => {
     expect(days.map((day) => day.date)).toEqual([
       "2026-09-25",
       "2026-09-26",
@@ -47,6 +47,7 @@ describe("Base snapshot file", () => {
       "2026-10-04",
       "2026-10-05",
       "2026-10-06",
+      "2026-10-07",
     ]);
     expect(closed).toEqual(days);
   });
@@ -89,14 +90,13 @@ describe("Base snapshot file", () => {
     ]);
   });
 
-  it("uses the 2026-10-06 snapshot as the last closed Base day", () => {
-    const day = days.at(-1);
-    expect(day?.date).toBe("2026-10-06");
+  it("keeps the 2026-10-06 lanes", () => {
+    const day = days.find((row) => row.date === "2026-10-06");
     expect(day?.combined24hUsd).toBeCloseTo(28_614_559.48, 2);
     expect(day?.publicEquity24hUsd).toBeCloseTo(28_332_450.44, 2);
     expect(day?.etfIndex24hUsd).toBeCloseTo(277_577.3, 2);
     expect(day?.private24hUsd).toBeCloseTo(4_531.74, 2);
-    const issuers = snapshotDeskIssuerRows(snapshotDeskDaysForRange(closed, "24h"));
+    const issuers = snapshotDeskIssuerRows(day ? [day] : []);
     expect(issuers.find((row) => row.slug === "coinbase")).toMatchObject({
       official: true,
       equityUsd: 28_294_904.51,
@@ -106,8 +106,28 @@ describe("Base snapshot file", () => {
     expect(issuers.find((row) => row.slug === "backed")?.equityUsd).toBeCloseTo(316.34, 2);
     expect(issuers.find((row) => row.slug === "dinari")?.equityUsd).toBeNull();
     expect(issuers.find((row) => row.slug === "st0x")?.privateUsd).toBeCloseTo(37.9, 2);
+  });
+
+  it("uses the 2026-10-07 snapshot as the last closed Base day", () => {
+    const day = days.at(-1);
+    expect(day?.date).toBe("2026-10-07");
+    expect(day?.combined24hUsd).toBeCloseTo(37_535_102.57, 2);
+    expect(day?.publicEquity24hUsd).toBeCloseTo(31_092_555.43, 2);
+    expect(day?.etfIndex24hUsd).toBeCloseTo(285_474.59, 2);
+    expect(day?.private24hUsd).toBeCloseTo(6_157_072.55, 2);
+    const issuers = snapshotDeskIssuerRows(snapshotDeskDaysForRange(closed, "24h"));
+    expect(issuers.find((row) => row.slug === "coinbase")).toMatchObject({
+      official: true,
+      equityUsd: 31_072_521.61,
+      privateUsd: 6_157_071,
+      etfUsd: null,
+    });
+    expect(issuers.find((row) => row.slug === "backed")?.equityUsd).toBeCloseTo(0.43, 2);
+    expect(issuers.find((row) => row.slug === "dinari")?.equityUsd).toBeNull();
+    expect(issuers.find((row) => row.slug === "st0x")?.privateUsd).toBeCloseTo(1.55, 2);
+    expect(issuers.find((row) => row.slug === "centrifuge")?.etfUsd).toBeCloseTo(280_400.63, 2);
     expect(snapshotDeskHeadline(snapshotDeskDaysForRange(closed, "24h"), "24h", "Base").caption).toBe(
-      "24H · 2026-10-06 America/New_York · last closed snapshot",
+      "24H · 2026-10-07 America/New_York · last closed snapshot",
     );
     expect(snapshotDeskHeadline(closed, "24h", "Base").caption).not.toMatch(/trailing h24/i);
   });
@@ -262,13 +282,13 @@ describe("home snapshot desks", () => {
   });
 
   it("ranks Solana, Robinhood, Base, and BNB by combined 24H", () => {
-    const nowT = Date.parse("2026-10-08T03:00:00Z") / 1000;
+    const nowT = Date.parse("2026-10-09T03:00:00Z") / 1000;
     const base = snapshotHomeChainVolume(BASE_DESK, closedSnapshotDeskDays(parseSnapshotDeskDays(readDesk("base.json"), BASE_DESK), nowT));
     const bnb = snapshotHomeChainVolume(BNB_DESK, closedSnapshotDeskDays(parseSnapshotDeskDays(readDesk("bnb.json"), BNB_DESK), nowT));
-    expect(chainCombinedVolume24h(base)).toBeCloseTo(28_614_559.48, 1);
+    expect(chainCombinedVolume24h(base)).toBeCloseTo(37_535_102.57, 1);
     expect(chainCombinedVolume24h(bnb)).toBeCloseTo(27_166_818.63, 1);
     expect(snapshotHomeVolumeDetail(closedSnapshotDeskDays(parseSnapshotDeskDays(readDesk("base.json"), BASE_DESK), nowT), "Base")).toBe(
-      "2026-10-06 America/New_York · last closed snapshot.",
+      "2026-10-07 America/New_York · last closed snapshot.",
     );
     expect(snapshotHomeVolumeDetail([], "BNB Chain")).toMatch(/not reported as zero/i);
     const ranked = homeChainsWithSnapshotDesks(
