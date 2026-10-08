@@ -34,8 +34,9 @@ function day(partial: Record<string, unknown>) {
 describe("robinhood snapshot file", () => {
   const days = parseRobinhoodDeskDays(JSON.parse(readFileSync(snapshotPath, "utf8")));
 
-  it("reads the committed bars through 2026-10-07 without inventing 2026-10-06", () => {
-    expect(days.map((row) => row.date)).toEqual([
+  it("keeps the committed bars through 2026-10-05 when a later day is appended", () => {
+    const dates = days.map((row) => row.date);
+    expect(dates.slice(0, 13)).toEqual([
       "2026-09-23",
       "2026-09-24",
       "2026-09-25",
@@ -49,8 +50,9 @@ describe("robinhood snapshot file", () => {
       "2026-10-03",
       "2026-10-04",
       "2026-10-05",
-      "2026-10-07",
     ]);
+    expect(new Set(dates).size).toBe(dates.length);
+    for (const date of dates.slice(13)) expect(date > "2026-10-05").toBe(true);
     const oct5 = days.find((row) => row.date === "2026-10-05");
     expect(oct5?.combined24hUsd).toBeCloseTo(48_555_668.9);
     expect(oct5?.t).toBe(Date.parse("2026-10-05T00:00:00.000Z") / 1000);

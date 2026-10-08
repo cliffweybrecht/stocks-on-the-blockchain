@@ -67,8 +67,10 @@ describe("SnapshotVolumeDesk", () => {
     expect(html).toContain('data-chain-id="bnb"');
     expect(html).toContain('data-volume-series="closed-day-kpi"');
     expect(html).not.toContain("<svg");
-    expect(html).toContain(formatUsdCompact(27_166_818.630000003));
-    expect(html).toContain("24H · 2026-10-05 America/New_York · last closed snapshot");
+    const last = days[days.length - 1];
+    expect(last).toBeDefined();
+    expect(html).toContain(formatUsdCompact(last?.combined24hUsd ?? null));
+    expect(html).toContain(`24H · ${last?.date} America/New_York · last closed snapshot`);
     expect(html).toContain("data-snapshot-lane-split");
     expect(html).not.toContain("data-snapshot-volume-note");
     expect(html).not.toContain("data-issuer-lanes");

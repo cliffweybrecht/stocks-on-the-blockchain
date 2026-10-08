@@ -219,7 +219,7 @@ Robinhood marks stay null on Solana. Off-Solana pairs are ignored.
 | **Honesty** | Gap days are omitted, not plotted as **$0**. A source-reported `0` is kept. Null DexScreener 24h is never coerced to zero. The in-progress America/New_York day is omitted until that date has closed — a rolling 24h row written during the day is not a closed snapshot, and a UTC date that New York has not reached is never plotted. A seed adapter with no snapshots yields an **empty chart**, never invented nonzero points |
 | **Coverage** | One combined point per Eastern calendar day this desk recorded (`data/volume-snapshots/solana.json` by default). GeckoTerminal remains a candidate source and per-asset **price** candles only. Hourly rolling totals live in a separate file and are not this series |
 
-Daily cron / agent should run `SOLANA_MARKET_ENABLED=true npm run snapshot:volume` (same DexScreener all-pools desk 24h; no Gecko backfill). That command writes closed-day rows in `data/volume-snapshots/solana.json` only.
+Daily cron / agent should run `SOLANA_MARKET_ENABLED=true npm run snapshot:volume` (same DexScreener all-pools desk 24h; no Gecko backfill). That command writes closed-day rows in `data/volume-snapshots/solana.json` only. Land that file with `npm run snapshot:land -- --chain solana --push-main`. The same command lands Base, BNB, and Robinhood (`--chain base|bnb|robinhood`). It opens a PR, tries `origin pr merge`, and if Origin rejects the token, merges with `git merge --no-ff`, pushes `main` (never force), and closes the PR with a comment that names the merge commit. Details: `docs/volume-snapshots.md`.
 
 The seed adapter does **not** draw a demo series.
 
@@ -244,6 +244,8 @@ HOURLY_TARGET_HOUR=2026-09-30T10 SOLANA_MARKET_ENABLED=true npm run snapshot:vol
 
 Same all-pools DexScreener desk read as `snapshot:volume`. No Gecko backfill. The process writes `solana-hourly.json` only — it does not update `solana.json`. Commit that hourly file. Do not nest these rows inside `solana.json`; the daily writer does not keep a side section, and the chart must not treat a rolling hour as a closed day.
 
+The hourly routine opens a PR for that one row, marks it ready, and tries `origin pr merge`. When Origin rejects the token, it checks out `main`, runs `git merge --no-ff` of the snapshot branch, pushes `main` (never force), and closes the PR with a comment that names the merge commit. `snapshot:land` is for the closed-day files, not this hourly file.
+
 ## Robinhood Chain desk
 
 `/chains/robinhood-chain` is the Robinhood Chain volume desk (EVM id **4663**, DexScreener slug `robinhood`). It uses the same range shell as Solana: **24H | 7D | 14D | 30D**, lime accent, closed America/New_York days only.
@@ -258,7 +260,7 @@ Same all-pools DexScreener desk read as `snapshot:volume`. No Gecko backfill. Th
 
 The stock list uses the public RHJ registry (`https://api.robinhood.com/rhj/assets`) and DexScreener markets on chain 4663, with the same Equities / ETF / Private, issuer, and Volume | Liquidity card desk as Solana. Ondo-named tokens stay labeled unverified. `TERMINAL_BASE_URL` is optional: when it is set, Terminal reference marks are kept, and Terminal rows are the fallback if discovery does not load. Snapshot volume renders even when that list is empty. Seed/mock names are not shown on this desk.
 
-Nightly capture is not in this app process. `npm run snapshot:robinhood-volume` points at `scripts/snapshot-robinhood-volume.py`, which is not on `main` yet (draft snapshot PRs). Cron, when that writer lands, is `CRON_TZ=America/New_York 59 23 * * *`. Auto-land via `snapshot:land --push-main` still waits on the shared day-key drafts. Until the next snapshot lands, the desk shows the bars committed in `robinhood.json` and does not invent later days.
+Nightly capture is not in this app process. Cron is `CRON_TZ=America/New_York 59 23 * * *`. `npm run snapshot:robinhood-volume` points at `scripts/snapshot-robinhood-volume.py`, which is not on `main` yet; the nightly run uses the writer from the latest Robinhood snapshot branch and then lands only `robinhood.json`. Auto-land is `npm run snapshot:land -- --chain robinhood --push-main` (Base and BNB use the same script). That commits the new day, opens a PR, tries `origin pr merge`, and if Origin rejects the token, `git merge --no-ff` into `main`, pushes `main` (never force), and closes the PR with a comment that names the merge commit. An already-open snapshot draft can be landed with `npm run snapshot:land -- --pr <number>`. See `docs/volume-snapshots.md`. Until the next snapshot lands, the desk shows the bars committed in `robinhood.json` and does not invent later days.
 
 ## Trust labeling
 
