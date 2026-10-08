@@ -27,13 +27,13 @@ const GECKO_BASE = "https://api.geckoterminal.com/api/v2";
 const CACHE_DIR = process.env.GECKO_HOURLY_CACHE?.trim() || "/tmp/gecko-hourly-et-cache";
 const CONCURRENCY = 1;
 /**
- * One request a minute to start. CoinGecko documents the keyless GeckoTerminal
- * cap near ten calls a minute; this IP is still cooling off from an earlier
- * burst, so begin far under that and only speed up after a long clean stretch.
- * On 429, stop completely instead of retrying into a longer ban.
+ * One request every two minutes to start. CoinGecko documents the keyless
+ * GeckoTerminal cap near ten calls a minute; this IP is still cooling off
+ * from an earlier burst, so begin far under that and only speed up to one
+ * a minute after a long clean stretch. On 429, stop completely.
  */
-const BASE_SPACING_MS = 60_000;
-const MIN_SPACING_MS = 20_000;
+const BASE_SPACING_MS = 120_000;
+const MIN_SPACING_MS = 60_000;
 const MAX_SPACING_MS = 180_000;
 const SNAPSHOT_DIR = join(process.cwd(), "data", "volume-snapshots");
 
@@ -255,7 +255,7 @@ async function coolDownAfterRateLimit(status: number): Promise<void> {
   consecutiveRateLimits += 1;
   successesSinceEase = 0;
   spacingMs = Math.min(MAX_SPACING_MS, spacingMs + 30_000);
-  const pause = Math.min(30 * 60_000, 15 * 60_000 * 2 ** (consecutiveRateLimits - 1));
+  const pause = Math.min(40 * 60_000, 20 * 60_000 * 2 ** (consecutiveRateLimits - 1));
   console.log(`${stamp()} cooldown status=${status} pause=${pause} spacing=${spacingMs} streak=${consecutiveRateLimits}`);
   nextStart = Date.now() + pause + spacingMs;
   await sleep(pause);
