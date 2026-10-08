@@ -92279,6 +92279,17 @@
       "publicMintCount": 1668,
       "publicPoolCount": 1474,
       "generatedAt": "2026-10-07T04:06:57.216Z"
+    },
+    {
+      "date": "2026-10-07",
+      "t": 1791331200,
+      "publicEquity24hUsd": 52234370.510000005,
+      "private24hUsd": 22001648.389999997,
+      "etfIndex24hUsd": 7036891.560000002,
+      "combined24hUsd": 81272910.46000001,
+      "publicMintCount": 1665,
+      "publicPoolCount": 1421,
+      "generatedAt": "2026-10-08T04:02:28.893Z"
     }
   ]
 }
