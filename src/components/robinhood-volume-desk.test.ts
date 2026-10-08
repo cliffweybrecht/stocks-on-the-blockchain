@@ -39,6 +39,8 @@ describe("RobinhoodVolumeDesk", () => {
     expect(html).toContain('aria-pressed="true"');
     expect(html).toContain('data-volume-series="closed-day"');
     expect(html).toContain('stroke="var(--volume)"');
+    expect(html).toMatch(/ C /);
+    expect(html).toContain("overflow-hidden rounded-2xl");
     expect(html).toContain(formatUsdCompact(1_000_000 + 2_000_000 + 3_000_000 + 1_500_000));
     expect(html).toContain("Ondo-named (unverified)");
     expect(html).not.toContain(">Ondo<");
