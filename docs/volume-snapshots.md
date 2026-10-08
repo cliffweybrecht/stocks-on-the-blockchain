@@ -23,7 +23,7 @@ At 11:59 PM Eastern, UTC is already the next calendar day. The day key is still 
 | BNB | `BNB_SNAPSHOT_DATE=YYYY-MM-DD npm run snapshot:bnb-volume` | `data/volume-snapshots/bnb.json` |
 | Robinhood | `ROBINHOOD_SNAPSHOT_DATE=YYYY-MM-DD npm run snapshot:robinhood-volume` | `data/volume-snapshots/robinhood.json` |
 
-`scripts/snapshot-bnb-volume.py` and `scripts/snapshot-robinhood-volume.py` are not on `main` yet. Nightly runs use the writer from the latest open snapshot branch for that chain, then land only the JSON row. Base and Solana writers are on `main`.
+`scripts/snapshot-bnb-volume.py` and `scripts/snapshot-robinhood-volume.py` are on `main`, same as the Base and Solana writers. Nightly runs use those writers, then land only the JSON row. Closed-day rows keep the lane totals and add `assets[]` (address, symbol, issuer when known, instrumentKind, volume24hUsd, displayedLiquidityUsd, pools). Hourly files stay totals only.
 
 Solana hourly is a rolling h24 total for one Eastern hour, not a closed day. Its job prompt already lands the row. Do not append hourly rows to `solana.json`.
 
