@@ -135,8 +135,19 @@ function envFingerprint(env: MarketEnv): string {
   ].join("|");
 }
 
-let processSource: MarketDataSource | null = null;
-let processSourceKey: string | null = null;
+const SOURCE_GLOBAL = "__stocksOnTheBlockchainMarketSource";
+
+type SourceSlot = { source: MarketDataSource; key: string };
+
+function sourceSlot(): SourceSlot | null {
+  const holder = globalThis as typeof globalThis & { [SOURCE_GLOBAL]?: SourceSlot };
+  return holder[SOURCE_GLOBAL] ?? null;
+}
+
+function writeSourceSlot(slot: SourceSlot): void {
+  const holder = globalThis as typeof globalThis & { [SOURCE_GLOBAL]?: SourceSlot };
+  holder[SOURCE_GLOBAL] = slot;
+}
 
 export function createLiveAdapters(env: MarketEnv = process.env): MarketDataSource[] {
   return buildLiveAdapters(env);
@@ -145,11 +156,13 @@ export function createLiveAdapters(env: MarketEnv = process.env): MarketDataSour
 export function createMarketDataSource(env: MarketEnv = process.env): MarketDataSource {
   if (env === process.env) {
     const key = envFingerprint(env);
-    if (!processSource || processSourceKey !== key) {
-      processSource = buildSource(env);
-      processSourceKey = key;
+    const current = sourceSlot();
+    if (!current || current.key !== key) {
+      const slot = { source: buildSource(env), key };
+      writeSourceSlot(slot);
+      return slot.source;
     }
-    return processSource;
+    return current.source;
   }
   return buildSource(env);
 }

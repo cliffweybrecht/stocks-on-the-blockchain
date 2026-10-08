@@ -5,6 +5,7 @@ import { MarketsTable } from "@/components/markets-table";
 import { deskSpotPriceUsd } from "@/lib/desk/price-ticker";
 import { sortPoolsByVolume } from "@/lib/desk/pool-sort";
 import { DEFAULT_ALL_MARKETS_VOLUME_DIR, readStoredAllMarketsVolume } from "@/lib/market/all-markets-volume-cache";
+import { readStoredAssetSnapshotVolume } from "@/lib/market/asset-snapshot-series";
 import { emptyAssetPriceHistory } from "@/lib/market/asset-price-history";
 import { uniqueAllMarketsPools } from "@/lib/market/asset-volume-headline";
 import { createMarketDataSource } from "@/lib/market/factory";
@@ -40,7 +41,7 @@ export async function SolanaAssetChart({
 }) {
   const source = createMarketDataSource();
   const pairAddresses = uniqueAllMarketsPools(asset.pools).map((pool) => pool.pairAddress);
-  const [history, stored] = await Promise.all([
+  const [history, stored, snapshotDaily] = await Promise.all([
     source.getAssetPriceHistory(chain.id, routeSymbol).catch((error: unknown) =>
       emptyAssetPriceHistory(
         error instanceof Error
@@ -53,6 +54,10 @@ export async function SolanaAssetChart({
       mint: asset.contractAddress,
       pairAddresses,
     }).catch(() => null),
+    readStoredAssetSnapshotVolume({
+      mint: asset.contractAddress,
+      symbol: asset.symbol,
+    }).catch(() => []),
   ]);
 
   return (
@@ -64,8 +69,10 @@ export async function SolanaAssetChart({
       history={history}
       allMarkets24hUsd={asset.volume24hUsd}
       allMarketsSymbol={asset.symbol}
+      allMarketsHref={`/api/solana/asset-all-markets-volume?symbol=${encodeURIComponent(asset.symbol)}&mint=${encodeURIComponent(asset.contractAddress)}`}
       initialAllMarketsDaily={stored?.daily ?? null}
       initialAllMarketsHourly={stored?.hourly ?? null}
+      snapshotDailyVolume={snapshotDaily}
     />
   );
 }

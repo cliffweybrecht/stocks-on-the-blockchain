@@ -6,6 +6,7 @@ import {
   mergeVolumeSeries,
   selectAssetVolumeHeadline,
   selectAssetVolumeSeries,
+  selectPlottedAssetVolume,
   sumObservedVolumeUsd,
   uniqueAllMarketsPools,
 } from "../asset-volume-headline";
@@ -315,6 +316,73 @@ describe("selectAssetVolumeSeries", () => {
       observedPoints: [{ t: NOW - DAY, volumeUsd: 40 }],
     });
     expect(completeWins).toEqual({ scope: "all_markets", points: [] });
+  });
+
+  it("treats an empty all-markets array as not ready and keeps the primary pool", () => {
+    const series = selectAssetVolumeSeries({
+      range: "7d",
+      nowT: NOW,
+      windowSeconds: 7 * DAY,
+      primaryPoolPoints: [{ t: NOW - DAY, volumeUsd: 9 }],
+      allMarketsDaily: [],
+      allMarketsHourly: null,
+    });
+    expect(series).toEqual({
+      scope: "primary_pool",
+      points: [{ t: NOW - DAY, volumeUsd: 9 }],
+    });
+  });
+});
+
+describe("selectPlottedAssetVolume", () => {
+  it("withholds a single point and uses a longer primary or snapshot series", () => {
+    const lone = selectPlottedAssetVolume({
+      selected: { scope: "all_markets", points: [{ t: NOW - DAY, volumeUsd: 22_900_000 }] },
+      allMarketsDaily: [{ t: NOW - DAY, volumeUsd: 22_900_000 }],
+      primaryPoints: [{ t: NOW - DAY, volumeUsd: 1 }],
+      snapshotPoints: [],
+    });
+    expect(lone.withheldLonePoint).toBe(true);
+    expect(lone.series.points).toEqual([]);
+
+    const primary = selectPlottedAssetVolume({
+      selected: { scope: "primary_pool", points: [] },
+      allMarketsDaily: null,
+      primaryPoints: [
+        { t: NOW - 2 * DAY, volumeUsd: 4 },
+        { t: NOW - DAY, volumeUsd: 5 },
+      ],
+      snapshotPoints: [{ t: NOW - DAY, volumeUsd: 9 }],
+    });
+    expect(primary.withheldLonePoint).toBe(false);
+    expect(primary.series.scope).toBe("primary_pool");
+    expect(primary.series.points).toHaveLength(2);
+
+    const snapshot = selectPlottedAssetVolume({
+      selected: { scope: "primary_pool", points: [] },
+      allMarketsDaily: [],
+      primaryPoints: [],
+      snapshotPoints: [
+        { t: NOW - 2 * DAY, volumeUsd: 4 },
+        { t: NOW - DAY, volumeUsd: 5 },
+      ],
+    });
+    expect(snapshot.series.points).toHaveLength(2);
+    expect(snapshot.series.scope).toBe("primary_pool");
+  });
+
+  it("does not replace a finished all-markets window that has no points inside the range", () => {
+    const plotted = selectPlottedAssetVolume({
+      selected: { scope: "all_markets", points: [] },
+      allMarketsDaily: [{ t: NOW - 40 * DAY, volumeUsd: 8_000_000 }],
+      primaryPoints: [
+        { t: NOW - 2 * DAY, volumeUsd: 4 },
+        { t: NOW - DAY, volumeUsd: 5 },
+      ],
+      snapshotPoints: [],
+    });
+    expect(plotted.withheldLonePoint).toBe(false);
+    expect(plotted.series).toEqual({ scope: "all_markets", points: [] });
   });
 });
 

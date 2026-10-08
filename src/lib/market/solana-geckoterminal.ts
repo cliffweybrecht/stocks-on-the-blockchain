@@ -1,4 +1,4 @@
-import { asNonEmptyString } from "./numbers";
+import { asNonEmptyString, asNonNegativeNumber } from "./numbers";
 import { tokenIdentityFromFields, type TokenIdentity } from "./solana-classifier";
 
 /** Public GeckoTerminal on-chain search (no API key). Candidate source, not an admission list. */
@@ -20,6 +20,44 @@ export const DEFAULT_GECKOTERMINAL_QUERIES = [
   "T-Kalshi",
   "T-OpenAI",
 ] as const;
+
+/** Every pool GeckoTerminal indexes for one token. Used when DexScreener has none. */
+export function geckoTerminalTokenPoolsPath(tokenAddress: string, network = "solana"): string {
+  const address = tokenAddress.trim();
+  const net = network.trim() || "solana";
+  return `/networks/${encodeURIComponent(net)}/tokens/${encodeURIComponent(address)}/pools`;
+}
+
+export interface GeckoIndexedPool {
+  pairAddress: string;
+  volume24hUsd: number | null;
+}
+
+/** Pool addresses from a GeckoTerminal token-pools payload. Unknown rows are dropped. */
+export function parseGeckoTerminalTokenPools(payload: unknown): GeckoIndexedPool[] {
+  if (!payload || typeof payload !== "object") return [];
+  const data = (payload as { data?: unknown }).data;
+  if (!Array.isArray(data)) return [];
+  const pools: GeckoIndexedPool[] = [];
+  for (const row of data) {
+    if (!row || typeof row !== "object") continue;
+    const item = row as {
+      id?: unknown;
+      attributes?: { address?: unknown; volume_usd?: { h24?: unknown } };
+    };
+    let pairAddress = asNonEmptyString(item.attributes?.address);
+    if (!pairAddress) {
+      const id = asNonEmptyString(item.id);
+      const split = id?.indexOf("_") ?? -1;
+      if (id && split >= 0) pairAddress = id.slice(split + 1);
+    }
+    if (!pairAddress) continue;
+    const raw = item.attributes?.volume_usd?.h24;
+    const volume24hUsd = asNonNegativeNumber(typeof raw === "string" ? Number(raw) : raw);
+    pools.push({ pairAddress, volume24hUsd });
+  }
+  return pools;
+}
 
 export function geckoTerminalSearchPath(query: string): string {
   const params = new URLSearchParams({

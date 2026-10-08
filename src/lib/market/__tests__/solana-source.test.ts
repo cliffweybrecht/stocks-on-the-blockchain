@@ -115,18 +115,27 @@ describe("SolanaMarketDataSource", () => {
     expect(urls.some((url) => url.includes(`/tokens/v1/solana/${tslaMint}`))).toBe(false);
     expect(urls.some((url) => url.includes(`/token-pairs/v1/solana/${tslaMint}`))).toBe(false);
 
+    // A warm light snapshot returns immediately. Every-pool hydrate continues in
+    // the background so the document does not wait on fullBudgetMs. The old
+    // expectation that getChain blocks for token-pairs was the homepage hang.
     const chain = await source.getChain("solana");
     expect(chain?.assets[0]?.symbol).toBe("TSLAx");
-    expect(chain?.assets[0]?.poolCount).toBe(2);
-    expect(chain?.assets[0]?.volume24hUsd).toBeCloseTo(1_260.25);
-    expect(chain?.assets[0]?.issuer).toBe("Backed / xStocks");
-    expect(chain?.chain.volumeAggregation).toBe("all-pools");
+    expect(chain?.assets[0]?.poolCount).toBe(1);
+    expect(chain?.assets[0]?.volume24hUsd).toBeCloseTo(1_250.25);
+    expect(chain?.chain.volumeAggregation).toBe("primary-pair");
+    expect(urls.some((url) => url.includes(`/token-pairs/v1/solana/${tslaMint}`))).toBe(false);
+
+    const asset = await source.getAsset("solana", "tslax");
+    expect(asset?.asset.pools).toHaveLength(2);
+    const upgraded = await source.getChain("solana");
+    expect(upgraded?.assets[0]?.poolCount).toBe(2);
+    expect(upgraded?.assets[0]?.volume24hUsd).toBeCloseTo(1_260.25);
+    expect(upgraded?.assets[0]?.issuer).toBe("Backed / xStocks");
+    expect(upgraded?.chain.volumeAggregation).toBe("all-pools");
     expect(urls.some((url) => url.includes(`/token-pairs/v1/solana/${tslaMint}`))).toBe(true);
     expect(await source.getChain("robinhood-chain")).toBeNull();
 
-    const asset = await source.getAsset("solana", "tslax");
     expect(asset?.asset.contractAddress).toBe(tslaMint);
-    expect(asset?.asset.pools).toHaveLength(2);
     expect(await source.getAsset("solana", tslaMint)).not.toBeNull();
   });
 
@@ -344,6 +353,7 @@ describe("SolanaMarketDataSource", () => {
       expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain(`${ticker} - Backpack Securities`);
     }
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("Nike - Backpack Securities");
+    expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("Ferrari - Backpack Securities");
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("Shopify - Backpack Securities");
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("Hertz - Backpack Securities");
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("AMC Entertainment - Backpack Securities");
@@ -2999,5 +3009,55 @@ describe("SolanaMarketDataSource", () => {
     } finally {
       releaseCard?.();
     }
+  });
+
+  it("ends the all-markets poll when the symbol has no classified mint", async () => {
+    const source = testSource({
+      enableGeckoTerminal: true,
+      geckoTerminalBaseUrl: "https://api.geckoterminal.com/api/v2",
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [] });
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+    const snap = await source.getAssetAllMarketsVolumeSnapshot("solana", "RACE");
+    expect(snap.pending).toBe(false);
+    expect(snap.complete).toBe(true);
+    expect(snap.totalPools).toBe(0);
+    expect(snap.resolvedPools).toBe(0);
+    expect(snap.daily).toEqual([]);
+    expect(snap.reason).toMatch(/no indexable/i);
+  });
+
+  it("resolves DexScreener pools from the page mint when the symbol search is empty", async () => {
+    const urls: string[] = [];
+    const source = testSource({
+      enableGeckoTerminal: true,
+      geckoTerminalBaseUrl: "https://api.geckoterminal.com/api/v2",
+      allMarketsVolumeCacheDir: null,
+      fetchImpl: async (input) => {
+        const url = String(input);
+        urls.push(url);
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [] });
+        if (url.includes(`/token-pairs/v1/solana/${tslaMint}`)) {
+          return jsonResponse([
+            tslaPair(),
+            { ...tslaPair(), pairAddress: "pair-2", volume: { h24: 10 }, liquidity: { usd: 100 } },
+          ]);
+        }
+        if (url.includes("/ohlcv/day")) {
+          return jsonResponse({
+            data: { attributes: { ohlcv_list: [[1_700_000_000, 1, 1, 1, 100, 4_000]] } },
+          });
+        }
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+    const first = await source.getAssetAllMarketsVolumeSnapshot("solana", "RACE", tslaMint);
+    expect(first.pending).toBe(true);
+    expect(first.totalPools).toBe(2);
+    expect(urls.some((url) => url.includes("/latest/dex/search"))).toBe(false);
+    expect(urls.some((url) => url.includes(`/token-pairs/v1/solana/${tslaMint}`))).toBe(true);
   });
 });

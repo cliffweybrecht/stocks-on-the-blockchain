@@ -30,10 +30,12 @@ import { parsePinnedFilter } from "@/lib/desk/solana-chain-href";
 import { selectEquityPriceTicker } from "@/lib/desk/price-ticker";
 import { parseAssetSortKey, sortAssets } from "@/lib/market/aggregate";
 import { toJumpAsset } from "@/lib/market/asset-search";
+import { solanaDeskFallbackDetail, withDocumentBudget } from "@/lib/market/document-budget";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { findSnapshotDesk, loadClosedSnapshotDeskDays } from "@/lib/market/snapshot-desk-volume-file";
 import { BASE_CHAIN_ID, ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type AssetSummary, type EquityVolumeHistoryResult } from "@/lib/market/types";
 import { parseCoverageFilter } from "@/lib/market/volume-coverage";
+import { FileDeskVolumeSnapshotStore } from "@/lib/market/volume-snapshot-store";
 
 export const dynamic = "force-dynamic";
 
@@ -89,7 +91,23 @@ export default async function ChainPage({
   let result;
   let listError: string | null = null;
   try {
-    result = await source.getChain(chainId);
+    if (chainId === SOLANA_CHAIN_ID) {
+      // Persist today's desk row in the background. The document reads the closed-day file.
+      void source.getEquityVolumeHistory().catch(() => undefined);
+      const live = await withDocumentBudget(source.getChain(chainId), null);
+      if (live) {
+        result = live;
+      } else {
+        result = solanaDeskFallbackDetail(await new FileDeskVolumeSnapshotStore().load());
+        if (!result) {
+          throw new Error(
+            "Solana discovery did not finish inside the page budget, and there is no closed desk snapshot to show.",
+          );
+        }
+      }
+    } else {
+      result = await source.getChain(chainId);
+    }
   } catch (error) {
     const detail = error instanceof Error ? error.message : "Chain snapshot failed.";
     if (!requestedRobinhood && !requestedBase) {
@@ -169,7 +187,7 @@ export default async function ChainPage({
   let hourlyVolumeHistory: EquityVolumeHistoryResult | null = null;
   if (isSolana) {
     [volumeHistory, hourlyVolumeHistory] = await Promise.all([
-      source.getEquityVolumeHistory(),
+      source.getClosedDeskVolumeHistory(),
       source.getEquityHourlyRollingVolumeHistory(),
     ]);
   } else {

@@ -37,11 +37,21 @@ import {
   type DiscoveredEquityMint,
 } from "./solana-discover";
 import {
+  NO_INDEXABLE_POOLS_REASON,
+  POOL_LOOKUP_RETRY_REASON,
+  isSolanaMintAddress,
+  pickClassifiedMintForSymbol,
+  volumePoolsForMint,
+  type IndexablePool,
+} from "./solana-all-markets-pools";
+import {
   DEFAULT_GECKOTERMINAL_BASE_URL,
   DEFAULT_GECKOTERMINAL_QUERIES,
   geckoTerminalOhlcvPath,
   geckoTerminalSearchPath,
+  geckoTerminalTokenPoolsPath,
   parseGeckoTerminalSearch,
+  parseGeckoTerminalTokenPools,
 } from "./solana-geckoterminal";
 import { SolanaHydrateMemory } from "./solana-hydrate-memory";
 import {
@@ -271,6 +281,8 @@ interface AllMarketsJob {
   complete: boolean;
   daily: VolumeHistoryPoint[];
   expiresAt: number;
+  /** In-flight commit. Readers await it so a complete snapshot is not served before the cache write. */
+  finishPromise: Promise<void> | null;
 }
 
 export class SolanaMarketDataSource implements MarketDataSource {
@@ -2127,6 +2139,169 @@ export class SolanaMarketDataSource implements MarketDataSource {
     return { kind: "use", daily, hourly };
   }
 
+  private pendingAllMarketsSnapshot(reason: string): AssetAllMarketsVolumeSnapshot {
+    return {
+      pending: true,
+      complete: false,
+      daily: [],
+      resolvedPools: 0,
+      totalPools: 0,
+      hourly: [],
+      hourlyPending: false,
+      hourlyComplete: false,
+      hourlyResolvedPools: 0,
+      hourlyTotalPools: 0,
+      reason,
+    };
+  }
+
+  /** The mint was looked up and has nothing to index. The poll must stop. */
+  private noIndexablePoolsSnapshot(reason: string): AssetAllMarketsVolumeSnapshot {
+    return {
+      pending: false,
+      complete: true,
+      daily: [],
+      resolvedPools: 0,
+      totalPools: 0,
+      hourly: [],
+      hourlyPending: false,
+      hourlyComplete: false,
+      hourlyResolvedPools: 0,
+      hourlyTotalPools: 0,
+      reason,
+    };
+  }
+
+  private cachedAssetForSymbol(symbol: string, mode: SnapshotMode) {
+    const snapshot = this.cacheSatisfies(mode, Date.now());
+    if (!snapshot) return null;
+    const asset = findAssetByKey(
+      [...snapshot.mapped.details, ...snapshot.mapped.etfDetails, ...snapshot.mapped.privateDetails],
+      symbol,
+    );
+    if (!asset) return null;
+    return {
+      mint: asset.contractAddress.trim(),
+      pools: uniqueAllMarketsPools(asset.pools),
+    };
+  }
+
+  /**
+   * Pools for one symbol without waiting on the desk-wide discovery pass.
+   * A fresh every-pool snapshot is reused. Otherwise DexScreener token-pairs
+   * (and GeckoTerminal token pools when DexScreener has none) run inside this
+   * request. A floating desk refresh is not the pool list — that path stayed
+   * at 0 pools for the whole hydrate.
+   */
+  private async resolveAllMarketsPools(
+    symbol: string,
+    hintedMint = "",
+  ): Promise<
+    | { kind: "pools"; mint: string; pools: IndexablePool[] }
+    | { kind: "none"; reason: string }
+    | { kind: "pending"; reason: string }
+  > {
+    const hint = isSolanaMintAddress(hintedMint) ? hintedMint.trim() : "";
+    const full = this.cachedAssetForSymbol(symbol, "full");
+    if (full && full.mint && full.pools.length > 0 && (!hint || full.mint === hint)) {
+      return { kind: "pools", mint: full.mint, pools: full.pools };
+    }
+    const light = this.cachedAssetForSymbol(symbol, "light");
+    const knownMint = hint || full?.mint || light?.mint || "";
+    const looked = await this.lookupAllMarketsPools(symbol, knownMint);
+    if (looked.kind === "pools") return looked;
+    if (looked.kind === "pending") {
+      const fallback = (full?.pools.length ? full : light?.pools.length ? light : null);
+      if (fallback?.mint && fallback.pools.length > 0) {
+        return { kind: "pools", mint: fallback.mint, pools: fallback.pools };
+      }
+    }
+    return looked;
+  }
+
+  private async lookupAllMarketsPools(
+    symbol: string,
+    knownMint: string,
+  ): Promise<
+    | { kind: "pools"; mint: string; pools: IndexablePool[] }
+    | { kind: "none"; reason: string }
+    | { kind: "pending"; reason: string }
+  > {
+    const reasonNone = symbol.trim()
+      ? `No indexable DexScreener or GeckoTerminal pools for ${symbol.trim()}.`
+      : NO_INDEXABLE_POOLS_REASON;
+    let mint = knownMint.trim();
+    let searchPairs: DexScreenerPair[] = [];
+    if (!mint) {
+      let searchFailed = false;
+      try {
+        const payload = await this.fetchSource(
+          `${this.baseUrl}${solanaSearchPath(symbol.trim())}`,
+          "DexScreener",
+          { retries: 0 },
+        );
+        searchPairs = unwrapDexScreenerSearch(payload);
+      } catch {
+        searchFailed = true;
+      }
+      mint = pickClassifiedMintForSymbol(searchPairs, symbol) ?? "";
+      if (!mint) {
+        return searchFailed
+          ? { kind: "pending", reason: POOL_LOOKUP_RETRY_REASON }
+          : { kind: "none", reason: reasonNone };
+      }
+    }
+
+    let dexList: DexScreenerPair[] | null = null;
+    let dexDefinitive = false;
+    try {
+      const payload = await this.fetchSource(
+        `${this.baseUrl}${solanaTokenPairsPath(mint)}`,
+        "DexScreener",
+        { retries: 0 },
+      );
+      dexList = unwrapDexScreenerPairs(payload);
+    } catch (error) {
+      dexDefinitive = isDefinitiveFetchMiss(error);
+    }
+
+    if (dexList) {
+      const fromDex = volumePoolsForMint(dexList, mint);
+      if (fromDex.length > 0) return { kind: "pools", mint, pools: fromDex };
+    }
+    const fromSearch = volumePoolsForMint(searchPairs, mint);
+    if (fromSearch.length > 0) return { kind: "pools", mint, pools: fromSearch };
+
+    const gecko = await this.lookupGeckoPools(mint);
+    if (gecko.kind === "pools") return { kind: "pools", mint, pools: gecko.pools };
+    if (gecko.kind === "empty" && (dexList !== null || dexDefinitive)) {
+      return { kind: "none", reason: reasonNone };
+    }
+    return { kind: "pending", reason: POOL_LOOKUP_RETRY_REASON };
+  }
+
+  /** GeckoTerminal pools for one mint. Not used when DexScreener already listed pairs. */
+  private async lookupGeckoPools(
+    mint: string,
+  ): Promise<{ kind: "pools"; pools: IndexablePool[] } | { kind: "empty" } | { kind: "failed" }> {
+    if (!this.geckoEnabled || !mint) return { kind: "empty" };
+    try {
+      const payload = await this.fetchSource(
+        `${this.geckoTerminalBaseUrl}${geckoTerminalTokenPoolsPath(mint)}`,
+        "GeckoTerminal",
+        { retries: 0 },
+      );
+      const pools = uniqueAllMarketsPools(parseGeckoTerminalTokenPools(payload));
+      return pools.length > 0 ? { kind: "pools", pools } : { kind: "empty" };
+    } catch (error) {
+      if (responseStatusFromError(error) === 429) {
+        this.armGeckoCooldown(error instanceof SourceRequestError ? error.retryAfterHeader : null);
+      }
+      if (isDefinitiveFetchMiss(error)) return { kind: "empty" };
+      return { kind: "failed" };
+    }
+  }
+
   /**
    * Cached cross-pool volume. A hit returns immediately.
    * A miss resumes a background job and does not wait for Gecko.
@@ -2136,45 +2311,17 @@ export class SolanaMarketDataSource implements MarketDataSource {
    * and do not hold the daily snapshot. The detail chart's primary-pool fetch
    * is not part of this path.
    */
-  async getAssetAllMarketsVolumeSnapshot(chainId: string, symbol: string): Promise<AssetAllMarketsVolumeSnapshot> {
+  async getAssetAllMarketsVolumeSnapshot(
+    chainId: string,
+    symbol: string,
+    hintedMint?: string,
+  ): Promise<AssetAllMarketsVolumeSnapshot> {
     if (chainId !== SOLANA_CHAIN_ID || !this.geckoEnabled) return emptyAllMarketsVolumeSnapshot();
 
-    let mint = "";
-    let pools: { pairAddress: string; volume24hUsd: number | null }[] = [];
-    try {
-      const nowMs = Date.now();
-      // Poll clients must not wait on a cold DexScreener full hydrate (up to fullBudgetMs).
-      const snapshot =
-        this.cacheSatisfies("full", nowMs) ?? this.cacheSatisfies("light", nowMs);
-      if (!snapshot) {
-        void this.loadCached("full").catch(() => undefined);
-        return {
-          pending: true,
-          complete: false,
-          daily: [],
-          resolvedPools: 0,
-          totalPools: 0,
-          hourly: [],
-          hourlyPending: false,
-          hourlyComplete: false,
-          hourlyResolvedPools: 0,
-          hourlyTotalPools: 0,
-        };
-      }
-      if (snapshot.aggregation !== "all-pools") {
-        void this.loadCached("full").catch(() => undefined);
-      }
-      const asset = findAssetByKey(
-        [...snapshot.mapped.details, ...snapshot.mapped.etfDetails, ...snapshot.mapped.privateDetails],
-        symbol,
-      );
-      if (!asset) return emptyAllMarketsVolumeSnapshot();
-      mint = asset.contractAddress.trim();
-      pools = uniqueAllMarketsPools(asset.pools);
-    } catch {
-      return emptyAllMarketsVolumeSnapshot();
-    }
-    if (!mint || pools.length === 0) return emptyAllMarketsVolumeSnapshot();
+    const resolved = await this.resolveAllMarketsPools(symbol, hintedMint ?? "");
+    if (resolved.kind === "pending") return this.pendingAllMarketsSnapshot(resolved.reason);
+    if (resolved.kind === "none") return this.noIndexablePoolsSnapshot(resolved.reason);
+    const { mint, pools } = resolved;
 
     const pairAddresses = pools.map((pool) => pool.pairAddress);
     const pairKey = allMarketsPairKey(pairAddresses);
@@ -2320,6 +2467,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
     job.pairAddresses = liveAddresses;
     job.pairKey = nextKey;
     job.finished = false;
+    job.finishPromise = null;
     if (!job.complete) job.daily = [];
   }
 
@@ -2347,6 +2495,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
       complete: false,
       daily: [],
       expiresAt: 0,
+      finishPromise: null,
     };
   }
 
@@ -2472,7 +2621,9 @@ export class SolanaMarketDataSource implements MarketDataSource {
       });
       await job.hydratePromise;
     }
-    if (!job.finished && job.slots.every((slot) => slot.status !== "open")) {
+    if (job.finishPromise) {
+      await job.finishPromise;
+    } else if (!job.finished && job.slots.every((slot) => slot.status !== "open")) {
       await this.finishAllMarketsJob(job);
     }
     if (!job.finished) this.kickAllMarkets(job);
@@ -2653,7 +2804,14 @@ export class SolanaMarketDataSource implements MarketDataSource {
     }));
   }
 
-  private async finishAllMarketsJob(job: AllMarketsJob) {
+  private finishAllMarketsJob(job: AllMarketsJob): Promise<void> {
+    if (job.finishPromise) return job.finishPromise;
+    const pending = this.commitAllMarketsJob(job);
+    job.finishPromise = pending;
+    return pending;
+  }
+
+  private async commitAllMarketsJob(job: AllMarketsJob) {
     const hadFolded = job.slots.some((slot) => slot.folded);
     let complete = false;
     let series: VolumeHistoryPoint[] = [];
