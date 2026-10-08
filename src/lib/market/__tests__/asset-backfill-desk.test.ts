@@ -13,7 +13,7 @@ import {
   summarizeGapPercents,
   volumePointsWithDerivedDays,
 } from "../asset-backfill-desk";
-import { readSnapshotBackfill, withDerivedSnapshotDays } from "../asset-backfill-desk-file";
+import { overlayHistoryWithSolanaAssetBackfill, readSnapshotBackfill, withDerivedSnapshotDays } from "../asset-backfill-desk-file";
 import { BASE_DESK } from "../base-desk-volume";
 import { BNB_DESK } from "../bnb-desk-volume";
 import { sumVolumePoints } from "../daily-volume-view";
@@ -27,7 +27,8 @@ import {
   snapshotDeskVolumePoints,
 } from "../snapshot-desk-volume";
 import { loadSnapshotDeskDays } from "../snapshot-desk-volume-file";
-import { utcInstantForDayKey } from "../volume-snapshots";
+import { emptyEquityVolumeHistory } from "../volume-history";
+import { closedSnapshotVolumePoints, utcInstantForDayKey } from "../volume-snapshots";
 
 /** 23:00 America/New_York on 2026-10-07. Oct 6 is the newest closed day. */
 const NOW = Date.parse("2026-10-08T03:00:00Z") / 1000;
@@ -241,5 +242,17 @@ describe("recorded desks plus asset backfill", () => {
       expect(countAssetBackfillDays(snapshotDeskDaysForRange(days, "30d"))).toBeGreaterThan(0);
     }
     expect(robinhoodDaysForRange(robinhood, "30d")).toHaveLength(30);
+  });
+
+  it("keeps nightly Solana totals when the live history is empty, then fills the gaps", async () => {
+    const overlaid = await overlayHistoryWithSolanaAssetBackfill(
+      emptyEquityVolumeHistory("live history unavailable", "2026-10-08T03:00:00.000Z"),
+    );
+    const closed = closedSnapshotVolumePoints(overlaid.points, NOW);
+    expect(closed).toHaveLength(30);
+    expect(closed.filter((point) => point.source === ASSET_BACKFILL_DESK_SOURCE)).toHaveLength(16);
+    const newest = closed.slice(-7);
+    expect(newest.every((point) => point.source !== ASSET_BACKFILL_DESK_SOURCE)).toBe(true);
+    expect(sumVolumePoints(newest)).toBeCloseTo(700_511_148.9, 0);
   });
 });

@@ -70,15 +70,29 @@ export async function overlayHistoryWithSolanaAssetBackfill(
   dir = DEFAULT_VOLUME_SNAPSHOT_DIR,
 ): Promise<EquityVolumeHistoryResult> {
   const { snapshot, backfill } = await readSnapshotBackfill(SOLANA_VOLUME_SNAPSHOT_FILE, dir);
-  const nightlyDates = new Set(solanaLaneDays(snapshot).map((day) => day.date));
+  const nightly = solanaLaneDays(snapshot);
+  const nightlyDates = new Set(nightly.map((day) => day.date));
+  const seen = new Set<string>();
   for (const point of history.points) {
     const key = utcDayKey(point.t);
-    if (key) nightlyDates.add(key);
+    if (!key) continue;
+    nightlyDates.add(key);
+    seen.add(key);
+  }
+  // A live history read can fail and return no points. The nightly file still
+  // wins for those dates; only dates absent from both are summed from assets.
+  const nightlyPoints: EquityVolumeHistoryResult["points"] = [];
+  for (const day of nightly) {
+    if (seen.has(day.date) || day.combined24hUsd === null) continue;
+    seen.add(day.date);
+    nightlyPoints.push({ t: day.t, volumeUsd: day.combined24hUsd, kind: "calendar_day" });
   }
   const derived = derivedDeskLaneDays(nightlyDates, backfill, laneLookupFromSnapshot(snapshot));
+  const points = volumePointsWithDerivedDays([...history.points, ...nightlyPoints], derived);
   return {
     ...history,
-    points: volumePointsWithDerivedDays(history.points, derived),
+    available: history.available || points.length > 0,
+    points,
   };
 }
 
