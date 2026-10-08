@@ -22,6 +22,7 @@ At 11:59 PM Eastern, UTC is already the next calendar day. The day key is still 
 | Base | `BASE_SNAPSHOT_DATE=YYYY-MM-DD npm run snapshot:base-volume` | `data/volume-snapshots/base.json` |
 | BNB | `BNB_SNAPSHOT_DATE=YYYY-MM-DD npm run snapshot:bnb-volume` | `data/volume-snapshots/bnb.json` |
 | Robinhood | `ROBINHOOD_SNAPSHOT_DATE=YYYY-MM-DD npm run snapshot:robinhood-volume` | `data/volume-snapshots/robinhood.json` |
+| Equity perps | `npm run snapshot:perps` | `data/perps-snapshots/perps.json` |
 
 `scripts/snapshot-bnb-volume.py` and `scripts/snapshot-robinhood-volume.py` are on `main`, same as the Base and Solana writers. Nightly runs use those writers, then land only the JSON row. Closed-day rows keep the lane totals and add `assets[]` (address, symbol, issuer when known, instrumentKind, volume24hUsd, displayedLiquidityUsd, pools). Hourly files stay totals only.
 
@@ -36,11 +37,12 @@ npm run snapshot:land -- --chain bnb --push-main
 npm run snapshot:land -- --chain base --push-main
 npm run snapshot:land -- --chain robinhood --push-main
 npm run snapshot:land -- --chain solana --push-main
+npm run snapshot:land -- --chain perps --push-main
 ```
 
 `--push-main` does all of the following:
 
-1. Commit only `data/volume-snapshots/<chain>.json` when it is dirty. Subject: `chore: <Chain> volume snapshot YYYY-MM-DD`. Any other dirty path is refused. The add is `git add -f` because snapshot JSON is gitignored until tracked.
+1. Commit only that chain's snapshot JSON when it is dirty (`data/volume-snapshots/<chain>.json`, or `data/perps-snapshots/perps.json` for `--chain perps`). Subject: `chore: <Chain> volume snapshot YYYY-MM-DD`. Any other dirty path is refused. The add is `git add -f` because snapshot JSON is gitignored until tracked.
 2. Refuse the land unless the diff versus `origin/main` is snapshot JSON, every commit subject matches `chore: … volume snapshot YYYY-MM-DD`, and every date already on `main` is unchanged. New days may fill a gap. A PR that only repeats dates already on `main` is refused.
 3. Push the branch and open a ready PR (or reuse the open one for that head).
 4. Try `origin pr merge`. Origin often rejects the agent token.
@@ -60,5 +62,7 @@ Check a branch without pushing:
 ```bash
 npm run snapshot:land -- --check
 ```
+
+Equity perps are a separate file (`data/perps-snapshots/perps.json`) and a separate desk. The writer is `npm run snapshot:perps`. It stores per-venue, per-market 24h volume and open interest for single stocks, equity ETFs, leveraged ETFs, and equity indices. It does not add anything to Solana, Base, BNB, or Robinhood spot totals. Ostium keeps lifetime volume; a daily number is derived only when the previous Eastern date has a snapshot. Hyperliquid hourly candles are base size, not USD, so that venue stays on rolling `dayNtlVlm`. Long-tail CoinGecko venues are not stored. Land with `--chain perps`. The commit subject is still `chore: Perps volume snapshot YYYY-MM-DD`.
 
 Solana hourly does not use this script (the row key is an hour, and the commit subject is `data: Solana hourly …`). The hourly routine opens a PR, tries `origin pr merge`, then runs the same `git merge --no-ff` / push `main` / comment-and-close fallback. Solana daily can use either that prompt or `snapshot:land --chain solana --push-main`.

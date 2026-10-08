@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DeskHeaderActionsSlot } from "@/components/desk-header-actions";
+import { DeskNav } from "@/components/desk-nav";
 import { SolanaJumpSearch } from "@/components/solana-jump-search";
 import { Badge } from "@/components/ui/badge";
 import { headerStatusLabel } from "@/lib/desk/header-status";
@@ -18,11 +19,14 @@ export function SiteHeader({
   return (
     <header className="sticky top-0 z-30 border-b border-border/50 bg-background/90 backdrop-blur-md">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-2.5">
-        <Link href="/" className="min-w-0" aria-label="Home">
-          <h1 className="font-heading text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-            Stocks on the Blockchain
-          </h1>
-        </Link>
+        <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+          <Link href="/" className="min-w-0" aria-label="Home">
+            <h1 className="truncate font-heading text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+              Stocks on the Blockchain
+            </h1>
+          </Link>
+          <DeskNav />
+        </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
           {solanaJump && solanaJump.assets.length > 0 ? (
             <SolanaJumpSearch chainId={solanaJump.chainId} assets={solanaJump.assets} />

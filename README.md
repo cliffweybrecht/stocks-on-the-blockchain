@@ -122,6 +122,17 @@ SOLANA_VOLUME_HISTORY_CACHE_MS=1800000
 
 Set `SOLANA_XSTOCKS_REGISTRY_ENABLED=false`, `SOLANA_ONDO_REGISTRY_ENABLED=false`, `SOLANA_TESSERA_REGISTRY_ENABLED=false`, or `SOLANA_SUNRISE_REGISTRY_ENABLED=false` to disable those candidate sources. Set `SOLANA_MINT_SUPPLY_ENABLED=false` to leave asset-page supply, market cap, and FDV blank.
 
+### Equity perps
+
+Perps are a separate desk at `/perps` (also linked from the header, with a card on home). They are synthetic oracle-priced perpetual futures, not tokenized stock. Their totals are never added to the home spot chart or Chain volume.
+
+```bash
+npm run snapshot:perps
+npm run snapshot:land -- --chain perps --push-main
+```
+
+The writer runs at 11:59 PM America/New_York and stores one Eastern day in `data/perps-snapshots/perps.json`: venue, tier (onchain / CEX direct / Binance+Bybit via CoinGecko), market, underlying, category, 24h volume, open interest, source, and capture time. Missing numbers stay null. Ostium stores lifetime volume so a later day can show the difference. Long-tail CoinGecko venues are not stored. See `docs/volume-snapshots.md`.
+
 ### Supply, market cap, and FDV
 
 On the asset page, **circulating supply** and **total supply** are the Solana mint's `getTokenSupply` UI amount (`uiAmountString`). That figure already includes the Token-2022 scaled-UI multiplier, which is the unit DEX prices quote. Raw `amount / 10^decimals` is not used — it drops the multiplier (NVDAx raw was about 321,272 tokens vs UI supply about 321,819).
@@ -219,7 +230,7 @@ Robinhood marks stay null on Solana. Off-Solana pairs are ignored.
 | **Honesty** | Gap days are omitted, not plotted as **$0**. A source-reported `0` is kept. Null DexScreener 24h is never coerced to zero. The in-progress America/New_York day is omitted until that date has closed — a rolling 24h row written during the day is not a closed snapshot, and a UTC date that New York has not reached is never plotted. A seed adapter with no snapshots yields an **empty chart**, never invented nonzero points |
 | **Coverage** | One combined point per Eastern calendar day this desk recorded (`data/volume-snapshots/solana.json` by default). GeckoTerminal remains a candidate source and per-asset **price** candles only. Hourly rolling totals live in a separate file and are not this series |
 
-Daily cron / agent should run `SOLANA_MARKET_ENABLED=true npm run snapshot:volume` (same DexScreener all-pools desk 24h; no Gecko backfill). That command writes closed-day rows in `data/volume-snapshots/solana.json` only. Each nightly row keeps the lane totals and adds `assets[]` from that live desk sample (address, symbol, issuer when known, instrumentKind, volume24hUsd, displayedLiquidityUsd, pools), the same shape Base already stores. Hourly `solana-hourly.json` stays totals only. Land that file with `npm run snapshot:land -- --chain solana --push-main`. The same command lands Base, BNB, and Robinhood (`--chain base|bnb|robinhood`). It opens a PR, tries `origin pr merge`, and if Origin rejects the token, merges with `git merge --no-ff`, pushes `main` (never force), and closes the PR with a comment that names the merge commit. Details: `docs/volume-snapshots.md`.
+Daily cron / agent should run `SOLANA_MARKET_ENABLED=true npm run snapshot:volume` (same DexScreener all-pools desk 24h; no Gecko backfill). That command writes closed-day rows in `data/volume-snapshots/solana.json` only. Each nightly row keeps the lane totals and adds `assets[]` from that live desk sample (address, symbol, issuer when known, instrumentKind, volume24hUsd, displayedLiquidityUsd, pools), the same shape Base already stores. Hourly `solana-hourly.json` stays totals only. Land that file with `npm run snapshot:land -- --chain solana --push-main`. The same command lands Base, BNB, Robinhood, and equity perps (`--chain base|bnb|robinhood|perps`). It opens a PR, tries `origin pr merge`, and if Origin rejects the token, merges with `git merge --no-ff`, pushes `main` (never force), and closes the PR with a comment that names the merge commit. Details: `docs/volume-snapshots.md`.
 
 The seed adapter does **not** draw a demo series.
 

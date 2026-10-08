@@ -28,8 +28,9 @@ Usage:
   npm run snapshot:land -- --pr 371
   npm run snapshot:land -- --check
 
---chain solana|base|bnb|robinhood
-  Commit data/volume-snapshots/<chain>.json when it has uncommitted edits.
+--chain solana|base|bnb|robinhood|perps
+  Commit that chain's snapshot JSON when it has uncommitted edits.
+  Perps writes data/perps-snapshots/perps.json (not a spot total).
   Subject: chore: <Chain> volume snapshot YYYY-MM-DD
   Refuses if any non-snapshot file is dirty.
 
@@ -166,7 +167,7 @@ function verifyAppendOnly(
 ): { ok: true; added: string[] } | { ok: false; reason: string } {
   const added: string[] = [];
   for (const file of files) {
-    if (!file.startsWith("data/volume-snapshots/")) continue;
+    if (!file.startsWith("data/volume-snapshots/") && !file.startsWith("data/perps-snapshots/")) continue;
     let beforeText = "";
     try {
       beforeText = git(["show", `origin/main:${file}`], cwd);
@@ -372,13 +373,13 @@ function main(): number {
   }
 
   if (!chainId) {
-    console.error("snapshot:land requires --chain solana|base|bnb|robinhood, --pr <number>, or --check.");
+    console.error("snapshot:land requires --chain solana|base|bnb|robinhood|perps, --pr <number>, or --check.");
     console.error(HELP);
     return 1;
   }
   const chain = volumeSnapshotChain(chainId);
   if (!chain) {
-    console.error(`Unknown volume snapshot chain ${chainId}. Use solana, base, bnb, or robinhood.`);
+    console.error(`Unknown volume snapshot chain ${chainId}. Use solana, base, bnb, robinhood, or perps.`);
     return 1;
   }
 
