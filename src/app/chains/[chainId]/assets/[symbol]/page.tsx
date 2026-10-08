@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { AssetBreadcrumb, AssetIdentityHeader } from "@/components/asset-identity-header";
 import { AssetMarketPanel } from "@/components/asset-price-chart";
 import { AssetStatsCard } from "@/components/asset-stats-card";
+import { HolderSupplyPanel } from "@/components/holder-supply-panel";
 import { CopyAddress } from "@/components/copy-address";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
@@ -43,6 +44,8 @@ import { enrichBaseAssetDetail } from "@/lib/market/base-asset-series";
 import { lookupBnbChainAsset } from "@/lib/market/bnb-chain-markets";
 import { enrichBnbAssetDetail } from "@/lib/market/bnb-asset-series";
 import { BASE_CHAIN_ID, BNB_CHAIN_ID, ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type AssetDetailResult } from "@/lib/market/types";
+import { holderAssetSeries, holderSnapshotChainId, seriesForAddress } from "@/lib/market/holder-snapshots";
+import { loadHolderSnapshotFile } from "@/lib/market/holder-snapshot-store";
 
 export const dynamic = "force-dynamic";
 
@@ -148,6 +151,10 @@ export default async function AssetPage({
   const jumpAssets = catalog
     ? [...catalog.assets, ...(catalog.etfAssets ?? []), ...(catalog.privateAssets ?? [])].map(toJumpAsset)
     : [];
+  const holderChain = holderSnapshotChainId(chain.id);
+  const holderPoints = holderChain
+    ? seriesForAddress(holderAssetSeries(await loadHolderSnapshotFile(holderChain)), asset.contractAddress)
+    : [];
   if (isSolana) {
     // Overlap chart, statistics, and pair-holder work with the shell. Do not await it.
     void source.getAssetPriceHistory(chain.id, decoded).catch(() => undefined);
@@ -188,6 +195,14 @@ export default async function AssetPage({
               history={priceHistory}
             />
           )}
+          {holderChain ? (
+            <HolderSupplyPanel
+              kicker={`${asset.symbol} holders and supply`}
+              points={holderPoints}
+              showUnits
+              footnote="Nightly Eastern snapshot. Holders and supply are not volume. A change is shown only when consecutive real snapshot days exist."
+            />
+          ) : null}
           {isSolana ? (
             <Suspense fallback={<AssetStatsCard asset={asset} />}>
               <SolanaAssetStats chainId={chain.id} routeSymbol={decoded} fallbackAsset={asset} />

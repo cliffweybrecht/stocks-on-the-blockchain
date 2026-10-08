@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AssetTable } from "@/components/asset-table";
+import { HolderSupplyPanel } from "@/components/holder-supply-panel";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { Metric } from "@/components/metric";
@@ -39,6 +40,8 @@ import { findSnapshotDesk, loadClosedSnapshotDeskDays } from "@/lib/market/snaps
 import { BASE_CHAIN_ID, BNB_CHAIN_ID, ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type AssetSummary, type EquityVolumeHistoryResult } from "@/lib/market/types";
 import { parseCoverageFilter } from "@/lib/market/volume-coverage";
 import { FileDeskVolumeSnapshotStore } from "@/lib/market/volume-snapshot-store";
+import { holderAssetSeries, holderDeskPoints, holderPanelPoints, holderSnapshotChainId } from "@/lib/market/holder-snapshots";
+import { loadHolderSnapshotFile } from "@/lib/market/holder-snapshot-store";
 
 export const dynamic = "force-dynamic";
 
@@ -250,6 +253,9 @@ export default async function ChainPage({
   const visibleAssets = sortAssets(assetsMatchingListView(laneAssets, coverageFilter, issuerFilter), sortKey);
   const jumpAssets = marketsDesk ? [...assets, ...etfAssets, ...privateAssets].map(toJumpAsset) : [];
   const catalogRows = [...assets, ...etfAssets, ...privateAssets].map(toPinCompareAsset);
+  const holderChain = holderSnapshotChainId(chain.id);
+  const holderFile = holderChain ? await loadHolderSnapshotFile(holderChain) : null;
+  const holderSeries = holderAssetSeries(holderFile);
 
   return (
     <PageShell
@@ -314,6 +320,13 @@ export default async function ChainPage({
             </div>
           </>
         ) : null}
+        {holderChain ? (
+          <HolderSupplyPanel
+            kicker={`${chain.name} holders`}
+            points={holderPanelPoints(holderDeskPoints(holderFile))}
+            footnote={`Sum of per-token holders on ${chain.name}, not unique wallets. Supply is on-chain total supply times the desk DexScreener price. Separate from volume.`}
+          />
+        ) : null}
         {assets.length === 0 && etfAssets.length === 0 && privateAssets.length === 0 ? (
           <EmptyState
             title={
@@ -362,6 +375,7 @@ export default async function ChainPage({
             chainId={chain.id}
             showRobinhoodMarks={!marketsDesk}
             enableFavorites={marketsDesk}
+            holderSeries={holderChain ? holderSeries : undefined}
           />
         )}
       </div>

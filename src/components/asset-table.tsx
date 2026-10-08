@@ -24,6 +24,7 @@ import {
   type IssuerFilter,
 } from "@/lib/desk/issuer-filter";
 import { assetRouteKey } from "@/lib/market/identity";
+import { seriesForAddress, type HolderAssetSeriesMap } from "@/lib/market/holder-snapshots";
 import type { AssetSummary, InstrumentKind, VolumeHistoryPoint } from "@/lib/market/types";
 import { BASE_CHAIN_ID, BNB_CHAIN_ID, ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID } from "@/lib/market/types";
 import { PIN_COMPARE_MAX, selectPinnedCompareRows, shouldShowPinCompare } from "@/lib/desk/pin-compare";
@@ -121,6 +122,7 @@ export function AssetTable({
   privateChipVisible,
   showRobinhoodMarks = true,
   enableFavorites = false,
+  holderSeries,
 }: {
   assets: AssetSummary[];
   catalogAssets?: Array<
@@ -155,6 +157,8 @@ export function AssetTable({
   privateChipVisible?: boolean;
   showRobinhoodMarks?: boolean;
   enableFavorites?: boolean;
+  /** Per-mint nightly holder and supply points. Empty still renders dashes on each card. */
+  holderSeries?: HolderAssetSeriesMap;
 }) {
   const [query, setQuery] = useState("");
   const [dayVolumeByMint, setDayVolumeByMint] = useState<Record<string, VolumeHistoryPoint[]>>({});
@@ -427,6 +431,7 @@ export function AssetTable({
                 enableFavorites={enableFavorites}
                 pinned={favorites.isFavorite(asset.contractAddress)}
                 onTogglePin={() => favorites.toggle(asset.contractAddress)}
+                holderPoints={holderSeries ? seriesForAddress(holderSeries, asset.contractAddress) : undefined}
               />
             );
           })}

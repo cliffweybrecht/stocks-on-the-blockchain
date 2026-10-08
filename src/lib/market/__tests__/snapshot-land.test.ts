@@ -4,6 +4,8 @@ import {
   assertSnapshotCommitSubjects,
   assertSnapshotOnlyNameStatus,
   assertSnapshotWorktree,
+  holderSnapshotCommitSubject,
+  holderSnapshotLandChain,
   isSnapshotCommitSubject,
   manualMergeComment,
   newestSnapshotDate,
@@ -51,7 +53,14 @@ describe("snapshot land guards", () => {
     expect(isSnapshotCommitSubject(snapshotCommitSubject("Solana", "2026-09-24"))).toBe(true);
     expect(isSnapshotCommitSubject("chore: Base DexScreener volume snapshot 2026-09-24")).toBe(true);
     expect(isSnapshotCommitSubject("chore: Robinhood volume snapshot 2026-10-07")).toBe(true);
+    expect(assertSnapshotWorktree([" M data/holder-snapshots/solana.json"]).ok).toBe(true);
+    expect(isSnapshotCommitSubject(holderSnapshotCommitSubject("Solana", "2026-10-08"))).toBe(true);
+    expect(holderSnapshotLandChain("holders-base")?.file).toBe("data/holder-snapshots/base.json");
+    expect(
+      assertSnapshotOnlyNameStatus(["A\tdata/holder-snapshots/bnb.json"]).ok,
+    ).toBe(true);
     expect(assertSnapshotCommitSubjects(["chore: Solana volume snapshot 2026-09-24"]).ok).toBe(true);
+    expect(assertSnapshotCommitSubjects(["chore: Base holder snapshot 2026-10-08"]).ok).toBe(true);
     expect(assertSnapshotCommitSubjects(["feat: Solana volume snapshot 2026-09-24"]).ok).toBe(false);
     expect(assertSnapshotCommitSubjects(["Merge branch 'cursor/bnb-volume-2026-10-07-3320'"]).ok).toBe(false);
   });

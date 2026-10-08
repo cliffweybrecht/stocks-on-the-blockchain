@@ -1,6 +1,7 @@
 import { DeskVolumeRangeProvider } from "@/components/desk-volume-range";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
+import { HolderSupplyPanel } from "@/components/holder-supply-panel";
 import { HomeChainVolume } from "@/components/home-chain-volume";
 import { PageShell } from "@/components/page-shell";
 import { DailyVolumeChart } from "@/components/daily-volume-chart";
@@ -26,6 +27,8 @@ import { emptyEquityVolumeHistory } from "@/lib/market/volume-history";
 import { emptyHourlyRollingVolumeHistory } from "@/lib/market/volume-hourly-snapshots";
 import { FileDeskVolumeSnapshotStore } from "@/lib/market/volume-snapshot-store";
 import { closedSnapshotVolumePoints } from "@/lib/market/volume-snapshots";
+import { combineHolderDeskPoints, holderDeskPoints, holderPanelPoints } from "@/lib/market/holder-snapshots";
+import { loadHolderSnapshotFile } from "@/lib/market/holder-snapshot-store";
 
 export const dynamic = "force-dynamic";
 
@@ -146,6 +149,20 @@ export default async function HomePage() {
   const baseClosed = closedSnapshotDeskDays(baseDays, deskNowT);
   const bnbClosed = closedSnapshotDeskDays(bnbDays, deskNowT);
   const solanaLanes: HomeDeskLaneDay[] = await loadSolanaDeskLaneDays();
+  const [solanaHolders, baseHolders, bnbHolders, robinhoodHolders] = await Promise.all([
+    loadHolderSnapshotFile("solana"),
+    loadHolderSnapshotFile("base"),
+    loadHolderSnapshotFile("bnb"),
+    loadHolderSnapshotFile("robinhood"),
+  ]);
+  const holderPoints = holderPanelPoints(
+    combineHolderDeskPoints([
+      holderDeskPoints(solanaHolders),
+      holderDeskPoints(baseHolders),
+      holderDeskPoints(bnbHolders),
+      holderDeskPoints(robinhoodHolders),
+    ]),
+  );
   const chainRanges = homeChainClosedRangeBoard({
     solanaClosed,
     solanaLanes,
@@ -179,6 +196,11 @@ export default async function HomePage() {
               { label: BASE_DESK.name, days: baseDays },
               { label: BNB_DESK.name, days: bnbDays },
             ]}
+          />
+          <HolderSupplyPanel
+            kicker="Holders and tokenized supply"
+            points={holderPoints}
+            footnote="Sum of per-token holders across Solana, Base, Robinhood Chain, and BNB Chain. Not unique wallets, and a wallet on two chains is counted twice. Separate from volume."
           />
           <section className="space-y-3">
             <h2 className="font-heading text-lg font-medium">Chain volume</h2>
