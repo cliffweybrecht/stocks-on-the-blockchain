@@ -100,6 +100,17 @@ const EASTERN_DAY_KEY = new Intl.DateTimeFormat("en-CA", {
   day: "2-digit",
 });
 
+const EASTERN_CLOCK = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/New_York",
+  hourCycle: "h23",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+});
+
 /**
  * America/New_York calendar date (YYYY-MM-DD). Desk snapshot days are this
  * date, not the UTC date: 00:00Z is still the previous Eastern evening.
@@ -114,11 +125,39 @@ export function easternDayKey(unixSeconds: number): string {
   return `${year}-${month}-${day}`;
 }
 
-/** UTC midnight of a YYYY-MM-DD key. UTC axis labels then read as that Eastern date. */
-export function utcInstantForDayKey(dayKey: string): number {
+function easternOffsetMs(utcMs: number): number {
+  const parts = EASTERN_CLOCK.formatToParts(new Date(utcMs));
+  const pick = (type: string) => Number(parts.find((part) => part.type === type)?.value);
+  const asUtc = Date.UTC(pick("year"), pick("month") - 1, pick("day"), pick("hour"), pick("minute"), pick("second"));
+  return utcMs - asUtc;
+}
+
+/**
+ * Unix seconds of 00:00:00 America/New_York on `dayKey`.
+ * The desk day runs from this instant until the next Eastern midnight, exclusive.
+ */
+export function easternMidnightUnix(dayKey: string): number {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dayKey)) return 0;
-  const t = Date.parse(`${dayKey}T00:00:00.000Z`);
-  return Number.isFinite(t) ? Math.trunc(t / 1000) : 0;
+  const [year, month, day] = dayKey.split("-").map(Number);
+  if (!year || !month || !day) return 0;
+  const guess = Date.UTC(year, month - 1, day, 0, 0, 0);
+  const start = Math.trunc((guess + easternOffsetMs(guess)) / 1000);
+  if (easternDayKey(start) === dayKey && easternDayKey(start - 1) !== dayKey) return start;
+  for (let delta = -8 * 3600; delta <= 8 * 3600; delta += 3600) {
+    const t = start + delta;
+    if (easternDayKey(t) === dayKey && easternDayKey(t - 1) !== dayKey) return t;
+  }
+  return 0;
+}
+
+/**
+ * Unix seconds of America/New_York midnight on a YYYY-MM-DD key.
+ * Snapshot `t` is that instant. The name is historical; this is not 00:00:00Z.
+ * During EDT that midnight is 04:00Z, and during EST it is 05:00Z, so the UTC
+ * calendar date still matches the Eastern day key.
+ */
+export function utcInstantForDayKey(dayKey: string): number {
+  return easternMidnightUnix(dayKey);
 }
 
 function snapshotChartDayKey(row: DeskVolumeSnapshot): string {
@@ -374,7 +413,7 @@ function isPlottableVolumePoint(point: VolumeHistoryPoint): boolean {
 }
 
 /**
- * Chart points sit on UTC midnight of an America/New_York date. That day is
+ * Chart points sit on America/New_York midnight of an Eastern date. That day is
  * closed only after New York has moved on to a later date. Today and any later
  * day stay off the series — a rolling 24h row is not a closed snapshot, and a
  * UTC date New York has not reached is not plotted.
@@ -428,9 +467,9 @@ function parseOneSnapshot(row: unknown): DeskVolumeSnapshot | null {
   const rawT = typeof rec.t === "number" && Number.isFinite(rec.t) && rec.t > 0 ? rec.t : 0;
   const dateFromField =
     typeof rec.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(rec.date) ? rec.date : "";
-  // Prefer the recorded Eastern date. `t` may be Eastern midnight (04:00Z) rather
-  // than UTC midnight; the chart axis uses UTC midnight of this date so the
-  // label matches the snapshot day and does not jump forward a UTC day.
+  // Prefer the recorded Eastern date. `t` is America/New_York midnight of that
+  // date (04:00Z in EDT, 05:00Z in EST). The UTC calendar date of that instant
+  // matches the day key, so axis labels do not jump to the next UTC day.
   const date = dateFromField || utcDayKey(utcDayStart(rawT));
   const t = utcInstantForDayKey(date);
   if (t <= 0 || !date) return null;
@@ -556,7 +595,20 @@ export function mergePreservedSnapshotFile(serialized: string, previousRaw: stri
     }
   }
   if (!changed) return serialized;
-  return `${JSON.stringify(nextObj, null, 2)}\n`;
+  // Keep dayKey, units, and any other file metadata where the previous file
+  // had them. Appending copied keys would move them to the end of the object.
+  const ordered: Record<string, unknown> = {};
+  const seen = new Set<string>();
+  for (const key of Object.keys(prevObj)) {
+    if (Object.prototype.hasOwnProperty.call(nextObj, key)) {
+      ordered[key] = nextObj[key];
+      seen.add(key);
+    }
+  }
+  for (const key of Object.keys(nextObj)) {
+    if (!seen.has(key)) ordered[key] = nextObj[key];
+  }
+  return `${JSON.stringify(ordered, null, 2)}\n`;
 }
 
 export function buildSnapshotEquityVolumeHistory(input: {

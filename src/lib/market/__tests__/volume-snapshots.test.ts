@@ -17,6 +17,7 @@ import {
   pointsFromDeskVolumeSnapshots,
   recordDeskVolumeFromChain,
   upsertDeskVolumeSnapshot,
+  utcInstantForDayKey,
   MemoryDeskVolumeSnapshotStore,
   type DeskVolumeSnapshot,
 } from "../volume-snapshots";
@@ -64,7 +65,7 @@ describe("deskVolumeSnapshotFromChain", () => {
       generatedAt,
       noonOnUtcDay(DAY1),
     );
-    expect(row.t).toBe(DAY1);
+    expect(row.t).toBe(utcInstantForDayKey("2026-09-15"));
     expect(row.date).toBe("2026-09-15");
     expect(row.combined24hUsd).toBeCloseTo(127_000_000);
     expect(row.publicEquity24hUsd).toBe(86_200_000);
@@ -92,8 +93,17 @@ describe("deskVolumeSnapshotFromChain", () => {
       evening,
     );
     expect(row.date).toBe("2026-09-28");
-    expect(row.t).toBe(Date.UTC(2026, 8, 28) / 1000);
+    expect(row.t).toBe(utcInstantForDayKey("2026-09-28"));
+    expect(new Date(row.t * 1000).toISOString()).toBe("2026-09-28T04:00:00.000Z");
     expect(row.date).not.toBe("2026-09-29");
+  });
+
+  it("uses America/New_York midnight in EST as well as EDT", () => {
+    expect(new Date(utcInstantForDayKey("2026-01-15") * 1000).toISOString()).toBe("2026-01-15T05:00:00.000Z");
+    expect(easternDayKey(utcInstantForDayKey("2026-01-15"))).toBe("2026-01-15");
+    expect(easternDayKey(utcInstantForDayKey("2026-01-15") - 1)).toBe("2026-01-14");
+    expect(easternDayKey(utcInstantForDayKey("2026-11-01"))).toBe("2026-11-01");
+    expect(new Date(utcInstantForDayKey("2026-11-01") * 1000).toISOString()).toBe("2026-11-01T04:00:00.000Z");
   });
 
   it("stores Base-shaped per-asset rows from the live desk sample", () => {
@@ -135,7 +145,7 @@ describe("deskVolumeSnapshotFromChain", () => {
       ],
     );
     expect(row.date).toBe("2026-09-15");
-    expect(row.t).toBe(DAY1);
+    expect(row.t).toBe(utcInstantForDayKey("2026-09-15"));
     expect(row.combined24hUsd).toBe(10);
     expect(row.assets?.map((asset) => asset.symbol)).toEqual(["AAAx", "BBBx"]);
     expect(row.assets?.[0]).toMatchObject({
@@ -189,7 +199,10 @@ describe("upsertDeskVolumeSnapshot", () => {
     expect(refused[0]?.combined24hUsd).toBe(170);
 
     const twoDays = upsertDeskVolumeSnapshot(refused, prior);
-    expect(twoDays.map((row) => row.t)).toEqual([DAY0, DAY1]);
+    expect(twoDays.map((row) => row.t)).toEqual([
+      utcInstantForDayKey("2026-09-14"),
+      utcInstantForDayKey("2026-09-15"),
+    ]);
   });
 
   it("keeps nightly asset rows when a later totals-only rewrite omits them", () => {
@@ -249,8 +262,8 @@ describe("pointsFromDeskVolumeSnapshots and closedSnapshotVolumePoints", () => {
       snap({ t: DAY1 + UTC_DAY_SECONDS, combined24hUsd: 40, date: "2026-09-16" }),
     ]);
     expect(points).toEqual([
-      { t: DAY0, volumeUsd: 10, kind: "calendar_day" },
-      { t: DAY1 + UTC_DAY_SECONDS, volumeUsd: 40, kind: "calendar_day" },
+      { t: utcInstantForDayKey("2026-09-14"), volumeUsd: 10, kind: "calendar_day" },
+      { t: utcInstantForDayKey("2026-09-16"), volumeUsd: 40, kind: "calendar_day" },
     ]);
     expect(points.some((point) => point.volumeUsd === 0)).toBe(false);
   });
@@ -263,7 +276,7 @@ describe("pointsFromDeskVolumeSnapshots and closedSnapshotVolumePoints", () => {
         combined24hUsd: 10,
       }),
     ]);
-    expect(points).toEqual([{ t: Date.UTC(2026, 8, 28) / 1000, volumeUsd: 10, kind: "calendar_day" }]);
+    expect(points).toEqual([{ t: utcInstantForDayKey("2026-09-28"), volumeUsd: 10, kind: "calendar_day" }]);
   });
 
   it("does not append a live rolling tip for the in-progress Eastern day", () => {
@@ -340,7 +353,9 @@ describe("buildSnapshotEquityVolumeHistory", () => {
       poolCount: 40,
     });
     expect(history.available).toBe(true);
-    expect(history.points).toEqual([{ t: DAY0, volumeUsd: 10, kind: "calendar_day" }]);
+    expect(history.points).toEqual([
+      { t: utcInstantForDayKey("2026-09-14"), volumeUsd: 10, kind: "calendar_day" },
+    ]);
     expect(history.points.some((point) => point.kind === "rolling_24h")).toBe(false);
     expect(history.seriesByMint).toEqual({});
     expect(history.sourceLabel).not.toMatch(/GeckoTerminal/);
@@ -616,7 +631,7 @@ describe("committed Solana desk snapshots", () => {
       );
       expect(easternDayKey(nowT)).toBe(date);
       expect(live.date).toBe(date);
-      expect(live.t).toBe(Date.parse(`${date}T00:00:00.000Z`) / 1000);
+      expect(live.t).toBe(utcInstantForDayKey(date));
       const history = buildSnapshotEquityVolumeHistory({
         snapshots: upsertDeskVolumeSnapshot(snapshots, live),
         liveCombined24hUsd: liveUsd,
@@ -743,10 +758,14 @@ describe("FileDeskVolumeSnapshotStore", () => {
     await store.save(updated);
     const raw = JSON.parse(await readFile(file, "utf8")) as {
       dayKey?: string;
-      records: Array<{ date: string; combined24hUsd: number; assets?: unknown }>;
+      records: Array<{ date: string; t?: number; combined24hUsd: number; assets?: unknown }>;
     };
     expect(raw.dayKey).toBe("America/New_York");
+    const text = await readFile(file, "utf8");
+    expect(text.indexOf('"dayKey"')).toBeGreaterThan(-1);
+    expect(text.indexOf('"dayKey"')).toBeLessThan(text.indexOf('"records"'));
     expect(raw.records.find((row) => row.date === "2026-10-03")).toMatchObject({
+      t: utcInstantForDayKey("2026-10-03"),
       combined24hUsd: 15,
       assets,
     });

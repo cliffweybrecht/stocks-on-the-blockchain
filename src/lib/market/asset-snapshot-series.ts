@@ -25,7 +25,7 @@ function dayPoints(rows: Map<number, number>): VolumeHistoryPoint[] {
 /**
  * Per-asset closed-day volume from `solana.json` rows that still carry an
  * `assets` list. Later desk files omit that list; those days contribute nothing.
- * Keyed by the Eastern date already stored on the record (`t` is UTC midnight of that date).
+ * Keyed by the Eastern date already stored on the record (`t` is America/New_York midnight of that date).
  */
 export function assetSnapshotVolumeFromPayload(payload: unknown): {
   byMint: Map<string, VolumeHistoryPoint[]>;

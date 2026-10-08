@@ -55,7 +55,7 @@ describe("robinhood snapshot file", () => {
     for (const date of dates.slice(13)) expect(date > "2026-10-05").toBe(true);
     const oct5 = days.find((row) => row.date === "2026-10-05");
     expect(oct5?.combined24hUsd).toBeCloseTo(48_555_668.9);
-    expect(oct5?.t).toBe(Date.parse("2026-10-05T00:00:00.000Z") / 1000);
+    expect(oct5?.t).toBe(Date.parse("2026-10-05T04:00:00.000Z") / 1000);
     const oct7 = days.find((row) => row.date === "2026-10-07");
     expect(oct7?.combined24hUsd).toBeCloseTo(84_008_823.63);
     expect(oct7?.displayedLiquidityUsd).toBeGreaterThan(0);

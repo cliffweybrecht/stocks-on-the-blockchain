@@ -52,12 +52,13 @@ describe("Base snapshot file", () => {
     expect(closed).toEqual(days);
   });
 
-  it("keys every bar to UTC midnight of the Eastern day, not the stored Eastern midnight", () => {
+  it("keys every bar to America/New_York midnight of the Eastern day", () => {
     for (const day of days) {
       expect(day.t).toBe(utcInstantForDayKey(day.date));
     }
     const sep25 = days.find((day) => day.date === "2026-09-25");
-    expect(sep25?.t).not.toBe(1790308800);
+    expect(sep25?.t).toBe(1790308800);
+    expect(new Date((sep25?.t ?? 0) * 1000).toISOString()).toBe("2026-09-25T04:00:00.000Z");
   });
 
   it("keeps the 2026-10-05 lanes and confirmed issuers", () => {
@@ -183,7 +184,7 @@ describe("BNB snapshot file", () => {
   const nowT = Date.parse("2026-10-06T23:00:00-04:00") / 1000;
   const closed = closedSnapshotDeskDays(days, nowT);
 
-  it("reads 2026-09-23 through 2026-10-05 and normalizes the early timestamp", () => {
+  it("reads 2026-09-23 through 2026-10-05 and keys each bar to New York midnight", () => {
     const dates = days.map((day) => day.date);
     expect(dates.slice(0, 13)).toEqual([
       "2026-09-23",
@@ -204,7 +205,7 @@ describe("BNB snapshot file", () => {
     for (const date of dates.slice(13)) expect(date > "2026-10-05").toBe(true);
     expect(days[0]?.t).toBe(utcInstantForDayKey("2026-09-23"));
     expect(days[1]?.t).toBe(utcInstantForDayKey("2026-09-24"));
-    expect(days[1]?.t).not.toBe(1790222400);
+    expect(days[1]?.t).toBe(1790222400);
     expect(closed.map((day) => day.date)).toEqual(dates.filter((date) => date <= "2026-10-05"));
   });
 
