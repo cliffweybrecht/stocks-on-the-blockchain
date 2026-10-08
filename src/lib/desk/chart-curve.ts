@@ -85,6 +85,25 @@ export function monotoneLinePath(points: readonly ChartCurvePoint[]): string {
   return start + curveCommands(xs, ys, monotoneTangents(xs, ys));
 }
 
+/**
+ * Line and area for a time series already scaled into chart space.
+ * Closed-day desks and the home 7D/14D/30D chart share this so every area is monotone.
+ */
+export function monotoneVolumePaths(
+  points: readonly { t: number; volumeUsd: number }[],
+  map: { x: (t: number) => number; y: (value: number) => number },
+  baselineY: number,
+): { line: string; area: string } {
+  const curve = points.map((point) => ({ x: map.x(point.t), y: map.y(point.volumeUsd) }));
+  return { line: monotoneLinePath(curve), area: monotoneAreaPath(curve, baselineY) };
+}
+
+/** Plot frame inside a `rounded-xl` chart card. Clips the series to the card corner. */
+export const CHART_PLOT_FRAME_CLASS = "overflow-hidden rounded-xl";
+
+/** Plot frame inside a `rounded-2xl` chain-desk card. */
+export const DESK_CHART_PLOT_FRAME_CLASS = "overflow-hidden rounded-2xl";
+
 /** Same curve, closed down to a horizontal baseline for the area fill. */
 export function monotoneAreaPath(points: readonly ChartCurvePoint[], baselineY: number): string {
   const rows = usable(points);

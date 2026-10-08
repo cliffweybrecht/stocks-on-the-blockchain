@@ -190,6 +190,8 @@ describe("DailyVolumeChart closed ranges", () => {
     expect(sevenHtml).not.toContain(`>${formatUsdCompact(points[0]!.volumeUsd + sevenSum)}<`);
     expect(sevenHtml).toContain('fill="url(#volume-area)"');
     expect(sevenHtml).toContain('stroke="var(--volume)"');
+    expect(sevenHtml).toMatch(/ C /);
+    expect(sevenHtml).toContain("overflow-hidden rounded-xl");
   });
 
   it("shows the hour axis and a single lime point when only one hourly capture exists", () => {

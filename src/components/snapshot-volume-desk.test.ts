@@ -40,6 +40,8 @@ describe("SnapshotVolumeDesk", () => {
     expect(html).toContain("justify-self-end");
     expect(html).not.toContain("flex-wrap");
     expect(html).toContain('data-volume-series="closed-day"');
+    expect(html).toMatch(/ C /);
+    expect(html).toContain("overflow-hidden rounded-2xl");
     expect(html).toContain(`>${formatUsdCompact(seven)}<`);
     expect(html).toContain("7D · sum of desk snapshot days · public + private + ETF/index");
     expect(html).toContain("<svg");
