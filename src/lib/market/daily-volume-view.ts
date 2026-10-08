@@ -412,8 +412,8 @@ export function formatHourlyVolumeChartTick(unixSeconds: number): string {
 
 /**
  * Every unique desk day in the visible series, oldest first.
- * Points sit on UTC midnight of the America/New_York date, so these ticks
- * label that Eastern day. Mid-series days stay labeled; density does not drop ticks.
+ * Points sit on America/New_York midnight. That instant is still the same UTC
+ * calendar date, so these ticks label the Eastern day. Mid-series days stay labeled; density does not drop ticks.
  */
 export function volumeChartXTicks(points: readonly VolumeHistoryPoint[]): number[] {
   if (points.length === 0) return [];

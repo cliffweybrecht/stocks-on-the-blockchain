@@ -10,9 +10,9 @@ import { easternDayKey, utcInstantForDayKey } from "./volume-snapshots";
 
 /**
  * Closed-day desk bars for a chain that records DexScreener samples in
- * `data/volume-snapshots`. The day key is America/New_York. `t` is UTC
- * midnight of that key so chart labels match the Eastern date, even when an
- * older row stored a different instant. Null lane volume is omitted, not $0.
+ * `data/volume-snapshots`. The day key is America/New_York. `t` is
+ * America/New_York midnight of that key, even when an older row stored a
+ * different instant. Null lane volume is omitted, not $0.
  */
 export interface SnapshotDeskIssuerCell {
   slug: string;

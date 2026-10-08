@@ -10,7 +10,7 @@ import {
 import { BACKPACK_SUNRISE_BATCH_TICKERS, DEFAULT_SOLANA_DISCOVERY_QUERIES } from "../solana-discover";
 import { SolanaMarketDataSource, type SolanaMarketDataSourceOptions } from "../solana-source";
 import { MemoryDeskHourlyVolumeSnapshotStore, easternHourStamp } from "../volume-hourly-snapshots";
-import { MemoryDeskVolumeSnapshotStore, easternDayKey } from "../volume-snapshots";
+import { MemoryDeskVolumeSnapshotStore, easternDayKey, utcInstantForDayKey } from "../volume-snapshots";
 
 const tslaMint = "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB";
 const hoodMint = "XsNotAllowlisted1111111111111111111111111";
@@ -866,7 +866,7 @@ describe("SolanaMarketDataSource", () => {
       expect(history.available).toBe(true);
       expect(history.points).toEqual([
         {
-          t: Date.parse(`${stored[0].date}T00:00:00.000Z`) / 1000,
+          t: utcInstantForDayKey(stored[0].date),
           volumeUsd: stored[0].combined24hUsd,
           kind: "calendar_day",
         },
@@ -911,7 +911,7 @@ describe("SolanaMarketDataSource", () => {
     const history = await source.getEquityVolumeHistory();
     expect(urls.some((url) => url.includes("/ohlcv/"))).toBe(false);
     expect(history.available).toBe(true);
-    expect(history.points[0]).toEqual({ t: priorT, volumeUsd: 10, kind: "calendar_day" });
+    expect(history.points[0]).toEqual({ t: utcInstantForDayKey("2026-09-14"), volumeUsd: 10, kind: "calendar_day" });
     expect(history.points.every((point) => point.kind === "calendar_day")).toBe(true);
     expect(history.points.some((point) => point.kind === "rolling_24h")).toBe(false);
     expect(history.points.some((point) => point.kind === "calendar_day" && point.volumeUsd === 0)).toBe(false);
@@ -1045,7 +1045,7 @@ describe("SolanaMarketDataSource", () => {
     const history = await source.getClosedDeskVolumeHistory();
     expect(urls).toEqual([]);
     expect(history.available).toBe(true);
-    expect(history.points).toEqual([{ t: closed.t, volumeUsd: closed.combined24hUsd, kind: "calendar_day" }]);
+    expect(history.points).toEqual([{ t: utcInstantForDayKey(closed.date), volumeUsd: closed.combined24hUsd, kind: "calendar_day" }]);
     expect(history.points.some((point) => point.volumeUsd === 999)).toBe(false);
     expect(history.points.some((point) => point.kind === "rolling_24h")).toBe(false);
     expect(await daily.load()).toEqual([closed, openDay]);

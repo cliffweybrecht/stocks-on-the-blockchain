@@ -14,6 +14,7 @@ import { formatUsdCompact } from "@/lib/market/format";
 import type { EquityVolumeHistoryResult, VolumeHistoryPoint } from "@/lib/market/types";
 import { emptyEquityVolumeHistory } from "@/lib/market/volume-history";
 import { easternRollingHourStarts } from "@/lib/market/volume-hourly-snapshots";
+import { utcInstantForDayKey } from "@/lib/market/volume-snapshots";
 
 const GENERATED_AT = "2026-09-30T15:00:00.000Z";
 
@@ -31,11 +32,14 @@ function history(
 }
 
 const dayStart = Date.UTC(2026, 8, 20) / 1000;
-const closedDays = [0, 1, 2, 3, 4].map((day) => ({
-  t: dayStart + day * 86_400,
-  volumeUsd: 1_000_000 * (day + 1),
-  kind: "calendar_day" as const,
-}));
+const closedDays = [0, 1, 2, 3, 4].map((day) => {
+  const date = new Date((dayStart + day * 86_400) * 1000).toISOString().slice(0, 10);
+  return {
+    t: utcInstantForDayKey(date),
+    volumeUsd: 1_000_000 * (day + 1),
+    kind: "calendar_day" as const,
+  };
+});
 
 function easternHour(hour: string): number {
   return Date.parse(`${hour}:00:00-04:00`) / 1000;

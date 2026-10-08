@@ -1,4 +1,4 @@
-import { easternDayKey } from "./volume-snapshots";
+import { easternDayKey, easternMidnightUnix } from "./volume-snapshots";
 
 /** Marks per-asset rows summed from GeckoTerminal hourly candles on an Eastern day. */
 export const GECKO_HOURLY_ET_BACKFILL_SOURCE = "gecko-hourly-et-backfill";
@@ -15,40 +15,12 @@ export interface EasternDayVolume {
   hours: number;
 }
 
-const EASTERN_CLOCK = new Intl.DateTimeFormat("en-US", {
-  timeZone: "America/New_York",
-  hourCycle: "h23",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-  hour: "2-digit",
-  minute: "2-digit",
-  second: "2-digit",
-});
-
 /**
  * Unix instant of 00:00:00 America/New_York on `dayKey`.
  * The day runs until the next Eastern midnight, exclusive.
  */
 export function easternDayStartUnix(dayKey: string): number {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dayKey)) return 0;
-  const [year, month, day] = dayKey.split("-").map(Number);
-  if (!year || !month || !day) return 0;
-  const guess = Date.UTC(year, month - 1, day, 0, 0, 0);
-  const start = Math.trunc((guess + easternOffsetMs(guess)) / 1000);
-  if (easternDayKey(start) === dayKey && easternDayKey(start - 1) !== dayKey) return start;
-  for (let delta = -8 * 3600; delta <= 8 * 3600; delta += 3600) {
-    const t = start + delta;
-    if (easternDayKey(t) === dayKey && easternDayKey(t - 1) !== dayKey) return t;
-  }
-  return 0;
-}
-
-function easternOffsetMs(utcMs: number): number {
-  const parts = EASTERN_CLOCK.formatToParts(new Date(utcMs));
-  const pick = (type: string) => Number(parts.find((part) => part.type === type)?.value);
-  const asUtc = Date.UTC(pick("year"), pick("month") - 1, pick("day"), pick("hour"), pick("minute"), pick("second"));
-  return utcMs - asUtc;
+  return easternMidnightUnix(dayKey);
 }
 
 export function easternDayKeysInclusive(fromDay: string, throughDay: string): string[] {
