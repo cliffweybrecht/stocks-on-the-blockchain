@@ -206,7 +206,7 @@ export interface GeckoHolderRead {
  * Public GeckoTerminal allows about 30 calls a minute.
  * Token-info reads stay under that. A 429 is not a holder count.
  */
-const geckoInfoGate = createRequestGate({ maxConcurrent: 1, minGapMs: 2_200 });
+const geckoInfoGate = createRequestGate({ maxConcurrent: 1, minGapMs: 6_500 });
 
 export function classifyGeckoHolderResponse(status: number, payload: unknown): GeckoHolderRead {
   if (status === 404) {
@@ -360,7 +360,7 @@ export async function fetchGeckoHolderRead(
   const base = geckoBaseUrl.replace(/\/+$/, "");
   const url = `${base}/networks/${encodeURIComponent(network)}/tokens/${address}/info`;
   const maxAttempts = options?.maxAttempts ?? 6;
-  const rateLimitDelayMs = options?.rateLimitDelayMs ?? 20_000;
+  const rateLimitDelayMs = options?.rateLimitDelayMs ?? 12_000;
   const pace = options?.pace !== false;
   let last: GeckoHolderRead = { holderCount: null, settled: false, note: "GeckoTerminal token info request failed." };
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {

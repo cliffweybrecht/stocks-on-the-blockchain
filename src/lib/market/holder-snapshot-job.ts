@@ -60,7 +60,7 @@ export function holderChainLimits(chainId: HolderSnapshotChainId): string[] {
     chainId === "base" ? DEFAULT_BASE_RPC_URL : chainId === "bnb" ? DEFAULT_BNB_RPC_URL : DEFAULT_ROBINHOOD_RPC_URL;
   return [
     `Supply is eth_call totalSupply() and decimals() on ${rpc}. totalSupplyRaw is the integer. totalSupply is raw / 10^decimals. A missing decimals() leaves the adjusted supply null.`,
-    `Holders are GeckoTerminal token-info holders.count (network ${EVM_GECKO_NETWORK[chainId]}), the same integer this desk already shows on the asset page. Calls are spaced under the public ~30/minute cap. HTTP 429 is retried and is not stored as a count. Blockscout's public API for this chain returned a Cloudflare challenge from the snapshot host, and Routescan tokenholdercount does not index chain ${native} (response: chain not supported). A 404 or a payload with no holders.count stays null. The chain total sums per-token counts and is not unique wallets.`,
+    `Holders are GeckoTerminal token-info holders.count (network ${EVM_GECKO_NETWORK[chainId]}), the same integer this desk already shows on the asset page. Calls are one at a time, at least 6.5 seconds apart, because a faster pace receives HTTP 429 on this host. HTTP 429 is retried and is not stored as a count. Blockscout's public API for this chain returned a Cloudflare challenge from the snapshot host, and Routescan tokenholdercount does not index chain ${native} (response: chain not supported). A 404 or a payload with no holders.count stays null. The chain total sums per-token counts and is not unique wallets.`,
     price,
   ];
 }
@@ -247,6 +247,7 @@ export async function captureHolderSnapshot(input: {
   const holderTimeoutMs = input.holderTimeoutMs ?? (input.chainId === "solana" ? 90_000 : 20_000);
   const log = input.log ?? (() => undefined);
   let finished = 0;
+  let rateLimited = 0;
   const assets = await mapWithConcurrency(input.universe, concurrency, async (asset) => {
     const row = await captureOne(input.chainId, asset, {
       rpcUrl,
@@ -256,8 +257,9 @@ export async function captureHolderSnapshot(input: {
       fetchImpl,
     });
     finished += 1;
+    if (row.notes.some((note) => note.startsWith("GeckoTerminal rate limit"))) rateLimited += 1;
     if (finished % 25 === 0 || finished === input.universe.length) {
-      log(`${input.chainId} ${finished}/${input.universe.length}`);
+      log(`${input.chainId} ${finished}/${input.universe.length} rateLimited=${rateLimited}`);
     }
     return row;
   });
