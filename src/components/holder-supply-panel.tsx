@@ -11,8 +11,8 @@ import {
 } from "@/lib/market/holder-snapshots";
 
 const WIDTH = 800;
-const HEIGHT = 148;
-const PAD = { top: 12, right: 12, bottom: 22, left: 44 };
+const HEIGHT = 156;
+const PAD = { top: 12, right: 12, bottom: 32, left: 44 };
 const INNER_W = WIDTH - PAD.left - PAD.right;
 const INNER_H = HEIGHT - PAD.top - PAD.bottom;
 
@@ -223,18 +223,22 @@ export function HolderSupplyPanel({
               />
             ) : null,
           )}
-          {slots.map((slot, index) => (
-            <text
-              key={`${slot.date}-label`}
-              x={PAD.left + slotW * index + slotW / 2}
-              y={HEIGHT - 6}
-              textAnchor="middle"
-              className="fill-muted-foreground"
-              fontSize="10"
-            >
-              {slot.date.slice(5)}
-            </text>
-          ))}
+          {slots.map((slot, index) => {
+            const crowded = slots.length > 10;
+            return (
+              <text
+                key={`${slot.date}-label`}
+                x={PAD.left + slotW * index + slotW / 2}
+                y={crowded && index % 2 === 1 ? HEIGHT - 6 : HEIGHT - (crowded ? 18 : 8)}
+                textAnchor="middle"
+                className="fill-muted-foreground"
+                fontSize={crowded ? 9 : 10}
+                data-holder-tick={slot.date.slice(5)}
+              >
+                {slot.date.slice(5)}
+              </text>
+            );
+          })}
         </svg>
       </div>
     </section>
