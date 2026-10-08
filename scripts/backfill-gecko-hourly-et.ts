@@ -26,7 +26,13 @@ const DAY_KEYS = easternDayKeysInclusive(FROM_DAY, THROUGH_DAY);
 const GECKO_BASE = "https://api.geckoterminal.com/api/v2";
 const CACHE_DIR = process.env.GECKO_HOURLY_CACHE?.trim() || "/tmp/gecko-hourly-et-cache";
 const CONCURRENCY = 1;
-/** About 5 requests a minute. The keyless GeckoTerminal cap is about 10 a minute. */
+/**
+ * Four requests a minute. CoinGecko documents the keyless GeckoTerminal cap
+ * near ten calls a minute, and a burst above that closes the window for a
+ * long time. Stay under it, and on 429 stop completely instead of retrying.
+ */
+const BASE_SPACING_MS = 15_000;
+const MAX_SPACING_MS = 30_000;
 const SNAPSHOT_DIR = join(process.cwd(), "data", "volume-snapshots");
 
 const CHAINS: Record<string, { network: string; snapshot: string; out: string; live: "snapshot" | "robinhood" | "catalog" }> = {
@@ -214,13 +220,39 @@ async function readCache(network: string, pool: string): Promise<PoolCache> {
 }
 
 let nextStart = 0;
-let spacingMs = 200;
+let spacingMs = BASE_SPACING_MS;
+let consecutiveRateLimits = 0;
+let successesSinceEase = 0;
 
 async function takeSlot(): Promise<void> {
   const now = Date.now();
   const start = Math.max(now, nextStart);
   nextStart = start + spacingMs;
   if (start > now) await sleep(start - now);
+}
+
+function noteFetchSuccess(): void {
+  if (consecutiveRateLimits > 0) {
+    console.log(`recovered spacing=${spacingMs} after=${consecutiveRateLimits}`);
+  }
+  consecutiveRateLimits = 0;
+  successesSinceEase += 1;
+  if (successesSinceEase >= 80 && spacingMs > BASE_SPACING_MS) {
+    spacingMs -= 5_000;
+    successesSinceEase = 0;
+    console.log(`easing spacing=${spacingMs}`);
+  }
+}
+
+/** Zero requests until the shared window is likely open again. */
+async function coolDownAfterRateLimit(status: number): Promise<void> {
+  consecutiveRateLimits += 1;
+  successesSinceEase = 0;
+  spacingMs = Math.min(MAX_SPACING_MS, spacingMs + 5_000);
+  const pause = Math.min(40 * 60_000, 20 * 60_000 * 2 ** (consecutiveRateLimits - 1));
+  console.log(`cooldown status=${status} pause=${pause} spacing=${spacingMs} streak=${consecutiveRateLimits}`);
+  nextStart = Date.now() + pause + spacingMs;
+  await sleep(pause);
 }
 
 async function poolVolumeRank(file: string): Promise<Map<string, number>> {
@@ -255,11 +287,14 @@ async function fetchPools(
   pools: string[],
   onProgress?: (done: number) => Promise<void>,
 ): Promise<void> {
-  spacingMs = 12_000;
+  spacingMs = BASE_SPACING_MS;
   nextStart = 0;
+  consecutiveRateLimits = 0;
+  successesSinceEase = 0;
   await mkdir(join(CACHE_DIR, network), { recursive: true });
   let cursor = 0;
   let done = 0;
+  let fetchedNew = 0;
   const deferred = new Map<string, number>();
   const worker = async () => {
     for (;;) {
@@ -271,12 +306,17 @@ async function fetchPools(
       try {
         await stat(path);
         done += 1;
-        if (onProgress && done % 100 === 0) await onProgress(done);
         continue;
       } catch {
         // fetch below
       }
       const result = await fetchPool(network, pool);
+      if (result.reason === "rate-limit") {
+        // Do not cache a shared-window failure. The pool is retried after silence.
+        pools.push(pool);
+        await coolDownAfterRateLimit(result.status ?? 429);
+        continue;
+      }
       if (transientPoolFailure(result)) {
         const tries = (deferred.get(pool) ?? 0) + 1;
         deferred.set(pool, tries);
@@ -288,13 +328,15 @@ async function fetchPools(
           continue;
         }
       }
+      noteFetchSuccess();
       const tmp = `${path}.${process.pid}.tmp`;
       await writeFile(tmp, JSON.stringify(result), "utf8");
       await rename(tmp, path);
       done += 1;
-      if (onProgress && done % 100 === 0) await onProgress(done);
-      if (done % 25 === 0 || done === pools.length) {
-        console.log(`fetched ${done}/${pools.length} ${network}`);
+      fetchedNew += 1;
+      if (onProgress && fetchedNew % 100 === 0) await onProgress(done);
+      if (fetchedNew % 25 === 0 || done === pools.length) {
+        console.log(`fetched ${done}/${pools.length} ${network} new=${fetchedNew}`);
       }
     }
   };
@@ -311,7 +353,7 @@ function transientPoolFailure(result: PoolCache): boolean {
 async function fetchPool(network: string, pool: string): Promise<PoolCache> {
   const path = geckoTerminalOhlcvPath(pool, { timeframe: "hour", limit: 1000, network });
   const url = `${GECKO_BASE}${path}`;
-  for (let attempt = 0; attempt < 6; attempt += 1) {
+  for (let attempt = 0; attempt < 4; attempt += 1) {
     await takeSlot();
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 20_000);
@@ -322,15 +364,8 @@ async function fetchPool(network: string, pool: string): Promise<PoolCache> {
       });
       if (response.status === 429 || response.status >= 500) {
         await response.arrayBuffer().catch(() => undefined);
-        const retryAfter = Number(response.headers.get("retry-after"));
-        // Retry-After is often 0. A short retry keeps the keyless window closed.
-        const exponential = Math.min(180_000, 90_000 * 2 ** attempt);
-        const headerPause = Number.isFinite(retryAfter) && retryAfter > 1 ? retryAfter * 1000 : 0;
-        const pause = Math.max(headerPause, exponential);
-        nextStart = Math.max(nextStart, Date.now() + pause);
-        console.log(`backoff ${network} status=${response.status} pause=${pause} attempt=${attempt + 1}`);
-        await sleep(pause);
-        continue;
+        // One response is enough. The worker waits in silence; more calls extend the ban.
+        return { ok: false, status: response.status, reason: "rate-limit" };
       }
       if (response.status === 404 || response.status === 400) {
         return { ok: false, status: response.status, reason: "not-found" };
@@ -353,14 +388,14 @@ async function fetchPool(network: string, pool: string): Promise<PoolCache> {
     } catch (error) {
       const pause = Math.min(60_000, 2_000 * 2 ** attempt);
       await sleep(pause);
-      if (attempt === 5) {
+      if (attempt === 3) {
         return { ok: false, reason: error instanceof Error ? error.message : "fetch-failed" };
       }
     } finally {
       clearTimeout(timer);
     }
   }
-  return { ok: false, reason: "rate-limit" };
+  return { ok: false, reason: "fetch-failed" };
 }
 
 function sleep(ms: number): Promise<void> {
