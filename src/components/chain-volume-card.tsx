@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { cn } from "cn";
 import { chainCombinedVolume24h } from "@/lib/market/aggregate";
+import { type VolumeChartRangeId } from "@/lib/market/daily-volume-view";
 import { formatUsdCompact, volumeShare } from "@/lib/market/format";
 import { BASE_CHAIN_ID, BNB_CHAIN_ID, ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type ChainVolume } from "@/lib/market/types";
 
@@ -17,29 +18,57 @@ export interface ChainVolumeRow {
   chain: ChainVolume;
   rank: number;
   maxVolume: number | null;
+  /** Range combined total. 24H rows omit this and use the chain's live legs. */
+  combinedUsd?: number | null;
+  /** Partial closed window, for example "4 of 7 days". */
+  coverageHint?: string | null;
 }
 
-export function ChainVolumeHeader() {
+const RANGE_WORD: Record<VolumeChartRangeId, string> = {
+  "24h": "24H",
+  "7d": "7D",
+  "14d": "14D",
+  "30d": "30D",
+};
+
+export function chainVolumeHeaderLabels(range: VolumeChartRangeId): {
+  combined: string;
+  publicLane: string;
+  privateLane: string;
+  etf: string;
+} {
+  const word = RANGE_WORD[range];
+  return {
+    combined: `${word} Volume`,
+    publicLane: `Public ${word}`,
+    privateLane: `Private ${word}`,
+    etf: `ETF/Index ${word}`,
+  };
+}
+
+export function ChainVolumeHeader({ range = "24h" }: { range?: VolumeChartRangeId }) {
+  const labels = chainVolumeHeaderLabels(range);
   return (
     <div
       className="col-span-full grid grid-cols-subgrid items-center px-4"
       data-chain-volume-header
+      data-chain-volume-range={range}
     >
       <div className={HEADER_LABEL}>#</div>
       <div className={HEADER_LABEL}>Chain</div>
-      <div className={cn(HEADER_LABEL, "text-right")}>24H Volume</div>
-      <div className={cn(HEADER_LABEL, "text-right")}>Public 24H</div>
-      <div className={cn(HEADER_LABEL, "text-right")}>Private 24H</div>
-      <div className={cn(HEADER_LABEL, "text-right")}>ETF/Index 24H</div>
+      <div className={cn(HEADER_LABEL, "text-right")}>{labels.combined}</div>
+      <div className={cn(HEADER_LABEL, "text-right")}>{labels.publicLane}</div>
+      <div className={cn(HEADER_LABEL, "text-right")}>{labels.privateLane}</div>
+      <div className={cn(HEADER_LABEL, "text-right")}>{labels.etf}</div>
     </div>
   );
 }
 
-export function ChainVolumeCard({ chain, rank, maxVolume }: ChainVolumeRow) {
+export function ChainVolumeCard({ chain, rank, maxVolume, combinedUsd, coverageHint }: ChainVolumeRow) {
   const isSolana = chain.id === SOLANA_CHAIN_ID;
   const showLanes =
     isSolana || chain.id === ROBINHOOD_CHAIN_ID || chain.id === BASE_CHAIN_ID || chain.id === BNB_CHAIN_ID;
-  const combinedVolume = chainCombinedVolume24h(chain);
+  const combinedVolume = combinedUsd === undefined ? chainCombinedVolume24h(chain) : combinedUsd;
   const share = volumeShare(combinedVolume, maxVolume);
 
   return (
@@ -61,6 +90,11 @@ export function ChainVolumeCard({ chain, rank, maxVolume }: ChainVolumeRow) {
         <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted" data-volume-share-bar aria-hidden="true">
           <div className="h-full rounded-full bg-primary" style={{ width: `${share}%` }} />
         </div>
+        {coverageHint ? (
+          <p className="mt-1 text-right text-[10px] leading-none text-muted-foreground" data-chain-coverage>
+            {coverageHint}
+          </p>
+        ) : null}
       </div>
       <div className="num min-w-0 text-right text-sm font-medium whitespace-nowrap" data-public-volume>
         {showLanes ? formatUsdCompact(chain.volume24hUsd) : null}
@@ -76,12 +110,18 @@ export function ChainVolumeCard({ chain, rank, maxVolume }: ChainVolumeRow) {
 }
 
 /** Header plus one rounded row per chain. Narrow viewports scroll the pair together. */
-export function ChainVolumeTable({ rows }: { rows: readonly ChainVolumeRow[] }) {
+export function ChainVolumeTable({
+  rows,
+  range = "24h",
+}: {
+  rows: readonly ChainVolumeRow[];
+  range?: VolumeChartRangeId;
+}) {
   if (rows.length === 0) return null;
   return (
     <div className="overflow-x-auto" data-chain-volume-scroll>
       <div className={cn("grid w-full min-w-[53rem] gap-x-4 gap-y-3", CHAIN_VOLUME_TRACKS)} data-chain-volume-table>
-        <ChainVolumeHeader />
+        <ChainVolumeHeader range={range} />
         {rows.map((row) => (
           <ChainVolumeCard key={row.chain.id} {...row} />
         ))}

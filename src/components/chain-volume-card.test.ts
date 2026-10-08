@@ -147,4 +147,30 @@ describe("ChainVolumeCard", () => {
     expect(html).not.toContain("last closed snapshot");
     expect(html).not.toContain(">$0<");
   });
+
+  it("relabels the header and shows a partial-window hint for a closed range", () => {
+    const chain = robinhoodHomeChainVolume(days);
+    const html = renderToStaticMarkup(
+      createElement(ChainVolumeTable, {
+        range: "7d",
+        rows: [
+          {
+            chain,
+            rank: 1,
+            maxVolume: 48_555_668.9,
+            combinedUsd: 120_000_000,
+            coverageHint: "4 of 7 days",
+          },
+        ],
+      }),
+    );
+    expect(html).toContain('data-chain-volume-range="7d"');
+    expect(html).toContain(">7D Volume<");
+    expect(html).toContain(">Public 7D<");
+    expect(html).toContain(">Private 7D<");
+    expect(html).toContain(">ETF/Index 7D<");
+    expect(html).not.toContain(">24H Volume<");
+    expect(html).toContain(">4 of 7 days<");
+    expect(html).toContain(`>${formatUsdCompact(120_000_000)}<`);
+  });
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type PointerEvent } from "react";
+import { useDeskVolumeRange } from "@/components/desk-volume-range";
 import { formatChartDay, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
 import {
   nearestVolumePoint,
@@ -53,7 +54,7 @@ export function RobinhoodVolumeDesk({
   days: readonly RobinhoodDeskDay[];
   initialRange?: VolumeChartRangeId;
 }) {
-  const [range, setRange] = useState<VolumeChartRangeId>(initialRange);
+  const { range, setRange } = useDeskVolumeRange(initialRange);
   const [hover, setHover] = useState<{ t: number; volumeUsd: number } | null>(null);
   const visibleDays = useMemo(() => robinhoodDaysForRange(days, range), [days, range]);
   const visible = useMemo(() => robinhoodVolumePoints(visibleDays), [visibleDays]);
