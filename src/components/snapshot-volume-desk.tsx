@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type PointerEvent } from "react";
 import { useDeskVolumeRange } from "@/components/desk-volume-range";
+import { DESK_CHART_PLOT_FRAME_CLASS, monotoneVolumePaths } from "@/lib/desk/chart-curve";
 import { formatChartDay, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
 import {
   nearestVolumePoint,
@@ -31,26 +32,6 @@ export interface SnapshotDeskView {
   name: string;
 }
 
-function areaPath(
-  points: readonly { t: number; volumeUsd: number }[],
-  map: ReturnType<typeof scaleVolumePoints>,
-): string {
-  if (points.length === 0) return "";
-  const first = points[0];
-  const last = points[points.length - 1];
-  if (!first || !last) return "";
-  const line = points.map((point) => `${map.x(point.t).toFixed(2)},${map.y(point.volumeUsd).toFixed(2)}`).join(" L ");
-  return `M ${map.x(first.t).toFixed(2)},${(VOLUME_CHART_PAD.top + VOLUME_CHART_INNER_H).toFixed(2)} L ${line} L ${map.x(last.t).toFixed(2)},${(VOLUME_CHART_PAD.top + VOLUME_CHART_INNER_H).toFixed(2)} Z`;
-}
-
-function linePath(
-  points: readonly { t: number; volumeUsd: number }[],
-  map: ReturnType<typeof scaleVolumePoints>,
-): string {
-  if (points.length === 0) return "";
-  return `M ${points.map((point) => `${map.x(point.t).toFixed(2)},${map.y(point.volumeUsd).toFixed(2)}`).join(" L ")}`;
-}
-
 export function SnapshotVolumeDesk({
   desk,
   days,
@@ -73,6 +54,7 @@ export function SnapshotVolumeDesk({
   const map = useMemo(() => scaleVolumePoints(visible), [visible]);
   const xTicks = volumeChartXTicks(visible);
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((frac) => map.maxY * frac);
+  const closedPaths = monotoneVolumePaths(visible, map, VOLUME_CHART_PAD.top + VOLUME_CHART_INNER_H);
   const showHeadline = headline.volumeUsd !== null;
   const unofficial = issuers.some((row) => !row.official);
   const gradientId = `${desk.chainId}-volume-area`;
@@ -147,7 +129,7 @@ export function SnapshotVolumeDesk({
 
       {charting && visible.length > 0 ? (
         <div
-          className="relative mt-3 cursor-crosshair rounded-2xl"
+          className={`relative mt-3 cursor-crosshair ${DESK_CHART_PLOT_FRAME_CLASS}`}
           data-volume-plot
           data-volume-series="closed-day"
           onPointerLeave={() => setHover(null)}
@@ -210,9 +192,9 @@ export function SnapshotVolumeDesk({
                 </text>
               );
             })}
-            <path d={areaPath(visible, map)} fill={`url(#${gradientId})`} pointerEvents="none" />
+            <path d={closedPaths.area} fill={`url(#${gradientId})`} pointerEvents="none" />
             <path
-              d={linePath(visible, map)}
+              d={closedPaths.line}
               fill="none"
               stroke="var(--volume)"
               strokeWidth="2"

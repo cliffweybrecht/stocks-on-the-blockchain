@@ -1,3 +1,4 @@
+import { monotoneAreaPath, monotoneLinePath } from "./chart-curve";
 import type { VolumeHistoryPoint } from "../market/types";
 
 export const SPARKLINE_WIDTH = 240;
@@ -28,11 +29,14 @@ export function sparklineGeometryFromValues(
     const y = SPARKLINE_PAD_Y + innerH - ((value - min) / span) * innerH;
     return { x, y };
   });
-  const line = coords.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`).join(" ");
   const last = coords[coords.length - 1];
   if (!last) return null;
-  const area = `${line} L ${last.x.toFixed(2)} ${height} L ${SPARKLINE_PAD_X.toFixed(2)} ${height} Z`;
-  return { line, area, lastX: last.x, lastY: last.y };
+  return {
+    line: monotoneLinePath(coords),
+    area: monotoneAreaPath(coords, height),
+    lastX: last.x,
+    lastY: last.y,
+  };
 }
 
 export function sparklineGeometry(points: readonly VolumeHistoryPoint[]): {
