@@ -130,7 +130,8 @@ describe("loadEquityCardRangeVolumes", () => {
     resetEquityCardRangeVolumeCache();
     const first = await loadEquityCardRangeVolumes("solana", NOW);
     const second = await loadEquityCardRangeVolumes("solana", NOW);
-    expect(second).toBe(first);
+    expect(second).toEqual(first);
+    expect(second).not.toBe(first);
     expect(first[AAPL_X]?.["7d"]?.days).toBe(4);
     expect(await loadEquityCardRangeVolumes("robinhood-chain", NOW)).toEqual({});
     expect(await loadEquityCardRangeVolumes("bnb", NOW)).toEqual({});

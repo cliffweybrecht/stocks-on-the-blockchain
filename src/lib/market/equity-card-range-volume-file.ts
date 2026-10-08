@@ -34,6 +34,22 @@ export function equityCardSnapshotFile(chainId: string): string | null {
   return SNAPSHOT_FILE_BY_CHAIN[chainId] ?? null;
 }
 
+/** Production snapshot paths. Literals so the server trace stays inside this directory. */
+function defaultSnapshotPath(chainId: string): string | null {
+  switch (chainId) {
+    case SOLANA_CHAIN_ID:
+      return join(process.cwd(), "data", "volume-snapshots", "solana.json");
+    case ROBINHOOD_CHAIN_ID:
+      return join(process.cwd(), "data", "volume-snapshots", "robinhood.json");
+    case BASE_CHAIN_ID:
+      return join(process.cwd(), "data", "volume-snapshots", "base.json");
+    case BNB_CHAIN_ID:
+      return join(process.cwd(), "data", "volume-snapshots", "bnb.json");
+    default:
+      return null;
+  }
+}
+
 /**
  * Precomputed 7D / 14D / 30D card totals for one chain.
  * Reads the local snapshot file only. A missing file or a chain with no
@@ -47,7 +63,11 @@ export async function loadEquityCardRangeVolumes(
 ): Promise<EquityCardRangeVolumeMap> {
   const file = equityCardSnapshotFile(chainId);
   if (!file) return {};
-  const path = join(dir, file);
+  const path =
+    dir === DEFAULT_VOLUME_SNAPSHOT_DIR
+      ? defaultSnapshotPath(chainId)
+      : join(/*turbopackIgnore: true*/ dir, file);
+  if (!path) return {};
   let mtimeMs: number;
   try {
     mtimeMs = (await stat(path)).mtimeMs;
@@ -57,7 +77,7 @@ export async function loadEquityCardRangeVolumes(
   const dayKey = easternDayKey(nowT);
   if (!dayKey) return {};
   const hit = cache.get(path);
-  if (hit && hit.mtimeMs === mtimeMs && hit.dayKey === dayKey) return hit.volumes;
+  if (hit && hit.mtimeMs === mtimeMs && hit.dayKey === dayKey) return structuredClone(hit.volumes);
   let payload: unknown;
   try {
     payload = JSON.parse(await readFile(path, "utf8"));
@@ -65,6 +85,8 @@ export async function loadEquityCardRangeVolumes(
     return {};
   }
   const volumes = equityCardRangeVolumesFromSnapshot(payload, nowT);
-  cache.set(path, { mtimeMs, dayKey, volumes });
-  return volumes;
+  // Hand out a copy. The cached map must stay intact if a later render mutates props.
+  const stored = structuredClone(volumes);
+  cache.set(path, { mtimeMs, dayKey, volumes: stored });
+  return structuredClone(stored);
 }
