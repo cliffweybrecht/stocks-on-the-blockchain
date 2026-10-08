@@ -41,8 +41,14 @@ describe("SnapshotVolumeDesk", () => {
     expect(html).not.toContain("flex-wrap");
     expect(html).toContain('data-volume-series="closed-day"');
     expect(html).toContain(`>${formatUsdCompact(seven)}<`);
-    expect(html).toContain("Coinbase");
-    expect(html).toContain("ST0x");
+    expect(html).toContain("7D · sum of desk snapshot days · public + private + ETF/index");
+    expect(html).toContain("<svg");
+    expect(html).not.toContain("data-snapshot-volume-note");
+    expect(html).not.toContain("data-issuer-lanes");
+    expect(html).not.toContain("Issuer × type");
+    expect(html).not.toContain("null omitted, not stored as $0");
+    expect(html).not.toContain("Coinbase");
+    expect(html).not.toContain("ST0x");
     expect(html).not.toMatch(/trailing h24/i);
     expect(html).not.toContain("12:00");
   });
@@ -62,10 +68,11 @@ describe("SnapshotVolumeDesk", () => {
     expect(html).toContain(formatUsdCompact(27_166_818.630000003));
     expect(html).toContain("24H · 2026-10-05 America/New_York · last closed snapshot");
     expect(html).toContain("data-snapshot-lane-split");
-    expect(html).toContain('data-issuer="ondo"');
-    expect(html).toContain('data-issuer-official="true"');
-    expect(html).toContain("bStocks");
-    expect(html).toContain("Colb Finance");
+    expect(html).not.toContain("data-snapshot-volume-note");
+    expect(html).not.toContain("data-issuer-lanes");
+    expect(html).not.toContain("Issuer × type");
+    expect(html).not.toContain("bStocks");
+    expect(html).not.toContain("Colb Finance");
     expect(html).not.toMatch(/trailing h24/i);
   });
 
@@ -76,6 +83,9 @@ describe("SnapshotVolumeDesk", () => {
     expect(html).toContain('data-volume-kind="empty"');
     expect(html).toContain('data-volume-ranges');
     expect(html).toContain("are not invented");
+    expect(html).not.toContain("data-snapshot-volume-note");
+    expect(html).not.toContain("data-issuer-lanes");
+    expect(html).not.toContain("Issuer × type");
     expect(html).not.toMatch(/trailing h24/i);
   });
 });

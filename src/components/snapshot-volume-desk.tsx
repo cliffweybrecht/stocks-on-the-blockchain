@@ -16,11 +16,9 @@ import {
   type VolumeChartRangeId,
 } from "@/lib/market/daily-volume-view";
 import {
-  SNAPSHOT_DESK_VOLUME_NOTE,
   snapshotDeskDaysForRange,
   snapshotDeskDisplayedLiquidity,
   snapshotDeskHeadline,
-  snapshotDeskIssuerRows,
   snapshotDeskVolumePoints,
   type SnapshotDeskDay,
 } from "@/lib/market/snapshot-desk-volume";
@@ -66,14 +64,12 @@ export function SnapshotVolumeDesk({
   const visibleDays = useMemo(() => snapshotDeskDaysForRange(days, range), [days, range]);
   const visible = useMemo(() => snapshotDeskVolumePoints(visibleDays), [visibleDays]);
   const headline = snapshotDeskHeadline(visibleDays, range, desk.name);
-  const issuers = useMemo(() => snapshotDeskIssuerRows(visibleDays), [visibleDays]);
   const liquidity = snapshotDeskDisplayedLiquidity(visibleDays);
   const charting = range !== "24h";
   const map = useMemo(() => scaleVolumePoints(visible), [visible]);
   const xTicks = volumeChartXTicks(visible);
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((frac) => map.maxY * frac);
   const showHeadline = headline.volumeUsd !== null;
-  const unofficial = issuers.some((row) => !row.official);
   const gradientId = `${desk.chainId}-volume-area`;
 
   function setHoverFromClient(plot: Element, clientX: number, clientY: number) {
@@ -280,66 +276,12 @@ export function SnapshotVolumeDesk({
         </div>
       )}
 
-      <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-snapshot-volume-note>
-        {SNAPSHOT_DESK_VOLUME_NOTE}
-      </p>
-
       {liquidity ? (
         <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-snapshot-liquidity>
           Displayed liquidity {liquidity.date}: {formatUsdFull(liquidity.usd)}. Missing liquidity does not drop the
           day.
         </p>
       ) : null}
-
-      <div className="mt-4" data-issuer-lanes>
-        <h3 className="text-[10px] tracking-wide text-muted-foreground uppercase">Issuer × type</h3>
-        {issuers.length === 0 ? (
-          <p className="mt-2 text-sm text-muted-foreground">
-            {days.length === 0
-              ? "No issuer split is recorded yet. The desk does not invent issuers."
-              : "Issuer × type was not recorded on these snapshot days. Lane totals still count. No issuer split is invented."}
-          </p>
-        ) : (
-          <div className="mt-2 overflow-x-auto">
-            <table className="w-full min-w-[28rem] text-left text-sm">
-              <caption className="sr-only">{desk.name} volume by issuer and type for the selected range</caption>
-              <thead>
-                <tr className="text-[10px] tracking-wide text-muted-foreground uppercase">
-                  <th scope="col" className="py-1 pr-3 font-medium">
-                    Issuer
-                  </th>
-                  <th scope="col" className="py-1 pr-3 font-medium">
-                    Equity
-                  </th>
-                  <th scope="col" className="py-1 pr-3 font-medium">
-                    ETF
-                  </th>
-                  <th scope="col" className="py-1 font-medium">
-                    Private
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {issuers.map((row) => (
-                  <tr key={row.slug} data-issuer={row.slug} data-issuer-official={row.official ? "true" : "false"}>
-                    <th scope="row" className="py-1.5 pr-3 font-medium text-foreground">
-                      {row.label}
-                    </th>
-                    <td className="num py-1.5 pr-3">{formatUsdCompact(row.equityUsd)}</td>
-                    <td className="num py-1.5 pr-3">{formatUsdCompact(row.etfUsd)}</td>
-                    <td className="num py-1.5">{formatUsdCompact(row.privateUsd)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {unofficial ? (
-          <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-unofficial-issuer>
-            An issuer outside the confirmed {desk.name} set stays visible and is not treated as official.
-          </p>
-        ) : null}
-      </div>
     </section>
   );
 }
