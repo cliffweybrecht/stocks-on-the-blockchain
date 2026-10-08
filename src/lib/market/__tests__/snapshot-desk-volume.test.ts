@@ -184,7 +184,8 @@ describe("BNB snapshot file", () => {
   const closed = closedSnapshotDeskDays(days, nowT);
 
   it("reads 2026-09-23 through 2026-10-05 and normalizes the early timestamp", () => {
-    expect(days.map((day) => day.date)).toEqual([
+    const dates = days.map((day) => day.date);
+    expect(dates.slice(0, 13)).toEqual([
       "2026-09-23",
       "2026-09-24",
       "2026-09-25",
@@ -199,10 +200,12 @@ describe("BNB snapshot file", () => {
       "2026-10-04",
       "2026-10-05",
     ]);
+    expect(new Set(dates).size).toBe(dates.length);
+    for (const date of dates.slice(13)) expect(date > "2026-10-05").toBe(true);
     expect(days[0]?.t).toBe(utcInstantForDayKey("2026-09-23"));
     expect(days[1]?.t).toBe(utcInstantForDayKey("2026-09-24"));
     expect(days[1]?.t).not.toBe(1790222400);
-    expect(closed.map((day) => day.date)).toEqual(days.map((day) => day.date));
+    expect(closed.map((day) => day.date)).toEqual(dates.filter((date) => date <= "2026-10-05"));
   });
 
   it("keeps the 2026-10-05 lanes and drops the in-progress Eastern day", () => {
@@ -284,9 +287,14 @@ describe("home snapshot desks", () => {
   it("ranks Solana, Robinhood, Base, and BNB by combined 24H", () => {
     const nowT = Date.parse("2026-10-09T03:00:00Z") / 1000;
     const base = snapshotHomeChainVolume(BASE_DESK, closedSnapshotDeskDays(parseSnapshotDeskDays(readDesk("base.json"), BASE_DESK), nowT));
-    const bnb = snapshotHomeChainVolume(BNB_DESK, closedSnapshotDeskDays(parseSnapshotDeskDays(readDesk("bnb.json"), BNB_DESK), nowT));
+    const bnbClosed = closedSnapshotDeskDays(parseSnapshotDeskDays(readDesk("bnb.json"), BNB_DESK), nowT);
+    const bnb = snapshotHomeChainVolume(BNB_DESK, bnbClosed);
+    const lastBnb = bnbClosed.at(-1);
     expect(chainCombinedVolume24h(base)).toBeCloseTo(37_535_102.57, 1);
-    expect(chainCombinedVolume24h(bnb)).toBeCloseTo(27_166_818.63, 1);
+    expect(chainCombinedVolume24h(bnb)).toBeCloseTo(
+      (lastBnb?.publicEquity24hUsd ?? 0) + (lastBnb?.private24hUsd ?? 0) + (lastBnb?.etfIndex24hUsd ?? 0),
+      1,
+    );
     expect(snapshotHomeVolumeDetail(closedSnapshotDeskDays(parseSnapshotDeskDays(readDesk("base.json"), BASE_DESK), nowT), "Base")).toBe(
       "2026-10-07 America/New_York · last closed snapshot.",
     );

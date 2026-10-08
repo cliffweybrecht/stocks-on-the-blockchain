@@ -13,7 +13,8 @@
     "snapshot:volume:hourly": "tsx scripts/snapshot-volume-hourly.ts",
     "snapshot:robinhood-volume": "python scripts/snapshot-robinhood-volume.py",
     "snapshot:bnb-volume": "python scripts/snapshot-bnb-volume.py",
-    "snapshot:base-volume": "python3 scripts/snapshot-base-volume.py"
+    "snapshot:base-volume": "python3 scripts/snapshot-base-volume.py",
+    "snapshot:land": "tsx scripts/land-volume-snapshot.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
