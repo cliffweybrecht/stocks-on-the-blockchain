@@ -26,6 +26,7 @@ const DAY_KEYS = easternDayKeysInclusive(FROM_DAY, THROUGH_DAY);
 const GECKO_BASE = "https://api.geckoterminal.com/api/v2";
 const CACHE_DIR = process.env.GECKO_HOURLY_CACHE?.trim() || "/tmp/gecko-hourly-et-cache";
 const CONCURRENCY = 1;
+/** About 13 requests a minute. Gecko's free tier is 30 a minute. */
 const SNAPSHOT_DIR = join(process.cwd(), "data", "volume-snapshots");
 
 const CHAINS: Record<string, { network: string; snapshot: string; out: string; live: "snapshot" | "robinhood" | "catalog" }> = {
@@ -86,7 +87,7 @@ async function main(): Promise<void> {
   const pools = [...poolOwners.keys()].sort((a, b) => (rank.get(b) ?? 0) - (rank.get(a) ?? 0));
   if (!process.argv.includes("--aggregate-only")) {
     await fetchPools(chain.network, pools, async (done) => {
-      if (done % 150 !== 0) return;
+      if (done % 100 !== 0) return;
       const caches = new Map<string, PoolCache>();
       for (const pool of pools) caches.set(pool, await readCache(chain.network, pool));
       const partial = await writeBackfill(chainId, chain, assets, dex, caches);
@@ -254,7 +255,7 @@ async function fetchPools(
   pools: string[],
   onProgress?: (done: number) => Promise<void>,
 ): Promise<void> {
-  spacingMs = 3000;
+  spacingMs = 4500;
   nextStart = 0;
   await mkdir(join(CACHE_DIR, network), { recursive: true });
   let cursor = 0;
@@ -270,17 +271,19 @@ async function fetchPools(
       try {
         await stat(path);
         done += 1;
-        if (onProgress && done % 150 === 0) await onProgress(done);
+        if (onProgress && done % 100 === 0) await onProgress(done);
         continue;
       } catch {
         // fetch below
       }
       const result = await fetchPool(network, pool);
-      if (!result.ok && (result.reason === "rate-limit" || result.reason === "fetch-failed")) {
+      if (transientPoolFailure(result)) {
         const tries = (deferred.get(pool) ?? 0) + 1;
         deferred.set(pool, tries);
-        if (tries < 3) {
-          await sleep(2000);
+        if (tries < 8) {
+          const pause = Math.min(120_000, 5_000 * 2 ** (tries - 1));
+          console.log(`retry ${network} ${pool} try=${tries} pause=${pause} reason=${result.reason ?? ""}`);
+          await sleep(pause);
           pools.push(pool);
           continue;
         }
@@ -289,7 +292,7 @@ async function fetchPools(
       await writeFile(tmp, JSON.stringify(result), "utf8");
       await rename(tmp, path);
       done += 1;
-      if (onProgress && done % 150 === 0) await onProgress(done);
+      if (onProgress && done % 100 === 0) await onProgress(done);
       if (done % 25 === 0 || done === pools.length) {
         console.log(`fetched ${done}/${pools.length} ${network}`);
       }
@@ -298,10 +301,17 @@ async function fetchPools(
   await Promise.all(Array.from({ length: Math.min(CONCURRENCY, pools.length) }, () => worker()));
 }
 
+function transientPoolFailure(result: PoolCache): boolean {
+  if (result.ok) return false;
+  const reason = result.reason ?? "";
+  if (reason === "not-found" || reason === "no-ohlcv-list" || reason.startsWith("http-")) return false;
+  return true;
+}
+
 async function fetchPool(network: string, pool: string): Promise<PoolCache> {
   const path = geckoTerminalOhlcvPath(pool, { timeframe: "hour", limit: 1000, network });
   const url = `${GECKO_BASE}${path}`;
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+  for (let attempt = 0; attempt < 6; attempt += 1) {
     await takeSlot();
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 20_000);
@@ -313,9 +323,11 @@ async function fetchPool(network: string, pool: string): Promise<PoolCache> {
       if (response.status === 429 || response.status >= 500) {
         await response.arrayBuffer().catch(() => undefined);
         const retryAfter = Number(response.headers.get("retry-after"));
-        // Gecko often answers 429 with Retry-After: 0, which means try again immediately.
-        const pause = Number.isFinite(retryAfter) && retryAfter > 1 ? retryAfter * 1000 : 20_000;
+        const exponential = Math.min(120_000, 15_000 * 2 ** attempt);
+        const headerPause = Number.isFinite(retryAfter) && retryAfter > 1 ? retryAfter * 1000 : 0;
+        const pause = Math.max(headerPause, exponential);
         nextStart = Math.max(nextStart, Date.now() + pause);
+        console.log(`backoff ${network} status=${response.status} pause=${pause} attempt=${attempt + 1}`);
         await sleep(pause);
         continue;
       }
@@ -338,8 +350,9 @@ async function fetchPool(network: string, pool: string): Promise<PoolCache> {
       }
       return { ok: true, candles };
     } catch (error) {
-      await sleep(1000 * (attempt + 1));
-      if (attempt === 2) {
+      const pause = Math.min(60_000, 2_000 * 2 ** attempt);
+      await sleep(pause);
+      if (attempt === 5) {
         return { ok: false, reason: error instanceof Error ? error.message : "fetch-failed" };
       }
     } finally {
