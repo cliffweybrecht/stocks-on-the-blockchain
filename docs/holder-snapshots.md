@@ -52,6 +52,8 @@ Blockscout is the explorer for Base (`base.blockscout.com`) and the official exp
 
 The count that is stored is GeckoTerminal token-info `holders.count` (`base`, `bsc`, `robinhood`). That is the same integer the asset page already shows. It is an indexer's count, not a fresh enumeration of `Transfer` logs. A missing or non-integer count stays null. Distribution fields on the same payload are ignored.
 
+The public API allows about 30 calls a minute. The writer sends token-info reads one at a time, at least 2.2 seconds apart, and retries HTTP 429. A 429 is not stored as a missing count until those retries are exhausted. HTTP 404, and a 200 whose `holders.count` is null, are real nulls.
+
 ## Universe
 
 The writer uses the desk's existing loaders and does not add tokens:

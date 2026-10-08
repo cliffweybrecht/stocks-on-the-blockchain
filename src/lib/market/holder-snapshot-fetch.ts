@@ -1,4 +1,4 @@
-import { sleep } from "./async-pool";
+import { createRequestGate, sleep } from "./async-pool";
 import { asHolderCount } from "./solana-holders";
 import { parseUiAmountString } from "./solana-supply";
 import type { FetchLike } from "./solana-http";
@@ -195,6 +195,51 @@ export function parseGeckoHolderCount(payload: unknown): number | null {
   return asHolderCount(count);
 }
 
+export interface GeckoHolderRead {
+  holderCount: number | null;
+  /** A 200 or 404 settled the count. A rate limit or transport error did not. */
+  settled: boolean;
+  note: string | null;
+}
+
+/**
+ * Public GeckoTerminal allows about 30 calls a minute.
+ * Token-info reads stay under that. A 429 is not a holder count.
+ */
+const geckoInfoGate = createRequestGate({ maxConcurrent: 1, minGapMs: 2_200 });
+
+export function classifyGeckoHolderResponse(status: number, payload: unknown): GeckoHolderRead {
+  if (status === 404) {
+    return {
+      holderCount: null,
+      settled: true,
+      note: "GeckoTerminal has no token info for this address (404). Blockscout and Routescan did not provide a holder count for this chain.",
+    };
+  }
+  if (status === 429) {
+    return { holderCount: null, settled: false, note: "GeckoTerminal rate limit." };
+  }
+  if (status >= 500 || status === 0) {
+    return { holderCount: null, settled: false, note: "GeckoTerminal token info request failed." };
+  }
+  if (status !== 200) {
+    return {
+      holderCount: null,
+      settled: true,
+      note: `GeckoTerminal token info returned HTTP ${status}. Blockscout and Routescan did not provide a holder count for this chain.`,
+    };
+  }
+  const count = parseGeckoHolderCount(payload);
+  if (count === null) {
+    return {
+      holderCount: null,
+      settled: true,
+      note: "GeckoTerminal token info has no holders.count. Blockscout and Routescan did not provide a holder count for this chain.",
+    };
+  }
+  return { holderCount: count, settled: true, note: null };
+}
+
 export function parseMintOwner(payload: unknown): string | null {
   if (!payload || typeof payload !== "object") return null;
   const value = (payload as { result?: { value?: { owner?: unknown } | null } }).result?.value;
@@ -304,6 +349,49 @@ export async function fetchEvmTokenSupply(
   };
 }
 
+export async function fetchGeckoHolderRead(
+  network: string,
+  address: string,
+  geckoBaseUrl: string,
+  timeoutMs: number,
+  fetchImpl: FetchLike,
+  options?: { maxAttempts?: number; rateLimitDelayMs?: number; pace?: boolean },
+): Promise<GeckoHolderRead> {
+  const base = geckoBaseUrl.replace(/\/+$/, "");
+  const url = `${base}/networks/${encodeURIComponent(network)}/tokens/${address}/info`;
+  const maxAttempts = options?.maxAttempts ?? 6;
+  const rateLimitDelayMs = options?.rateLimitDelayMs ?? 20_000;
+  const pace = options?.pace !== false;
+  let last: GeckoHolderRead = { holderCount: null, settled: false, note: "GeckoTerminal token info request failed." };
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const run = async () => {
+      const { signal, cancel } = timeoutSignal(timeoutMs);
+      try {
+        const response = await fetchImpl(url, {
+          method: "GET",
+          headers: { accept: "application/json", "user-agent": "stocks-on-the-blockchain/0.1" },
+          signal,
+          cache: "no-store",
+        });
+        const payload = response.ok || response.status === 404 ? await response.json().catch(() => null) : null;
+        return classifyGeckoHolderResponse(response.status, payload);
+      } catch {
+        return classifyGeckoHolderResponse(0, null);
+      } finally {
+        cancel();
+      }
+    };
+    last = pace ? await geckoInfoGate.run(run) : await run();
+    if (last.settled) return last;
+    if (attempt < maxAttempts - 1) await sleep(rateLimitDelayMs);
+  }
+  return {
+    holderCount: null,
+    settled: false,
+    note: "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated.",
+  };
+}
+
 export async function fetchGeckoHolderCount(
   network: string,
   address: string,
@@ -311,11 +399,6 @@ export async function fetchGeckoHolderCount(
   timeoutMs: number,
   fetchImpl: FetchLike,
 ): Promise<number | null> {
-  const base = geckoBaseUrl.replace(/\/+$/, "");
-  const payload = await getJson(
-    `${base}/networks/${encodeURIComponent(network)}/tokens/${address}/info`,
-    timeoutMs,
-    fetchImpl,
-  );
-  return parseGeckoHolderCount(payload);
+  const read = await fetchGeckoHolderRead(network, address, geckoBaseUrl, timeoutMs, fetchImpl);
+  return read.holderCount;
 }

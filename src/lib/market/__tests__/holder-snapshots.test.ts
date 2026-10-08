@@ -11,7 +11,13 @@ import {
   type HolderSnapshotAsset,
   type HolderSnapshotDay,
 } from "../holder-snapshots";
-import { countNonZeroSplAmounts, parseEvmDecimalsCall, parseGeckoHolderCount, parseSolanaMintSupply } from "../holder-snapshot-fetch";
+import {
+  classifyGeckoHolderResponse,
+  countNonZeroSplAmounts,
+  parseEvmDecimalsCall,
+  parseGeckoHolderCount,
+  parseSolanaMintSupply,
+} from "../holder-snapshot-fetch";
 
 const asset = {
   address: "Mint111",
@@ -97,6 +103,14 @@ describe("on-chain parsers", () => {
     expect(parseGeckoHolderCount({ data: { attributes: { holders: { count: 10630 } } } })).toBe(10630);
     expect(parseGeckoHolderCount({ data: { attributes: { holders: { count: 1.5 } } } })).toBeNull();
     expect(parseEvmDecimalsCall({ result: "0x12" })).toBe(18);
+    expect(classifyGeckoHolderResponse(200, { data: { attributes: { holders: { count: 3 } } } })).toMatchObject({
+      holderCount: 3,
+      settled: true,
+      note: null,
+    });
+    expect(classifyGeckoHolderResponse(200, { data: { attributes: { holders: { count: null } } } }).settled).toBe(true);
+    expect(classifyGeckoHolderResponse(404, { errors: [] })).toMatchObject({ holderCount: null, settled: true });
+    expect(classifyGeckoHolderResponse(429, null)).toMatchObject({ holderCount: null, settled: false });
   });
 });
 

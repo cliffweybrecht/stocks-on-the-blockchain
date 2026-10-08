@@ -11,7 +11,7 @@ import {
   SPL_TOKEN_PROGRAM_ID,
   TOKEN_2022_PROGRAM_ID,
   fetchEvmTokenSupply,
-  fetchGeckoHolderCount,
+  fetchGeckoHolderRead,
   fetchMintOwner,
   fetchSolanaHolderCount,
   fetchSolanaMintSupply,
@@ -60,7 +60,7 @@ export function holderChainLimits(chainId: HolderSnapshotChainId): string[] {
     chainId === "base" ? DEFAULT_BASE_RPC_URL : chainId === "bnb" ? DEFAULT_BNB_RPC_URL : DEFAULT_ROBINHOOD_RPC_URL;
   return [
     `Supply is eth_call totalSupply() and decimals() on ${rpc}. totalSupplyRaw is the integer. totalSupply is raw / 10^decimals. A missing decimals() leaves the adjusted supply null.`,
-    `Holders are GeckoTerminal token-info holders.count (network ${EVM_GECKO_NETWORK[chainId]}), the same integer this desk already shows on the asset page. Blockscout's public API for this chain returned a Cloudflare challenge from the snapshot host, and Routescan tokenholdercount does not index chain ${native} (response: chain not supported). Neither explorer count is invented. A missing Gecko count stays null. The chain total sums per-token counts and is not unique wallets.`,
+    `Holders are GeckoTerminal token-info holders.count (network ${EVM_GECKO_NETWORK[chainId]}), the same integer this desk already shows on the asset page. Calls are spaced under the public ~30/minute cap. HTTP 429 is retried and is not stored as a count. Blockscout's public API for this chain returned a Cloudflare challenge from the snapshot host, and Routescan tokenholdercount does not index chain ${native} (response: chain not supported). A 404 or a payload with no holders.count stays null. The chain total sums per-token counts and is not unique wallets.`,
     price,
   ];
 }
@@ -198,24 +198,20 @@ async function captureOne(
   }
 
   const network = EVM_GECKO_NETWORK[chainId];
-  const [supply, holderCount] = await Promise.all([
+  const [supply, holders] = await Promise.all([
     fetchEvmTokenSupply(asset.address, options.rpcUrl, options.timeoutMs, options.fetchImpl),
-    fetchGeckoHolderCount(network, asset.address, options.geckoBaseUrl, options.timeoutMs, options.fetchImpl),
+    fetchGeckoHolderRead(network, asset.address, options.geckoBaseUrl, options.timeoutMs, options.fetchImpl),
   ]);
   if (!supply) notes.push("eth_call totalSupply() did not return an integer.");
   else if (supply.decimals === null) notes.push("eth_call decimals() did not return a uint8, so totalSupply is null.");
-  if (holderCount === null) {
-    notes.push(
-      "GeckoTerminal holders.count was missing. Blockscout and Routescan did not provide a holder count for this chain.",
-    );
-  }
+  if (holders.note) notes.push(holders.note);
   return buildHolderSnapshotAsset({
     asset,
     totalSupplyRaw: supply?.raw ?? null,
     totalSupplyDecimals: supply?.decimals ?? null,
     totalSupply: supply?.adjusted ?? null,
     priceUsd: asset.priceUsd,
-    holderCount,
+    holderCount: holders.holderCount,
     supplySource: EVM_SUPPLY_SOURCE,
     holderSource: EVM_HOLDER_SOURCE,
     priceSource: DEXSCREENER_PRICE_SOURCE,
