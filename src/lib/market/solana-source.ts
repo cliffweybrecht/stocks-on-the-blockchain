@@ -40,6 +40,7 @@ import {
   NO_INDEXABLE_POOLS_REASON,
   POOL_LOOKUP_RETRY_REASON,
   isSolanaMintAddress,
+  pairsTouchingMint,
   pickClassifiedMintForSymbol,
   volumePoolsForMint,
   type IndexablePool,
@@ -1409,16 +1410,48 @@ export class SolanaMarketDataSource implements MarketDataSource {
     return pending;
   }
 
-  /** Snapshot row plus any holder or supply values already in memory. No outbound calls. */
+  /**
+   * Snapshot row plus holder or supply values already in memory.
+   * A cache miss looks up this symbol's pools. It does not wait for desk discovery.
+   */
   private async readCachedAsset(symbol: string): Promise<AssetDetailResult | null> {
-    const cached = await this.loadCached("full");
-    const asset = this.findCachedAsset(cached, symbol);
+    const now = Date.now();
+    const cached = this.cacheSatisfies("full", now) ?? this.cacheSatisfies("light", now);
+    if (cached) {
+      const asset = this.findCachedAsset(cached, symbol);
+      if (asset) {
+        return {
+          chain: cached.mapped.chain,
+          asset: this.assetFromMemory(asset),
+          provenance: cached.mapped.provenance,
+        };
+      }
+    }
+    return this.readTargetedAsset(symbol);
+  }
+
+  /** One mint from DexScreener search and token-pairs. Used when the desk list does not have the row yet. */
+  private async readTargetedAsset(symbol: string): Promise<AssetDetailResult | null> {
+    const looked = await this.lookupAllMarketsPools(symbol, "");
+    if (looked.kind !== "pools" || looked.pairs.length === 0) return null;
+    const mapped = buildSolanaSnapshot({
+      pairs: looked.pairs,
+      fetchedAt: new Date().toISOString(),
+      aggregation: "all-pools",
+      extraNotes: ["Built from this mint's DexScreener pools. The desk-wide list was not on the page path."],
+      cacheStatus: "partial",
+    });
+    const asset =
+      findAssetByKey(
+        [...mapped.details, ...mapped.etfDetails, ...mapped.privateDetails],
+        symbol,
+      ) ??
+      findAssetByKey(
+        [...mapped.details, ...mapped.etfDetails, ...mapped.privateDetails],
+        looked.mint,
+      );
     if (!asset) return null;
-    return {
-      chain: cached.mapped.chain,
-      asset: this.assetFromMemory(asset),
-      provenance: cached.mapped.provenance,
-    };
+    return { chain: mapped.chain, asset, provenance: mapped.provenance };
   }
 
   private async loadEnrichedAsset(symbol: string, pairHolders: boolean): Promise<AssetDetailResult | null> {
@@ -2197,14 +2230,14 @@ export class SolanaMarketDataSource implements MarketDataSource {
     symbol: string,
     hintedMint = "",
   ): Promise<
-    | { kind: "pools"; mint: string; pools: IndexablePool[] }
+    | { kind: "pools"; mint: string; pools: IndexablePool[]; pairs: DexScreenerPair[] }
     | { kind: "none"; reason: string }
     | { kind: "pending"; reason: string }
   > {
     const hint = isSolanaMintAddress(hintedMint) ? hintedMint.trim() : "";
     const full = this.cachedAssetForSymbol(symbol, "full");
     if (full && full.mint && full.pools.length > 0 && (!hint || full.mint === hint)) {
-      return { kind: "pools", mint: full.mint, pools: full.pools };
+      return { kind: "pools", mint: full.mint, pools: full.pools, pairs: [] };
     }
     const light = this.cachedAssetForSymbol(symbol, "light");
     const knownMint = hint || full?.mint || light?.mint || "";
@@ -2213,7 +2246,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
     if (looked.kind === "pending") {
       const fallback = (full?.pools.length ? full : light?.pools.length ? light : null);
       if (fallback?.mint && fallback.pools.length > 0) {
-        return { kind: "pools", mint: fallback.mint, pools: fallback.pools };
+        return { kind: "pools", mint: fallback.mint, pools: fallback.pools, pairs: [] };
       }
     }
     return looked;
@@ -2223,7 +2256,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
     symbol: string,
     knownMint: string,
   ): Promise<
-    | { kind: "pools"; mint: string; pools: IndexablePool[] }
+    | { kind: "pools"; mint: string; pools: IndexablePool[]; pairs: DexScreenerPair[] }
     | { kind: "none"; reason: string }
     | { kind: "pending"; reason: string }
   > {
@@ -2267,13 +2300,17 @@ export class SolanaMarketDataSource implements MarketDataSource {
 
     if (dexList) {
       const fromDex = volumePoolsForMint(dexList, mint);
-      if (fromDex.length > 0) return { kind: "pools", mint, pools: fromDex };
+      if (fromDex.length > 0) {
+        return { kind: "pools", mint, pools: fromDex, pairs: pairsTouchingMint(dexList, mint) };
+      }
     }
     const fromSearch = volumePoolsForMint(searchPairs, mint);
-    if (fromSearch.length > 0) return { kind: "pools", mint, pools: fromSearch };
+    if (fromSearch.length > 0) {
+      return { kind: "pools", mint, pools: fromSearch, pairs: pairsTouchingMint(searchPairs, mint) };
+    }
 
     const gecko = await this.lookupGeckoPools(mint);
-    if (gecko.kind === "pools") return { kind: "pools", mint, pools: gecko.pools };
+    if (gecko.kind === "pools") return { kind: "pools", mint, pools: gecko.pools, pairs: [] };
     if (gecko.kind === "empty" && (dexList !== null || dexDefinitive)) {
       return { kind: "none", reason: reasonNone };
     }

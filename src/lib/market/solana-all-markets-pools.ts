@@ -45,6 +45,17 @@ export function pickClassifiedMintForSymbol(pairs: readonly DexScreenerPair[], s
   return best?.mint ?? null;
 }
 
+/** Pairs whose base or quote is this mint. */
+export function pairsTouchingMint(pairs: readonly DexScreenerPair[], mint: string): DexScreenerPair[] {
+  const needle = mint.trim();
+  if (!needle) return [];
+  return pairs.filter((pair) => {
+    const base = asNonEmptyString(pair.baseToken?.address);
+    const quote = asNonEmptyString(pair.quoteToken?.address);
+    return base === needle || quote === needle;
+  });
+}
+
 /** Pools whose base or quote is this mint. Empty pair addresses are dropped. */
 export function volumePoolsForMint(pairs: readonly DexScreenerPair[], mint: string): IndexablePool[] {
   const needle = mint.trim();

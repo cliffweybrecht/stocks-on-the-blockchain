@@ -3011,6 +3011,32 @@ describe("SolanaMarketDataSource", () => {
     }
   });
 
+  it("reads one asset from its pools without waiting on the rest of desk discovery", async () => {
+    const source = testSource({
+      discoveryQueries: ["xStock", "slow-probe"],
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("/latest/dex/search")) {
+          if (url.includes("slow-probe")) await new Promise((resolve) => setTimeout(resolve, 5_000));
+          return jsonResponse({ pairs: [tslaPair()] });
+        }
+        if (url.includes(`/token-pairs/v1/solana/${tslaMint}`)) {
+          return jsonResponse([
+            tslaPair(),
+            { ...tslaPair(), dexId: "orca", pairAddress: "pair-2", volume: { h24: 10 }, liquidity: { usd: 100 } },
+          ]);
+        }
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+    const started = Date.now();
+    const asset = await source.getAsset("solana", "tslax", { enrich: false });
+    expect(Date.now() - started).toBeLessThan(2_000);
+    expect(asset?.asset.symbol).toBe("TSLAx");
+    expect(asset?.asset.pools).toHaveLength(2);
+    expect(asset?.asset.contractAddress).toBe(tslaMint);
+  });
+
   it("ends the all-markets poll when the symbol has no classified mint", async () => {
     const source = testSource({
       enableGeckoTerminal: true,
