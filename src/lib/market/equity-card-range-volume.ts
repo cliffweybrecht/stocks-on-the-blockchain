@@ -1,5 +1,6 @@
 import { combinedPublicPrivateVolume24h, compareAssetsByRank, type RankableRow } from "./aggregate";
 import type { ClosedVolumeChartRangeId } from "./daily-volume-view";
+import { GECKO_HOURLY_ET_BACKFILL_SOURCE } from "./gecko-hourly-et";
 import { asNonNegativeNumber, compareNullableDesc } from "./numbers";
 import { easternDayKey } from "./volume-snapshots";
 
@@ -100,8 +101,12 @@ interface ClosedAssetDay {
  * The in-progress Eastern day is left out. Days before per-asset rows began
  * stay missing. Nothing is invented.
  */
-export function equityCardRangeVolumesFromSnapshot(payload: unknown, nowT: number): EquityCardRangeVolumeMap {
-  const days = closedAssetDays(payload, nowT);
+export function equityCardRangeVolumesFromSnapshot(
+  payload: unknown,
+  nowT: number,
+  backfill: unknown = null,
+): EquityCardRangeVolumeMap {
+  const days = closedAssetDays(payload, nowT, backfill);
   const volumes: EquityCardRangeVolumeMap = {};
   const ranges = Object.keys(EQUITY_CARD_RANGE_WINDOW) as EquityCardClosedRangeId[];
   for (const range of ranges) {
@@ -125,20 +130,54 @@ export function equityCardRangeVolumesFromSnapshot(payload: unknown, nowT: numbe
   return volumes;
 }
 
-function closedAssetDays(payload: unknown, nowT: number): ClosedAssetDay[] {
+function closedAssetDays(payload: unknown, nowT: number, backfill: unknown): ClosedAssetDay[] {
   const today = easternDayKey(nowT);
-  if (!today || !payload || typeof payload !== "object") return [];
-  const list = (payload as { records?: unknown }).records;
-  if (!Array.isArray(list)) return [];
+  if (!today) return [];
   const byDate = new Map<string, Map<string, number>>();
-  for (const row of list) {
-    const parsed = parseAssetDay(row, today);
-    if (!parsed) continue;
-    byDate.set(parsed.date, parsed.byAsset);
+  // Backfill lands first. A DexScreener row for the same address and day replaces it.
+  for (const [date, byAsset] of readBackfillDays(backfill, today)) {
+    byDate.set(date, byAsset);
+  }
+  if (payload && typeof payload === "object") {
+    const list = (payload as { records?: unknown }).records;
+    if (Array.isArray(list)) {
+      for (const row of list) {
+        const parsed = parseAssetDay(row, today);
+        if (!parsed) continue;
+        const merged = byDate.get(parsed.date) ?? new Map<string, number>();
+        for (const [key, volumeUsd] of parsed.byAsset) merged.set(key, volumeUsd);
+        byDate.set(parsed.date, merged);
+      }
+    }
   }
   return [...byDate.entries()]
     .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
     .map(([date, byAsset]) => ({ date, byAsset }));
+}
+
+/** Days from a sibling backfill file. DexScreener snapshot rows are applied later and win. */
+function readBackfillDays(payload: unknown, today: string): Map<string, Map<string, number>> {
+  const days = new Map<string, Map<string, number>>();
+  if (!payload || typeof payload !== "object") return days;
+  const file = payload as { source?: unknown; records?: unknown };
+  if (file.source !== GECKO_HOURLY_ET_BACKFILL_SOURCE || !Array.isArray(file.records)) return days;
+  for (const row of file.records) {
+    if (!row || typeof row !== "object") continue;
+    const rec = row as { date?: unknown; assets?: unknown };
+    const date = typeof rec.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(rec.date) ? rec.date : "";
+    if (!date || date >= today || !Array.isArray(rec.assets)) continue;
+    const byAsset = days.get(date) ?? new Map<string, number>();
+    for (const asset of rec.assets) {
+      if (!asset || typeof asset !== "object") continue;
+      const item = asset as { source?: unknown; address?: unknown; volume24hUsd?: unknown };
+      if (item.source !== GECKO_HOURLY_ET_BACKFILL_SOURCE) continue;
+      const parsed = readAssetVolume(asset);
+      if (!parsed) continue;
+      byAsset.set(parsed.key, parsed.volumeUsd);
+    }
+    days.set(date, byAsset);
+  }
+  return days;
 }
 
 function parseAssetDay(row: unknown, today: string): ClosedAssetDay | null {

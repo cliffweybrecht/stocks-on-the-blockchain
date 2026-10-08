@@ -123,6 +123,34 @@ describe("recorded snapshot files", () => {
     expect(equityCardRangeVolumesFromSnapshot(readSnapshot("robinhood.json"), NOW)).toEqual({});
     expect(equityCardRangeVolumesFromSnapshot(readSnapshot("bnb.json"), NOW)).toEqual({});
   });
+
+  it("keeps a DexScreener row and fills a day only the backfill has", () => {
+    const volumes = equityCardRangeVolumesFromSnapshot(
+      {
+        records: [
+          day("2026-10-06", [{ address: "mint-a", volume24hUsd: 10 }]),
+          day("2026-10-05", [{ address: "mint-a", volume24hUsd: 4 }]),
+        ],
+      },
+      NOW,
+      {
+        source: "gecko-hourly-et-backfill",
+        records: [
+          {
+            date: "2026-10-06",
+            assets: [{ address: "mint-a", volume24hUsd: 99, source: "gecko-hourly-et-backfill" }],
+          },
+          {
+            date: "2026-09-20",
+            assets: [{ address: "mint-a", volume24hUsd: 3, source: "gecko-hourly-et-backfill" }],
+          },
+        ],
+      },
+    );
+    expect(volumes["mint-a"]?.["7d"]?.volumeUsd).toBe(17);
+    expect(volumes["mint-a"]?.["7d"]?.volumeUsd).not.toBe(106);
+    expect(volumes["mint-a"]?.["30d"]?.days).toBe(3);
+  });
 });
 
 describe("loadEquityCardRangeVolumes", () => {
@@ -132,9 +160,9 @@ describe("loadEquityCardRangeVolumes", () => {
     const second = await loadEquityCardRangeVolumes("solana", NOW);
     expect(second).toEqual(first);
     expect(second).not.toBe(first);
-    expect(first[AAPL_X]?.["7d"]?.days).toBe(4);
-    expect(await loadEquityCardRangeVolumes("robinhood-chain", NOW)).toEqual({});
-    expect(await loadEquityCardRangeVolumes("bnb", NOW)).toEqual({});
+    const snapshotOnly = equityCardRangeVolumesFromSnapshot(readSnapshot("solana.json"), NOW);
+    expect(snapshotOnly[AAPL_X]?.["7d"]?.days).toBe(4);
+    expect(first[AAPL_X]?.["7d"]?.volumeUsd ?? 0).toBeGreaterThanOrEqual(snapshotOnly[AAPL_X]?.["7d"]?.volumeUsd ?? 0);
     expect(await loadEquityCardRangeVolumes("not-a-chain", NOW)).toEqual({});
   });
 });

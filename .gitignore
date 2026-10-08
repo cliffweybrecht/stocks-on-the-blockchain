@@ -50,6 +50,10 @@ next-env.d.ts
 !/data/volume-snapshots/robinhood.json
 !/data/volume-snapshots/base.json
 !/data/volume-snapshots/bnb.json
+!/data/volume-snapshots/solana-asset-daily.json
+!/data/volume-snapshots/robinhood-asset-daily.json
+!/data/volume-snapshots/base-asset-daily.json
+!/data/volume-snapshots/bnb-asset-daily.json
 
 # Cached cross-pool Gecko daily volume. Rebuilt in the background.
 /data/cache/
