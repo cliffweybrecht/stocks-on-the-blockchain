@@ -17,6 +17,8 @@ describe("sparklineGeometry", () => {
     expect(geometry?.lastX).toBeGreaterThan(SPARKLINE_PAD_X);
     expect(geometry?.lastY).toBeLessThan(SPARKLINE_HEIGHT / 2);
     expect(geometry?.line.startsWith("M ")).toBe(true);
+    expect(geometry?.line).toMatch(/ C /);
+    expect(geometry?.area).toMatch(/ C /);
     expect(geometry?.area.endsWith("Z")).toBe(true);
   });
 

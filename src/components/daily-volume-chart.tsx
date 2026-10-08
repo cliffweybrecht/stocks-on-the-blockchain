@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
-import { DESK_CHART_STROKE, monotoneAreaPath, monotoneLinePath } from "@/lib/desk/chart-curve";
+import { useDeskVolumeRange } from "@/components/desk-volume-range";
+import {
+  CHART_PLOT_FRAME_CLASS,
+  DESK_CHART_STROKE,
+  monotoneAreaPath,
+  monotoneLinePath,
+  monotoneVolumePaths,
+} from "@/lib/desk/chart-curve";
 import {
   contiguousHourlyRuns,
   deskChartHeadline,
@@ -52,26 +59,6 @@ import { closedSnapshotDeskDays, type SnapshotDeskDay } from "@/lib/market/snaps
 import type { EquityVolumeHistoryResult, VolumeHistoryPoint } from "@/lib/market/types";
 import { easternRollingHourStarts } from "@/lib/market/volume-hourly-snapshots";
 import { closedSnapshotVolumePoints } from "@/lib/market/volume-snapshots";
-
-function areaPath(
-  points: readonly VolumeHistoryPoint[],
-  map: ReturnType<typeof scaleVolumePoints>,
-): string {
-  if (points.length === 0) return "";
-  const first = points[0];
-  const last = points[points.length - 1];
-  if (!first || !last) return "";
-  const line = points.map((point) => `${map.x(point.t).toFixed(2)},${map.y(point.volumeUsd).toFixed(2)}`).join(" L ");
-  return `M ${map.x(first.t).toFixed(2)},${(VOLUME_CHART_PAD.top + VOLUME_CHART_INNER_H).toFixed(2)} L ${line} L ${map.x(last.t).toFixed(2)},${(VOLUME_CHART_PAD.top + VOLUME_CHART_INNER_H).toFixed(2)} Z`;
-}
-
-function linePath(
-  points: readonly VolumeHistoryPoint[],
-  map: ReturnType<typeof scaleVolumePoints>,
-): string {
-  if (points.length === 0) return "";
-  return `M ${points.map((point) => `${map.x(point.t).toFixed(2)},${map.y(point.volumeUsd).toFixed(2)}`).join(" L ")}`;
-}
 
 /** Absolute rolling-24h totals. A gap between Eastern hours breaks the curve. */
 function HourlyRollingArea({
@@ -168,7 +155,7 @@ export function DailyVolumeChart({
   /** Closed-day ranges stay the default. Tests pin 24H without a click. */
   initialRange?: VolumeChartRangeId;
 }) {
-  const [range, setRange] = useState<VolumeChartRangeId>(initialRange);
+  const { range, setRange } = useDeskVolumeRange(initialRange);
   const [hover, setHover] = useState<VolumeHistoryPoint | null>(null);
   const [polledHistory, setPolledHistory] = useState<EquityVolumeHistoryResult | null>(null);
   const [polledHourly, setPolledHourly] = useState<EquityVolumeHistoryResult | null>(null);
@@ -331,6 +318,7 @@ export function DailyVolumeChart({
     ? hourlyVolumeChartXTicks(hourSlots.map((t) => ({ t, volumeUsd: 0, kind: "rolling_24h" as const })))
     : volumeChartXTicks(visible);
   const plotBottom = VOLUME_CHART_PAD.top + VOLUME_CHART_INNER_H;
+  const closedPaths = monotoneVolumePaths(visible, map, plotBottom);
 
   function setHoverFromClient(plot: Element, clientX: number, clientY: number) {
     const svg = plot.querySelector("svg");
@@ -411,7 +399,7 @@ export function DailyVolumeChart({
       </div>
       {showHourlyAxis || (!rolling && visible.length > 0) ? (
         <div
-          className="relative mt-3 cursor-crosshair"
+          className={`relative mt-3 cursor-crosshair ${CHART_PLOT_FRAME_CLASS}`}
           data-volume-plot
           data-volume-series={rolling ? "hourly-rolling" : "closed-day"}
           onPointerLeave={() => setHover(null)}
@@ -506,9 +494,9 @@ export function DailyVolumeChart({
               <HourlyRollingArea points={hourlyCaptures} map={map} />
             ) : (
               <>
-                <path d={areaPath(visible, map)} fill="url(#volume-area)" pointerEvents="none" />
+                <path d={closedPaths.area} fill="url(#volume-area)" pointerEvents="none" />
                 <path
-                  d={linePath(visible, map)}
+                  d={closedPaths.line}
                   fill="none"
                   stroke="var(--volume)"
                   strokeWidth="2"
@@ -558,7 +546,7 @@ export function DailyVolumeChart({
           ) : null}
         </div>
       ) : (
-        <div className="mt-4 flex h-[220px] items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 px-6 text-center">
+        <div className={`mt-4 flex h-[220px] items-center justify-center border border-dashed border-border bg-muted/20 px-6 text-center ${CHART_PLOT_FRAME_CLASS}`}>
           <p className="max-w-md text-sm text-muted-foreground">
             {rolling
               ? (hourlyHistory?.emptyReason ?? HOURLY_VOLUME_SERIES_EMPTY)

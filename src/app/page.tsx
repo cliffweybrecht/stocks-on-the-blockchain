@@ -1,10 +1,10 @@
-import { ChainVolumeCard } from "@/components/chain-volume-card";
+import { DeskVolumeRangeProvider } from "@/components/desk-volume-range";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
+import { HomeChainVolume } from "@/components/home-chain-volume";
 import { PageShell } from "@/components/page-shell";
 import { DailyVolumeChart } from "@/components/daily-volume-chart";
 import { selectEquityPriceTicker } from "@/lib/desk/price-ticker";
-import { chainCombinedVolume24h } from "@/lib/market/aggregate";
 import { toJumpAsset } from "@/lib/market/asset-search";
 import { solanaDeskFallbackDetail, withDocumentBudget } from "@/lib/market/document-budget";
 import { createMarketDataSource } from "@/lib/market/factory";
@@ -13,19 +13,18 @@ import { BNB_DESK } from "@/lib/market/bnb-desk-volume";
 import {
   homeChainsWithSnapshotDesks,
   robinhoodHomeChainVolume,
-  robinhoodHomeVolumeDetail,
   snapshotHomeChainVolume,
-  snapshotHomeVolumeDetail,
 } from "@/lib/market/home-desk-volume";
-import { maxNullable } from "@/lib/market/numbers";
+import { homeChainClosedRangeBoard, type HomeDeskLaneDay } from "@/lib/market/home-chain-range";
+import { closedRobinhoodDeskDays, type RobinhoodDeskDay } from "@/lib/market/robinhood-desk-volume";
 import { loadClosedRobinhoodDeskDays } from "@/lib/market/robinhood-desk-volume-file";
-import type { RobinhoodDeskDay } from "@/lib/market/robinhood-desk-volume";
+import { closedSnapshotDeskDays, type SnapshotDeskDay } from "@/lib/market/snapshot-desk-volume";
 import { loadClosedSnapshotDeskDays } from "@/lib/market/snapshot-desk-volume-file";
-import type { SnapshotDeskDay } from "@/lib/market/snapshot-desk-volume";
-import { BASE_CHAIN_ID, BNB_CHAIN_ID, ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type AssetSummary } from "@/lib/market/types";
+import { SOLANA_CHAIN_ID, type AssetSummary } from "@/lib/market/types";
 import { emptyEquityVolumeHistory } from "@/lib/market/volume-history";
 import { emptyHourlyRollingVolumeHistory } from "@/lib/market/volume-hourly-snapshots";
 import { FileDeskVolumeSnapshotStore } from "@/lib/market/volume-snapshot-store";
+import { closedSnapshotVolumePoints } from "@/lib/market/volume-snapshots";
 
 export const dynamic = "force-dynamic";
 
@@ -134,9 +133,30 @@ export default async function HomePage() {
     snapshotHomeChainVolume(BASE_DESK, baseDays),
     snapshotHomeChainVolume(BNB_DESK, bnbDays),
   ]);
-  const maxVolume = maxNullable(rankedChains.map(chainCombinedVolume24h));
   const priceTicker = selectEquityPriceTicker(tickerAssets);
   const solanaChain = chains.find((chain) => chain.id === SOLANA_CHAIN_ID) ?? null;
+  const parsedGeneratedAt = Date.parse(history.generatedAt);
+  const deskNowT = Number.isFinite(parsedGeneratedAt)
+    ? parsedGeneratedAt / 1000
+    : (history.points[history.points.length - 1]?.t ?? 0);
+  const solanaClosed = closedSnapshotVolumePoints(history.points, deskNowT);
+  const robinhoodClosed = closedRobinhoodDeskDays(robinhoodDays, deskNowT);
+  const baseClosed = closedSnapshotDeskDays(baseDays, deskNowT);
+  const bnbClosed = closedSnapshotDeskDays(bnbDays, deskNowT);
+  const solanaLanes: HomeDeskLaneDay[] = (await new FileDeskVolumeSnapshotStore().load()).map((row) => ({
+    t: row.t,
+    publicEquity24hUsd: row.publicEquity24hUsd,
+    private24hUsd: row.private24hUsd,
+    etfIndex24hUsd: row.etfIndex24hUsd,
+    combined24hUsd: row.combined24hUsd,
+  }));
+  const chainRanges = homeChainClosedRangeBoard({
+    solanaClosed,
+    solanaLanes,
+    robinhoodDays: robinhoodClosed,
+    baseDays: baseClosed,
+    bnbDays: bnbClosed,
+  });
 
   return (
     <PageShell
@@ -144,55 +164,39 @@ export default async function HomePage() {
       priceTicker={priceTicker}
       solanaJump={jumpAssets.length > 0 ? { chainId: SOLANA_CHAIN_ID, assets: jumpAssets } : undefined}
     >
-      <div className="space-y-4">
-        <DailyVolumeChart
-          history={history}
-          hourlyHistory={hourlyHistory}
-          rolling24h={
-            solanaChain
-              ? {
-                  publicVolume24hUsd: solanaChain.volume24hUsd,
-                  privateVolume24hUsd: solanaChain.privateVolume24hUsd,
-                  etfVolume24hUsd: solanaChain.etfVolume24hUsd,
-                }
-              : null
-          }
-          robinhoodDays={robinhoodDays}
-          extraDeskDays={[
-            { label: BASE_DESK.name, days: baseDays },
-            { label: BNB_DESK.name, days: bnbDays },
-          ]}
-        />
-        <section className="space-y-3">
-          <h2 className="font-heading text-lg font-medium">Chain volume</h2>
-          {rankedChains.length === 0 ? (
-            <EmptyState
-              title="No chains reported"
-              detail="The configured market sources returned zero chains. A live adapter that failed is listed in provenance rather than filled with invented volume."
-            />
-          ) : (
-            <div className="grid gap-4">
-              {rankedChains.map((chain, index) => (
-                <ChainVolumeCard
-                  key={chain.id}
-                  chain={chain}
-                  rank={index + 1}
-                  maxVolume={maxVolume}
-                  detail={
-                    chain.id === ROBINHOOD_CHAIN_ID
-                      ? robinhoodHomeVolumeDetail(robinhoodDays)
-                      : chain.id === BASE_CHAIN_ID
-                        ? snapshotHomeVolumeDetail(baseDays, BASE_DESK.name)
-                        : chain.id === BNB_CHAIN_ID
-                          ? snapshotHomeVolumeDetail(bnbDays, BNB_DESK.name)
-                          : null
+      <DeskVolumeRangeProvider volumes={{}} initialRange="7d">
+        <div className="space-y-4">
+          <DailyVolumeChart
+            history={history}
+            hourlyHistory={hourlyHistory}
+            rolling24h={
+              solanaChain
+                ? {
+                    publicVolume24hUsd: solanaChain.volume24hUsd,
+                    privateVolume24hUsd: solanaChain.privateVolume24hUsd,
+                    etfVolume24hUsd: solanaChain.etfVolume24hUsd,
                   }
-                />
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
+                : null
+            }
+            robinhoodDays={robinhoodDays}
+            extraDeskDays={[
+              { label: BASE_DESK.name, days: baseDays },
+              { label: BNB_DESK.name, days: bnbDays },
+            ]}
+          />
+          <section className="space-y-3">
+            <h2 className="font-heading text-lg font-medium">Chain volume</h2>
+            {rankedChains.length === 0 ? (
+              <EmptyState
+                title="No chains reported"
+                detail="The configured market sources returned zero chains. A live adapter that failed is listed in provenance rather than filled with invented volume."
+              />
+            ) : (
+              <HomeChainVolume chains={rankedChains} ranges={chainRanges} />
+            )}
+          </section>
+        </div>
+      </DeskVolumeRangeProvider>
     </PageShell>
   );
 }

@@ -19,7 +19,7 @@ import {
   scalePricePoints,
   scaleVolumePoints,
 } from "@/lib/desk/asset-price-view";
-import { DESK_CHART_STROKE, monotoneAreaPath, monotoneLinePath } from "@/lib/desk/chart-curve";
+import { CHART_PLOT_FRAME_CLASS, DESK_CHART_STROKE, monotoneAreaPath, monotoneLinePath } from "@/lib/desk/chart-curve";
 import {
   selectAssetVolumeHeadline,
   selectAssetVolumeSeries,
@@ -498,16 +498,16 @@ export function AssetMarketPanel({
 
       {chartPending ? (
         <div
-          className="mt-3 h-[220px] sm:h-[260px]"
+          className={`mt-3 h-[220px] sm:h-[260px] ${CHART_PLOT_FRAME_CLASS}`}
           aria-busy="true"
           aria-label="Loading chart"
           data-chart-pending
         >
-          <Skeleton className="h-full w-full" />
+          <Skeleton className="h-full w-full rounded-xl" />
         </div>
       ) : showSeries ? (
         <div
-          className="relative mt-3 cursor-crosshair"
+          className={`relative mt-3 cursor-crosshair ${CHART_PLOT_FRAME_CLASS}`}
           data-price-plot={isVolume ? undefined : true}
           data-volume-plot={isVolume ? true : undefined}
           onPointerLeave={() => {
@@ -660,7 +660,7 @@ export function AssetMarketPanel({
         </div>
       ) : (
         <div
-          className="mt-4 flex h-[200px] items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 px-6 text-center"
+          className={`mt-4 flex h-[200px] items-center justify-center border border-dashed border-border bg-muted/20 px-6 text-center ${CHART_PLOT_FRAME_CLASS}`}
           data-volume-empty={isVolume ? true : undefined}
         >
           <p className="max-w-md text-sm text-muted-foreground">{emptyCopy}</p>
