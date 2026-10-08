@@ -6,6 +6,7 @@ import { PageShell } from "@/components/page-shell";
 import { DailyVolumeChart } from "@/components/daily-volume-chart";
 import { selectEquityPriceTicker } from "@/lib/desk/price-ticker";
 import { toJumpAsset } from "@/lib/market/asset-search";
+import { solanaDeskFallbackDetail, withDocumentBudget } from "@/lib/market/document-budget";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { BASE_DESK } from "@/lib/market/base-desk-volume";
 import { BNB_DESK } from "@/lib/market/bnb-desk-volume";
@@ -32,14 +33,20 @@ export default async function HomePage() {
 
   let loaded;
   try {
-    const [chainsSettled, historySettled, hourlySettled] = await Promise.allSettled([
-      source.listChains(),
-      source.getEquityVolumeHistory(),
-      source.getEquityHourlyRollingVolumeHistory(),
+    // Closed snapshot days are a file read. Live discovery keeps running after
+    // the budget so a cold desk cannot hold the document for the full hydrate.
+    void source.getEquityVolumeHistory().catch(() => undefined);
+    const [historySettled, hourlySettled, chainsResult] = await Promise.all([
+      source.getClosedDeskVolumeHistory().then(
+        (value) => ({ status: "fulfilled" as const, value }),
+        (reason: unknown) => ({ status: "rejected" as const, reason }),
+      ),
+      source.getEquityHourlyRollingVolumeHistory().then(
+        (value) => ({ status: "fulfilled" as const, value }),
+        (reason: unknown) => ({ status: "rejected" as const, reason }),
+      ),
+      withDocumentBudget(source.listChains(), null),
     ]);
-    if (chainsSettled.status === "rejected") {
-      throw chainsSettled.reason;
-    }
     const history =
       historySettled.status === "fulfilled"
         ? historySettled.value
@@ -56,7 +63,17 @@ export default async function HomePage() {
               ? hourlySettled.reason.message
               : "Hourly rolling volume series is unavailable.",
           );
-    loaded = { ...chainsSettled.value, history, hourlyHistory };
+    let chains = chainsResult;
+    if (!chains) {
+      const fallback = solanaDeskFallbackDetail(await new FileDeskVolumeSnapshotStore().load());
+      if (!fallback) {
+        throw new Error(
+          "Solana discovery did not finish inside the page budget, and there is no closed desk snapshot to show.",
+        );
+      }
+      chains = { chains: [fallback.chain], provenance: fallback.provenance };
+    }
+    loaded = { ...chains, history, hourlyHistory };
   } catch (error) {
     const detail =
       error instanceof Error
@@ -76,7 +93,7 @@ export default async function HomePage() {
   const chainDetails = await Promise.all(
     listedChains.map(async (chain, index) => {
       try {
-        return { index, chainId: chain.id, detail: await source.getChain(chain.id) };
+        return { index, chainId: chain.id, detail: await withDocumentBudget(source.getChain(chain.id), null) };
       } catch {
         // Skip a chain that listed but failed to hydrate. Do not invent ticker rows.
         return { index, chainId: chain.id, detail: null };

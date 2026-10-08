@@ -89,6 +89,7 @@ export const DEFAULT_SOLANA_DISCOVERY_QUERIES = [
   "Robinhood Markets - Backpack Securities",
   "SpaceX - Backpack Securities",
   "Nike - Backpack Securities",
+  "Ferrari - Backpack Securities",
   "Boeing - Backpack Securities",
   "Alibaba - Backpack Securities",
   "Dell - Backpack Securities",

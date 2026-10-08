@@ -33,6 +33,7 @@ import { formatCount, formatPct, formatPrice, formatRelativeTime, formatUsdCompa
 import { emptyAssetPriceHistory } from "@/lib/market/asset-price-history";
 import { deskSpotPriceUsd, selectEquityPriceTicker } from "@/lib/desk/price-ticker";
 import { sortPoolsByVolume } from "@/lib/desk/pool-sort";
+import { withDocumentBudget } from "@/lib/market/document-budget";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { toJumpAsset } from "@/lib/market/asset-search";
 import { lookupRobinhoodChainAsset } from "@/lib/market/robinhood-chain-markets";
@@ -60,7 +61,7 @@ export default async function AssetPage({
   const bnbChain = chainId === BNB_CHAIN_ID;
   const [assetSettled, chainSettled, priceHistorySettled, robinhoodSettled, baseSettled, bnbSettled] = await Promise.allSettled([
     source.getAsset(chainId, decoded, solanaFastPath ? { enrich: false } : undefined),
-    solanaFastPath ? source.getChain(chainId) : Promise.resolve(null),
+    solanaFastPath ? withDocumentBudget(source.getChain(chainId), null) : Promise.resolve(null),
     solanaFastPath || robinhoodChain || baseChain || bnbChain ? Promise.resolve(null) : source.getAssetPriceHistory(chainId, decoded),
     robinhoodChain ? lookupRobinhoodChainAsset(decoded) : Promise.resolve(null),
     baseChain ? lookupBaseChainAsset(decoded) : Promise.resolve(null),

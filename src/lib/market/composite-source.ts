@@ -182,10 +182,14 @@ export class CompositeMarketDataSource implements MarketDataSource {
     return solana.getEquityCardDayVolumeSeriesSnapshot();
   }
 
-  async getAssetAllMarketsVolumeSnapshot(chainId: string, symbol: string): Promise<AssetAllMarketsVolumeSnapshot> {
+  async getAssetAllMarketsVolumeSnapshot(
+    chainId: string,
+    symbol: string,
+    mint?: string,
+  ): Promise<AssetAllMarketsVolumeSnapshot> {
     const solana = this.adapters.find((adapter) => adapter.id === "solana");
     if (!solana || chainId !== SOLANA_CHAIN_ID) return emptyAllMarketsVolumeSnapshot();
-    return solana.getAssetAllMarketsVolumeSnapshot(chainId, symbol);
+    return solana.getAssetAllMarketsVolumeSnapshot(chainId, symbol, mint);
   }
 
   async getAssetPriceHistory(chainId: string, symbol: string): Promise<AssetPriceHistoryResult> {

@@ -250,7 +250,7 @@ export function selectAssetVolumeHeadline(input: {
     };
   }
 
-  if (input.allMarketsDaily !== null) {
+  if (input.allMarketsDaily !== null && input.allMarketsDaily.length > 0) {
     const inWindow = closedDailyPointsInWindow(input.allMarketsDaily, input.nowT, input.windowSeconds);
     return {
       volumeUsd: sumObservedVolumeUsd(inWindow),
@@ -308,7 +308,7 @@ export function selectAssetVolumeSeries(input: {
       scope: "all_markets",
     };
   }
-  if ((input.range === "7d" || input.range === "30d") && input.allMarketsDaily !== null) {
+  if ((input.range === "7d" || input.range === "30d") && input.allMarketsDaily !== null && input.allMarketsDaily.length > 0) {
     return {
       points: closedDailyPointsInWindow(input.allMarketsDaily, input.nowT, input.windowSeconds),
       scope: "all_markets",
@@ -323,5 +323,59 @@ export function selectAssetVolumeSeries(input: {
   return {
     points: input.primaryPoolPoints.map((point) => ({ t: point.t, volumeUsd: point.volumeUsd })),
     scope: "primary_pool",
+  };
+}
+
+export interface PlottedAssetVolume {
+  series: AssetVolumeSeries;
+  /** The only observed point was withheld so the chart does not draw a single dot. */
+  withheldLonePoint: boolean;
+}
+
+function copyVolumePoints(points: readonly VolumeHistoryPoint[]): VolumeHistoryPoint[] {
+  return points.map((point) => ({ t: point.t, volumeUsd: point.volumeUsd }));
+}
+
+/**
+ * A line needs two closed days. One point is not plotted.
+ * While all-markets is empty or still pending, a longer primary-pool or
+ * per-asset snapshot series supplies the shape. A finished all-markets
+ * series that simply has nothing inside the window stays empty.
+ */
+export function selectPlottedAssetVolume(input: {
+  selected: AssetVolumeSeries;
+  allMarketsDaily: readonly VolumeHistoryPoint[] | null;
+  primaryPoints: readonly VolumeHistoryPoint[];
+  snapshotPoints: readonly VolumeHistoryPoint[];
+}): PlottedAssetVolume {
+  if (input.selected.points.length >= 2) {
+    return { series: input.selected, withheldLonePoint: false };
+  }
+  const finishedEmptyWindow =
+    input.selected.scope === "all_markets" &&
+    (input.allMarketsDaily?.length ?? 0) > 0 &&
+    input.selected.points.length === 0;
+  if (finishedEmptyWindow) {
+    return { series: input.selected, withheldLonePoint: false };
+  }
+  if (input.primaryPoints.length >= 2) {
+    return {
+      series: { points: copyVolumePoints(input.primaryPoints), scope: "primary_pool" },
+      withheldLonePoint: false,
+    };
+  }
+  if (input.snapshotPoints.length >= 2) {
+    return {
+      series: { points: copyVolumePoints(input.snapshotPoints), scope: "primary_pool" },
+      withheldLonePoint: false,
+    };
+  }
+  const lone =
+    input.selected.points.length === 1 ||
+    input.primaryPoints.length === 1 ||
+    input.snapshotPoints.length === 1;
+  return {
+    series: { points: [], scope: input.selected.scope },
+    withheldLonePoint: lone,
   };
 }

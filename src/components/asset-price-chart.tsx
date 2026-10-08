@@ -20,7 +20,11 @@ import {
   scaleVolumePoints,
 } from "@/lib/desk/asset-price-view";
 import { CHART_PLOT_FRAME_CLASS, DESK_CHART_STROKE, monotoneAreaPath, monotoneLinePath } from "@/lib/desk/chart-curve";
-import { selectAssetVolumeHeadline, selectAssetVolumeSeries } from "@/lib/market/asset-volume-headline";
+import {
+  selectAssetVolumeHeadline,
+  selectAssetVolumeSeries,
+  selectPlottedAssetVolume,
+} from "@/lib/market/asset-volume-headline";
 import { ASSET_VOLUME_HISTORY_EMPTY_REASON, mergePolledCloses } from "@/lib/market/asset-price-history";
 import { formatChartDate, formatPct, formatPrice, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
 import type {
@@ -77,6 +81,7 @@ export function AssetMarketPanel({
   allMarketsHref = null,
   initialAllMarketsDaily = null,
   initialAllMarketsHourly = null,
+  snapshotDailyVolume = null,
   chartPending = false,
 }: {
   header?: ReactNode;
@@ -93,6 +98,11 @@ export function AssetMarketPanel({
   initialAllMarketsDaily?: VolumeHistoryPoint[] | null;
   /** Warm hourly cache from disk. Null means the 24H line may still be the primary pool. */
   initialAllMarketsHourly?: VolumeHistoryPoint[] | null;
+  /**
+   * Stored per-asset America/New_York snapshot days. Used for 7D/30D shape when
+   * all-markets is empty or still pending and the primary pool has no line.
+   */
+  snapshotDailyVolume?: VolumeHistoryPoint[] | null;
   /** Plot area is still loading. Header, range, and the DexScreener 24H total stay visible. */
   chartPending?: boolean;
 }) {
@@ -112,6 +122,7 @@ export function AssetMarketPanel({
     daily: PriceHistoryPoint[];
     hourly: PriceHistoryPoint[];
   } | null>(null);
+  const [allMarketsReason, setAllMarketsReason] = useState<string | null>(null);
 
   const pollHref =
     allMarketsHref ??
@@ -158,8 +169,11 @@ export function AssetMarketPanel({
           observedHourly?: { t: number; volumeUsd: number }[];
           priceDaily?: { t: number; priceUsd: number }[];
           priceHourly?: { t: number; priceUsd: number }[];
+          reason?: string | null;
         };
         if (cancelled) return;
+        if (typeof body.reason === "string" && body.reason.trim()) setAllMarketsReason(body.reason.trim());
+        else if (body.complete === true) setAllMarketsReason(null);
         if (Array.isArray(body.observedDaily)) setObservedDaily(keep(body.observedDaily));
         if (Array.isArray(body.observedHourly)) setObservedHourly(keep(body.observedHourly));
         const keepPrices = (points: { t: number; priceUsd: number }[] | undefined) =>
@@ -243,7 +257,18 @@ export function AssetMarketPanel({
         : [],
     [observedDaily, observedHourly, nowT, range, resolutionMissing],
   );
-  const volumeSeries = useMemo(
+  const snapshotVolume = useMemo(
+    () =>
+      range === "24h"
+        ? []
+        : filterVolumeRange(
+            { dailyVolume: snapshotDailyVolume ?? [], hourlyVolume: [] },
+            range,
+            nowT,
+          ),
+    [nowT, range, snapshotDailyVolume],
+  );
+  const selectedVolume = useMemo(
     () =>
       selectAssetVolumeSeries({
         range,
@@ -256,6 +281,17 @@ export function AssetMarketPanel({
       }),
     [allMarketsDaily, allMarketsHourly, nowT, observedWindow, primaryVolume, range, rangeSpec?.seconds],
   );
+  const plottedVolume = useMemo(
+    () =>
+      selectPlottedAssetVolume({
+        selected: selectedVolume,
+        allMarketsDaily,
+        primaryPoints: primaryVolume,
+        snapshotPoints: snapshotVolume,
+      }),
+    [allMarketsDaily, primaryVolume, selectedVolume, snapshotVolume],
+  );
+  const volumeSeries = plottedVolume.series;
   const visibleVolume = volumeSeries.points;
   const priceMap = useMemo(() => scalePricePoints(visiblePrice), [visiblePrice]);
   const volumeMap = useMemo(() => scaleVolumePoints(visibleVolume), [visibleVolume]);
@@ -264,19 +300,31 @@ export function AssetMarketPanel({
   const map = isVolume ? volumeMap : priceMap;
   const latestPrice = visiblePrice[visiblePrice.length - 1] ?? null;
   const latestVolume = visibleVolume[visibleVolume.length - 1] ?? null;
-  const volumeHeadline = useMemo(
-    () =>
-      selectAssetVolumeHeadline({
-        range,
-        nowT,
-        windowSeconds: rangeSpec?.seconds ?? 0,
-        allMarkets24hUsd,
-        primaryPoolPoints: primaryVolume,
-        allMarketsDaily,
-        observedPoints: observedWindow,
-      }),
-    [allMarkets24hUsd, allMarketsDaily, nowT, observedWindow, primaryVolume, range, rangeSpec?.seconds],
-  );
+  const volumeHeadline = useMemo(() => {
+    const usingShape =
+      plottedVolume.series.scope === "primary_pool" &&
+      plottedVolume.series.points.length >= 2 &&
+      plottedVolume.series !== selectedVolume;
+    return selectAssetVolumeHeadline({
+      range,
+      nowT,
+      windowSeconds: rangeSpec?.seconds ?? 0,
+      allMarkets24hUsd,
+      primaryPoolPoints: usingShape ? plottedVolume.series.points : primaryVolume,
+      allMarketsDaily: usingShape ? null : allMarketsDaily,
+      observedPoints: observedWindow,
+    });
+  }, [
+    allMarkets24hUsd,
+    allMarketsDaily,
+    nowT,
+    observedWindow,
+    plottedVolume.series,
+    primaryVolume,
+    range,
+    rangeSpec?.seconds,
+    selectedVolume,
+  ]);
   const dailyProgressLabel =
     isVolume &&
     (range === "7d" || range === "30d") &&
@@ -300,7 +348,7 @@ export function AssetMarketPanel({
     isVolume
       ? volumeMap.y((point as VolumeHistoryPoint).volumeUsd)
       : priceMap.y((point as PriceHistoryPoint).priceUsd);
-  const hasSeries = visible.length > 0;
+  const showSeries = isVolume ? visibleVolume.length >= 2 : visible.length > 0;
   const yTicks = isVolume
     ? [0, 0.33, 0.66, 1].map((frac) => volumeMap.maxY * frac)
     : [0, 0.33, 0.66, 1].map((frac) => priceMap.minY + (priceMap.maxY - priceMap.minY) * frac);
@@ -354,9 +402,16 @@ export function AssetMarketPanel({
   const curve = visible.map((point) => ({ x: map.x(point.t), y: yOf(point) }));
 
   const emptyCopy = isVolume
-    ? history.dailyVolume.length === 0 && history.hourlyVolume.length === 0 && observedWindow.length === 0
-      ? ASSET_VOLUME_HISTORY_EMPTY_REASON
-      : "No GeckoTerminal volume in this window. The desk does not invent points."
+    ? plottedVolume.withheldLonePoint
+      ? "One closed day is not enough to draw a line."
+      : allMarketsReason
+        ? allMarketsReason
+        : history.dailyVolume.length === 0 &&
+            history.hourlyVolume.length === 0 &&
+            observedWindow.length === 0 &&
+            snapshotVolume.length === 0
+          ? ASSET_VOLUME_HISTORY_EMPTY_REASON
+          : "No GeckoTerminal volume in this window. The desk does not invent points."
     : (plottedHistory.emptyReason ??
       (plottedHistory.available
         ? "No GeckoTerminal closes in this window. The desk does not invent points."
@@ -450,7 +505,7 @@ export function AssetMarketPanel({
         >
           <Skeleton className="h-full w-full rounded-xl" />
         </div>
-      ) : hasSeries ? (
+      ) : showSeries ? (
         <div
           className={`relative mt-3 cursor-crosshair ${CHART_PLOT_FRAME_CLASS}`}
           data-price-plot={isVolume ? undefined : true}
@@ -604,7 +659,10 @@ export function AssetMarketPanel({
           ) : null}
         </div>
       ) : (
-        <div className={`mt-4 flex h-[200px] items-center justify-center border border-dashed border-border bg-muted/20 px-6 text-center ${CHART_PLOT_FRAME_CLASS}`}>
+        <div
+          className={`mt-4 flex h-[200px] items-center justify-center border border-dashed border-border bg-muted/20 px-6 text-center ${CHART_PLOT_FRAME_CLASS}`}
+          data-volume-empty={isVolume ? true : undefined}
+        >
           <p className="max-w-md text-sm text-muted-foreground">{emptyCopy}</p>
         </div>
       )}

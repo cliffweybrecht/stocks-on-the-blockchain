@@ -308,6 +308,11 @@ export interface AssetAllMarketsVolumeSnapshot {
   priceDaily?: PriceHistoryPoint[];
   priceHourly?: PriceHistoryPoint[];
   pricePairAddress?: string | null;
+  /**
+   * Why the series stopped. Set when the mint has no indexable pools
+   * (`pending` false, `complete` true) or when a lookup will retry.
+   */
+  reason?: string | null;
 }
 
 export function emptyAllMarketsVolumeSnapshot(): AssetAllMarketsVolumeSnapshot {
@@ -322,6 +327,7 @@ export function emptyAllMarketsVolumeSnapshot(): AssetAllMarketsVolumeSnapshot {
     hourlyComplete: false,
     hourlyResolvedPools: 0,
     hourlyTotalPools: 0,
+    reason: null,
   };
 }
 
@@ -368,7 +374,11 @@ export interface MarketDataSource {
    * Daily candles feed 7D/30D. Hourly candles feed the 24H series.
    * A cold cache returns immediately and fills in the background.
    */
-  getAssetAllMarketsVolumeSnapshot(chainId: string, symbol: string): Promise<AssetAllMarketsVolumeSnapshot>;
+  getAssetAllMarketsVolumeSnapshot(
+    chainId: string,
+    symbol: string,
+    mint?: string,
+  ): Promise<AssetAllMarketsVolumeSnapshot>;
 }
 
 export interface EquityCardDayVolumeSeriesSnapshot {
