@@ -6,10 +6,10 @@ import { BASE_CHAIN_ID, BNB_CHAIN_ID, ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type 
 
 /**
  * One track list for the header and every chain bubble.
- * Subgrid rows inherit these tracks, so rank, name, volume, lanes, and snapshot stay lined up.
+ * Subgrid rows inherit these tracks, so rank, name, volume, and lanes stay lined up across the card.
  */
 export const CHAIN_VOLUME_TRACKS =
-  "grid-cols-[2.5rem_minmax(10.5rem,1.15fr)_minmax(8rem,1fr)_minmax(6.5rem,0.75fr)_minmax(6.75rem,0.8fr)_minmax(7.75rem,0.9fr)_minmax(20.5rem,1.7fr)]";
+  "grid-cols-[2.75rem_minmax(11rem,1.35fr)_minmax(9rem,1.2fr)_minmax(7rem,1fr)_minmax(7.25rem,1fr)_minmax(8.5rem,1.1fr)]";
 
 const HEADER_LABEL = "min-w-0 text-xs font-normal text-muted-foreground";
 
@@ -17,8 +17,6 @@ export interface ChainVolumeRow {
   chain: ChainVolume;
   rank: number;
   maxVolume: number | null;
-  /** Extra honesty line. Robinhood, Base, and BNB use this for the closed-snapshot 24H definition. */
-  detail?: string | null;
 }
 
 export function ChainVolumeHeader() {
@@ -33,17 +31,11 @@ export function ChainVolumeHeader() {
       <div className={cn(HEADER_LABEL, "text-right")}>Public 24H</div>
       <div className={cn(HEADER_LABEL, "text-right")}>Private 24H</div>
       <div className={cn(HEADER_LABEL, "text-right")}>ETF/Index 24H</div>
-      <div className={HEADER_LABEL}>Snapshot</div>
     </div>
   );
 }
 
-export function ChainVolumeCard({
-  chain,
-  rank,
-  maxVolume,
-  detail = null,
-}: ChainVolumeRow) {
+export function ChainVolumeCard({ chain, rank, maxVolume }: ChainVolumeRow) {
   const isSolana = chain.id === SOLANA_CHAIN_ID;
   const showLanes =
     isSolana || chain.id === ROBINHOOD_CHAIN_ID || chain.id === BASE_CHAIN_ID || chain.id === BNB_CHAIN_ID;
@@ -79,12 +71,6 @@ export function ChainVolumeCard({
       <div className="num min-w-0 text-right text-sm font-medium whitespace-nowrap" data-etf-volume>
         {showLanes ? formatUsdCompact(chain.etfVolume24hUsd) : null}
       </div>
-      <div
-        className="min-w-0 text-[11px] leading-snug text-muted-foreground"
-        {...(detail ? { "data-chain-volume-note": true } : {})}
-      >
-        {detail}
-      </div>
     </Link>
   );
 }
@@ -94,7 +80,7 @@ export function ChainVolumeTable({ rows }: { rows: readonly ChainVolumeRow[] }) 
   if (rows.length === 0) return null;
   return (
     <div className="overflow-x-auto" data-chain-volume-scroll>
-      <div className={cn("grid min-w-[68.25rem] gap-x-2.5 gap-y-3", CHAIN_VOLUME_TRACKS)} data-chain-volume-table>
+      <div className={cn("grid w-full min-w-[53rem] gap-x-4 gap-y-3", CHAIN_VOLUME_TRACKS)} data-chain-volume-table>
         <ChainVolumeHeader />
         {rows.map((row) => (
           <ChainVolumeCard key={row.chain.id} {...row} />

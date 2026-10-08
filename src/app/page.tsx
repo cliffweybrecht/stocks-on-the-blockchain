@@ -12,16 +12,14 @@ import { BNB_DESK } from "@/lib/market/bnb-desk-volume";
 import {
   homeChainsWithSnapshotDesks,
   robinhoodHomeChainVolume,
-  robinhoodHomeVolumeDetail,
   snapshotHomeChainVolume,
-  snapshotHomeVolumeDetail,
 } from "@/lib/market/home-desk-volume";
 import { maxNullable } from "@/lib/market/numbers";
 import { loadClosedRobinhoodDeskDays } from "@/lib/market/robinhood-desk-volume-file";
 import type { RobinhoodDeskDay } from "@/lib/market/robinhood-desk-volume";
 import { loadClosedSnapshotDeskDays } from "@/lib/market/snapshot-desk-volume-file";
 import type { SnapshotDeskDay } from "@/lib/market/snapshot-desk-volume";
-import { BASE_CHAIN_ID, BNB_CHAIN_ID, ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type AssetSummary } from "@/lib/market/types";
+import { SOLANA_CHAIN_ID, type AssetSummary } from "@/lib/market/types";
 import { emptyEquityVolumeHistory } from "@/lib/market/volume-history";
 import { emptyHourlyRollingVolumeHistory } from "@/lib/market/volume-hourly-snapshots";
 
@@ -158,14 +156,6 @@ export default async function HomePage() {
                 chain,
                 rank: index + 1,
                 maxVolume,
-                detail:
-                  chain.id === ROBINHOOD_CHAIN_ID
-                    ? robinhoodHomeVolumeDetail(robinhoodDays)
-                    : chain.id === BASE_CHAIN_ID
-                      ? snapshotHomeVolumeDetail(baseDays, BASE_DESK.name)
-                      : chain.id === BNB_CHAIN_ID
-                        ? snapshotHomeVolumeDetail(bnbDays, BNB_DESK.name)
-                        : null,
               }))}
             />
           )}

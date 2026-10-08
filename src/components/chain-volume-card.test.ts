@@ -19,7 +19,7 @@ vi.mock("next/link", () => ({
 
 import { CHAIN_VOLUME_TRACKS, ChainVolumeCard, ChainVolumeTable } from "./chain-volume-card";
 import { formatUsdCompact } from "@/lib/market/format";
-import { robinhoodHomeChainVolume, robinhoodHomeVolumeDetail } from "@/lib/market/home-desk-volume";
+import { robinhoodHomeChainVolume } from "@/lib/market/home-desk-volume";
 import { parseRobinhoodDeskDays, robinhoodSnapshotChainShell } from "@/lib/market/robinhood-desk-volume";
 import type { ChainVolume } from "@/lib/market/types";
 
@@ -50,14 +50,13 @@ function solanaChain(): ChainVolume {
 }
 
 describe("ChainVolumeCard", () => {
-  it("gives Robinhood the same lane split and a closed-snapshot note", () => {
+  it("gives Robinhood the same lane split without a snapshot column", () => {
     const chain = robinhoodHomeChainVolume(days);
     const html = renderToStaticMarkup(
       createElement(ChainVolumeCard, {
         chain,
         rank: 2,
         maxVolume: 103_700_000,
-        detail: robinhoodHomeVolumeDetail(days),
       }),
     );
     expect(html).toContain('data-chain-id="robinhood-chain"');
@@ -80,7 +79,9 @@ describe("ChainVolumeCard", () => {
     expect(html).toContain(`>${formatUsdCompact(30_452_397.6)}<`);
     expect(html).toContain(`>${formatUsdCompact(2_352_414.29)}<`);
     expect(html).toContain(`>${formatUsdCompact(15_750_857.01)}<`);
-    expect(html).toContain("2026-10-05 America/New_York · last closed snapshot.");
+    expect(html).not.toContain("last closed snapshot");
+    expect(html).not.toContain(">Snapshot<");
+    expect(html).not.toContain("data-chain-volume-note");
     expect(html).not.toMatch(/trailing h24/i);
     expect(html).not.toContain("12:00");
     expect(html).not.toContain(">$0<");
@@ -109,13 +110,8 @@ describe("ChainVolumeCard", () => {
     const html = renderToStaticMarkup(
       createElement(ChainVolumeTable, {
         rows: [
-          { chain: solanaChain(), rank: 1, maxVolume: 103_700_000, detail: null },
-          {
-            chain: robinhood,
-            rank: 2,
-            maxVolume: 103_700_000,
-            detail: robinhoodHomeVolumeDetail(days),
-          },
+          { chain: solanaChain(), rank: 1, maxVolume: 103_700_000 },
+          { chain: robinhood, rank: 2, maxVolume: 103_700_000 },
         ],
       }),
     );
@@ -129,7 +125,8 @@ describe("ChainVolumeCard", () => {
     expect(html.match(/>Public 24H</g)?.length).toBe(1);
     expect(html.match(/>Private 24H</g)?.length).toBe(1);
     expect(html.match(/>ETF\/Index 24H</g)?.length).toBe(1);
-    expect(html.match(/>Snapshot</g)?.length).toBe(1);
+    expect(html).not.toContain(">Snapshot<");
+    expect(html).not.toContain("last closed snapshot");
     expect(html).toContain(">Chain<");
     expect(html).toContain(">#<");
     expect(html.indexOf(">#1<")).toBeGreaterThan(headerAt);
@@ -142,12 +139,12 @@ describe("ChainVolumeCard", () => {
         chain: robinhoodHomeChainVolume([]),
         rank: 2,
         maxVolume: 10,
-        detail: robinhoodHomeVolumeDetail([]),
       }),
     );
     expect(html).toContain(">Robinhood Chain<");
     expect(html).toContain(">—<");
-    expect(html).toContain("not reported as zero");
+    expect(html).not.toContain("not reported as zero");
+    expect(html).not.toContain("last closed snapshot");
     expect(html).not.toContain(">$0<");
   });
 });
