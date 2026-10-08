@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { readSnapshotBackfill, withDerivedSnapshotDays } from "./asset-backfill-desk-file";
 import { BASE_DESK } from "./base-desk-volume";
 import { BNB_DESK } from "./bnb-desk-volume";
 import {
@@ -21,12 +22,18 @@ export async function loadSnapshotDeskDays(
   config: SnapshotDeskConfig,
   dir = DEFAULT_VOLUME_SNAPSHOT_DIR,
 ): Promise<SnapshotDeskDay[]> {
+  let snapshot: unknown = null;
+  let days: SnapshotDeskDay[] = [];
   try {
     const raw = await readFile(join(dir, config.file), "utf8");
-    return parseSnapshotDeskDays(JSON.parse(raw), config);
+    snapshot = JSON.parse(raw) as unknown;
+    days = parseSnapshotDeskDays(snapshot, config);
   } catch {
-    return [];
+    days = [];
   }
+  const { backfill } = await readSnapshotBackfill(config.file, dir);
+  if (!backfill) return days;
+  return withDerivedSnapshotDays(days, snapshot, backfill);
 }
 
 /** Closed Eastern days as of the server clock. Today and later stay off the series. */

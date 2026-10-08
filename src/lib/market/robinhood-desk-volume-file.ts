@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { readSnapshotBackfill, withDerivedRobinhoodDays } from "./asset-backfill-desk-file";
 import { DEFAULT_VOLUME_SNAPSHOT_DIR } from "./volume-snapshots";
 import {
   ROBINHOOD_VOLUME_SNAPSHOT_FILE,
@@ -12,12 +13,18 @@ import {
 export async function loadRobinhoodDeskDays(
   dir = DEFAULT_VOLUME_SNAPSHOT_DIR,
 ): Promise<RobinhoodDeskDay[]> {
+  let snapshot: unknown = null;
+  let days: RobinhoodDeskDay[] = [];
   try {
     const raw = await readFile(join(dir, ROBINHOOD_VOLUME_SNAPSHOT_FILE), "utf8");
-    return parseRobinhoodDeskDays(JSON.parse(raw));
+    snapshot = JSON.parse(raw) as unknown;
+    days = parseRobinhoodDeskDays(snapshot);
   } catch {
-    return [];
+    days = [];
   }
+  const { backfill } = await readSnapshotBackfill(ROBINHOOD_VOLUME_SNAPSHOT_FILE, dir);
+  if (!backfill) return days;
+  return withDerivedRobinhoodDays(days, snapshot, backfill);
 }
 
 /** Closed Eastern days as of the server clock. Today and later stay off the series. */

@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { mkdtemp, readFile } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -586,5 +586,46 @@ describe("FileDeskVolumeSnapshotStore", () => {
     const loaded = await store.load();
     expect(loaded.length).toBeGreaterThan(0);
     expect(loaded.every((row) => row.combined24hUsd !== null)).toBe(true);
+  });
+
+  it("keeps per-asset rows when a later total save does not include them", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "sotb-vol-"));
+    const file = join(dir, "solana.json");
+    const assets = [{ address: "mint-a", symbol: "AAPLx", volume24hUsd: 12.5 }];
+    await writeFile(
+      file,
+      JSON.stringify({
+        version: 1,
+        dayKey: "America/New_York",
+        records: [
+          {
+            date: "2026-10-03",
+            t: 1,
+            combined24hUsd: 10,
+            publicEquity24hUsd: 10,
+            private24hUsd: null,
+            etfIndex24hUsd: null,
+            publicMintCount: 1,
+            publicPoolCount: 1,
+            generatedAt: "2026-10-04T04:00:00.000Z",
+            assets,
+          },
+        ],
+      }),
+      "utf8",
+    );
+    const store = new FileDeskVolumeSnapshotStore(dir);
+    const loaded = await store.load();
+    const updated = loaded.map((row) => (row.date === "2026-10-03" ? { ...row, combined24hUsd: 15 } : row));
+    await store.save(updated);
+    const raw = JSON.parse(await readFile(file, "utf8")) as {
+      dayKey?: string;
+      records: Array<{ date: string; combined24hUsd: number; assets?: unknown }>;
+    };
+    expect(raw.dayKey).toBe("America/New_York");
+    expect(raw.records.find((row) => row.date === "2026-10-03")).toMatchObject({
+      combined24hUsd: 15,
+      assets,
+    });
   });
 });

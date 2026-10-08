@@ -1,16 +1,31 @@
 import { deskSpotPriceUsd } from "./price-ticker";
 import type { AssetSortKey } from "@/lib/market/aggregate";
+import type { VolumeChartRangeId } from "@/lib/market/daily-volume-view";
 import { sliceEquityCardDayVolumeSeries } from "@/lib/market/equity-card-volume";
+import {
+  equityCardRangeCoverageHint,
+  equityCardRangeLabel,
+  type EquityCardClosedRangeId,
+} from "@/lib/market/equity-card-range-volume";
 import type { AssetSummary, PriceHistoryPoint, VolumeHistoryPoint } from "@/lib/market/types";
 
 const DAY_SECONDS = 24 * 60 * 60;
 
 export type EquityCardMetricKind = "volume" | "liquidity";
 
+export interface EquityCardRangeHeadline {
+  id: VolumeChartRangeId;
+  /** Null when this asset has no recorded day in the window. */
+  volumeUsd: number | null;
+  days: number;
+}
+
 export interface EquityCardHeadline {
   amountUsd: number | null;
-  label: "Vol" | "Liq";
+  label: "Vol" | "Liq" | "7D vol" | "14D vol" | "30D vol";
   kind: EquityCardMetricKind;
+  /** `n of N days` when the closed window is only partly recorded. */
+  coverageHint: string | null;
 }
 
 /**
@@ -20,23 +35,39 @@ export interface EquityCardHeadline {
  * `liquidity.usd` already used to rank the Liquidity list. Missing stays missing.
  * Pools and RH vs DEX sorts keep the volume headline.
  */
+function finiteUsd(value: number | null | undefined): number | null {
+  if (value === null || value === undefined || !Number.isFinite(value)) return null;
+  return value;
+}
+
 export function equityCardHeadline(
   asset: Pick<AssetSummary, "volume24hUsd" | "displayedLiquidityUsd">,
   sortKey: AssetSortKey,
+  range?: EquityCardRangeHeadline | null,
 ): EquityCardHeadline {
   if (sortKey === "displayedLiquidityUsd") {
-    const amountUsd = asset.displayedLiquidityUsd;
     return {
-      amountUsd: amountUsd === null || amountUsd === undefined || !Number.isFinite(amountUsd) ? null : amountUsd,
+      amountUsd: finiteUsd(asset.displayedLiquidityUsd),
       label: "Liq",
       kind: "liquidity",
+      coverageHint: null,
     };
   }
-  const amountUsd = asset.volume24hUsd;
+  if (range && range.id !== "24h") {
+    const amountUsd = finiteUsd(range.volumeUsd);
+    const id = range.id as EquityCardClosedRangeId;
+    return {
+      amountUsd,
+      label: equityCardRangeLabel(id),
+      kind: "volume",
+      coverageHint: amountUsd === null ? null : equityCardRangeCoverageHint(id, range.days),
+    };
+  }
   return {
-    amountUsd: amountUsd === null || amountUsd === undefined || !Number.isFinite(amountUsd) ? null : amountUsd,
+    amountUsd: finiteUsd(asset.volume24hUsd),
     label: "Vol",
     kind: "volume",
+    coverageHint: null,
   };
 }
 

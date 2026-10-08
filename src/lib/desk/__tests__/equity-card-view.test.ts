@@ -18,6 +18,7 @@ describe("equityCardHeadline", () => {
       amountUsd: row.volume24hUsd,
       label: "Vol",
       kind: "volume",
+      coverageHint: null,
     });
     expect(equityCardHeadline(row, "poolCount").label).toBe("Vol");
     expect(equityCardHeadline(row, "premiumDiscountPct").amountUsd).toBe(row.volume24hUsd);
@@ -28,6 +29,7 @@ describe("equityCardHeadline", () => {
       amountUsd: null,
       label: "Liq",
       kind: "liquidity",
+      coverageHint: null,
     });
     expect(equityCardHeadline({ volume24hUsd: null, displayedLiquidityUsd: 0 }, "displayedLiquidityUsd").amountUsd).toBe(0);
     expect(equityCardHeadline({ volume24hUsd: Number.NaN, displayedLiquidityUsd: 4 }, "volume24hUsd").amountUsd).toBeNull();
@@ -48,11 +50,13 @@ describe("equityCardHeadline", () => {
         amountUsd: row.volume24hUsd,
         label: "Vol",
         kind: "volume",
+        coverageHint: null,
       });
       expect(equityCardHeadline(row, "displayedLiquidityUsd")).toEqual({
         amountUsd: row.displayedLiquidityUsd,
         label: "Liq",
         kind: "liquidity",
+        coverageHint: null,
       });
     }
 
@@ -65,6 +69,45 @@ describe("equityCardHeadline", () => {
       amountUsd: byLiquidity[0]?.displayedLiquidityUsd,
       label: "Liq",
       kind: "liquidity",
+      coverageHint: null,
+    });
+  });
+
+  it("labels a closed range and keeps a partial-day hint off a complete window", () => {
+    const row = { volume24hUsd: 10, displayedLiquidityUsd: 4 };
+    expect(equityCardHeadline(row, "volume24hUsd", { id: "7d", volumeUsd: 70, days: 7 })).toEqual({
+      amountUsd: 70,
+      label: "7D vol",
+      kind: "volume",
+      coverageHint: null,
+    });
+    expect(equityCardHeadline(row, "volume24hUsd", { id: "14d", volumeUsd: 40, days: 4 })).toEqual({
+      amountUsd: 40,
+      label: "14D vol",
+      kind: "volume",
+      coverageHint: "4 of 14 days",
+    });
+    expect(equityCardHeadline(row, "poolCount", { id: "30d", volumeUsd: null, days: 0 })).toEqual({
+      amountUsd: null,
+      label: "30D vol",
+      kind: "volume",
+      coverageHint: null,
+    });
+  });
+
+  it("keeps the live 24h figure and the liquidity figure when a range is also passed", () => {
+    const row = { volume24hUsd: 10, displayedLiquidityUsd: 4 };
+    expect(equityCardHeadline(row, "volume24hUsd", { id: "24h", volumeUsd: 99, days: 1 })).toEqual({
+      amountUsd: 10,
+      label: "Vol",
+      kind: "volume",
+      coverageHint: null,
+    });
+    expect(equityCardHeadline(row, "displayedLiquidityUsd", { id: "7d", volumeUsd: 70, days: 7 })).toEqual({
+      amountUsd: 4,
+      label: "Liq",
+      kind: "liquidity",
+      coverageHint: null,
     });
   });
 });

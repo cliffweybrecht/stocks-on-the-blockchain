@@ -78,6 +78,31 @@ describe("SnapshotVolumeDesk", () => {
     expect(html).not.toMatch(/trailing h24/i);
   });
 
+  it("notes a derived day on the headline line", () => {
+    const html = renderToStaticMarkup(
+      createElement(SnapshotVolumeDesk, {
+        desk: { chainId: BASE_DESK.chainId, name: BASE_DESK.name },
+        days: [
+          {
+            date: "2026-09-07",
+            t: Date.parse("2026-09-07T00:00:00Z") / 1000,
+            publicEquity24hUsd: 12,
+            private24hUsd: null,
+            etfIndex24hUsd: null,
+            combined24hUsd: 12,
+            displayedLiquidityUsd: null,
+            equity: [],
+            etf: [],
+            private: [],
+            source: "asset-backfill",
+          },
+        ],
+      }),
+    );
+    expect(html).toContain('data-backfill-note');
+    expect(html).toContain("includes 1 backfilled day");
+  });
+
   it("keeps the range shell when the file contributed no days", () => {
     const html = renderToStaticMarkup(
       createElement(SnapshotVolumeDesk, { desk: { chainId: BASE_DESK.chainId, name: BASE_DESK.name }, days: [] }),

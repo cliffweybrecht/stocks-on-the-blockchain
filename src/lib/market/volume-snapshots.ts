@@ -337,6 +337,60 @@ export function serializeDeskVolumeSnapshots(records: readonly DeskVolumeSnapsho
   return `${JSON.stringify({ version: 1, records }, null, 2)}\n`;
 }
 
+const PRESERVED_SNAPSHOT_RECORD_KEYS = ["assets", "symbolsWithVolume"] as const;
+
+/**
+ * The desk total serializer does not model per-asset rows. A later save must
+ * keep those rows, and the file's day-key metadata, or the equity-card ranges
+ * lose their history the next time a total is recorded.
+ * A date that is not in the new record list is not put back.
+ */
+export function mergePreservedSnapshotFile(serialized: string, previousRaw: string | null): string {
+  if (!previousRaw) return serialized;
+  let previous: unknown;
+  let next: unknown;
+  try {
+    previous = JSON.parse(previousRaw);
+    next = JSON.parse(serialized);
+  } catch {
+    return serialized;
+  }
+  if (!next || typeof next !== "object" || Array.isArray(next)) return serialized;
+  if (!previous || typeof previous !== "object" || Array.isArray(previous)) return serialized;
+  const prevObj = previous as Record<string, unknown>;
+  const nextObj = next as Record<string, unknown>;
+  let changed = false;
+  for (const [key, value] of Object.entries(prevObj)) {
+    if (key === "records" || key === "version") continue;
+    if (nextObj[key] === undefined) {
+      nextObj[key] = value;
+      changed = true;
+    }
+  }
+  const prevRecords = Array.isArray(prevObj.records) ? prevObj.records : [];
+  const nextRecords = Array.isArray(nextObj.records) ? nextObj.records : [];
+  const byDate = new Map<string, Record<string, unknown>>();
+  for (const row of prevRecords) {
+    if (!row || typeof row !== "object") continue;
+    const rec = row as Record<string, unknown>;
+    if (typeof rec.date === "string") byDate.set(rec.date, rec);
+  }
+  for (const row of nextRecords) {
+    if (!row || typeof row !== "object") continue;
+    const rec = row as Record<string, unknown>;
+    const prev = typeof rec.date === "string" ? byDate.get(rec.date) : undefined;
+    if (!prev) continue;
+    for (const key of PRESERVED_SNAPSHOT_RECORD_KEYS) {
+      if (rec[key] === undefined && prev[key] !== undefined) {
+        rec[key] = prev[key];
+        changed = true;
+      }
+    }
+  }
+  if (!changed) return serialized;
+  return `${JSON.stringify(nextObj, null, 2)}\n`;
+}
+
 export function buildSnapshotEquityVolumeHistory(input: {
   snapshots: readonly DeskVolumeSnapshot[];
   liveCombined24hUsd: number | null;

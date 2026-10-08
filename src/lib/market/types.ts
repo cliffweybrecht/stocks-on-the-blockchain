@@ -229,6 +229,8 @@ export interface VolumeHistoryPoint {
   t: number;
   volumeUsd: number;
   kind?: VolumeHistoryPointKind;
+  /** Set when this closed day was summed from per-asset backfill rather than a nightly desk snapshot. */
+  source?: "asset-backfill";
 }
 
 /** Public, private, and ETF/index 24h legs. Null is unreported, not zero. */

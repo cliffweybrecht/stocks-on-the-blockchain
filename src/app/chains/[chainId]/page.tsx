@@ -8,6 +8,7 @@ import { ProvenanceBar } from "@/components/provenance-bar";
 import { DailyVolumeChart } from "@/components/daily-volume-chart";
 import { RobinhoodVolumeDesk } from "@/components/robinhood-volume-desk";
 import { SnapshotVolumeDesk } from "@/components/snapshot-volume-desk";
+import { overlayHistoryWithSolanaAssetBackfill } from "@/lib/market/asset-backfill-desk-file";
 import { emptyEquityVolumeHistory } from "@/lib/market/volume-history";
 import { formatCount, formatUsdCompact } from "@/lib/market/format";
 import { loadClosedRobinhoodDeskDays } from "@/lib/market/robinhood-desk-volume-file";
@@ -216,10 +217,12 @@ export default async function ChainPage({
   let volumeHistory: EquityVolumeHistoryResult;
   let hourlyVolumeHistory: EquityVolumeHistoryResult | null = null;
   if (isSolana) {
-    [volumeHistory, hourlyVolumeHistory] = await Promise.all([
+    const [closedHistory, hourlyHistory] = await Promise.all([
       source.getClosedDeskVolumeHistory(),
       source.getEquityHourlyRollingVolumeHistory(),
     ]);
+    volumeHistory = await overlayHistoryWithSolanaAssetBackfill(closedHistory);
+    hourlyVolumeHistory = hourlyHistory;
   } else {
     volumeHistory = emptyEquityVolumeHistory("This chart is Solana tokenized public equities only.");
   }

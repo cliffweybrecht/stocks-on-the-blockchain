@@ -5,6 +5,7 @@ import { HomeChainVolume } from "@/components/home-chain-volume";
 import { PageShell } from "@/components/page-shell";
 import { DailyVolumeChart } from "@/components/daily-volume-chart";
 import { selectEquityPriceTicker } from "@/lib/desk/price-ticker";
+import { loadSolanaDeskLaneDays, overlayHistoryWithSolanaAssetBackfill } from "@/lib/market/asset-backfill-desk-file";
 import { toJumpAsset } from "@/lib/market/asset-search";
 import { solanaDeskFallbackDetail, withDocumentBudget } from "@/lib/market/document-budget";
 import { createMarketDataSource } from "@/lib/market/factory";
@@ -47,14 +48,15 @@ export default async function HomePage() {
       ),
       withDocumentBudget(source.listChains(), null),
     ]);
-    const history =
+    const history = await overlayHistoryWithSolanaAssetBackfill(
       historySettled.status === "fulfilled"
         ? historySettled.value
         : emptyEquityVolumeHistory(
             historySettled.reason instanceof Error
               ? historySettled.reason.message
               : "Historical volume series is unavailable.",
-          );
+          ),
+    );
     const hourlyHistory =
       hourlySettled.status === "fulfilled"
         ? hourlySettled.value
@@ -143,13 +145,7 @@ export default async function HomePage() {
   const robinhoodClosed = closedRobinhoodDeskDays(robinhoodDays, deskNowT);
   const baseClosed = closedSnapshotDeskDays(baseDays, deskNowT);
   const bnbClosed = closedSnapshotDeskDays(bnbDays, deskNowT);
-  const solanaLanes: HomeDeskLaneDay[] = (await new FileDeskVolumeSnapshotStore().load()).map((row) => ({
-    t: row.t,
-    publicEquity24hUsd: row.publicEquity24hUsd,
-    private24hUsd: row.private24hUsd,
-    etfIndex24hUsd: row.etfIndex24hUsd,
-    combined24hUsd: row.combined24hUsd,
-  }));
+  const solanaLanes: HomeDeskLaneDay[] = await loadSolanaDeskLaneDays();
   const chainRanges = homeChainClosedRangeBoard({
     solanaClosed,
     solanaLanes,

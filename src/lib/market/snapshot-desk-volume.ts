@@ -33,6 +33,8 @@ export interface SnapshotDeskDay {
   equity: SnapshotDeskIssuerCell[];
   etf: SnapshotDeskIssuerCell[];
   private: SnapshotDeskIssuerCell[];
+  /** Present when this day was summed from per-asset backfill. Nightly DexScreener rows omit it. */
+  source?: "asset-backfill";
 }
 
 export interface SnapshotDeskIssuerRow {
