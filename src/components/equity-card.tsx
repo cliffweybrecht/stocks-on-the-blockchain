@@ -49,6 +49,7 @@ export function EquityCard({
   href,
   sortKey = "volume24hUsd",
   dayVolumeSeries,
+  rangeVolume = null,
   enableFavorites,
   pinned,
   onTogglePin,
@@ -57,16 +58,25 @@ export function EquityCard({
   href: string;
   sortKey?: AssetSortKey;
   dayVolumeSeries?: readonly VolumeHistoryPoint[];
+  /** Closed-range total. 24H and liquidity mode leave this unset. */
+  rangeVolume?: {
+    id: "7d" | "14d" | "30d";
+    volumeUsd: number | null;
+    days: number;
+  } | null;
   enableFavorites?: boolean;
   pinned?: boolean;
   onTogglePin?: () => void;
 }) {
   const priceUsd = equityCardSpotPriceUsd(asset);
   const sparklinePoints = equityCardDayVolumeSeries(dayVolumeSeries);
-  const headline = equityCardHeadline(asset, sortKey);
+  const headline = equityCardHeadline(asset, sortKey, rangeVolume);
 
   return (
-    <article className="group relative flex min-h-[176px] flex-col overflow-hidden rounded-2xl bg-[#141414] px-4 py-3.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] transition-colors hover:bg-[#1a1a1a]">
+    <article
+      className="group relative flex min-h-[176px] flex-col overflow-hidden rounded-2xl bg-[#141414] px-4 py-3.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] transition-colors hover:bg-[#1a1a1a]"
+      data-card-range={rangeVolume && sortKey !== "displayedLiquidityUsd" ? rangeVolume.id : "24h"}
+    >
       <Link
         href={href}
         prefetch
@@ -100,6 +110,14 @@ export function EquityCard({
           {headline.label}
         </span>
       </p>
+      {headline.coverageHint ? (
+        <p
+          className="relative z-10 mt-1 text-[10px] leading-none font-normal text-neutral-500 pointer-events-none"
+          data-card-range-days
+        >
+          {headline.coverageHint}
+        </p>
+      ) : null}
       <div className="relative z-10 mt-auto flex min-w-0 items-end gap-2 pt-4 pointer-events-none">
         <div className="flex min-w-0 items-baseline gap-2">
           <p className="num min-w-0 truncate text-sm text-neutral-200">{formatPrice(priceUsd)}</p>

@@ -4,10 +4,15 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { DeskCsvButton } from "@/components/desk-csv-button";
 import { DeskHeaderActions } from "@/components/desk-header-actions";
+import { useDeskVolumeRange } from "@/components/desk-volume-range";
 import { EquityCard } from "@/components/equity-card";
 import { PinCompareStrip } from "@/components/pin-compare-strip";
 import { useSolanaFavorites } from "@/components/use-solana-favorites";
 import { type AssetSortKey, sortAssets } from "@/lib/market/aggregate";
+import {
+  compareByEquityCardRangeVolume,
+  equityCardRangeTotal,
+} from "@/lib/market/equity-card-range-volume";
 import { assetMatchesSearch } from "@/lib/market/asset-search";
 import { deskSortOptions } from "@/lib/desk/desk-sort";
 import { solanaChainHref } from "@/lib/desk/solana-chain-href";
@@ -155,6 +160,7 @@ export function AssetTable({
   const [dayVolumeByMint, setDayVolumeByMint] = useState<Record<string, VolumeHistoryPoint[]>>({});
   const favorites = useSolanaFavorites();
   const catalog = catalogAssets ?? assets;
+  const deskRange = useDeskVolumeRange("24h");
 
   useEffect(() => {
     if (chainId !== SOLANA_CHAIN_ID) return;
@@ -212,12 +218,16 @@ export function AssetTable({
   const rows = useMemo(() => {
     const searched = query.trim() ? assets.filter((asset) => assetMatchesSearch(asset, query)) : assets;
     const scoped = pinnedOnly ? searched.filter((asset) => favorites.favoriteSet.has(asset.contractAddress)) : searched;
-    const sorted = sortAssets(scoped, sortKey);
+    const range = deskRange.range;
+    const sorted =
+      sortKey === "volume24hUsd" && range !== "24h"
+        ? [...scoped].sort((a, b) => compareByEquityCardRangeVolume(a, b, deskRange.volumes, range))
+        : sortAssets(scoped, sortKey);
     if (pinnedOnly || !enableFavorites || favorites.favoriteSet.size === 0) return sorted;
     const pins = sorted.filter((asset) => favorites.favoriteSet.has(asset.contractAddress));
     const rest = sorted.filter((asset) => !favorites.favoriteSet.has(asset.contractAddress));
     return [...pins, ...rest];
-  }, [assets, enableFavorites, favorites.favoriteSet, pinnedOnly, query, sortKey]);
+  }, [assets, deskRange.range, deskRange.volumes, enableFavorites, favorites.favoriteSet, pinnedOnly, query, sortKey]);
 
   const compareRows = useMemo(() => {
     if (!enableFavorites) return [];
@@ -395,18 +405,27 @@ export function AssetTable({
 
       {rows.length > 0 ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {rows.map((asset) => (
-            <EquityCard
-              key={asset.contractAddress}
-              asset={asset}
-              href={`/chains/${chainId}/assets/${encodeURIComponent(assetRouteKey(asset, catalog))}`}
-              sortKey={sortKey}
-              dayVolumeSeries={dayVolumeByMint[asset.contractAddress]}
-              enableFavorites={enableFavorites}
-              pinned={favorites.isFavorite(asset.contractAddress)}
-              onTogglePin={() => favorites.toggle(asset.contractAddress)}
-            />
-          ))}
+          {rows.map((asset) => {
+            const closedRange = deskRange.range === "24h" || sortKey === "displayedLiquidityUsd" ? null : deskRange.range;
+            const total = closedRange ? equityCardRangeTotal(deskRange.volumes, asset.contractAddress, closedRange) : null;
+            return (
+              <EquityCard
+                key={asset.contractAddress}
+                asset={asset}
+                href={`/chains/${chainId}/assets/${encodeURIComponent(assetRouteKey(asset, catalog))}`}
+                sortKey={sortKey}
+                dayVolumeSeries={dayVolumeByMint[asset.contractAddress]}
+                rangeVolume={
+                  closedRange
+                    ? { id: closedRange, volumeUsd: total?.volumeUsd ?? null, days: total?.days ?? 0 }
+                    : null
+                }
+                enableFavorites={enableFavorites}
+                pinned={favorites.isFavorite(asset.contractAddress)}
+                onTogglePin={() => favorites.toggle(asset.contractAddress)}
+              />
+            );
+          })}
         </div>
       ) : null}
 
