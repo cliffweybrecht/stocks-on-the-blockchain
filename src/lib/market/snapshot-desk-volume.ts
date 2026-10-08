@@ -33,6 +33,8 @@ export interface SnapshotDeskDay {
   equity: SnapshotDeskIssuerCell[];
   etf: SnapshotDeskIssuerCell[];
   private: SnapshotDeskIssuerCell[];
+  /** Present when this day was summed from per-asset backfill. Nightly DexScreener rows omit it. */
+  source?: "asset-backfill";
 }
 
 export interface SnapshotDeskIssuerRow {
@@ -57,7 +59,7 @@ export interface SnapshotDeskConfig {
 }
 
 export const SNAPSHOT_DESK_VOLUME_NOTE =
-  "Public equity, private, and ETF/index are summed with null omitted, not stored as $0. The in-progress Eastern day is omitted. Days before snapshots began are not invented.";
+  "Public equity, private, and ETF/index are summed with null omitted, not stored as $0. The in-progress Eastern day is omitted. A day without a nightly snapshot is the sum of that day's per-asset backfill.";
 
 const LANE_KEYS = ["equity", "etf", "private"] as const;
 type LaneKey = (typeof LANE_KEYS)[number];

@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type PointerEvent } from "react";
 import { useDeskVolumeRange } from "@/components/desk-volume-range";
+import { backfillHeadlineNote, countAssetBackfillDays } from "@/lib/market/asset-backfill-desk";
 import { DESK_CHART_PLOT_FRAME_CLASS, monotoneVolumePaths } from "@/lib/desk/chart-curve";
 import { formatChartDay, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
 import {
@@ -48,6 +49,7 @@ export function SnapshotVolumeDesk({
   const visibleDays = useMemo(() => snapshotDeskDaysForRange(days, range), [days, range]);
   const visible = useMemo(() => snapshotDeskVolumePoints(visibleDays), [visibleDays]);
   const headline = snapshotDeskHeadline(visibleDays, range, desk.name);
+  const backfillNote = backfillHeadlineNote(countAssetBackfillDays(visibleDays));
   const issuers = useMemo(() => snapshotDeskIssuerRows(visibleDays), [visibleDays]);
   const liquidity = snapshotDeskDisplayedLiquidity(visibleDays);
   const charting = range !== "24h";
@@ -99,6 +101,12 @@ export function SnapshotVolumeDesk({
           )}
           <p className="mt-1 text-[11px] leading-snug text-muted-foreground" data-volume-caption>
             {headline.caption}
+            {backfillNote ? (
+              <span className="text-muted-foreground/70" data-backfill-note>
+                {" "}
+                · {backfillNote}
+              </span>
+            ) : null}
           </p>
         </div>
         <div

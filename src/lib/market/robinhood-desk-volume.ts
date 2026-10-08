@@ -21,7 +21,7 @@ import { easternDayKey, utcInstantForDayKey } from "./volume-snapshots";
 export const ROBINHOOD_VOLUME_SNAPSHOT_FILE = "robinhood.json";
 
 export const ROBINHOOD_DESK_VOLUME_NOTE =
-  "Public equity, private, and ETF/index are summed with null omitted, not stored as $0. The in-progress Eastern day is omitted. Days before snapshots began are not invented.";
+  "Public equity, private, and ETF/index are summed with null omitted, not stored as $0. The in-progress Eastern day is omitted. A day without a nightly snapshot is the sum of that day's per-asset backfill.";
 
 export interface RobinhoodIssuerCell {
   slug: string;
@@ -44,6 +44,8 @@ export interface RobinhoodDeskDay {
   equity: RobinhoodIssuerCell[];
   etf: RobinhoodIssuerCell[];
   private: RobinhoodIssuerCell[];
+  /** Present when this day was summed from per-asset backfill. Nightly DexScreener rows omit it. */
+  source?: "asset-backfill";
 }
 
 export interface RobinhoodIssuerRow {

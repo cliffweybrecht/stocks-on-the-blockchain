@@ -188,7 +188,12 @@ export function sanitizeClosedDeskHistory(value: unknown): EquityVolumeHistoryRe
     const day = Math.trunc(t);
     if (seen.has(day)) continue;
     seen.add(day);
-    points.push({ t: day, volumeUsd, kind: "calendar_day" });
+    const source = (point as VolumeHistoryPoint).source;
+    points.push(
+      source === "asset-backfill"
+        ? { t: day, volumeUsd, kind: "calendar_day", source: "asset-backfill" }
+        : { t: day, volumeUsd, kind: "calendar_day" },
+    );
   }
   points.sort((a, b) => a.t - b.t);
 

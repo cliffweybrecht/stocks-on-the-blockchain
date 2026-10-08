@@ -5,6 +5,7 @@ import { PageShell } from "@/components/page-shell";
 import { DailyVolumeChart } from "@/components/daily-volume-chart";
 import { selectEquityPriceTicker } from "@/lib/desk/price-ticker";
 import { chainCombinedVolume24h } from "@/lib/market/aggregate";
+import { overlayHistoryWithSolanaAssetBackfill } from "@/lib/market/asset-backfill-desk-file";
 import { toJumpAsset } from "@/lib/market/asset-search";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { BASE_DESK } from "@/lib/market/base-desk-volume";
@@ -40,14 +41,15 @@ export default async function HomePage() {
     if (chainsSettled.status === "rejected") {
       throw chainsSettled.reason;
     }
-    const history =
+    const history = await overlayHistoryWithSolanaAssetBackfill(
       historySettled.status === "fulfilled"
         ? historySettled.value
         : emptyEquityVolumeHistory(
             historySettled.reason instanceof Error
               ? historySettled.reason.message
               : "Historical volume series is unavailable.",
-          );
+          ),
+    );
     const hourlyHistory =
       hourlySettled.status === "fulfilled"
         ? hourlySettled.value
