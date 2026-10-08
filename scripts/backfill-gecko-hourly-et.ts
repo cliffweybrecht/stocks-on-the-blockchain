@@ -26,7 +26,7 @@ const DAY_KEYS = easternDayKeysInclusive(FROM_DAY, THROUGH_DAY);
 const GECKO_BASE = "https://api.geckoterminal.com/api/v2";
 const CACHE_DIR = process.env.GECKO_HOURLY_CACHE?.trim() || "/tmp/gecko-hourly-et-cache";
 const CONCURRENCY = 1;
-/** About 7 requests a minute. The keyless GeckoTerminal cap is about 10 a minute. */
+/** About 5 requests a minute. The keyless GeckoTerminal cap is about 10 a minute. */
 const SNAPSHOT_DIR = join(process.cwd(), "data", "volume-snapshots");
 
 const CHAINS: Record<string, { network: string; snapshot: string; out: string; live: "snapshot" | "robinhood" | "catalog" }> = {
@@ -255,7 +255,7 @@ async function fetchPools(
   pools: string[],
   onProgress?: (done: number) => Promise<void>,
 ): Promise<void> {
-  spacingMs = 8_000;
+  spacingMs = 12_000;
   nextStart = 0;
   await mkdir(join(CACHE_DIR, network), { recursive: true });
   let cursor = 0;
@@ -324,7 +324,7 @@ async function fetchPool(network: string, pool: string): Promise<PoolCache> {
         await response.arrayBuffer().catch(() => undefined);
         const retryAfter = Number(response.headers.get("retry-after"));
         // Retry-After is often 0. A short retry keeps the keyless window closed.
-        const exponential = Math.min(180_000, 60_000 * 2 ** attempt);
+        const exponential = Math.min(180_000, 90_000 * 2 ** attempt);
         const headerPause = Number.isFinite(retryAfter) && retryAfter > 1 ? retryAfter * 1000 : 0;
         const pause = Math.max(headerPause, exponential);
         nextStart = Math.max(nextStart, Date.now() + pause);
