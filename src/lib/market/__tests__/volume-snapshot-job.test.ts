@@ -181,6 +181,12 @@ describe("runDeskVolumeSnapshotJob", () => {
       expect(result.snapshot.publicEquity24hUsd).toBeCloseTo(1_250.25);
       expect(result.snapshot.etfIndex24hUsd).toBe(9_000);
       expect(result.snapshot.combined24hUsd).toBeCloseTo(10_250.25);
+      const tsla = result.snapshot.assets?.find((asset) => asset.address === tslaMint);
+      const spy = result.snapshot.assets?.find((asset) => asset.address === spyMint);
+      expect(tsla).toMatchObject({ symbol: "TSLAx", instrumentKind: "equity" });
+      expect(tsla?.volume24hUsd).toBeCloseTo(1_250.25);
+      expect(tsla?.pools.some((pool) => pool.pairAddress === "pair-1")).toBe(true);
+      expect(spy).toMatchObject({ symbol: "SPYx", instrumentKind: "etf", volume24hUsd: 9_000 });
     }
     expect(urls.some((url) => url.includes("/token-pairs/v1/solana/"))).toBe(true);
     expect(urls.some((url) => url.includes("/ohlcv/"))).toBe(false);

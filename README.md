@@ -219,7 +219,7 @@ Robinhood marks stay null on Solana. Off-Solana pairs are ignored.
 | **Honesty** | Gap days are omitted, not plotted as **$0**. A source-reported `0` is kept. Null DexScreener 24h is never coerced to zero. The in-progress America/New_York day is omitted until that date has closed — a rolling 24h row written during the day is not a closed snapshot, and a UTC date that New York has not reached is never plotted. A seed adapter with no snapshots yields an **empty chart**, never invented nonzero points |
 | **Coverage** | One combined point per Eastern calendar day this desk recorded (`data/volume-snapshots/solana.json` by default). GeckoTerminal remains a candidate source and per-asset **price** candles only. Hourly rolling totals live in a separate file and are not this series |
 
-Daily cron / agent should run `SOLANA_MARKET_ENABLED=true npm run snapshot:volume` (same DexScreener all-pools desk 24h; no Gecko backfill). That command writes closed-day rows in `data/volume-snapshots/solana.json` only.
+Daily cron / agent should run `SOLANA_MARKET_ENABLED=true npm run snapshot:volume` (same DexScreener all-pools desk 24h; no Gecko backfill). That command writes closed-day rows in `data/volume-snapshots/solana.json` only. Each nightly row keeps the lane totals and adds `assets[]` from that live desk sample (address, symbol, issuer when known, instrumentKind, volume24hUsd, displayedLiquidityUsd, pools), the same shape Base already stores. Hourly `solana-hourly.json` stays totals only.
 
 The seed adapter does **not** draw a demo series.
 
@@ -258,7 +258,7 @@ Same all-pools DexScreener desk read as `snapshot:volume`. No Gecko backfill. Th
 
 The stock list uses the public RHJ registry (`https://api.robinhood.com/rhj/assets`) and DexScreener markets on chain 4663, with the same Equities / ETF / Private, issuer, and Volume | Liquidity card desk as Solana. Ondo-named tokens stay labeled unverified. `TERMINAL_BASE_URL` is optional: when it is set, Terminal reference marks are kept, and Terminal rows are the fallback if discovery does not load. Snapshot volume renders even when that list is empty. Seed/mock names are not shown on this desk.
 
-Nightly capture is not in this app process. `npm run snapshot:robinhood-volume` points at `scripts/snapshot-robinhood-volume.py`, which is not on `main` yet (draft snapshot PRs). Cron, when that writer lands, is `CRON_TZ=America/New_York 59 23 * * *`. Auto-land via `snapshot:land --push-main` still waits on the shared day-key drafts. Until the next snapshot lands, the desk shows the bars committed in `robinhood.json` and does not invent later days.
+Nightly capture is not in this app process. `npm run snapshot:robinhood-volume` runs `scripts/snapshot-robinhood-volume.py` at `CRON_TZ=America/New_York 59 23 * * *`. The row keeps the lane totals and adds `assets[]` from that DexScreener sample (same fields as Base). `npm run snapshot:bnb-volume` does the same for `bnb.json`. A missing h24 stays null. The writers do not invent volume, and they do not rewrite hourly files.
 
 ## Trust labeling
 

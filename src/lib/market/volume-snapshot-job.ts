@@ -7,6 +7,7 @@ import {
   MemoryDeskVolumeSnapshotStore,
   recordDeskVolumeFromChain,
   SOLANA_VOLUME_SNAPSHOT_FILE,
+  type DeskSnapshotAssetSource,
   type DeskVolumeSnapshotStore,
   type RecordDeskVolumeResult,
 } from "./volume-snapshots";
@@ -15,6 +16,14 @@ export type DeskVolumeSnapshotSource = Pick<MarketDataSource, "getChain">;
 
 function formatUsdLeg(value: number | null): string {
   return value === null ? "null" : String(value);
+}
+
+function snapshotAssetsFromDetail(detail: {
+  assets: readonly DeskSnapshotAssetSource[];
+  etfAssets?: readonly DeskSnapshotAssetSource[];
+  privateAssets?: readonly DeskSnapshotAssetSource[];
+}): DeskSnapshotAssetSource[] {
+  return [...detail.assets, ...(detail.etfAssets ?? []), ...(detail.privateAssets ?? [])];
 }
 
 export async function runDeskVolumeSnapshotJob(input: {
@@ -35,7 +44,13 @@ export async function runDeskVolumeSnapshotJob(input: {
   if (!generatedAt) {
     return { ok: false, reason: "Solana DexScreener desk snapshot failed: missing provenance timestamp." };
   }
-  return recordDeskVolumeFromChain(input.store, detail.chain, generatedAt);
+  return recordDeskVolumeFromChain(
+    input.store,
+    detail.chain,
+    generatedAt,
+    undefined,
+    snapshotAssetsFromDetail(detail),
+  );
 }
 
 export function formatDeskVolumeSnapshotSuccess(
@@ -44,7 +59,8 @@ export function formatDeskVolumeSnapshotSuccess(
 ): string {
   const action = result.unchanged ? "unchanged" : "wrote";
   const { snapshot } = result;
-  return `snapshot:volume ${action} ${snapshot.date} combined=${formatUsdLeg(snapshot.combined24hUsd)} public=${formatUsdLeg(snapshot.publicEquity24hUsd)} private=${formatUsdLeg(snapshot.private24hUsd)} etf=${formatUsdLeg(snapshot.etfIndex24hUsd)} -> ${filePath}`;
+  const assetCount = snapshot.assets?.length ?? 0;
+  return `snapshot:volume ${action} ${snapshot.date} combined=${formatUsdLeg(snapshot.combined24hUsd)} public=${formatUsdLeg(snapshot.publicEquity24hUsd)} private=${formatUsdLeg(snapshot.private24hUsd)} etf=${formatUsdLeg(snapshot.etfIndex24hUsd)} assets=${assetCount} -> ${filePath}`;
 }
 
 export async function runDeskVolumeSnapshotCli(options: {

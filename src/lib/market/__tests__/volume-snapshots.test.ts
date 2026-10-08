@@ -10,6 +10,7 @@ import {
   buildSnapshotEquityVolumeHistory,
   clipVolumeThroughEasternDay,
   closedSnapshotVolumePoints,
+  deskSnapshotAssetsFromSummaries,
   deskVolumeSnapshotFromChain,
   easternDayKey,
   parseDeskVolumeSnapshotRecords,
@@ -94,6 +95,67 @@ describe("deskVolumeSnapshotFromChain", () => {
     expect(row.t).toBe(Date.UTC(2026, 8, 28) / 1000);
     expect(row.date).not.toBe("2026-09-29");
   });
+
+  it("stores Base-shaped per-asset rows from the live desk sample", () => {
+    const row = deskVolumeSnapshotFromChain(
+      chain({ volume24hUsd: 10 }),
+      "2026-09-15T12:00:00.000Z",
+      noonOnUtcDay(DAY1),
+      [
+        {
+          contractAddress: "mint-b",
+          symbol: "BBBx",
+          issuer: "xstocks",
+          instrumentKind: "equity",
+          volume24hUsd: 0,
+          displayedLiquidityUsd: null,
+          pools: [{ pairAddress: "pair-b", dexId: "raydium", volume24hUsd: 0, liquidityUsd: null }],
+        },
+        {
+          contractAddress: "mint-a",
+          symbol: "AAAx",
+          issuer: null,
+          instrumentKind: "etf",
+          volume24hUsd: 12.345,
+          displayedLiquidityUsd: 4,
+          pools: [
+            { pairAddress: "pair-a", dexId: "orca", volume24hUsd: 12.345, liquidityUsd: 4 },
+            { pairAddress: "pair-a", dexId: "orca", volume24hUsd: 99, liquidityUsd: 1 },
+          ],
+        },
+        {
+          contractAddress: "mint-c",
+          symbol: "CCCx",
+          issuer: null,
+          instrumentKind: "private",
+          volume24hUsd: null,
+          displayedLiquidityUsd: null,
+          pools: [],
+        },
+      ],
+    );
+    expect(row.date).toBe("2026-09-15");
+    expect(row.t).toBe(DAY1);
+    expect(row.combined24hUsd).toBe(10);
+    expect(row.assets?.map((asset) => asset.symbol)).toEqual(["AAAx", "BBBx"]);
+    expect(row.assets?.[0]).toMatchObject({
+      address: "mint-a",
+      instrumentKind: "etf",
+      volume24hUsd: 12.35,
+      displayedLiquidityUsd: 4,
+    });
+    expect(row.assets?.[0]?.issuer).toBeUndefined();
+    expect(row.assets?.[0]?.pools).toEqual([
+      { pairAddress: "pair-a", dexId: "orca", volume24hUsd: 12.35, liquidityUsd: 4 },
+    ]);
+    expect(row.assets?.[1]).toMatchObject({
+      address: "mint-b",
+      issuer: "xstocks",
+      instrumentKind: "equity",
+      volume24hUsd: 0,
+    });
+    expect(deskSnapshotAssetsFromSummaries([])).toEqual([]);
+  });
 });
 
 describe("upsertDeskVolumeSnapshot", () => {
@@ -128,6 +190,55 @@ describe("upsertDeskVolumeSnapshot", () => {
 
     const twoDays = upsertDeskVolumeSnapshot(refused, prior);
     expect(twoDays.map((row) => row.t)).toEqual([DAY0, DAY1]);
+  });
+
+  it("keeps nightly asset rows when a later totals-only rewrite omits them", () => {
+    const nightly = deskVolumeSnapshotFromChain(
+      chain({ volume24hUsd: 10 }),
+      "2026-09-15T12:00:00.000Z",
+      noonOnUtcDay(DAY1),
+      [
+        {
+          contractAddress: "mint-a",
+          symbol: "AAAx",
+          issuer: "ondo",
+          instrumentKind: "equity",
+          volume24hUsd: 10,
+          displayedLiquidityUsd: 2,
+          pools: [{ pairAddress: "pair-a", dexId: "raydium", volume24hUsd: 10, liquidityUsd: 2 }],
+        },
+      ],
+    );
+    const totalsOnly = deskVolumeSnapshotFromChain(
+      chain({ volume24hUsd: 20 }),
+      "2026-09-15T18:00:00.000Z",
+      noonOnUtcDay(DAY1),
+    );
+    const kept = upsertDeskVolumeSnapshot([nightly], totalsOnly);
+    expect(kept).toHaveLength(1);
+    expect(kept[0]?.combined24hUsd).toBe(20);
+    expect(kept[0]?.assets).toEqual(nightly.assets);
+
+    const replaced = deskVolumeSnapshotFromChain(
+      chain({ volume24hUsd: 30 }),
+      "2026-09-15T23:00:00.000Z",
+      noonOnUtcDay(DAY1),
+      [
+        {
+          contractAddress: "mint-new",
+          symbol: "NEWx",
+          issuer: "rhj",
+          instrumentKind: "private",
+          volume24hUsd: 30,
+          displayedLiquidityUsd: null,
+          pools: [],
+        },
+      ],
+    );
+    const next = upsertDeskVolumeSnapshot(kept, replaced);
+    expect(next[0]?.combined24hUsd).toBe(30);
+    expect(next[0]?.assets?.map((asset) => asset.address)).toEqual(["mint-new"]);
+    expect(next[0]?.assets?.[0]?.instrumentKind).toBe("private");
   });
 });
 
@@ -355,6 +466,18 @@ describe("committed Solana desk snapshots", () => {
     expect(sep23?.publicEquity24hUsd).toBeNull();
     expect(sep23?.private24hUsd).toBeNull();
     expect(sep23?.etfIndex24hUsd).toBeNull();
+    expect(sep23?.assets).toBeUndefined();
+    const oct3 = snapshots.find((row) => row.date === "2026-10-03");
+    expect(oct3?.assets?.length).toBeGreaterThan(0);
+    expect(oct3?.assets?.[0]).toEqual(
+      expect.objectContaining({
+        address: expect.any(String),
+        symbol: expect.any(String),
+        instrumentKind: expect.any(String),
+      }),
+    );
+    expect(oct3?.assets?.some((asset) => asset.volume24hUsd !== null)).toBe(true);
+    expect(snapshots.find((row) => row.date === "2026-10-07")?.assets).toBeUndefined();
   });
 
   it("holds the stored Sep 28 snapshot off 7D, 14D, and 30D while that Eastern day is in progress", () => {
@@ -627,5 +750,43 @@ describe("FileDeskVolumeSnapshotStore", () => {
       combined24hUsd: 15,
       assets,
     });
+  });
+
+  it("round-trips nightly per-asset rows and leaves lane totals in place", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "sotb-vol-"));
+    const store = new FileDeskVolumeSnapshotStore(dir);
+    const row = deskVolumeSnapshotFromChain(
+      chain({ volume24hUsd: 8, privateVolume24hUsd: 2 }),
+      "2026-10-07T03:59:00.000Z",
+      Date.parse("2026-10-07T03:59:00.000Z") / 1000,
+      [
+        {
+          contractAddress: "MintCaseSensitive",
+          symbol: "TSLAx",
+          issuer: "xstocks",
+          instrumentKind: "equity",
+          volume24hUsd: 8,
+          displayedLiquidityUsd: 3,
+          pools: [{ pairAddress: "pair-1", dexId: "raydium", volume24hUsd: 8, liquidityUsd: 3 }],
+        },
+      ],
+    );
+    expect(row.date).toBe("2026-10-06");
+    await store.save([row]);
+    const loaded = await store.load();
+    expect(loaded[0]?.combined24hUsd).toBe(10);
+    expect(loaded[0]?.publicEquity24hUsd).toBe(8);
+    expect(loaded[0]?.private24hUsd).toBe(2);
+    expect(loaded[0]?.assets).toEqual([
+      {
+        address: "MintCaseSensitive",
+        symbol: "TSLAx",
+        issuer: "xstocks",
+        instrumentKind: "equity",
+        volume24hUsd: 8,
+        displayedLiquidityUsd: 3,
+        pools: [{ pairAddress: "pair-1", dexId: "raydium", volume24hUsd: 8, liquidityUsd: 3 }],
+      },
+    ]);
   });
 });

@@ -1,6 +1,13 @@
 import { combinedPublicPrivateVolume24h } from "./aggregate";
-import { asNonNegativeNumber } from "./numbers";
-import type { ChainVolume, EquityVolumeHistoryResult, VolumeHistoryPoint } from "./types";
+import { asNonNegativeNumber, sumNullable } from "./numbers";
+import type {
+  AssetPoolMark,
+  AssetSummary,
+  ChainVolume,
+  EquityVolumeHistoryResult,
+  InstrumentKind,
+  VolumeHistoryPoint,
+} from "./types";
 import { emptyEquityVolumeHistory, utcDayStart } from "./volume-history";
 
 export const DESK_VOLUME_SNAPSHOT_SOURCE_LABEL = "Desk DexScreener 24h snapshots";
@@ -10,6 +17,40 @@ export const DESK_VOLUME_SNAPSHOT_DEFINITION =
 
 export const DEFAULT_VOLUME_SNAPSHOT_DIR = "data/volume-snapshots";
 export const SOLANA_VOLUME_SNAPSHOT_FILE = "solana.json";
+
+/**
+ * One classified pool at snapshot time.
+ * `volume24hUsd` is DexScreener `volume.h24`. `liquidityUsd` is `liquidity.usd`.
+ * Missing liquidity is null, not $0.
+ */
+export interface DeskSnapshotPool {
+  pairAddress: string;
+  dexId: string;
+  volume24hUsd: number | null;
+  liquidityUsd: number | null;
+}
+
+/**
+ * One mint on this Eastern day. Same shape Base writes: address, symbol,
+ * issuer when the desk knows it, instrumentKind, volume24hUsd,
+ * displayedLiquidityUsd, and pools. Pre-IPO is "private".
+ */
+export interface DeskSnapshotAsset {
+  address: string;
+  symbol: string;
+  issuer?: string;
+  instrumentKind: InstrumentKind;
+  volume24hUsd: number | null;
+  displayedLiquidityUsd: number | null;
+  pools: DeskSnapshotPool[];
+}
+
+export type DeskSnapshotAssetSource = Pick<
+  AssetSummary,
+  "contractAddress" | "symbol" | "issuer" | "instrumentKind" | "volume24hUsd" | "displayedLiquidityUsd"
+> & {
+  pools: readonly Pick<AssetPoolMark, "pairAddress" | "dexId" | "volume24hUsd" | "liquidityUsd">[];
+};
 
 export interface DeskVolumeSnapshot {
   date: string;
@@ -21,6 +62,12 @@ export interface DeskVolumeSnapshot {
   publicMintCount: number | null;
   publicPoolCount: number | null;
   generatedAt: string;
+  /**
+   * Per-mint DexScreener rows for this Eastern day.
+   * Absent on totals-only rewrites and on days recorded before per-asset rows.
+   * An explicit empty list is a live sample that had no mint rows.
+   */
+  assets?: DeskSnapshotAsset[];
 }
 
 export interface DeskVolumeSnapshotStore {
@@ -79,8 +126,73 @@ function snapshotChartDayKey(row: DeskVolumeSnapshot): string {
   return utcDayKey(row.t);
 }
 
+function clonePool(pool: DeskSnapshotPool): DeskSnapshotPool {
+  return { ...pool };
+}
+
+function cloneAsset(asset: DeskSnapshotAsset): DeskSnapshotAsset {
+  return { ...asset, pools: asset.pools.map(clonePool) };
+}
+
 function cloneSnapshot(row: DeskVolumeSnapshot): DeskVolumeSnapshot {
-  return { ...row };
+  if (!row.assets) return { ...row };
+  return { ...row, assets: row.assets.map(cloneAsset) };
+}
+
+function roundUsd(value: number | null): number | null {
+  if (value === null) return null;
+  return Math.round(value * 100) / 100;
+}
+
+/**
+ * Asset rows for the nightly JSON. Displayed liquidity is the sum of classified
+ * pool `liquidity.usd`, matching Base. The mint's `volume24hUsd` is the live
+ * desk figure. A pool sum is used only when the desk left that figure null.
+ * Assets with no pools and no reported volume or liquidity are omitted.
+ */
+export function deskSnapshotAssetsFromSummaries(
+  assets: readonly DeskSnapshotAssetSource[],
+): DeskSnapshotAsset[] {
+  const byAddress = new Map<string, DeskSnapshotAsset>();
+  for (const asset of assets) {
+    const address = asset.contractAddress.trim();
+    const symbol = asset.symbol.trim();
+    if (!address || !symbol || byAddress.has(address)) continue;
+    const pools: DeskSnapshotPool[] = [];
+    const seenPairs = new Set<string>();
+    for (const pool of asset.pools) {
+      const pairAddress = pool.pairAddress.trim();
+      if (!pairAddress || seenPairs.has(pairAddress)) continue;
+      seenPairs.add(pairAddress);
+      pools.push({
+        pairAddress,
+        dexId: pool.dexId.trim() || "unknown",
+        volume24hUsd: roundUsd(asNonNegativeNumber(pool.volume24hUsd)),
+        liquidityUsd: roundUsd(asNonNegativeNumber(pool.liquidityUsd)),
+      });
+    }
+    const displayedFromPools = roundUsd(sumNullable(pools.map((pool) => pool.liquidityUsd)));
+    const displayedLiquidityUsd =
+      displayedFromPools ?? roundUsd(asNonNegativeNumber(asset.displayedLiquidityUsd));
+    const volume24hUsd =
+      roundUsd(asNonNegativeNumber(asset.volume24hUsd)) ??
+      roundUsd(sumNullable(pools.map((pool) => pool.volume24hUsd)));
+    if (pools.length === 0 && volume24hUsd === null && displayedLiquidityUsd === null) continue;
+    const row: DeskSnapshotAsset = {
+      address,
+      symbol,
+      instrumentKind: asset.instrumentKind,
+      volume24hUsd,
+      displayedLiquidityUsd,
+      pools,
+    };
+    const issuer = asset.issuer?.trim() ?? "";
+    if (issuer) row.issuer = issuer;
+    byAddress.set(address, row);
+  }
+  return [...byAddress.values()].sort(
+    (a, b) => a.symbol.toUpperCase().localeCompare(b.symbol.toUpperCase()) || a.address.localeCompare(b.address),
+  );
 }
 
 function reportedUsd(value: number | null | undefined): number | null {
@@ -98,6 +210,7 @@ export function deskVolumeSnapshotFromChain(
   >,
   generatedAt: string,
   nowT?: number,
+  assetSource?: readonly DeskSnapshotAssetSource[],
 ): DeskVolumeSnapshot {
   const parsed = Date.parse(generatedAt);
   const tSource =
@@ -113,7 +226,7 @@ export function deskVolumeSnapshotFromChain(
   const publicEquity24hUsd = reportedUsd(chain.volume24hUsd);
   const private24hUsd = reportedUsd(chain.privateVolume24hUsd);
   const etfIndex24hUsd = reportedUsd(chain.etfVolume24hUsd);
-  return {
+  const snapshot: DeskVolumeSnapshot = {
     date,
     t,
     publicEquity24hUsd,
@@ -124,6 +237,10 @@ export function deskVolumeSnapshotFromChain(
     publicPoolCount: Number.isFinite(chain.reportedPoolCount) ? chain.reportedPoolCount : null,
     generatedAt,
   };
+  // Only a live desk sample sets `assets`. A totals-only rewrite leaves the key
+  // off so a previous nightly row for this date is kept.
+  if (assetSource) snapshot.assets = deskSnapshotAssetsFromSummaries(assetSource);
+  return snapshot;
 }
 
 /** Same America/New_York day is replaced. All-null days are never written (null is not $0). */
@@ -133,10 +250,15 @@ export function upsertDeskVolumeSnapshot(
 ): DeskVolumeSnapshot[] {
   if (incoming.t <= 0 || !incoming.date) return records.map(cloneSnapshot);
   if (incoming.combined24hUsd === null) return records.map(cloneSnapshot);
+  const prior = records.find((row) => row.date === incoming.date);
   const next = records
     .filter((row) => row.date !== incoming.date && row.t !== incoming.t)
     .map(cloneSnapshot);
-  next.push(cloneSnapshot(incoming));
+  const row = cloneSnapshot(incoming);
+  if (incoming.assets === undefined && prior?.assets && prior.assets.length > 0) {
+    row.assets = prior.assets.map(cloneAsset);
+  }
+  next.push(row);
   next.sort((a, b) => a.t - b.t);
   return next;
 }
@@ -164,8 +286,9 @@ export async function recordDeskVolumeFromChain(
   >,
   generatedAt: string,
   nowT?: number,
+  assetSource?: readonly DeskSnapshotAssetSource[],
 ): Promise<RecordDeskVolumeResult> {
-  const incoming = deskVolumeSnapshotFromChain(chain, generatedAt, nowT);
+  const incoming = deskVolumeSnapshotFromChain(chain, generatedAt, nowT, assetSource);
   if (incoming.t <= 0 || !incoming.date) {
     return { ok: false, reason: "DexScreener desk snapshot has no America/New_York day — snapshot not written." };
   }
@@ -320,7 +443,7 @@ function parseOneSnapshot(row: unknown): DeskVolumeSnapshot | null {
     asNonNegativeNumber(rec.combined24hUsd) ??
     combinedPublicPrivateVolume24h(publicEquity24hUsd, private24hUsd, etfIndex24hUsd);
   if (combined === null) return null;
-  return {
+  const snapshot: DeskVolumeSnapshot = {
     date,
     t,
     publicEquity24hUsd,
@@ -331,6 +454,51 @@ function parseOneSnapshot(row: unknown): DeskVolumeSnapshot | null {
     publicPoolCount: Number.isFinite(rec.publicPoolCount as number) ? (rec.publicPoolCount as number) : null,
     generatedAt,
   };
+  if (Array.isArray(rec.assets)) snapshot.assets = parseSnapshotAssets(rec.assets);
+  return snapshot;
+}
+
+function parseSnapshotPool(row: unknown): DeskSnapshotPool | null {
+  if (!row || typeof row !== "object") return null;
+  const rec = row as Record<string, unknown>;
+  const pairAddress = typeof rec.pairAddress === "string" ? rec.pairAddress.trim() : "";
+  if (!pairAddress) return null;
+  const dexId = typeof rec.dexId === "string" && rec.dexId.trim() ? rec.dexId.trim() : "unknown";
+  return {
+    pairAddress,
+    dexId,
+    volume24hUsd: asNonNegativeNumber(rec.volume24hUsd),
+    liquidityUsd: asNonNegativeNumber(rec.liquidityUsd),
+  };
+}
+
+function parseSnapshotAssets(rows: readonly unknown[]): DeskSnapshotAsset[] {
+  const parsed: DeskSnapshotAsset[] = [];
+  const seen = new Set<string>();
+  for (const row of rows) {
+    if (!row || typeof row !== "object") continue;
+    const rec = row as Record<string, unknown>;
+    const address = typeof rec.address === "string" ? rec.address.trim() : "";
+    const symbol = typeof rec.symbol === "string" ? rec.symbol.trim() : "";
+    if (!address || !symbol || seen.has(address)) continue;
+    seen.add(address);
+    const kind = rec.instrumentKind;
+    const instrumentKind: InstrumentKind = kind === "etf" || kind === "private" || kind === "equity" ? kind : "equity";
+    const pools = Array.isArray(rec.pools)
+      ? rec.pools.map(parseSnapshotPool).filter((pool): pool is DeskSnapshotPool => pool !== null)
+      : [];
+    const asset: DeskSnapshotAsset = {
+      address,
+      symbol,
+      instrumentKind,
+      volume24hUsd: asNonNegativeNumber(rec.volume24hUsd),
+      displayedLiquidityUsd: asNonNegativeNumber(rec.displayedLiquidityUsd),
+      pools,
+    };
+    if (typeof rec.issuer === "string" && rec.issuer.trim()) asset.issuer = rec.issuer.trim();
+    parsed.push(asset);
+  }
+  return parsed;
 }
 
 export function serializeDeskVolumeSnapshots(records: readonly DeskVolumeSnapshot[]): string {
@@ -340,10 +508,10 @@ export function serializeDeskVolumeSnapshots(records: readonly DeskVolumeSnapsho
 const PRESERVED_SNAPSHOT_RECORD_KEYS = ["assets", "symbolsWithVolume"] as const;
 
 /**
- * The desk total serializer does not model per-asset rows. A later save must
- * keep those rows, and the file's day-key metadata, or the equity-card ranges
- * lose their history the next time a total is recorded.
- * A date that is not in the new record list is not put back.
+ * A totals-only save omits `assets`. Keep per-asset rows already stored for
+ * that date, and the file's day-key metadata, or equity-card ranges lose
+ * history. A live sample that already set `assets` wins. A date that is not
+ * in the new record list is not put back.
  */
 export function mergePreservedSnapshotFile(serialized: string, previousRaw: string | null): string {
   if (!previousRaw) return serialized;
