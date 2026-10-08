@@ -1026,6 +1026,101 @@
         "failedDexBatches": 0
       },
       "method": "Eastern day key 2026-10-05 (America/New_York midnight t); DexScreener volume.h24 sampled just after 11:59 PM ET, not a true closed ET-window; chain 4663 only; ETF/index before private; private admission is fail-closed; RHJ registry is the base set; Ondo mints come from DexScreener search plus GeckoTerminal when search missed them; admitted only when the on-chain name is (Ondo Tokenized) and bytecode matches the official clone; volume stays DexScreener h24 (null when that mint is not indexed); Rialto is a venue/meme token, not an issuer; xStock and PreStocks names on this chain are launchpad copycats and are excluded; unique-pool h24 dedupe; liquidity.usd is folded in and missing liquidity does not blank the day; null means no reported DexScreener volume (not zero)"
+    },
+    {
+      "date": "2026-10-07",
+      "t": 1791345600,
+      "publicEquity24hUsd": 72099125.56,
+      "private24hUsd": 5054930.47,
+      "etfIndex24hUsd": 6854767.6,
+      "combined24hUsd": 84008823.63,
+      "issuersByLane": {
+        "equity": {
+          "rhj": {
+            "usd": 72099125.56,
+            "mints": 176,
+            "pools": 139,
+            "withVolume": 139,
+            "liquidityUsd": 17430681.85000001
+          }
+        },
+        "etf": {
+          "rhj": {
+            "usd": 6854767.6,
+            "mints": 17,
+            "pools": 13,
+            "withVolume": 13,
+            "liquidityUsd": 5213004.9799999995
+          }
+        },
+        "private": {
+          "rhj": {
+            "usd": 5054930.47,
+            "mints": 1,
+            "pools": 1,
+            "withVolume": 1,
+            "liquidityUsd": 1686300.25
+          }
+        }
+      },
+      "publicMintCount": 176,
+      "publicPoolCount": 139,
+      "etfMintCount": 17,
+      "etfPoolCount": 13,
+      "preipoMintCount": 1,
+      "preipoPoolCount": 1,
+      "withVolumeEquityCount": 139,
+      "withVolumeEtfCount": 13,
+      "withVolumePrivateCount": 1,
+      "displayedLiquidityUsd": 24329987.08000001,
+      "generatedAt": "2026-10-08T04:11:31.965184Z",
+      "sources": {
+        "universe": "https://api.robinhood.com/rhj/assets",
+        "volume": "DexScreener tokens/v1/robinhood volume.h24 unique-pool sum",
+        "liquidity": "DexScreener liquidity.usd unique-pool sum; missing liquidity is null, not zero",
+        "chainId": 4663,
+        "chainSlug": "robinhood",
+        "issuers": {
+          "rhj": "Robinhood Assets (Jersey) Limited"
+        },
+        "sample": {
+          "startedAt": "2026-10-08T04:11:05.995791Z",
+          "dexWindowStart": "2026-10-08T04:11:06.134825Z",
+          "dexWindowEnd": "2026-10-08T04:11:10.654741Z",
+          "sampledAt": "2026-10-08T04:11:11.105181Z",
+          "sampledAtEt": "2026-10-08 12:11:11 AM EDT",
+          "note": "DexScreener volume.h24 approximation taken at the run time, not a true closed 12:00 AM\u201311:59 PM America/New_York window"
+        },
+        "excluded": {
+          "ondoNamed": "4663 tokens named (Ondo Tokenized) are not official Ondo (Ondo lists Ethereum, BNB, and Solana only). Not counted as an issuer.",
+          "copycats": "HOODon, BMNRon, and CPERon are excluded copycats. This scan saw two HOODon contracts (0xfB5b5778d45AE47F15323fb59B666c655174A79C and 0xafA19c222603e627556302bb9f8AEf8c0fab7750) and BMNRon 0x05d8e73787AcD02C70A9C43dD6f0443E3b8D3D77. DexScreener search returned no Robinhood CPERon pair.",
+          "launchpad": "PreStocks and xStock names on this chain are launchpad tokens, not issuers. Searches for those names hit only a concatenated mega-spam token, not a separate launchpad contract.",
+          "rialto": "Rialto is a venue, not an issuer.",
+          "seenNote": "Counts are tokens observed in GeckoTerminal pool pages 1-10 plus DexScreener searches, not a full census. Gecko page 11 returned HTTP 401.",
+          "seen": {
+            "ondoNamed": 10,
+            "copycats": 3,
+            "launchpad": 0,
+            "rialto": 1,
+            "megaSpam": 1
+          }
+        },
+        "otherIssuerScan": {
+          "candidates": 0,
+          "admitted": 0,
+          "rejected": 0,
+          "rhjNameNotInRegistry": 0,
+          "geckoPages": 10,
+          "geckoErrors": 1,
+          "dexSearchErrors": 0
+        },
+        "liquidityNote": "liquidity.usd is DexScreener's displayed figure. Missing liquidity stays null and does not blank the day.",
+        "liquidityPoolsMissingUsd": 0,
+        "liquidityPoolsReported": 153,
+        "failedDexBatches": 0,
+        "failedDexAddresses": []
+      },
+      "method": "Eastern day key 2026-10-07 (America/New_York midnight t); DexScreener volume.h24 sampled at 2026-10-08 12:11:11 AM EDT, not a true closed 12:00 AM\u201311:59 PM ET window; chain 4663 only; ETF/index before private; private admission is fail-closed; RHJ registry is the sole counted issuer; Ondo-named (Ondo Tokenized) clones on 4663 are excluded and are not an issuer; HOODon/BMNRon/CPERon copycats, PreStocks/xStock launchpad tokens, and Rialto (a venue) are excluded; a new equity/ETF/pre-IPO issuer is reported and not added; unique-pool h24 (a pool whose both tokens are RHJ is attributed once, to the base token); liquidity.usd is folded in and missing liquidity does not blank the day; null means no reported DexScreener volume (not zero)"
     }
   ]
 }
