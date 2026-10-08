@@ -104,7 +104,12 @@ describe("snapshot land guards", () => {
     expect(newestSnapshotDate({ records: [] })).toBeNull();
     expect(volumeSnapshotChain("bsc")?.file).toBe("data/volume-snapshots/bnb.json");
     expect(volumeSnapshotChain("robinhood-chain")?.label).toBe("Robinhood");
+    expect(volumeSnapshotChain("perps")?.file).toBe("data/perps-snapshots/perps.json");
     expect(volumeSnapshotChain("ethereum")).toBeNull();
+    expect(assertSnapshotWorktree(["?? data/perps-snapshots/perps.json"]).ok).toBe(true);
+    expect(
+      assertSnapshotOnlyNameStatus(["A\tdata/perps-snapshots/perps.json"]).ok,
+    ).toBe(true);
   });
 
   it("names the merge commit in the manual-land comment and parses Origin PR text", () => {

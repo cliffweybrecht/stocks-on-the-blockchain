@@ -9,7 +9,7 @@
 export const VOLUME_SNAPSHOT_COMMIT_RE = /^chore: .+ volume snapshot \d{4}-\d{2}-\d{2}$/;
 
 const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/;
-const SNAPSHOT_PATH_RE = /^data\/volume-snapshots\/[a-z0-9][a-z0-9-]*\.json$/;
+const SNAPSHOT_PATH_RE = /^data\/(?:volume-snapshots|perps-snapshots)\/[a-z0-9][a-z0-9-]*\.json$/;
 const COMPANION_TEST_RE = /^src\/.*\.test\.tsx?$/;
 
 export interface VolumeSnapshotChain {
@@ -23,6 +23,7 @@ export const VOLUME_SNAPSHOT_CHAINS: readonly VolumeSnapshotChain[] = [
   { id: "base", label: "Base", file: "data/volume-snapshots/base.json" },
   { id: "bnb", label: "BNB", file: "data/volume-snapshots/bnb.json" },
   { id: "robinhood", label: "Robinhood", file: "data/volume-snapshots/robinhood.json" },
+  { id: "perps", label: "Perps", file: "data/perps-snapshots/perps.json" },
 ];
 
 const CHAIN_ALIASES: Record<string, string> = {
@@ -32,6 +33,8 @@ const CHAIN_ALIASES: Record<string, string> = {
   bsc: "bnb",
   robinhood: "robinhood",
   "robinhood-chain": "robinhood",
+  perps: "perps",
+  "equity-perps": "perps",
 };
 
 export function isVolumeSnapshotPath(filePath: string): boolean {
@@ -77,7 +80,7 @@ export function assertSnapshotWorktree(statusLines: readonly string[]): { ok: tr
     if (!path || !isVolumeSnapshotPath(path)) {
       return {
         ok: false,
-        reason: `Refusing to land: worktree has a non-snapshot change (${line.trim() || "unparsed"}). Commit only data/volume-snapshots/*.json.`,
+        reason: `Refusing to land: worktree has a non-snapshot change (${line.trim() || "unparsed"}). Commit only data/volume-snapshots/*.json or data/perps-snapshots/*.json.`,
       };
     }
   }
@@ -114,7 +117,7 @@ export function assertSnapshotOnlyNameStatus(
     if (!snapshot && !test) {
       return {
         ok: false,
-        reason: `Refusing push to main: ${path} is outside data/volume-snapshots/*.json.`,
+        reason: `Refusing push to main: ${path} is outside data/volume-snapshots/*.json and data/perps-snapshots/*.json.`,
       };
     }
     if (snapshot) snapshotFiles += 1;

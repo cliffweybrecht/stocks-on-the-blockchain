@@ -14,6 +14,7 @@
     "snapshot:robinhood-volume": "python scripts/snapshot-robinhood-volume.py",
     "snapshot:bnb-volume": "python scripts/snapshot-bnb-volume.py",
     "snapshot:base-volume": "python3 scripts/snapshot-base-volume.py",
+    "snapshot:perps": "tsx scripts/snapshot-perps.ts",
     "snapshot:land": "tsx scripts/land-volume-snapshot.ts"
   },
   "dependencies": {

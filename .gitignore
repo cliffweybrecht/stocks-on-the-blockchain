@@ -55,5 +55,9 @@ next-env.d.ts
 !/data/volume-snapshots/base-asset-daily.json
 !/data/volume-snapshots/bnb-asset-daily.json
 
+# Equity perp snapshots. perps.json is the tracked nightly file.
+/data/perps-snapshots/*.json
+!/data/perps-snapshots/perps.json
+
 # Cached cross-pool Gecko daily volume. Rebuilt in the background.
 /data/cache/
