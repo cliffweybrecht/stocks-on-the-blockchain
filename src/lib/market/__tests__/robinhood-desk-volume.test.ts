@@ -34,7 +34,7 @@ function day(partial: Record<string, unknown>) {
 describe("robinhood snapshot file", () => {
   const days = parseRobinhoodDeskDays(JSON.parse(readFileSync(snapshotPath, "utf8")));
 
-  it("reads the committed bars through 2026-10-05 without inventing a later day", () => {
+  it("reads the committed bars through 2026-10-07 without inventing 2026-10-06", () => {
     expect(days.map((row) => row.date)).toEqual([
       "2026-09-23",
       "2026-09-24",
@@ -49,14 +49,20 @@ describe("robinhood snapshot file", () => {
       "2026-10-03",
       "2026-10-04",
       "2026-10-05",
+      "2026-10-07",
     ]);
-    const last = days[days.length - 1];
-    expect(last?.combined24hUsd).toBeCloseTo(48_555_668.9);
-    expect(last?.t).toBe(Date.parse("2026-10-05T00:00:00.000Z") / 1000);
+    const oct5 = days.find((row) => row.date === "2026-10-05");
+    expect(oct5?.combined24hUsd).toBeCloseTo(48_555_668.9);
+    expect(oct5?.t).toBe(Date.parse("2026-10-05T00:00:00.000Z") / 1000);
+    const oct7 = days.find((row) => row.date === "2026-10-07");
+    expect(oct7?.combined24hUsd).toBeCloseTo(84_008_823.63);
+    expect(oct7?.displayedLiquidityUsd).toBeGreaterThan(0);
+    const oct7Issuers = robinhoodIssuerRows(oct7 ? [oct7] : []);
+    expect(oct7Issuers.map((row) => row.slug)).toEqual(["rhj"]);
   });
 
   it("keeps the 2026-10-05 bar when displayed liquidity is present and labels Ondo as unverified", () => {
-    const last = days[days.length - 1];
+    const last = days.find((row) => row.date === "2026-10-05");
     expect(last?.displayedLiquidityUsd).toBeGreaterThan(0);
     const issuers = robinhoodIssuerRows(last ? [last] : []);
     expect(issuers.map((row) => row.label)).toEqual(["RHJ", "Ondo-named (unverified)"]);
