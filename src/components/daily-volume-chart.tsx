@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
+import { useDeskVolumeRange } from "@/components/desk-volume-range";
 import {
   CHART_PLOT_FRAME_CLASS,
   DESK_CHART_STROKE,
@@ -154,7 +155,7 @@ export function DailyVolumeChart({
   /** Closed-day ranges stay the default. Tests pin 24H without a click. */
   initialRange?: VolumeChartRangeId;
 }) {
-  const [range, setRange] = useState<VolumeChartRangeId>(initialRange);
+  const { range, setRange } = useDeskVolumeRange(initialRange);
   const [hover, setHover] = useState<VolumeHistoryPoint | null>(null);
   const [polledHistory, setPolledHistory] = useState<EquityVolumeHistoryResult | null>(null);
   const [polledHourly, setPolledHourly] = useState<EquityVolumeHistoryResult | null>(null);

@@ -1,25 +1,74 @@
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "cn";
 import { chainCombinedVolume24h } from "@/lib/market/aggregate";
+import { type VolumeChartRangeId } from "@/lib/market/daily-volume-view";
 import { formatUsdCompact, volumeShare } from "@/lib/market/format";
 import { BASE_CHAIN_ID, BNB_CHAIN_ID, ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type ChainVolume } from "@/lib/market/types";
 
-export function ChainVolumeCard({
-  chain,
-  rank,
-  maxVolume,
-  detail = null,
-}: {
+/**
+ * One track list for the header and every chain bubble.
+ * Subgrid rows inherit these tracks, so rank, name, volume, and lanes stay lined up across the card.
+ */
+export const CHAIN_VOLUME_TRACKS =
+  "grid-cols-[2.75rem_minmax(11rem,1.35fr)_minmax(9rem,1.2fr)_minmax(7rem,1fr)_minmax(7.25rem,1fr)_minmax(8.5rem,1.1fr)]";
+
+const HEADER_LABEL = "min-w-0 text-xs font-normal text-muted-foreground";
+
+export interface ChainVolumeRow {
   chain: ChainVolume;
   rank: number;
   maxVolume: number | null;
-  /** Extra honesty line. Robinhood uses this for the closed-snapshot 24H definition. */
-  detail?: string | null;
-}) {
+  /** Range combined total. 24H rows omit this and use the chain's live legs. */
+  combinedUsd?: number | null;
+  /** Partial closed window, for example "4 of 7 days". */
+  coverageHint?: string | null;
+}
+
+const RANGE_WORD: Record<VolumeChartRangeId, string> = {
+  "24h": "24H",
+  "7d": "7D",
+  "14d": "14D",
+  "30d": "30D",
+};
+
+export function chainVolumeHeaderLabels(range: VolumeChartRangeId): {
+  combined: string;
+  publicLane: string;
+  privateLane: string;
+  etf: string;
+} {
+  const word = RANGE_WORD[range];
+  return {
+    combined: `${word} Volume`,
+    publicLane: `Public ${word}`,
+    privateLane: `Private ${word}`,
+    etf: `ETF/Index ${word}`,
+  };
+}
+
+export function ChainVolumeHeader({ range = "24h" }: { range?: VolumeChartRangeId }) {
+  const labels = chainVolumeHeaderLabels(range);
+  return (
+    <div
+      className="col-span-full grid grid-cols-subgrid items-center px-4"
+      data-chain-volume-header
+      data-chain-volume-range={range}
+    >
+      <div className={HEADER_LABEL}>#</div>
+      <div className={HEADER_LABEL}>Chain</div>
+      <div className={cn(HEADER_LABEL, "text-right")}>{labels.combined}</div>
+      <div className={cn(HEADER_LABEL, "text-right")}>{labels.publicLane}</div>
+      <div className={cn(HEADER_LABEL, "text-right")}>{labels.privateLane}</div>
+      <div className={cn(HEADER_LABEL, "text-right")}>{labels.etf}</div>
+    </div>
+  );
+}
+
+export function ChainVolumeCard({ chain, rank, maxVolume, combinedUsd, coverageHint }: ChainVolumeRow) {
   const isSolana = chain.id === SOLANA_CHAIN_ID;
   const showLanes =
     isSolana || chain.id === ROBINHOOD_CHAIN_ID || chain.id === BASE_CHAIN_ID || chain.id === BNB_CHAIN_ID;
-  const combinedVolume = chainCombinedVolume24h(chain);
+  const combinedVolume = combinedUsd === undefined ? chainCombinedVolume24h(chain) : combinedUsd;
   const share = volumeShare(combinedVolume, maxVolume);
 
   return (
@@ -28,60 +77,55 @@ export function ChainVolumeCard({
       prefetch
       data-chain-id={chain.id}
       data-chain-rank={rank}
-      className="block rounded-xl focus-visible:ring-2 focus-visible:ring-ring"
+      {...(showLanes ? { "data-chain-volume-split": true } : {})}
+      {...(isSolana ? { "data-solana-volume-split": true } : {})}
+      className="col-span-full grid grid-cols-subgrid items-center rounded-xl bg-card px-4 py-3 text-sm text-card-foreground ring-1 ring-foreground/10 transition-colors hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
     >
-      <Card size="sm" className="transition-colors hover:bg-accent/40">
-        <CardHeader className="flex flex-row items-center justify-between gap-2">
-          <div className="min-w-0">
-            <p className="num text-[10px] leading-none text-muted-foreground">#{rank}</p>
-            <CardTitle className="mt-0.5 text-base">{chain.name}</CardTitle>
-          </div>
-          <div className="text-right">
-            <p className="text-[10px] leading-none tracking-wide text-muted-foreground uppercase">
-              {showLanes ? "24h volume · public + private + ETF/index" : "24h volume"}
-            </p>
-            <p className="num mt-0.5 text-lg font-medium text-primary" data-combined-volume>
-              {formatUsdCompact(combinedVolume)}
-            </p>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-2 pt-1">
-          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-            <div className="h-full rounded-full bg-primary" style={{ width: `${share}%` }} />
-          </div>
-          {showLanes ? (
-            <dl
-              className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-3"
-              data-chain-volume-split
-              {...(isSolana ? { "data-solana-volume-split": true } : {})}
-            >
-              <div>
-                <dt className="text-[10px] tracking-wide text-muted-foreground uppercase">Public 24h</dt>
-                <dd className="num text-sm font-medium" data-public-volume>
-                  {formatUsdCompact(chain.volume24hUsd)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-[10px] tracking-wide text-muted-foreground uppercase">Private 24h</dt>
-                <dd className="num text-sm font-medium" data-private-volume>
-                  {formatUsdCompact(chain.privateVolume24hUsd)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-[10px] tracking-wide text-muted-foreground uppercase">ETF/index 24h</dt>
-                <dd className="num text-sm font-medium" data-etf-volume>
-                  {formatUsdCompact(chain.etfVolume24hUsd)}
-                </dd>
-              </div>
-            </dl>
-          ) : null}
-          {detail ? (
-            <p className="text-[11px] leading-snug text-muted-foreground" data-chain-volume-note>
-              {detail}
-            </p>
-          ) : null}
-        </CardContent>
-      </Card>
+      <div className="num min-w-0 text-xs text-muted-foreground">#{rank}</div>
+      <div className="min-w-0 truncate font-heading text-sm font-medium">{chain.name}</div>
+      <div className="min-w-0">
+        <p className="num text-right text-sm font-medium text-primary" data-combined-volume>
+          {formatUsdCompact(combinedVolume)}
+        </p>
+        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted" data-volume-share-bar aria-hidden="true">
+          <div className="h-full rounded-full bg-primary" style={{ width: `${share}%` }} />
+        </div>
+        {coverageHint ? (
+          <p className="mt-1 text-right text-[10px] leading-none text-muted-foreground" data-chain-coverage>
+            {coverageHint}
+          </p>
+        ) : null}
+      </div>
+      <div className="num min-w-0 text-right text-sm font-medium whitespace-nowrap" data-public-volume>
+        {showLanes ? formatUsdCompact(chain.volume24hUsd) : null}
+      </div>
+      <div className="num min-w-0 text-right text-sm font-medium whitespace-nowrap" data-private-volume>
+        {showLanes ? formatUsdCompact(chain.privateVolume24hUsd) : null}
+      </div>
+      <div className="num min-w-0 text-right text-sm font-medium whitespace-nowrap" data-etf-volume>
+        {showLanes ? formatUsdCompact(chain.etfVolume24hUsd) : null}
+      </div>
     </Link>
+  );
+}
+
+/** Header plus one rounded row per chain. Narrow viewports scroll the pair together. */
+export function ChainVolumeTable({
+  rows,
+  range = "24h",
+}: {
+  rows: readonly ChainVolumeRow[];
+  range?: VolumeChartRangeId;
+}) {
+  if (rows.length === 0) return null;
+  return (
+    <div className="overflow-x-auto" data-chain-volume-scroll>
+      <div className={cn("grid w-full min-w-[53rem] gap-x-4 gap-y-3", CHAIN_VOLUME_TRACKS)} data-chain-volume-table>
+        <ChainVolumeHeader range={range} />
+        {rows.map((row) => (
+          <ChainVolumeCard key={row.chain.id} {...row} />
+        ))}
+      </div>
+    </div>
   );
 }
