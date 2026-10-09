@@ -1068,6 +1068,28 @@ describe("SolanaMarketDataSource", () => {
     expect(await snapshots.load()).toEqual([]);
   });
 
+  it("returns the document desk immediately while DexScreener is still hanging", async () => {
+    const snapshots = new MemoryDeskVolumeSnapshotStore();
+    let fetches = 0;
+    const source = testSource({
+      timeoutMs: 30_000,
+      volumeSnapshotStore: snapshots,
+      fetchImpl: (_input, init) => {
+        fetches += 1;
+        return new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => reject(new Error("aborted")));
+        });
+      },
+    });
+
+    const started = Date.now();
+    expect(source.readDeskForDocument()).toBeNull();
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(Date.now() - started).toBeLessThan(200);
+    expect(fetches).toBeGreaterThan(0);
+    expect(await snapshots.load()).toEqual([]);
+  }, 3_000);
+
   it("picks up a new DexScreener total after the desk cache expires without writing solana.json", async () => {
     const snapshots = new MemoryDeskVolumeSnapshotStore();
     let hydrates = 0;

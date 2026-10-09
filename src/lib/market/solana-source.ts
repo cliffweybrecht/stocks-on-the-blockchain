@@ -908,14 +908,18 @@ export class SolanaMarketDataSource implements MarketDataSource {
     }
     this.inflightMode = mode;
     this.inflightEnrichDesk = enrichDesk;
-    this.inflight = this.refresh(mode)
-      .then((next) => this.commitCache(next, this.inflightEnrichDesk))
-      .finally(() => {
+    const refreshPromise = this.refresh(mode).then((next) => this.commitCache(next, this.inflightEnrichDesk));
+    // Only the refresh that still owns the slot may clear it. A light refresh
+    // that finishes after a full one replaced it must not drop the new inflight.
+    const tracked = refreshPromise.finally(() => {
+      if (this.inflight === tracked) {
         this.inflight = null;
         this.inflightMode = null;
         this.inflightEnrichDesk = true;
-      });
-    return this.inflight;
+      }
+    });
+    this.inflight = tracked;
+    return tracked;
   }
 
   private rebuildSnapshot(
@@ -1349,6 +1353,34 @@ export class SolanaMarketDataSource implements MarketDataSource {
     return this.cache;
   }
 
+  private detailFromCache(snapshot: CachedSnapshot): ChainDetailResult {
+    return {
+      chain: snapshot.mapped.chain,
+      assets: snapshot.mapped.assets,
+      etfAssets: snapshot.mapped.etfAssets,
+      privateAssets: snapshot.mapped.privateAssets,
+      provenance: snapshot.mapped.provenance,
+    };
+  }
+
+  /**
+   * Desk for a page render. Returns the in-memory snapshot immediately, including
+   * a stale one, and refreshes DexScreener in the background. Null when this
+   * process has not committed a desk yet — the page then shows the closed snapshot
+   * file. Does not wait on the network and does not write a snapshot file.
+   */
+  readDeskForDocument(): ChainDetailResult | null {
+    const now = Date.now();
+    const full = this.cacheSatisfies("full", now);
+    if (!full && !this.inflight) {
+      const light = this.cacheSatisfies("light", now);
+      void this.loadCached(light ? "full" : "light").catch(() => undefined);
+    }
+    const cached = full ?? this.cacheSatisfies("light", now) ?? this.cache;
+    if (!cached) return null;
+    return this.detailFromCache(cached);
+  }
+
   async listChains(): Promise<ChainListResult> {
     const cached = await this.loadCached("light");
     return { chains: [cached.mapped.chain], provenance: cached.mapped.provenance };
@@ -1360,26 +1392,14 @@ export class SolanaMarketDataSource implements MarketDataSource {
     const full = this.cacheSatisfies("full", now);
     if (full) {
       this.scheduleEnrichment();
-      return {
-        chain: full.mapped.chain,
-        assets: full.mapped.assets,
-        etfAssets: full.mapped.etfAssets,
-        privateAssets: full.mapped.privateAssets,
-        provenance: full.mapped.provenance,
-      };
+      return this.detailFromCache(full);
     }
     // A warm light home snapshot is enough for the ticker and chain cards.
     // Do not stall the document on a cold every-pool hydrate (fullBudgetMs).
     const light = this.cacheSatisfies("light", now);
     if (light) {
       void this.loadCached("full").catch(() => undefined);
-      return {
-        chain: light.mapped.chain,
-        assets: light.mapped.assets,
-        etfAssets: light.mapped.etfAssets,
-        privateAssets: light.mapped.privateAssets,
-        provenance: light.mapped.provenance,
-      };
+      return this.detailFromCache(light);
     }
     const cached = await this.loadCached("full");
     return {
