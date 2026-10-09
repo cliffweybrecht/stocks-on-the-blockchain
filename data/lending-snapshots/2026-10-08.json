@@ -1,26 +1,26 @@
 {
   "schema": "equity-lending-v1",
   "date": "2026-10-08",
-  "capturedAt": "2026-10-09T02:40:33.762Z",
+  "capturedAt": "2026-10-09T03:24:51.827Z",
   "rows": [
     {
       "id": "kamino-xstocks",
       "venue": "Kamino xStocks",
       "chainId": "solana",
       "chainLabel": "Solana",
-      "collateralUsd": 22148903.841679998,
-      "stableBorrowedUsd": 5148837.059834935,
-      "lendSupplyUsd": 5706234.523230903,
-      "utilization": 0.9023178137655011,
-      "borrowApy": 0.05500065913603531,
-      "borrowApyMin": 0.05498192324409357,
-      "borrowApyMax": 0.05498192324409357,
-      "stockBorrowedUsd": 221760.87961127708,
+      "collateralUsd": 22147814.86407484,
+      "stableBorrowedUsd": 5148893.481104681,
+      "lendSupplyUsd": 5706321.781700894,
+      "utilization": 0.9023139034353476,
+      "borrowApy": 0.054997299311804373,
+      "borrowApyMin": 0.054978185224291654,
+      "borrowApyMax": 0.054978185224291654,
+      "stockBorrowedUsd": 221761.88303075606,
       "assets": [
         {
           "symbol": "SPYx",
           "address": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
-          "collateralUsd": 4369760.636946525,
+          "collateralUsd": 4369750.7561073555,
           "maxLtv": 0.73
         },
         {
@@ -38,19 +38,19 @@
         {
           "symbol": "QQQx",
           "address": "Xs8S1uUs1zvS2p7iwtsG3b6fkhpvmwz4GYU3gWAmWHZ",
-          "collateralUsd": 2992498.278604263,
+          "collateralUsd": 2992484.147996295,
           "maxLtv": 0.7
         },
         {
           "symbol": "TSLAx",
           "address": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
-          "collateralUsd": 2858679.7361150635,
+          "collateralUsd": 2858679.759300686,
           "maxLtv": 0.55
         },
         {
           "symbol": "NVDAx",
           "address": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
-          "collateralUsd": 2451321.757652735,
+          "collateralUsd": 2450251.7760200575,
           "maxLtv": 0.55
         },
         {
@@ -68,7 +68,7 @@
         {
           "symbol": "AAPLx",
           "address": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
-          "collateralUsd": 463839.59422661626,
+          "collateralUsd": 463844.58651565254,
           "maxLtv": 0.4
         },
         {
@@ -89,12 +89,12 @@
       "chainId": "solana",
       "chainLabel": "Solana",
       "collateralUsd": 2989254.9387019747,
-      "stableBorrowedUsd": 1827199.5770867444,
-      "lendSupplyUsd": 6446659.667594825,
-      "utilization": 0.28343354098114687,
-      "borrowApy": 0.009707732617990406,
-      "borrowApyMin": 0.009707732617990406,
-      "borrowApyMax": 0.009707732617990406,
+      "stableBorrowedUsd": 1827133.2767373219,
+      "lendSupplyUsd": 6450667.890464433,
+      "utilization": 0.28324714708042004,
+      "borrowApy": 0.009704635798019279,
+      "borrowApyMin": 0.009704635798019279,
+      "borrowApyMax": 0.009704635798019279,
       "stockBorrowedUsd": 0,
       "assets": [
         {
@@ -126,37 +126,37 @@
       "venue": "Jupiter Lend",
       "chainId": "solana",
       "chainLabel": "Solana",
-      "collateralUsd": 13937783.270832045,
-      "stableBorrowedUsd": 4513982.030260388,
+      "collateralUsd": 13937510.674350087,
+      "stableBorrowedUsd": 4514093.506488434,
       "lendSupplyUsd": null,
-      "utilization": 0.8000379771312185,
-      "borrowApy": 0.04895900554972989,
-      "borrowApyMin": 0.0477,
-      "borrowApyMax": 0.0534,
+      "utilization": 0.8002066276520228,
+      "borrowApy": 0.04897065204485323,
+      "borrowApyMin": 0.0478,
+      "borrowApyMax": 0.0531,
       "stockBorrowedUsd": null,
       "assets": [
         {
           "symbol": "SPYx",
           "address": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
-          "collateralUsd": 8957568.946637226,
+          "collateralUsd": 8958805.99991479,
           "maxLtv": 0.75
         },
         {
           "symbol": "NVDAx",
           "address": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
-          "collateralUsd": 1881802.6133536806,
+          "collateralUsd": 1881787.6783512593,
           "maxLtv": 0.65
         },
         {
           "symbol": "QQQx",
           "address": "Xs8S1uUs1zvS2p7iwtsG3b6fkhpvmwz4GYU3gWAmWHZ",
-          "collateralUsd": 1560889.5542344404,
+          "collateralUsd": 1559666.396900804,
           "maxLtv": 0.75
         },
         {
           "symbol": "TSLAx",
           "address": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
-          "collateralUsd": 1537522.1566066975,
+          "collateralUsd": 1537250.599183231,
           "maxLtv": 0.65
         }
       ],
@@ -170,13 +170,13 @@
       "venue": "Aave V4 Coinbase stocks",
       "chainId": "base",
       "chainLabel": "Base",
-      "collateralUsd": 4674611.7753,
-      "stableBorrowedUsd": 1503779.9971,
-      "lendSupplyUsd": 5276924.362,
-      "utilization": 0.2849728163490398,
-      "borrowApy": 0.012745922018303072,
-      "borrowApyMin": 0.012745922018303074,
-      "borrowApyMax": 0.012745922018303074,
+      "collateralUsd": 4679111.2754,
+      "stableBorrowedUsd": 1504566.3018,
+      "lendSupplyUsd": 5276925.8074,
+      "utilization": 0.285121746394482,
+      "borrowApy": 0.012752625086532443,
+      "borrowApyMin": 0.012752625086532441,
+      "borrowApyMax": 0.012752625086532441,
       "stockBorrowedUsd": 0,
       "assets": [
         {
@@ -188,13 +188,13 @@
         {
           "symbol": "NVDAc",
           "address": "0xb20000000000000000000078ee7ce2fe4908108c",
-          "collateralUsd": 1159730.4539,
+          "collateralUsd": 1160985.4761,
           "maxLtv": null
         },
         {
           "symbol": "GOOGLc",
           "address": "0xb2000000000000000000002d0ba3164cc74f58b7",
-          "collateralUsd": 635789.7218,
+          "collateralUsd": 639034.1997,
           "maxLtv": null
         },
         {
@@ -232,43 +232,43 @@
       "venue": "Morpho",
       "chainId": "ethereum",
       "chainLabel": "Ethereum",
-      "collateralUsd": 567215.3411806315,
-      "stableBorrowedUsd": 477.6345652685934,
-      "lendSupplyUsd": 5528.5658903736185,
-      "utilization": 0.08639393555935625,
-      "borrowApy": 0.04828303370899832,
-      "borrowApyMin": 0.046786545803830376,
-      "borrowApyMax": 0.05286028619096245,
+      "collateralUsd": 567589.9333552778,
+      "stableBorrowedUsd": 477.6343906280102,
+      "lendSupplyUsd": 5528.436171669666,
+      "utilization": 0.08639593110898806,
+      "borrowApy": 0.048505775953086486,
+      "borrowApyMin": 0.04679151998251805,
+      "borrowApyMax": 0.0521717494852966,
       "stockBorrowedUsd": 0,
       "assets": [
         {
           "symbol": "wSPYx",
           "address": "0xc88fcd8b874fdb3256e8b55b3decb8c24eab4c02",
-          "collateralUsd": 532663.5903435947,
+          "collateralUsd": 533034.9699503019,
           "maxLtv": 0.86
         },
         {
           "symbol": "SPYx",
           "address": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48",
-          "collateralUsd": 33161.164273098024,
+          "collateralUsd": 33164.40835802598,
           "maxLtv": 0.86
         },
         {
           "symbol": "SPYon",
           "address": "0xfedc5f4a6c38211c1338aa411018dfaf26612c08",
-          "collateralUsd": 914.381513289731,
+          "collateralUsd": 914.4421383655931,
           "maxLtv": 0.625
         },
         {
           "symbol": "TSLAon",
           "address": "0xf6b1117ec07684d3958cad8beb1b302bfd21103f",
-          "collateralUsd": 250.4830351408812,
+          "collateralUsd": 250.37107734121048,
           "maxLtv": 0.625
         },
         {
           "symbol": "QQQon",
           "address": "0x0e397938c1aa0680954093495b70a9f5e2249aba",
-          "collateralUsd": 127.45735460753944,
+          "collateralUsd": 127.47717034238823,
           "maxLtv": 0.915
         },
         {
@@ -312,73 +312,73 @@
       "venue": "Morpho",
       "chainId": "base",
       "chainLabel": "Base",
-      "collateralUsd": 96134.86440244963,
-      "stableBorrowedUsd": 41318.72505373133,
-      "lendSupplyUsd": 48005.318179991504,
-      "utilization": 0.8607114090736904,
-      "borrowApy": 0.049989462193456784,
+      "collateralUsd": 96189.95788769158,
+      "stableBorrowedUsd": 41318.63948398916,
+      "lendSupplyUsd": 48000.442241746525,
+      "utilization": 0.8607970584082217,
+      "borrowApy": 0.0500964506603746,
       "borrowApyMin": 0.0007147857266102558,
-      "borrowApyMax": 0.06021039562955038,
+      "borrowApyMax": 0.059401635113951884,
       "stockBorrowedUsd": null,
       "assets": [
         {
           "symbol": "deSPXA",
           "address": "0x9c5c365e764829876243d0b289733b9d2b729685",
-          "collateralUsd": 49246.55128101774,
+          "collateralUsd": 49294.47408775446,
           "maxLtv": 0.77
         },
         {
           "symbol": "SPCXc",
           "address": "0xb2000000000000000000007b9fcbd005511acbd5",
-          "collateralUsd": 15229.015122478197,
+          "collateralUsd": 15211.692474500656,
           "maxLtv": 0.625
         },
         {
           "symbol": "GOOGLc",
           "address": "0xb2000000000000000000002d0ba3164cc74f58b7",
-          "collateralUsd": 12694.924861323729,
+          "collateralUsd": 12706.990405317483,
           "maxLtv": 0.77
         },
         {
           "symbol": "AAPLc",
           "address": "0xb200000000000000000000c2e324d24d7eecd1fb",
-          "collateralUsd": 12681.796996686517,
+          "collateralUsd": 12694.449011530143,
           "maxLtv": 0.625
         },
         {
           "symbol": "wbCOIN",
           "address": "0xdec933e2392ad908263e70a386fbf34e703ffe8f",
-          "collateralUsd": 3653.979282678775,
+          "collateralUsd": 3653.9792826787743,
           "maxLtv": 0.86
         },
         {
           "symbol": "NVDAc",
           "address": "0xb20000000000000000000078ee7ce2fe4908108c",
-          "collateralUsd": 2536.6240862181317,
+          "collateralUsd": 2536.3881464276096,
           "maxLtv": 0.77
         },
         {
           "symbol": "METAc",
           "address": "0xb2000000000000000000008bc8786b856e61707c",
-          "collateralUsd": 90.73356161776465,
+          "collateralUsd": 90.74568044382164,
           "maxLtv": 0.86
         },
         {
           "symbol": "MSFTc",
           "address": "0xb200000000000000000000ab99cfa739e253872b",
-          "collateralUsd": 0.4227200012007015,
+          "collateralUsd": 0.4226913978821413,
           "maxLtv": 0.625
         },
         {
           "symbol": "TSLAc",
           "address": "0xb2000000000000000000001e800a7f5189430cd0",
-          "collateralUsd": 0.4130509667721574,
+          "collateralUsd": 0.41299405461463834,
           "maxLtv": 0.625
         },
         {
           "symbol": "AMZNc",
           "address": "0xb200000000000000000000d9192b6b456483c2e8",
-          "collateralUsd": 0.403439460816393,
+          "collateralUsd": 0.403113586119905,
           "maxLtv": 0.625
         }
       ],
@@ -392,109 +392,109 @@
       "venue": "Morpho",
       "chainId": "robinhood-chain",
       "chainLabel": "Robinhood Chain",
-      "collateralUsd": 4165891.6140718237,
-      "stableBorrowedUsd": 1666435.400996479,
-      "lendSupplyUsd": 2189622.3923457447,
-      "utilization": 0.7610606316512981,
-      "borrowApy": 0.2349316379514084,
-      "borrowApyMin": 0.18718428341187648,
-      "borrowApyMax": 0.29144978884807554,
-      "stockBorrowedUsd": 10553.401328715001,
+      "collateralUsd": 4163997.6187351425,
+      "stableBorrowedUsd": 1666360.433278362,
+      "lendSupplyUsd": 2189510.8909503194,
+      "utilization": 0.7610651493745743,
+      "borrowApy": 0.2356898750656098,
+      "borrowApyMin": 0.1877701829305554,
+      "borrowApyMax": 0.2924002925270211,
+      "stockBorrowedUsd": 10540.4232375127,
       "assets": [
         {
           "symbol": "NVDA",
           "address": "0xd0601ce157db5bdc3162bbac2a2c8af5320d9eec",
-          "collateralUsd": 1656304.0202141881,
+          "collateralUsd": 1655768.7616761148,
           "maxLtv": 0.86
         },
         {
           "symbol": "SPCX",
           "address": "0x4a0e65a3eccec6dbe60ae065f2e7bb85fae35eea",
-          "collateralUsd": 1344929.3123548059,
+          "collateralUsd": 1343181.3310813808,
           "maxLtv": 0.625
         },
         {
           "symbol": "GOOGL",
           "address": "0x2e0847e8910a9732eb3fb1bb4b70a580adad4fe3",
-          "collateralUsd": 659870.3473532994,
+          "collateralUsd": 660011.9828522733,
           "maxLtv": 0.86
         },
         {
           "symbol": "AAPL",
           "address": "0xaf3d76f1834a1d425780943c99ea8a608f8a93f9",
-          "collateralUsd": 492342.25459150225,
+          "collateralUsd": 492588.24484361254,
           "maxLtv": 0.86
         },
         {
           "symbol": "SPY",
           "address": "0x117cc2133c37b721f49de2a7a74833232b3b4c0c",
-          "collateralUsd": 11016.593310938959,
+          "collateralUsd": 11017.090238195131,
           "maxLtv": 0.86
         },
         {
           "symbol": "COIN",
           "address": "0x6330d8c3178a418788df01a47479c0ce7ccf450b",
-          "collateralUsd": 386.9874053391051,
+          "collateralUsd": 387.4311727897549,
           "maxLtv": 0.625
         },
         {
           "symbol": "MSFT",
           "address": "0xe93237c50d904957cf27e7b1133b510c669c2e74",
-          "collateralUsd": 295.72168303963196,
+          "collateralUsd": 295.6594948750408,
           "maxLtv": 0.86
         },
         {
           "symbol": "MSTR",
           "address": "0xec262a75e413fafd0df80480274532c79d42da09",
-          "collateralUsd": 221.16487878182323,
+          "collateralUsd": 221.8105415191972,
           "maxLtv": 0.625
         },
         {
           "symbol": "PLTR",
           "address": "0x894e1ec2d74ffe5aef8dc8a9e84686accb964f2a",
-          "collateralUsd": 196.02225328782228,
+          "collateralUsd": 195.9632489472952,
           "maxLtv": 0.625
         },
         {
           "symbol": "TTWO",
           "address": "0x5e81213613b6b86eab4c6c50d718d34359459786",
-          "collateralUsd": 119.1781224926703,
+          "collateralUsd": 119.24065931218179,
           "maxLtv": 0.385
         },
         {
           "symbol": "CRCL",
           "address": "0xdf0992e440dd0be65bd8439b609d6d4366bf1cb5",
-          "collateralUsd": 82.26639891997903,
+          "collateralUsd": 82.38738633183512,
           "maxLtv": 0.625
         },
         {
           "symbol": "TSLA",
           "address": "0x322f0929c4625ed5bad873c95208d54e1c003b2d",
-          "collateralUsd": 53.6303695852632,
+          "collateralUsd": 53.622537111844295,
           "maxLtv": 0.86
         },
         {
           "symbol": "SLV",
           "address": "0x411efb0e7f985935daec3d4c3ebaea0d0ad7d89f",
-          "collateralUsd": 28.331550000000004,
+          "collateralUsd": 28.341990000000003,
           "maxLtv": 0.625
         },
         {
           "symbol": "INTC",
           "address": "0xc72b96e0e48ecd4dc75e1e45396e26300bc39681",
-          "collateralUsd": 18.896618989699007,
+          "collateralUsd": 18.86596682931344,
           "maxLtv": 0.625
         },
         {
           "symbol": "RDDT",
           "address": "0x05b37fb53a299a1b874a619e1c4c404d52c36f4c",
-          "collateralUsd": 14.65531265331085,
+          "collateralUsd": 14.658117408371927,
           "maxLtv": 0.385
         },
         {
           "symbol": "SNDK",
           "address": "0xb90a19ff0af67f7779aff50a882a9cff42446400",
-          "collateralUsd": 11.646108575036706,
+          "collateralUsd": 11.641383726001157,
           "maxLtv": 0.625
         },
         {
@@ -506,31 +506,31 @@
         {
           "symbol": "USO",
           "address": "0xa30fa36db767ad9ed3f7a60fc79526fb4d56d344",
-          "collateralUsd": 0.0009459193919064622,
+          "collateralUsd": 0.0009454363199032415,
           "maxLtv": 0.625
         },
         {
           "symbol": "AMZN",
           "address": "0x12f190a9f9d7d37a250758b26824b97ce941bf54",
-          "collateralUsd": 0.0008912840212547101,
+          "collateralUsd": 0.0008910573645200403,
           "maxLtv": 0.625
         },
         {
           "symbol": "MU",
           "address": "0xff080c8ce2e5feadaca0da81314ae59d232d4afd",
-          "collateralUsd": 1.046725e-14,
+          "collateralUsd": 1.0455850000000001e-14,
           "maxLtv": 0.625
         },
         {
           "symbol": "USAR",
           "address": "0xd917b029c761d264c6a312bbbcda868658ef86a6",
-          "collateralUsd": 2.75292e-15,
+          "collateralUsd": 2.7594000000000002e-15,
           "maxLtv": 0.385
         },
         {
           "symbol": "CRWV",
           "address": "0x5f10a1c971b69e47e059e1dc91901b59b3fb49c3",
-          "collateralUsd": 1.2420000000000003e-15,
+          "collateralUsd": 1.24215e-15,
           "maxLtv": 0.625
         },
         {
@@ -712,19 +712,19 @@
       "venue": "Morpho",
       "chainId": "hyperevm",
       "chainLabel": "HyperEVM",
-      "collateralUsd": 27.753125565335235,
-      "stableBorrowedUsd": 11.069141984192747,
-      "lendSupplyUsd": 12.069768639636319,
-      "utilization": 0.91709645103241,
-      "borrowApy": 0.08618787313282539,
-      "borrowApyMin": 0.08618787313282539,
-      "borrowApyMax": 0.08618787313282539,
+      "collateralUsd": 27.877449766075884,
+      "stableBorrowedUsd": 11.069226481229453,
+      "lendSupplyUsd": 12.069847672295472,
+      "utilization": 0.9170974466096374,
+      "borrowApy": 0.08623660646226979,
+      "borrowApyMin": 0.08623660646226979,
+      "borrowApyMax": 0.08623660646226979,
       "stockBorrowedUsd": null,
       "assets": [
         {
           "symbol": "wNVDAx",
           "address": "0xa8ddb5cd96b5222afe198316e9a57caa642850d5",
-          "collateralUsd": 27.753125565335235,
+          "collateralUsd": 27.877449766075884,
           "maxLtv": 0.625
         }
       ],
@@ -738,7 +738,7 @@
       "venue": "Venus",
       "chainId": "bnb",
       "chainLabel": "BNB",
-      "collateralUsd": 655768.6699999999,
+      "collateralUsd": 656120.56,
       "stableBorrowedUsd": 255389.46046163054,
       "lendSupplyUsd": null,
       "utilization": null,
@@ -750,25 +750,25 @@
         {
           "symbol": "NVDAB",
           "address": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
-          "collateralUsd": 345135.19,
+          "collateralUsd": 344826.03,
           "maxLtv": 0.6
         },
         {
           "symbol": "SPCXB",
           "address": "0xbe9d156892e55e7154bcd3cb0fea677f9d3103e1",
-          "collateralUsd": 220333.02,
+          "collateralUsd": 220983.96,
           "maxLtv": 0.5
         },
         {
           "symbol": "SKHYB",
           "address": "0xca750ef65f295bbecd685abf54e82caf297bdb61",
-          "collateralUsd": 59011.01,
+          "collateralUsd": 59042.12,
           "maxLtv": 0.5
         },
         {
           "symbol": "TSLAB",
           "address": "0x5b1910eaad6450e50f816082aa078c41f10c292f",
-          "collateralUsd": 31289.45,
+          "collateralUsd": 31268.45,
           "maxLtv": 0.6
         }
       ],
@@ -786,43 +786,43 @@
       "venue": "Lista",
       "chainId": "bnb",
       "chainLabel": "BNB",
-      "collateralUsd": 7818346.237076798,
-      "stableBorrowedUsd": 3899640.450259898,
-      "lendSupplyUsd": 5334327.711455846,
-      "utilization": 0.7310462838428813,
-      "borrowApy": 0.013517781737481659,
-      "borrowApyMin": 0.00574681996457488,
-      "borrowApyMax": 0.01950104888911544,
-      "stockBorrowedUsd": 78683.81071669431,
+      "collateralUsd": 7823264.8886363935,
+      "stableBorrowedUsd": 3899597.0615978986,
+      "lendSupplyUsd": 5334427.155721947,
+      "utilization": 0.7310245219892103,
+      "borrowApy": 0.013539743773596265,
+      "borrowApyMin": 0.00574683768787696,
+      "borrowApyMax": 0.01959912650014696,
+      "stockBorrowedUsd": 78623.48983808055,
       "assets": [
         {
           "symbol": "SPYB",
           "address": "0x7138b48df7d98d7e3cc221bfe7192d0a178182d8",
-          "collateralUsd": 1796083.29972456,
+          "collateralUsd": 1796755.7083978876,
           "maxLtv": 0.85
         },
         {
           "symbol": "CRCLB",
           "address": "0x80f3d493ebce97e343c53d29a137942416b4ffc0",
-          "collateralUsd": 1515911.3914702765,
+          "collateralUsd": 1519115.5169608854,
           "maxLtv": 0.6
         },
         {
           "symbol": "QQQB",
           "address": "0x205812cdbed920aff76c6580abd681a46d11efc7",
-          "collateralUsd": 1258225.810686065,
+          "collateralUsd": 1258738.369376163,
           "maxLtv": 0.75
         },
         {
           "symbol": "NVDAB",
           "address": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
-          "collateralUsd": 710195.4242019333,
+          "collateralUsd": 709559.2587719598,
           "maxLtv": 0.75
         },
         {
           "symbol": "DRAMB",
           "address": "0x93862d63fd9fd488b1328e9b47717d75e994a84b",
-          "collateralUsd": 319655.81657249917,
+          "collateralUsd": 319411.89604543673,
           "maxLtv": 0.55
         },
         {
@@ -840,13 +840,13 @@
         {
           "symbol": "TSLAB",
           "address": "0x5b1910eaad6450e50f816082aa078c41f10c292f",
-          "collateralUsd": 223989.51351697158,
+          "collateralUsd": 223839.13081506357,
           "maxLtv": 0.75
         },
         {
           "symbol": "SPCXB",
           "address": "0xbe9d156892e55e7154bcd3cb0fea677f9d3103e1",
-          "collateralUsd": 205852.9101724668,
+          "collateralUsd": 206461.0797850505,
           "maxLtv": 0.5
         },
         {
