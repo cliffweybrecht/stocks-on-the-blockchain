@@ -69,6 +69,98 @@ type StockRow = Pick<
   "id" | "venue" | "chainId" | "chainLabel" | "borrowApy" | "borrowApyMin" | "borrowApyMax" | "assets" | "borrowEstimate"
 >;
 
+/** Books smaller than this are tucked behind "Show smaller pools". */
+export const SMALL_LENDING_BOOK_USD = 10_000;
+
+export interface LendingBoardRow {
+  key: string;
+  ticker: string;
+  symbol: string;
+  wrapper: string;
+  venueId: string;
+  venue: string;
+  chainId: string;
+  chainLabel: string;
+  collateralUsd: number | null;
+  maxLtv: number | null;
+  borrowApy: number | null;
+  borrowApyMin: number | null;
+  borrowApyMax: number | null;
+  costUnavailable: boolean;
+  utilization: number | null;
+  /** Shared pools that do not publish their own fullness. */
+  howFullUnavailable: boolean;
+  /** Venue-level stock deposited. Shared by every token in that book. */
+  venueCollateralUsd: number | null;
+  venueBorrowedUsd: number | null;
+  stockBorrowedUsd: number | null;
+  source: string;
+  smallBook: boolean;
+}
+
+type BoardSource = StockRow &
+  Pick<LendingRow, "utilization" | "collateralUsd" | "stableBorrowedUsd" | "stockBorrowedUsd" | "source">;
+
+/**
+ * One table row per stock token at a venue. Dollars, limits, and costs are
+ * copied from the snapshot. A book is "small" only when both sides are under
+ * {@link SMALL_LENDING_BOOK_USD}; an unknown size is not hidden.
+ */
+export function lendingBoardRows(rows: readonly BoardSource[]): LendingBoardRow[] {
+  const out: LendingBoardRow[] = [];
+  for (const row of rows) {
+    const smallBook = isSmallLendingBook(row.collateralUsd, row.stableBorrowedUsd);
+    const merged = new Map<string, LendingBoardRow>();
+    for (const asset of row.assets ?? []) {
+      const classified = classifyLendingSymbol(asset.symbol, row.chainId);
+      const key = `${row.id}|${classified.ticker}|${asset.symbol.toLowerCase()}`;
+      const current = merged.get(key);
+      if (!current) {
+        merged.set(key, {
+          key,
+          ticker: classified.ticker,
+          symbol: asset.symbol,
+          wrapper: classified.wrapper,
+          venueId: row.id,
+          venue: row.venue,
+          chainId: row.chainId,
+          chainLabel: row.chainLabel,
+          collateralUsd: asset.collateralUsd,
+          maxLtv: asset.maxLtv,
+          borrowApy: row.borrowApy,
+          borrowApyMin: row.borrowApyMin,
+          borrowApyMax: row.borrowApyMax,
+          costUnavailable: row.borrowEstimate !== null,
+          utilization: row.utilization,
+          howFullUnavailable: row.borrowEstimate !== null,
+          venueCollateralUsd: row.collateralUsd,
+          venueBorrowedUsd: row.stableBorrowedUsd,
+          stockBorrowedUsd: row.stockBorrowedUsd,
+          source: row.source,
+          smallBook,
+        });
+        continue;
+      }
+      current.collateralUsd = addCollateral(current.collateralUsd, asset.collateralUsd);
+      if (asset.maxLtv !== null && (current.maxLtv === null || asset.maxLtv > current.maxLtv)) current.maxLtv = asset.maxLtv;
+    }
+    out.push(...merged.values());
+  }
+  out.sort(
+    (a, b) =>
+      compareCollateral(a.collateralUsd, b.collateralUsd) ||
+      a.chainLabel.localeCompare(b.chainLabel) ||
+      a.venue.localeCompare(b.venue) ||
+      a.ticker.localeCompare(b.ticker),
+  );
+  return out;
+}
+
+export function isSmallLendingBook(collateralUsd: number | null, borrowedUsd: number | null): boolean {
+  if (collateralUsd === null && borrowedUsd === null) return false;
+  return Math.max(collateralUsd ?? 0, borrowedUsd ?? 0) < SMALL_LENDING_BOOK_USD;
+}
+
 export function lendingStockGroups(rows: readonly StockRow[]): LendingStockGroup[] {
   const groups = new Map<string, LendingStockGroup>();
   for (const row of rows) {

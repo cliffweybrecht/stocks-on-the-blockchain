@@ -1,31 +1,25 @@
 import { CircleHelp } from "lucide-react";
-import { LendingStockPicker } from "@/components/lending-stock-picker";
+import { LendingBoard } from "@/components/lending-board";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatUsdCompact } from "@/lib/market/format";
 import { LENDING_GLOSSARY, lendingGlossary } from "@/lib/market/lending-glossary";
-import { lendingActionLines, lendingStockGroups } from "@/lib/market/lending-stocks";
+import { lendingActionLines, lendingBoardRows } from "@/lib/market/lending-stocks";
 import {
   EXCLUDED_CEX_MARGIN_VENUES,
-  formatLendingApy,
   formatLendingCapturedAt,
-  formatLendingEstimateUsd,
   formatLendingFractionPct,
-  formatLtvPerHundred,
-  formatStockBorrowedNote,
+  lendingBorrowEstimateUsd,
   lendingHeadline,
   lendingLtvExplainer,
   lendingStockBorrows,
-  type LendingAsset,
   type LendingDeskModel,
-  type LendingHistoryPoint,
-  type LendingRow,
 } from "@/lib/market/lending-snapshot";
 
 function Hint({ label, text }: { label: string; text: string }) {
   return (
     <Tooltip>
       <TooltipTrigger
-        className="inline-flex size-4 shrink-0 items-center justify-center rounded-full text-muted-foreground/70 hover:text-muted-foreground"
+        className="inline-flex size-4 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground"
         aria-label={`${label} definition`}
       >
         <CircleHelp className="size-3.5" />
@@ -35,233 +29,28 @@ function Hint({ label, text }: { label: string; text: string }) {
   );
 }
 
-function Money({ value }: { value: number | null }) {
+function ChainShare({ chains }: { chains: LendingDeskModel["chains"] }) {
+  const parts = chains.filter((chain) => (chain.totals.collateralUsd ?? 0) > 0);
+  const total = parts.reduce((sum, chain) => sum + (chain.totals.collateralUsd ?? 0), 0);
+  if (!(total > 0)) return null;
   return (
-    <span className="num" data-missing={value === null ? "true" : undefined}>
-      {formatUsdCompact(value)}
-    </span>
-  );
-}
-
-function sourceHost(source: string): string {
-  try {
-    return new URL(source).host.replace(/^www\./, "");
-  } catch {
-    return source || "snapshot";
-  }
-}
-
-function fullTone(value: number): string {
-  if (value >= 0.85) return "bg-price-down";
-  if (value >= 0.6) return "bg-interpretive";
-  return "bg-primary";
-}
-
-function fullWords(value: number): string {
-  if (value >= 0.85) return "Very full";
-  if (value >= 0.6) return "Filling up";
-  return "Room left";
-}
-
-function FullMeter({ value, unavailable }: { value: number | null; unavailable?: boolean }) {
-  if (unavailable) return <span className="text-muted-foreground">n/a</span>;
-  if (value === null) return <span className="num text-muted-foreground">—</span>;
-  const width = Math.max(0, Math.min(value, 1)) * 100;
-  return (
-    <div className="min-w-0">
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="num">{formatLendingFractionPct(value)}</span>
-        <span className="text-[10px] text-muted-foreground">{fullWords(value)}</span>
-      </div>
-      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden>
-        <div className={`h-full rounded-full ${fullTone(value)}`} style={{ width: `${width}%` }} />
-      </div>
-    </div>
-  );
-}
-
-function assetLine(asset: LendingAsset): string {
-  const limit = asset.maxLtv === null ? null : `up to ${formatLtvPerHundred(asset.maxLtv)} per $100`;
-  const size = asset.collateralUsd === null ? null : formatUsdCompact(asset.collateralUsd);
-  return [asset.symbol, size, limit].filter(Boolean).join(" · ");
-}
-
-function TokenList({ assets }: { assets: LendingAsset[] }) {
-  if (assets.length === 0) return <p className="text-xs text-muted-foreground">This snapshot does not list the stock tokens.</p>;
-  const preview = assets.slice(0, 6);
-  const rest = assets.slice(6);
-  return (
-    <div data-lending-assets>
-      <p className="text-[10px] tracking-wide text-muted-foreground">Stock tokens accepted</p>
-      <ul className="mt-1.5 flex flex-wrap gap-1.5">
-        {preview.map((asset) => (
-          <li key={asset.address} className="rounded-full border border-border bg-background/50 px-2 py-1 text-[11px] leading-none">
-            {assetLine(asset)}
-          </li>
+    <div className="space-y-2" data-lending-chain-share>
+      <div className="flex h-1.5 overflow-hidden rounded-full bg-muted" role="img" aria-label="Stock deposited by chain">
+        {parts.map((chain, index) => (
+          <div
+            key={chain.chainId}
+            className="h-full bg-foreground"
+            style={{
+              width: `${((chain.totals.collateralUsd ?? 0) / total) * 100}%`,
+              opacity: Math.max(0.4, 1 - index * 0.1),
+            }}
+            title={`${chain.chainLabel} ${formatUsdCompact(chain.totals.collateralUsd)}`}
+          />
         ))}
-      </ul>
-      {rest.length > 0 ? (
-        <details className="mt-2">
-          <summary className="cursor-pointer text-[11px] text-muted-foreground">{rest.length} more stock tokens</summary>
-          <ul className="mt-1.5 flex flex-wrap gap-1.5">
-            {rest.map((asset) => (
-              <li key={asset.address} className="rounded-full border border-border bg-background/50 px-2 py-1 text-[11px] leading-none">
-                {assetLine(asset)}
-              </li>
-            ))}
-          </ul>
-        </details>
-      ) : null}
-    </div>
-  );
-}
-
-function BorrowedValue({ row }: { row: LendingRow }) {
-  if (row.borrowEstimate && row.stableBorrowedUsd !== null) {
-    return (
-      <span className="num" data-lending-estimate>
-        {formatLendingEstimateUsd(row.stableBorrowedUsd)} est. (pro-rata, shared pool)
-      </span>
-    );
-  }
-  return <Money value={row.stableBorrowedUsd} />;
-}
-
-function VenueCard({ row }: { row: LendingRow }) {
-  const stockLent = formatStockBorrowedNote(row.stockBorrowedUsd);
-  const shared = Boolean(row.borrowEstimate);
-  const collateralHint = lendingGlossary("collateral");
-  const fullHint = lendingGlossary("utilization");
-  const costHint = lendingGlossary("apy");
-  return (
-    <article data-lending-row={row.id} className="flex flex-col gap-3 rounded-xl border border-border bg-card/80 p-3 sm:p-4">
-      <header className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h4 className="truncate font-heading text-base font-medium">{row.venue}</h4>
-          <p className="text-[11px] text-muted-foreground">{row.chainLabel}</p>
-        </div>
-        <p className="shrink-0 text-right text-[10px] text-muted-foreground">
-          <a href={row.source} className="underline-offset-2 hover:underline">
-            {sourceHost(row.source)}
-          </a>
-        </p>
-      </header>
-      <dl className="grid grid-cols-2 gap-3">
-        <div>
-          <dt className="flex items-center gap-1 text-[10px] tracking-wide text-muted-foreground">
-            Stock in
-            <Hint label={collateralHint.term} text={collateralHint.text} />
-          </dt>
-          <dd className="num mt-1 text-lg text-primary">
-            <Money value={row.collateralUsd} />
-          </dd>
-        </div>
-        <div>
-          <dt className="text-[10px] tracking-wide text-muted-foreground">Dollars borrowed</dt>
-          <dd className="mt-1 text-sm leading-snug">
-            <BorrowedValue row={row} />
-          </dd>
-        </div>
-        <div>
-          <dt className="flex items-center gap-1 text-[10px] tracking-wide text-muted-foreground">
-            How full
-            <Hint label={fullHint.term} text={fullHint.text} />
-          </dt>
-          <dd className="mt-1">
-            <FullMeter value={row.utilization} unavailable={shared} />
-          </dd>
-        </div>
-        <div>
-          <dt className="flex items-center gap-1 text-[10px] tracking-wide text-muted-foreground">
-            Yearly cost
-            <Hint label={costHint.term} text={costHint.text} />
-          </dt>
-          <dd className="num mt-1 text-sm">{shared ? <span className="text-muted-foreground">n/a</span> : formatLendingApy(row)}</dd>
-        </div>
-      </dl>
-      {stockLent ? <p className="text-[11px] text-muted-foreground" data-lending-stock-borrowed>{stockLent}</p> : null}
-      {row.note ? <p className="text-[11px] leading-snug text-muted-foreground">{row.note}</p> : null}
-      {row.error ? <p className="text-[11px] leading-snug text-destructive">{row.error}</p> : null}
-      <TokenList assets={row.assets ?? []} />
-    </article>
-  );
-}
-
-function Trend({ history }: { history: LendingHistoryPoint[] }) {
-  if (history.length === 0) return null;
-  if (history.length < 2) {
-    const point = history[0];
-    return (
-      <section className="rounded-xl border border-border bg-card/40 px-4 py-3" data-lending-trend="single">
-        <h3 className="font-heading text-lg font-medium">Over time</h3>
-        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-          One daily snapshot so far ({point ? formatLendingCapturedAt(point.capturedAt) : "—"}). Stock in{" "}
-          {point ? formatUsdCompact(point.collateralUsd) : "—"}, dollars borrowed{" "}
-          {point ? formatUsdCompact(point.stableBorrowedUsd) : "—"}. A line will show up after the next day is saved.
-        </p>
-      </section>
-    );
-  }
-  const width = 640;
-  const height = 160;
-  const pad = { left: 8, right: 8, top: 12, bottom: 22 };
-  const innerW = width - pad.left - pad.right;
-  const innerH = height - pad.top - pad.bottom;
-  const max = Math.max(
-    ...history.map((point) => point.collateralUsd ?? 0),
-    ...history.map((point) => point.stableBorrowedUsd ?? 0),
-    1,
-  );
-  const xAt = (index: number) => pad.left + (history.length === 1 ? innerW / 2 : (index / (history.length - 1)) * innerW);
-  const yAt = (value: number | null) => pad.top + innerH - ((value ?? 0) / max) * innerH;
-  const line = (key: "collateralUsd" | "stableBorrowedUsd") =>
-    history
-      .map((point, index) => `${index === 0 ? "M" : "L"} ${xAt(index).toFixed(1)} ${yAt(point[key]).toFixed(1)}`)
-      .join(" ");
-  return (
-    <section className="rounded-xl border border-border bg-card/40 px-4 py-3" data-lending-trend="series">
-      <h3 className="font-heading text-lg font-medium">Over time</h3>
-      <p className="mt-1 text-xs text-muted-foreground">Each point is one Eastern-time day from the snapshot files.</p>
-      <svg viewBox={`0 0 ${width} ${height}`} className="mt-2 h-40 w-full" role="img" aria-label="Stock collateral and dollars borrowed over time">
-        <path d={line("collateralUsd")} fill="none" stroke="var(--primary)" strokeWidth="2.5" />
-        <path d={line("stableBorrowedUsd")} fill="none" stroke="var(--interpretive)" strokeWidth="2.5" />
-        {history.map((point, index) => (
-          <text key={point.date} x={xAt(index)} y={height - 4} textAnchor="middle" className="fill-muted-foreground" fontSize="11">
-            {point.date.slice(5)}
-          </text>
-        ))}
-      </svg>
-      <p className="mt-1 flex flex-wrap gap-4 text-[11px] text-muted-foreground">
-        <span><span className="mr-1 inline-block size-2 rounded-full bg-primary" /> Stock in</span>
-        <span><span className="mr-1 inline-block size-2 rounded-full bg-interpretive" /> Dollars borrowed</span>
+      </div>
+      <p className="text-sm leading-6 text-muted-foreground">
+        {parts.map((chain) => `${chain.chainLabel} ${formatUsdCompact(chain.totals.collateralUsd)}`).join(" · ")}
       </p>
-    </section>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  sentence,
-  hint,
-  emphasize = false,
-  testId,
-}: {
-  label: string;
-  value: string;
-  sentence: string;
-  hint?: { label: string; text: string };
-  emphasize?: boolean;
-  testId: string;
-}) {
-  return (
-    <div className="rounded-xl border border-border bg-card/80 px-3 py-3 sm:px-4" data-lending-stat={testId}>
-      <p className="flex items-center gap-1 text-[10px] tracking-wide text-muted-foreground">
-        {label}
-        {hint ? <Hint label={hint.label} text={hint.text} /> : null}
-      </p>
-      <p className={`num mt-1 text-2xl sm:text-3xl ${emphasize ? "text-primary" : ""}`}>{value}</p>
-      <p className="mt-1.5 text-xs leading-snug text-muted-foreground">{sentence}</p>
     </div>
   );
 }
@@ -272,64 +61,74 @@ export function LendingDesk({ model }: { model: LendingDeskModel }) {
   const shorts = lendingStockBorrows(model.rows);
   const ltvLine = lendingLtvExplainer(model.rows);
   const action = lendingActionLines(model.rows);
-  const stocks = lendingStockGroups(model.rows);
+  const boardRows = lendingBoardRows(model.rows);
   const collateralHint = lendingGlossary("collateral");
-  const ltvHint = lendingGlossary("ltv");
+  const borrowedHint = lendingGlossary("stablecoin");
   const fullHint = lendingGlossary("utilization");
   const costHint = lendingGlossary("apy");
+  const ltvHint = lendingGlossary("ltv");
   const liquidationHint = lendingGlossary("liquidation");
-  const hasRows = model.chains.length > 0;
+  const borrowedIncludesEstimate = (lendingBorrowEstimateUsd(model.rows) ?? 0) > 0;
   return (
-    <div className="space-y-8" data-lending-page>
-      <header className="space-y-2">
-        <h2 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">Borrowing against stock tokens</h2>
-        <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          People lock tokenized stocks and borrow dollar coins against them. This page shows how much stock is locked, how many dollars are borrowed, and what can go wrong.
-        </p>
-        <p className="text-xs text-muted-foreground" data-lending-captured>
-          {model.readError
-            ? model.readError
-            : model.capturedAt
-              ? `All figures are from the snapshot at ${captured}. A dash means the source did not report that number.`
-              : "No lending snapshot yet."}
-        </p>
+    <div className="space-y-10" data-lending-page>
+      <header className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+        <div className="max-w-xl space-y-2">
+          <h2 className="font-heading text-3xl font-semibold tracking-tight text-foreground">Lending</h2>
+          <p className="text-sm leading-6 text-muted-foreground">People lock stock tokens and borrow dollar coins against them.</p>
+          <p className="text-sm leading-6 text-muted-foreground" data-lending-captured>
+            {model.readError
+              ? model.readError
+              : model.capturedAt
+                ? `Snapshot at ${captured}. A dash means the source did not report that number.`
+                : "No lending snapshot yet."}
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-x-8 gap-y-6 sm:gap-x-14">
+          <div data-lending-stat="collateral">
+            <p className="inline-flex items-center gap-1 text-xs uppercase tracking-wide text-muted-foreground">
+              Stock in <Hint label={collateralHint.term} text={collateralHint.text} />
+            </p>
+            <p className="mt-1 text-3xl font-semibold tracking-tight text-foreground tabular-nums sm:text-4xl">{formatUsdCompact(model.totals.collateralUsd)}</p>
+            <p className="mt-1 max-w-[12rem] text-sm leading-6 text-muted-foreground">Locked so people can borrow against it.</p>
+          </div>
+          <div data-lending-stat="borrowed">
+            <p className="inline-flex items-center gap-1 text-xs uppercase tracking-wide text-muted-foreground">
+              Dollars borrowed <Hint label={borrowedHint.term} text={borrowedHint.text} />
+            </p>
+            <p className="mt-1 text-3xl font-semibold tracking-tight text-foreground tabular-nums sm:text-4xl">{formatUsdCompact(model.totals.stableBorrowedUsd)}</p>
+            <p className="mt-1 max-w-[12rem] text-sm leading-6 text-muted-foreground">
+              {borrowedIncludesEstimate ? "Includes a Venus estimate." : "Dollar coins borrowed against that stock."}
+            </p>
+          </div>
+        </div>
       </header>
 
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat
-          testId="collateral"
-          label="Stock in"
-          emphasize
-          hint={{ label: collateralHint.term, text: collateralHint.text }}
-          value={formatUsdCompact(model.totals.collateralUsd)}
-          sentence={headline.collateralSentence}
-        />
-        <Stat
-          testId="borrowed"
-          label="Dollars borrowed"
-          value={formatUsdCompact(model.totals.stableBorrowedUsd)}
-          sentence={headline.borrowedSentence}
-        />
-        <Stat
-          testId="full"
-          label="How full"
-          hint={{ label: fullHint.term, text: fullHint.text }}
-          value={formatLendingFractionPct(model.totals.utilization)}
-          sentence={headline.fullSentence}
-        />
-        <Stat
-          testId="cost"
-          label="Yearly cost"
-          hint={{ label: costHint.term, text: costHint.text }}
-          value={model.totals.borrowApy === null ? "—" : formatLendingFractionPct(model.totals.borrowApy)}
-          sentence={headline.costSentence}
-        />
-      </section>
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm leading-6 text-muted-foreground">
+        <p data-lending-stat="full" className="inline-flex items-center gap-1">
+          How full <Hint label={fullHint.term} text={fullHint.text} />
+          <span className="num text-foreground">{formatLendingFractionPct(model.totals.utilization)}</span>
+        </p>
+        <p data-lending-stat="cost" className="inline-flex items-center gap-1">
+          Yearly cost <Hint label={costHint.term} text={costHint.text} />
+          <span className="num text-foreground">{model.totals.borrowApy === null ? "—" : formatLendingFractionPct(model.totals.borrowApy)}</span>
+        </p>
+        <details>
+          <summary className="cursor-pointer text-sm text-muted-foreground">Learn more</summary>
+          <div className="mt-2 max-w-xl space-y-1">
+            <p>{headline.collateralSentence}</p>
+            <p>{headline.borrowedSentence}</p>
+            <p>{headline.fullSentence}</p>
+            <p>{headline.costSentence}</p>
+          </div>
+        </details>
+      </div>
+
+      <ChainShare chains={model.chains} />
 
       {action.length > 0 ? (
-        <section className="rounded-xl border border-border bg-card/40 px-4 py-4" data-lending-action>
-          <h3 className="font-heading text-lg font-medium">Where the action is</h3>
-          <ul className="mt-2 space-y-2 text-sm leading-snug text-muted-foreground">
+        <section className="space-y-2" data-lending-action>
+          <h3 className="text-base font-medium text-foreground">Where the action is</h3>
+          <ul className="max-w-3xl space-y-2 text-sm leading-6 text-muted-foreground">
             {action.map((line) => (
               <li key={line}>{line}</li>
             ))}
@@ -337,85 +136,44 @@ export function LendingDesk({ model }: { model: LendingDeskModel }) {
         </section>
       ) : null}
 
-      <section className="rounded-xl border border-border bg-card/40 px-4 py-4" data-lending-stocks>
-        <h3 className="font-heading text-lg font-medium">Borrow against one stock</h3>
-        <p className="mt-1 text-sm leading-snug text-muted-foreground">
-          Pick a company. Each card is a place that accepts one of its tokens. Wrappers from different issuers sit under the same stock.
-        </p>
-        <div className="mt-3">
-          <LendingStockPicker groups={stocks} />
-        </div>
-      </section>
-
-      <section className="rounded-xl border border-border bg-card/40 px-4 py-4" data-lending-how>
-        <h3 className="font-heading text-lg font-medium">How it works</h3>
-        <ol className="mt-3 grid gap-4 sm:grid-cols-3">
+      <details data-lending-how>
+        <summary className="cursor-pointer text-base font-medium text-foreground">How it works</summary>
+        <ol className="mt-3 max-w-2xl space-y-3 text-sm leading-6 text-muted-foreground">
           <li>
-            <p className="text-[10px] tracking-wide text-muted-foreground">1</p>
-            <p className="mt-1 text-sm leading-relaxed">
-              Deposit a stock token. That stock is the <span className="whitespace-nowrap">collateral <Hint label={collateralHint.term} text={collateralHint.text} /></span>.
-            </p>
+            <span className="text-foreground">Lock stock tokens.</span> They sit in a pool as{" "}
+            <span className="whitespace-nowrap">
+              collateral <Hint label={collateralHint.term} text={collateralHint.text} />
+            </span>
+            .
           </li>
           <li>
-            <p className="text-[10px] tracking-wide text-muted-foreground">2</p>
-            <p className="mt-1 text-sm leading-relaxed">
-              Borrow stablecoins such as USDC, USDG, or PYUSD, up to a limit. {ltvLine}{" "}
-              <Hint label={ltvHint.term} text={ltvHint.text} />
-            </p>
+            <span className="text-foreground">Borrow dollar coins</span> such as USDC, USDG, or PYUSD, up to a limit. {ltvLine}{" "}
+            <Hint label={ltvHint.term} text={ltvHint.text} />
           </li>
           <li>
-            <p className="text-[10px] tracking-wide text-muted-foreground">3</p>
-            <p className="mt-1 text-sm leading-relaxed">
-              If the stock price falls too far, the loan can be <span className="whitespace-nowrap">liquidated <Hint label={liquidationHint.term} text={liquidationHint.text} /></span>. The stock is sold to repay the dollars.
-            </p>
+            <span className="text-foreground">If the stock falls too far,</span> the loan can be{" "}
+            <span className="whitespace-nowrap">
+              liquidated <Hint label={liquidationHint.term} text={liquidationHint.text} />
+            </span>
+            . The stock is sold to repay the dollars.
           </li>
         </ol>
-      </section>
+      </details>
 
-      <Trend history={model.history} />
-
-      {hasRows ? (
-        <div className="space-y-8">
-          {model.chains.map((chain) => {
-            const estimated = chain.rows.some((row) => row.borrowEstimate);
-            return (
-              <section key={chain.chainId} data-lending-chain={chain.chainId} className="space-y-3">
-                <header className="flex flex-wrap items-end justify-between gap-2">
-                  <h3 className="font-heading text-lg font-medium">{chain.chainLabel}</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Stock in {formatUsdCompact(chain.totals.collateralUsd)}
-                    {" · "}
-                    Borrowed {formatUsdCompact(chain.totals.stableBorrowedUsd)}
-                    {estimated ? " (includes an estimate)" : ""}
-                  </p>
-                </header>
-                <div className="grid gap-3 lg:grid-cols-2">
-                  {chain.rows.map((row) => (
-                    <VenueCard key={row.id} row={row} />
-                  ))}
-                </div>
-              </section>
-            );
-          })}
-        </div>
+      {boardRows.length > 0 ? (
+        <LendingBoard rows={boardRows} />
       ) : (
-        <p className="rounded-xl border border-border bg-card/80 px-4 py-8 text-center text-sm text-muted-foreground">
-          No onchain lending snapshot is stored for this desk.
-        </p>
+        <p className="py-10 text-center text-sm text-muted-foreground">No onchain lending snapshot is stored for this desk.</p>
       )}
 
       <section className="space-y-3" data-lending-watch>
-        <h3 className="font-heading text-lg font-medium">What to watch</h3>
-        <ul className="space-y-3 text-sm leading-relaxed text-muted-foreground">
+        <h3 className="text-base font-medium text-foreground">What to watch</h3>
+        <ul className="max-w-3xl space-y-3 text-sm leading-6 text-muted-foreground">
           <li>
             Stock price feeds take the weekend off. Chainlink’s stock prices run about 24 hours a day, 5 days a week. They go quiet from Friday 8:00 PM Eastern to Sunday 8:00 PM Eastern, about 60 hours. A price move over the weekend shows up all at once on Monday.
           </li>
-          <li>
-            Aave can pause a stock token when that company splits its shares. Borrowing against it waits until the token catches up to the new share count.
-          </li>
-          <li>
-            Most of these tokens do not give you a vote or a dividend the way a real share does. Many of them are not offered to people in the United States.
-          </li>
+          <li>Aave can pause a stock token when that company splits its shares. Borrowing against it waits until the token catches up to the new share count.</li>
+          <li>Most of these tokens do not give you a vote or a dividend the way a real share does. Many of them are not offered to people in the United States.</li>
           <li>
             {shorts.length === 0
               ? "Almost nobody lends the stock token itself so someone else can bet the price will fall. This snapshot does not show any of those loans."
@@ -430,25 +188,23 @@ export function LendingDesk({ model }: { model: LendingDeskModel }) {
       </section>
 
       <section className="space-y-3" data-lending-glossary>
-        <h3 className="font-heading text-lg font-medium">Words on this page</h3>
-        <dl className="grid gap-3 sm:grid-cols-2">
+        <h3 className="text-base font-medium text-foreground">Words on this page</h3>
+        <dl className="grid gap-x-10 gap-y-4 sm:grid-cols-2">
           {LENDING_GLOSSARY.map((entry) => (
-            <div key={entry.id} className="rounded-xl border border-border bg-card/40 px-3 py-2">
-              <dt className="text-sm font-medium">{entry.term}</dt>
-              <dd className="mt-1 text-xs leading-snug text-muted-foreground">{entry.text}</dd>
+            <div key={entry.id}>
+              <dt className="text-sm font-medium text-foreground">{entry.term}</dt>
+              <dd className="mt-1 text-sm leading-6 text-muted-foreground">{entry.text}</dd>
             </div>
           ))}
         </dl>
       </section>
 
-      <footer className="space-y-2 text-[11px] leading-snug text-muted-foreground" data-lending-footnote>
+      <footer className="max-w-3xl space-y-2 text-sm leading-6 text-muted-foreground" data-lending-footnote>
         <p>
           Not tracked onchain: {EXCLUDED_CEX_MARGIN_VENUES.join(", ")} margin. Those exchanges let people borrow against stock tokens, but they do not publish how much is in use.
         </p>
         <p>Issuer market cap and fund size are not used here. The numbers above are stock tokens in lending pools and the dollars borrowed against them.</p>
-        {model.failures.length > 0 ? (
-          <p>Missing: {model.failures.map((failure) => `${failure.source} (${failure.message})`).join("; ")}.</p>
-        ) : null}
+        {model.failures.length > 0 ? <p>Missing: {model.failures.map((failure) => `${failure.source} (${failure.message})`).join("; ")}.</p> : null}
       </footer>
     </div>
   );

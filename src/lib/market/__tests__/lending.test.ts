@@ -30,7 +30,7 @@ import {
   parseLendingSnapshot,
   serializeLendingSnapshot,
 } from "../lending-snapshot";
-import { classifyLendingSymbol, lendingActionLines, lendingStockGroups } from "../lending-stocks";
+import { classifyLendingSymbol, isSmallLendingBook, lendingActionLines, lendingBoardRows, lendingStockGroups } from "../lending-stocks";
 import { lendingGlossary } from "../lending-glossary";
 import { attributeVenusBorrow, chooseVenusEstimate, collectHolderAddresses, VENUS_CHECKED_ESTIMATE } from "../lending-venus-estimate";
 import { saveLendingDay, loadLatestLendingSnapshot } from "../lending-snapshot-file";
@@ -575,6 +575,52 @@ describe("lending aggregation", () => {
     expect(failed).toBe(1);
     expect(errors[0]).toMatch(/no amounts/);
     await rm(dir, { recursive: true, force: true });
+  });
+});
+
+describe("lending board rows", () => {
+  it("keeps each token's dollars and marks only tiny books as small", () => {
+    const rows = lendingBoardRows([
+      {
+        id: "kamino",
+        venue: "Kamino",
+        chainId: "solana",
+        chainLabel: "Solana",
+        utilization: 0.8,
+        borrowApy: 0.05,
+        borrowApyMin: null,
+        borrowApyMax: null,
+        collateralUsd: 1_000_000,
+        stableBorrowedUsd: 400_000,
+        stockBorrowedUsd: null,
+        source: "https://kamino.com",
+        borrowEstimate: null,
+        assets: [{ symbol: "NVDAx", address: "nvda", collateralUsd: 250_000, maxLtv: 0.55 }],
+      },
+      {
+        id: "hyper",
+        venue: "Morpho",
+        chainId: "hyperevm",
+        chainLabel: "HyperEVM",
+        utilization: null,
+        borrowApy: null,
+        borrowApyMin: null,
+        borrowApyMax: null,
+        collateralUsd: 28,
+        stableBorrowedUsd: 0,
+        stockBorrowedUsd: null,
+        source: "https://morpho.org",
+        borrowEstimate: null,
+        assets: [{ symbol: "NVDAon", address: "nvda-on", collateralUsd: 28, maxLtv: null }],
+      },
+    ]);
+
+    expect(rows.map((row) => [row.ticker, row.wrapper, row.collateralUsd, row.smallBook])).toEqual([
+      ["NVDA", "xStocks", 250_000, false],
+      ["NVDA", "Ondo", 28, true],
+    ]);
+    expect(isSmallLendingBook(null, null)).toBe(false);
+    expect(isSmallLendingBook(28, 0)).toBe(true);
   });
 });
 
