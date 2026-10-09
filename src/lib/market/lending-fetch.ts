@@ -12,7 +12,7 @@ import {
   tokenAmountUsd,
 } from "./lending-parse";
 import { lendingDayFromCapture, type LendingDaySnapshot, type LendingRow, type LendingSourceNote } from "./lending-snapshot";
-import { scanVenusBStockBorrow, VENUS_CHECKED_ESTIMATE, type VenusBorrowEstimate } from "./lending-venus-estimate";
+import { chooseVenusEstimate, scanVenusBStockBorrow, VENUS_CHECKED_ESTIMATE, type VenusBorrowEstimate } from "./lending-venus-estimate";
 
 const UA = "Mozilla/5.0 (compatible; StocksOnTheBlockchain/1.0)";
 
@@ -191,7 +191,10 @@ function failure(source: string, message: string): LendingSourceNote {
   return { source, message };
 }
 
-export async function captureLendingSnapshot(nowMs = Date.now()): Promise<LendingDaySnapshot> {
+export async function captureLendingSnapshot(
+  nowMs = Date.now(),
+  options?: { previousVenusEstimate?: VenusBorrowEstimate | null },
+): Promise<LendingDaySnapshot> {
   const venusEstimatePromise = settle("Venus estimate", () => scanVenusBStockBorrow(nowMs));
   const [
     kaminoList,
@@ -257,7 +260,7 @@ export async function captureLendingSnapshot(nowMs = Date.now()): Promise<Lendin
     const fetched = morphoChains[index];
     rows.push(captureMorpho(chainId, fetched, book));
   }
-  rows.push(await captureVenus(venus, venusEstimate));
+  rows.push(await captureVenus(venus, venusEstimate, options?.previousVenusEstimate ?? null));
   rows.push(await listaRowPromise);
 
   for (const row of rows) {
@@ -356,9 +359,11 @@ function captureMorpho(
 async function captureVenus(
   result: { data: unknown; error: string | null },
   estimate: { data: unknown; error: string | null },
+  previous: VenusBorrowEstimate | null,
 ): Promise<LendingRow> {
   const measured = estimate.data && typeof estimate.data === "object" && "usd" in estimate.data ? (estimate.data as VenusBorrowEstimate) : null;
-  const borrowEstimate = measured && typeof measured.usd === "number" ? measured : VENUS_CHECKED_ESTIMATE;
+  const live = measured && typeof measured.usd === "number" ? measured : null;
+  const borrowEstimate = chooseVenusEstimate(live, previous, VENUS_CHECKED_ESTIMATE);
   if (result.error) {
     const row = parseVenusMarkets(null, VENUS_MARKETS, { estimate: borrowEstimate });
     return { ...row, error: result.error };

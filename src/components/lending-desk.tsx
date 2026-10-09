@@ -1,6 +1,9 @@
 import { CircleHelp } from "lucide-react";
+import { LendingStockPicker } from "@/components/lending-stock-picker";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatUsdCompact } from "@/lib/market/format";
+import { LENDING_GLOSSARY, lendingGlossary } from "@/lib/market/lending-glossary";
+import { lendingActionLines, lendingStockGroups } from "@/lib/market/lending-stocks";
 import {
   EXCLUDED_CEX_MARGIN_VENUES,
   formatLendingApy,
@@ -18,20 +21,12 @@ import {
   type LendingRow,
 } from "@/lib/market/lending-snapshot";
 
-const HINTS = {
-  collateral: "Collateral is the stock tokens a borrower locks up so they can borrow dollars.",
-  ltv: "LTV means loan to value. It is the most you can borrow for each $100 of stock. A 70% LTV means $70.",
-  utilization: "Utilization is how full a pool is. It is dollars already borrowed divided by dollars supplied to that pool.",
-  apy: "APY means annual percentage yield. Here it is the yearly cost to borrow, before extra reward points.",
-  liquidation: "Liquidation is a sale of the stock collateral when the price falls and the loan is too big for the limit.",
-} as const;
-
 function Hint({ label, text }: { label: string; text: string }) {
   return (
     <Tooltip>
       <TooltipTrigger
         className="inline-flex size-4 shrink-0 items-center justify-center rounded-full text-muted-foreground/70 hover:text-muted-foreground"
-        aria-label={label}
+        aria-label={`${label} definition`}
       >
         <CircleHelp className="size-3.5" />
       </TooltipTrigger>
@@ -135,6 +130,9 @@ function BorrowedValue({ row }: { row: LendingRow }) {
 function VenueCard({ row }: { row: LendingRow }) {
   const stockLent = formatStockBorrowedNote(row.stockBorrowedUsd);
   const shared = Boolean(row.borrowEstimate);
+  const collateralHint = lendingGlossary("collateral");
+  const fullHint = lendingGlossary("utilization");
+  const costHint = lendingGlossary("apy");
   return (
     <article data-lending-row={row.id} className="flex flex-col gap-3 rounded-xl border border-border bg-card/80 p-3 sm:p-4">
       <header className="flex items-start justify-between gap-3">
@@ -152,7 +150,7 @@ function VenueCard({ row }: { row: LendingRow }) {
         <div>
           <dt className="flex items-center gap-1 text-[10px] tracking-wide text-muted-foreground">
             Stock in
-            <Hint label="Collateral definition" text={HINTS.collateral} />
+            <Hint label={collateralHint.term} text={collateralHint.text} />
           </dt>
           <dd className="num mt-1 text-lg text-primary">
             <Money value={row.collateralUsd} />
@@ -167,7 +165,7 @@ function VenueCard({ row }: { row: LendingRow }) {
         <div>
           <dt className="flex items-center gap-1 text-[10px] tracking-wide text-muted-foreground">
             How full
-            <Hint label="Utilization definition" text={HINTS.utilization} />
+            <Hint label={fullHint.term} text={fullHint.text} />
           </dt>
           <dd className="mt-1">
             <FullMeter value={row.utilization} unavailable={shared} />
@@ -176,7 +174,7 @@ function VenueCard({ row }: { row: LendingRow }) {
         <div>
           <dt className="flex items-center gap-1 text-[10px] tracking-wide text-muted-foreground">
             Yearly cost
-            <Hint label="APY definition" text={HINTS.apy} />
+            <Hint label={costHint.term} text={costHint.text} />
           </dt>
           <dd className="num mt-1 text-sm">{shared ? <span className="text-muted-foreground">n/a</span> : formatLendingApy(row)}</dd>
         </div>
@@ -263,7 +261,7 @@ function Stat({
         {hint ? <Hint label={hint.label} text={hint.text} /> : null}
       </p>
       <p className={`num mt-1 text-2xl sm:text-3xl ${emphasize ? "text-primary" : ""}`}>{value}</p>
-      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{sentence}</p>
+      <p className="mt-1.5 text-xs leading-snug text-muted-foreground">{sentence}</p>
     </div>
   );
 }
@@ -273,6 +271,13 @@ export function LendingDesk({ model }: { model: LendingDeskModel }) {
   const headline = lendingHeadline(model.rows, model.totals);
   const shorts = lendingStockBorrows(model.rows);
   const ltvLine = lendingLtvExplainer(model.rows);
+  const action = lendingActionLines(model.rows);
+  const stocks = lendingStockGroups(model.rows);
+  const collateralHint = lendingGlossary("collateral");
+  const ltvHint = lendingGlossary("ltv");
+  const fullHint = lendingGlossary("utilization");
+  const costHint = lendingGlossary("apy");
+  const liquidationHint = lendingGlossary("liquidation");
   const hasRows = model.chains.length > 0;
   return (
     <div className="space-y-8" data-lending-page>
@@ -295,7 +300,7 @@ export function LendingDesk({ model }: { model: LendingDeskModel }) {
           testId="collateral"
           label="Stock in"
           emphasize
-          hint={{ label: "Collateral definition", text: HINTS.collateral }}
+          hint={{ label: collateralHint.term, text: collateralHint.text }}
           value={formatUsdCompact(model.totals.collateralUsd)}
           sentence={headline.collateralSentence}
         />
@@ -308,17 +313,38 @@ export function LendingDesk({ model }: { model: LendingDeskModel }) {
         <Stat
           testId="full"
           label="How full"
-          hint={{ label: "Utilization definition", text: HINTS.utilization }}
+          hint={{ label: fullHint.term, text: fullHint.text }}
           value={formatLendingFractionPct(model.totals.utilization)}
           sentence={headline.fullSentence}
         />
         <Stat
           testId="cost"
           label="Yearly cost"
-          hint={{ label: "APY definition", text: HINTS.apy }}
+          hint={{ label: costHint.term, text: costHint.text }}
           value={model.totals.borrowApy === null ? "—" : formatLendingFractionPct(model.totals.borrowApy)}
           sentence={headline.costSentence}
         />
+      </section>
+
+      {action.length > 0 ? (
+        <section className="rounded-xl border border-border bg-card/40 px-4 py-4" data-lending-action>
+          <h3 className="font-heading text-lg font-medium">Where the action is</h3>
+          <ul className="mt-2 space-y-2 text-sm leading-snug text-muted-foreground">
+            {action.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      <section className="rounded-xl border border-border bg-card/40 px-4 py-4" data-lending-stocks>
+        <h3 className="font-heading text-lg font-medium">Borrow against one stock</h3>
+        <p className="mt-1 text-sm leading-snug text-muted-foreground">
+          Pick a company. Each card is a place that accepts one of its tokens. Wrappers from different issuers sit under the same stock.
+        </p>
+        <div className="mt-3">
+          <LendingStockPicker groups={stocks} />
+        </div>
       </section>
 
       <section className="rounded-xl border border-border bg-card/40 px-4 py-4" data-lending-how>
@@ -327,20 +353,20 @@ export function LendingDesk({ model }: { model: LendingDeskModel }) {
           <li>
             <p className="text-[10px] tracking-wide text-muted-foreground">1</p>
             <p className="mt-1 text-sm leading-relaxed">
-              Deposit a stock token. That stock is the <span className="whitespace-nowrap">collateral <Hint label="Collateral definition" text={HINTS.collateral} /></span>.
+              Deposit a stock token. That stock is the <span className="whitespace-nowrap">collateral <Hint label={collateralHint.term} text={collateralHint.text} /></span>.
             </p>
           </li>
           <li>
             <p className="text-[10px] tracking-wide text-muted-foreground">2</p>
             <p className="mt-1 text-sm leading-relaxed">
               Borrow stablecoins such as USDC, USDG, or PYUSD, up to a limit. {ltvLine}{" "}
-              <Hint label="LTV definition" text={HINTS.ltv} />
+              <Hint label={ltvHint.term} text={ltvHint.text} />
             </p>
           </li>
           <li>
             <p className="text-[10px] tracking-wide text-muted-foreground">3</p>
             <p className="mt-1 text-sm leading-relaxed">
-              If the stock price falls too far, the loan can be <span className="whitespace-nowrap">liquidated <Hint label="Liquidation definition" text={HINTS.liquidation} /></span>. The stock is sold to repay the dollars.
+              If the stock price falls too far, the loan can be <span className="whitespace-nowrap">liquidated <Hint label={liquidationHint.term} text={liquidationHint.text} /></span>. The stock is sold to repay the dollars.
             </p>
           </li>
         </ol>
@@ -401,6 +427,18 @@ export function LendingDesk({ model }: { model: LendingDeskModel }) {
             On Solana, a points program called xPoints can pull extra stock deposits in. The dollars on this page still come from the venues. The snapshot does not split points from real borrowing.
           </li>
         </ul>
+      </section>
+
+      <section className="space-y-3" data-lending-glossary>
+        <h3 className="font-heading text-lg font-medium">Words on this page</h3>
+        <dl className="grid gap-3 sm:grid-cols-2">
+          {LENDING_GLOSSARY.map((entry) => (
+            <div key={entry.id} className="rounded-xl border border-border bg-card/40 px-3 py-2">
+              <dt className="text-sm font-medium">{entry.term}</dt>
+              <dd className="mt-1 text-xs leading-snug text-muted-foreground">{entry.text}</dd>
+            </div>
+          ))}
+        </dl>
       </section>
 
       <footer className="space-y-2 text-[11px] leading-snug text-muted-foreground" data-lending-footnote>

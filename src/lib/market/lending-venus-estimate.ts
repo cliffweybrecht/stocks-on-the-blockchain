@@ -9,7 +9,10 @@ const BORROW_BALANCE = "0x95dd9193";
 const CHECK_MEMBERSHIP = "0x929fe9a1";
 /** bStocks were listed after this BSC block. */
 const LOG_START_BLOCK = 104_000_000;
-const LOG_SPAN = 49_999;
+const LOG_SPAN = 50_000;
+const LOG_MIN_SPAN = 5_000;
+/** Stop the live scan and keep the last good estimate after this long. */
+export const VENUS_SCAN_BUDGET_MS = 180_000;
 const ZERO = "0x0000000000000000000000000000000000000000";
 
 export interface VenusAccountBorrow {
@@ -169,64 +172,142 @@ async function latestBlock(rpc: string): Promise<number> {
   return Number(BigInt(hex));
 }
 
-async function transferAddresses(vTokens: readonly string[], endBlock: number): Promise<Set<string>> {
+export interface LogRangeQuery {
+  fromBlock: number;
+  toBlock: number;
+}
+
+const SCAN_TIMEOUT = "Venus log scan ran out of time.";
+
+/**
+ * Read Transfer logs. A dropped response is retried with backoff.
+ * If the range still fails, it is split in half down to minSpan.
+ * Past deadlineMs the scan stops so the caller can keep the last good estimate.
+ */
+export async function collectHolderAddresses(input: {
+  vTokens: readonly string[];
+  startBlock: number;
+  endBlock: number;
+  initialSpan: number;
+  minSpan: number;
+  deadlineMs: number;
+  now?: () => number;
+  sleep?: (ms: number) => Promise<void>;
+  attempts?: number;
+  concurrency?: number;
+  getLogs: (range: LogRangeQuery) => Promise<{ topics?: string[] }[]>;
+}): Promise<Set<string>> {
+  const now = input.now ?? Date.now;
+  const sleep = input.sleep ?? ((ms: number) => new Promise((resolve) => setTimeout(resolve, ms)));
+  const attempts = input.attempts ?? 3;
   const addresses = new Set<string>();
-  const ranges: number[] = [];
-  for (let start = LOG_START_BLOCK; start <= endBlock; start += LOG_SPAN + 1) ranges.push(start);
-  let cursor = 0;
-  const failures: string[] = [];
-  async function worker() {
-    while (cursor < ranges.length) {
-      const start = ranges[cursor];
-      cursor += 1;
-      const to = Math.min(start + LOG_SPAN, endBlock);
-      let lastError = "log request failed";
-      let logs: { topics?: string[] }[] | null = null;
-      for (let attempt = 0; attempt < 8; attempt += 1) {
-        try {
-          const response = await fetch(BSC_LOG_RPC, {
-            method: "POST",
-            signal: AbortSignal.timeout(60_000),
-            headers: { "content-type": "application/json", "user-agent": "Mozilla/5.0 (compatible; StocksOnTheBlockchain/1.0)" },
-            body: JSON.stringify({
-              jsonrpc: "2.0",
-              id: 1,
-              method: "eth_getLogs",
-              params: [
-                {
-                  address: vTokens,
-                  topics: [TRANSFER_TOPIC],
-                  fromBlock: `0x${start.toString(16)}`,
-                  toBlock: `0x${to.toString(16)}`,
-                },
-              ],
-            }),
-          });
-          const payload = (await response.json()) as { result?: { topics?: string[] }[]; error?: { message?: string } };
-          if (payload.error) throw new Error(payload.error.message || "eth_getLogs failed");
-          if (!Array.isArray(payload.result)) throw new Error("eth_getLogs result was not a list");
-          logs = payload.result;
-          break;
-        } catch (error) {
-          lastError = error instanceof Error ? error.message : "eth_getLogs failed";
-          await new Promise((resolve) => setTimeout(resolve, Math.min(8_000, 500 * 2 ** attempt)));
+  const queue: LogRangeQuery[] = [];
+  for (let start = input.startBlock; start <= input.endBlock; start += input.initialSpan) {
+    queue.push({ fromBlock: start, toBlock: Math.min(start + input.initialSpan - 1, input.endBlock) });
+  }
+  let failure: string | null = null;
+
+  async function readRange(range: LogRangeQuery): Promise<void> {
+    if (now() >= input.deadlineMs) throw new Error(SCAN_TIMEOUT);
+    let lastError = "log request failed";
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      if (now() >= input.deadlineMs) throw new Error(SCAN_TIMEOUT);
+      try {
+        const logs = await input.getLogs(range);
+        for (const log of logs) {
+          for (const topic of (log.topics ?? []).slice(1, 3)) {
+            const address = topicAddress(topic);
+            if (address !== ZERO) addresses.add(address);
+          }
         }
-      }
-      if (!logs) {
-        failures.push(lastError);
         return;
-      }
-      for (const log of logs) {
-        for (const topic of (log.topics ?? []).slice(1, 3)) {
-          const address = topicAddress(topic);
-          if (address !== ZERO) addresses.add(address);
+      } catch (error) {
+        lastError = error instanceof Error ? error.message : "eth_getLogs failed";
+        if (attempt < attempts - 1) {
+          const wait = Math.min(1_200, 300 * 2 ** attempt);
+          const room = input.deadlineMs - now();
+          if (room <= 0) throw new Error(SCAN_TIMEOUT);
+          await sleep(Math.min(wait, room));
         }
       }
     }
+    const width = range.toBlock - range.fromBlock;
+    if (width > input.minSpan) {
+      const mid = range.fromBlock + Math.floor(width / 2);
+      await readRange({ fromBlock: range.fromBlock, toBlock: mid });
+      await readRange({ fromBlock: mid + 1, toBlock: range.toBlock });
+      return;
+    }
+    throw new Error(lastError);
   }
-  await Promise.all(Array.from({ length: Math.min(4, ranges.length) }, () => worker()));
-  if (failures.length > 0) throw new Error(failures[0] ?? "Venus log scan failed");
+
+  async function worker() {
+    while (!failure) {
+      const range = queue.shift();
+      if (!range) return;
+      try {
+        await readRange(range);
+      } catch (error) {
+        failure = error instanceof Error ? error.message : "Venus log scan failed";
+      }
+    }
+  }
+  const workers = Math.min(input.concurrency ?? 4, Math.max(queue.length, 1));
+  await Promise.all(Array.from({ length: workers }, () => worker()));
+  if (failure) throw new Error(failure);
   return addresses;
+}
+
+async function fetchPocketLogs(vTokens: readonly string[], range: LogRangeQuery): Promise<{ topics?: string[] }[]> {
+  const response = await fetch(BSC_LOG_RPC, {
+    method: "POST",
+    signal: AbortSignal.timeout(20_000),
+    headers: { "content-type": "application/json", "user-agent": "Mozilla/5.0 (compatible; StocksOnTheBlockchain/1.0)" },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "eth_getLogs",
+      params: [
+        {
+          address: vTokens,
+          topics: [TRANSFER_TOPIC],
+          fromBlock: `0x${range.fromBlock.toString(16)}`,
+          toBlock: `0x${range.toBlock.toString(16)}`,
+        },
+      ],
+    }),
+  });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const payload = (await response.json()) as { result?: { topics?: string[] }[]; error?: { message?: string } };
+  if (payload.error) throw new Error(payload.error.message || "eth_getLogs failed");
+  if (!Array.isArray(payload.result)) throw new Error("eth_getLogs result was not a list");
+  return payload.result;
+}
+
+/** A finished live scan wins. Otherwise keep the newest saved estimate and its original time. */
+export function chooseVenusEstimate(
+  live: VenusBorrowEstimate | null,
+  previous: VenusBorrowEstimate | null,
+  checked: VenusBorrowEstimate,
+): VenusBorrowEstimate {
+  if (live && Number.isFinite(live.usd)) return live;
+  const base = previous && Number.isFinite(previous.usd) && previous.asOf ? previous : checked;
+  const note = "The live scan did not refresh this figure.";
+  return { ...base, method: base.method.includes(note) ? base.method : `${base.method} ${note}` };
+}
+
+export function venusEstimateFromSnapshot(
+  day: { rows: readonly { id: string; stableBorrowedUsd: number | null; borrowEstimate?: { method: string; asOf: string; lowerBoundUsd: number | null } | null }[] } | null,
+): VenusBorrowEstimate | null {
+  const row = day?.rows.find((item) => item.id === "venus-bnb" && item.borrowEstimate && item.stableBorrowedUsd !== null);
+  if (!row?.borrowEstimate || row.stableBorrowedUsd === null) return null;
+  return {
+    usd: row.stableBorrowedUsd,
+    lowerBoundUsd: row.borrowEstimate.lowerBoundUsd,
+    method: row.borrowEstimate.method,
+    asOf: row.borrowEstimate.asOf,
+    block: null,
+  };
 }
 
 function supplyUsd(vTokenBalance: bigint, market: CoreMarket): number {
@@ -244,6 +325,7 @@ function borrowUsd(raw: bigint, market: CoreMarket): number {
  * bStock supply it finds is far from the Venus API collateral.
  */
 export async function scanVenusBStockBorrow(nowMs = Date.now()): Promise<VenusBorrowEstimate | null> {
+  const deadline = Date.now() + VENUS_SCAN_BUDGET_MS;
   try {
     const payload = await getJson(VENUS_CORE_POOL);
     const markets = parseCoreMarkets(payload);
@@ -252,8 +334,19 @@ export async function scanVenusBStockBorrow(nowMs = Date.now()): Promise<VenusBo
     const collateralHintUsd = venusCollateralHint(payload);
     const rpc = bscCallRpc();
     const endBlock = await latestBlock(rpc);
-    const holders = [...(await transferAddresses(bstocks.map((market) => market.vToken), endBlock))];
-    if (holders.length === 0) return null;
+    const vTokens = bstocks.map((market) => market.vToken);
+    const holders = [
+      ...(await collectHolderAddresses({
+        vTokens,
+        startBlock: LOG_START_BLOCK,
+        endBlock,
+        initialSpan: LOG_SPAN,
+        minSpan: LOG_MIN_SPAN,
+        deadlineMs: deadline,
+        getLogs: (range) => fetchPocketLogs(vTokens, range),
+      })),
+    ];
+    if (holders.length === 0 || Date.now() >= deadline) return null;
 
     const balanceCalls = holders.flatMap((account) =>
       bstocks.map((market) => ({
@@ -272,6 +365,7 @@ export async function scanVenusBStockBorrow(nowMs = Date.now()): Promise<VenusBo
     const accounts: VenusAccountBorrow[] = [];
     let supplied = 0;
     for (const account of active) {
+      if (Date.now() >= deadline) return null;
       const calls = markets.flatMap((market) => [
         { method: "eth_call", params: [{ to: market.vToken, data: BORROW_BALANCE + padAddress(account) }, "latest"] },
         { method: "eth_call", params: [{ to: market.vToken, data: BALANCE_OF + padAddress(account) }, "latest"] },

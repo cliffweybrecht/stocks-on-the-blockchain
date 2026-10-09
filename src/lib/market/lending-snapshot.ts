@@ -485,16 +485,16 @@ export interface LendingHeadline {
 }
 
 function costSentence(totals: LendingTotals, hasEstimate: boolean): string {
-  if (totals.borrowApy === null) return "We do not have a typical yearly borrow cost yet.";
+  if (totals.borrowApy === null) return "No typical yearly cost yet.";
   const typical = formatLendingFractionPct(totals.borrowApy);
   const low = totals.borrowApyMin;
   const high = totals.borrowApyMax;
   const spread =
     low !== null && high !== null && Math.abs(high - low) >= 0.005
-      ? ` The bigger pools charge from ${formatLendingFractionPct(low)} to ${formatLendingFractionPct(high)}.`
+      ? ` Bigger pools run from ${formatLendingFractionPct(low)} to ${formatLendingFractionPct(high)}.`
       : "";
-  const venus = hasEstimate ? " Venus is not in this average." : "";
-  return `A typical borrower pays about ${typical} a year. Bigger loans count more than tiny ones.${spread}${venus}`;
+  const venus = hasEstimate ? " Venus is not included." : "";
+  return `A typical loan costs about ${typical} a year.${spread}${venus}`;
 }
 
 export function lendingHeadline(rows: readonly LendingRow[], totals: LendingTotals): LendingHeadline {
@@ -505,20 +505,20 @@ export function lendingHeadline(rows: readonly LendingRow[], totals: LendingTota
   return {
     collateralSentence:
       collateral === null
-        ? "We do not have a total yet for stock tokens locked up so people can borrow."
-        : `People put in ${formatUsdCompact(collateral)} of stock tokens so they could borrow dollars against them.`,
+        ? "No stock total yet."
+        : `People locked ${formatUsdCompact(collateral)} of stock tokens to borrow against.`,
     borrowedSentence:
       borrowed === null
-        ? "We do not have a total yet for dollars borrowed against that stock."
+        ? "No borrow total yet."
         : estimate === null
-          ? `People borrowed ${formatUsdCompact(borrowed)} of stablecoins (USDC, USDG, PYUSD, and similar) against that stock.`
-          : `People borrowed ${formatUsdCompact(borrowed)} of stablecoins (USDC, USDG, PYUSD, and similar) against that stock. About ${formatLendingEstimateUsd(estimate)} of that is estimated, because Venus mixes these stocks with other coins.`,
+          ? `They borrowed ${formatUsdCompact(borrowed)} of dollar coins.`
+          : `They borrowed ${formatUsdCompact(borrowed)} of dollar coins. About ${formatLendingEstimateUsd(estimate)} is a Venus estimate.`,
     fullSentence:
       full === null
-        ? "We cannot say how full the dollar pools are until both the dollars supplied and the dollars borrowed are known."
+        ? "How full is unknown until supply and borrows are both reported."
         : estimate === null
-          ? `${formatLendingFractionPct(full)} of the dollars in these lending pools is already lent out.`
-          : `${formatLendingFractionPct(full)} of the dollars in these lending pools is already lent out. Venus is left out of this, because its pool is shared.`,
+          ? `${formatLendingFractionPct(full)} of the dollar pools is already lent out.`
+          : `${formatLendingFractionPct(full)} of the dollar pools is already lent out. Venus is left out.`,
     costSentence: costSentence(totals, estimate !== null),
   };
 }

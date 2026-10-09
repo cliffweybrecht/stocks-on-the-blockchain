@@ -1,6 +1,7 @@
 import { captureLendingSnapshot } from "./lending-fetch";
-import { saveLendingDay } from "./lending-snapshot-file";
+import { loadLatestLendingSnapshot, saveLendingDay } from "./lending-snapshot-file";
 import type { LendingDaySnapshot } from "./lending-snapshot";
+import { venusEstimateFromSnapshot } from "./lending-venus-estimate";
 
 function hasAmount(day: LendingDaySnapshot): boolean {
   return day.rows.some((row) => row.collateralUsd !== null || row.stableBorrowedUsd !== null);
@@ -17,7 +18,13 @@ export async function runLendingSnapshotCli(options: {
 } = {}): Promise<number> {
   const error = options.error ?? console.error;
   try {
-    const day = await (options.capture ?? captureLendingSnapshot)();
+    const capture =
+      options.capture ??
+      (async () => {
+        const previous = await loadLatestLendingSnapshot();
+        return captureLendingSnapshot(Date.now(), { previousVenusEstimate: venusEstimateFromSnapshot(previous.day) });
+      });
+    const day = await capture();
     if (!hasAmount(day)) {
       error("Lending snapshot captured no amounts. File not written.");
       for (const failure of day.failures) error(`  ${failure.source}: ${failure.message}`);

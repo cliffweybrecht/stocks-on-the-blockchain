@@ -30,7 +30,9 @@ import {
   parseLendingSnapshot,
   serializeLendingSnapshot,
 } from "../lending-snapshot";
-import { attributeVenusBorrow } from "../lending-venus-estimate";
+import { classifyLendingSymbol, lendingActionLines, lendingStockGroups } from "../lending-stocks";
+import { lendingGlossary } from "../lending-glossary";
+import { attributeVenusBorrow, chooseVenusEstimate, collectHolderAddresses, VENUS_CHECKED_ESTIMATE } from "../lending-venus-estimate";
 import { saveLendingDay, loadLatestLendingSnapshot } from "../lending-snapshot-file";
 import { runLendingSnapshotCli } from "../lending-snapshot-job";
 import { easternDayKey } from "../volume-snapshots";
@@ -497,10 +499,10 @@ describe("lending aggregation", () => {
     const desk = aggregateLendingTotals([kamino, dust]);
     expect(desk.borrowApyMin).toBeCloseTo(kamino.borrowApyMin ?? 0, 6);
     expect(desk.borrowApyMax).toBeCloseTo(kamino.borrowApyMax ?? 0, 6);
-    expect(lendingHeadline([kamino], desk).costSentence).toMatch(/typical borrower pays about/);
+    expect(lendingHeadline([kamino], desk).costSentence).toMatch(/typical loan costs about/);
     const headline = lendingHeadline([kamino, estimateRow], withEstimate);
-    expect(headline.collateralSentence).toMatch(/People put in/);
-    expect(headline.borrowedSentence).toMatch(/estimated/);
+    expect(headline.collateralSentence).toMatch(/locked/);
+    expect(headline.borrowedSentence).toMatch(/Venus estimate/);
     expect(headline.fullSentence).toMatch(/Venus is left out/);
     expect(lendingLtvExplainer([estimateRow])).toBe("You can borrow up to $60 for every $100 of stock. That limit is called LTV.");
     expect(lendingLtvExplainer([missing])).toMatch(/does not|Each token has a limit/);
@@ -573,6 +575,216 @@ describe("lending aggregation", () => {
     expect(failed).toBe(1);
     expect(errors[0]).toMatch(/no amounts/);
     await rm(dir, { recursive: true, force: true });
+  });
+});
+
+describe("lending stock view", () => {
+  it("groups issuer wrappers under one ticker and leaves unnamed symbols alone", () => {
+    expect(classifyLendingSymbol("NVDAx", "solana")).toEqual({ ticker: "NVDA", wrapper: "xStocks" });
+    expect(classifyLendingSymbol("wNVDAx", "ethereum")).toEqual({ ticker: "NVDA", wrapper: "xStocks" });
+    expect(classifyLendingSymbol("NVDAc", "base")).toEqual({ ticker: "NVDA", wrapper: "Coinbase" });
+    expect(classifyLendingSymbol("NVDAB", "bnb")).toEqual({ ticker: "NVDA", wrapper: "bStocks" });
+    expect(classifyLendingSymbol("TSLAon", "ethereum")).toEqual({ ticker: "TSLA", wrapper: "Ondo" });
+    expect(classifyLendingSymbol("NVDA", "robinhood-chain")).toEqual({ ticker: "NVDA", wrapper: "Robinhood" });
+    expect(classifyLendingSymbol("SPCX", "robinhood-chain").ticker).toBe("SPCX");
+    expect(classifyLendingSymbol("SPCXB", "bnb")).toEqual({ ticker: "SPCX", wrapper: "bStocks" });
+    expect(classifyLendingSymbol("deSPXA", "base")).toEqual({ ticker: "SPXA", wrapper: "Centrifuge" });
+    expect(classifyLendingSymbol("wbCOIN", "base").wrapper).toBe("Not named");
+
+    const groups = lendingStockGroups([
+      {
+        id: "kamino-xstocks",
+        venue: "Kamino xStocks",
+        chainId: "solana",
+        chainLabel: "Solana",
+        borrowApy: 0.055,
+        borrowApyMin: 0.055,
+        borrowApyMax: 0.055,
+        borrowEstimate: null,
+        assets: [{ symbol: "NVDAx", address: "a", collateralUsd: 100, maxLtv: 0.55 }],
+      },
+      {
+        id: "lista-bnb",
+        venue: "Lista",
+        chainId: "bnb",
+        chainLabel: "BNB",
+        borrowApy: 0.013,
+        borrowApyMin: 0.006,
+        borrowApyMax: 0.02,
+        borrowEstimate: null,
+        assets: [{ symbol: "NVDAB", address: "b", collateralUsd: null, maxLtv: 0.75 }],
+      },
+      {
+        id: "aave",
+        venue: "Aave",
+        chainId: "base",
+        chainLabel: "Base",
+        borrowApy: 0.013,
+        borrowApyMin: 0.013,
+        borrowApyMax: 0.013,
+        borrowEstimate: null,
+        assets: [{ symbol: "NVDAc", address: "c", collateralUsd: 40, maxLtv: null }],
+      },
+    ]);
+    const nvda = groups.find((group) => group.ticker === "NVDA");
+    expect(nvda?.places.map((place) => place.wrapper).sort()).toEqual(["Coinbase", "bStocks", "xStocks"]);
+    expect(nvda?.collateralUsd).toBe(140);
+    expect(nvda?.unpricedPlaces).toBe(1);
+    expect(nvda?.places.find((place) => place.wrapper === "Coinbase")?.maxLtv).toBeNull();
+    expect(nvda?.places.find((place) => place.wrapper === "bStocks")?.collateralUsd).toBeNull();
+    expect(lendingGlossary("oracle").text).toMatch(/price feed/);
+    expect(lendingGlossary("wrapper").text).toMatch(/xStocks/);
+  });
+
+  it("writes where's-the-action lines from the numbers and skips a dust pool", () => {
+    const lines = lendingActionLines([
+      {
+        venue: "Kamino xStocks",
+        chainLabel: "Solana",
+        utilization: 0.9,
+        stableBorrowedUsd: 5_000_000,
+        borrowApy: 0.055,
+        borrowApyMin: 0.055,
+        borrowApyMax: 0.055,
+        stockBorrowedUsd: 222_000,
+        borrowEstimate: null,
+        assets: [{ symbol: "SPYx", address: "a", collateralUsd: 4_000_000, maxLtv: 0.7 }],
+      },
+      {
+        venue: "Aave",
+        chainLabel: "Base",
+        utilization: 0.28,
+        stableBorrowedUsd: 1_500_000,
+        borrowApy: 0.013,
+        borrowApyMin: 0.013,
+        borrowApyMax: 0.013,
+        stockBorrowedUsd: 0,
+        borrowEstimate: null,
+        assets: [],
+      },
+      {
+        venue: "Morpho",
+        chainLabel: "Robinhood Chain",
+        utilization: 0.76,
+        stableBorrowedUsd: 1_600_000,
+        borrowApy: 0.23,
+        borrowApyMin: 0.19,
+        borrowApyMax: 0.29,
+        stockBorrowedUsd: 0,
+        borrowEstimate: null,
+        assets: [],
+      },
+      {
+        venue: "Tiny",
+        chainLabel: "HyperEVM",
+        utilization: 0.99,
+        stableBorrowedUsd: 11,
+        borrowApy: 0.08,
+        borrowApyMin: 0.08,
+        borrowApyMax: 0.08,
+        stockBorrowedUsd: 0,
+        borrowEstimate: null,
+        assets: [],
+      },
+    ]);
+    const text = lines.join(" ");
+    expect(text).toMatch(/Kamino xStocks on Solana is 90\.0% full/);
+    expect(text).toMatch(/Cheap pools with room: Aave on Base is 28\.0% full/);
+    expect(text).toMatch(/Morpho on Robinhood Chain costs 19\.0–29\.0%/);
+    expect(text).toMatch(/Stocks lent for shorting: Kamino xStocks/);
+    expect(text).toMatch(/SPYx on Kamino xStocks/);
+    expect(text).not.toMatch(/Tiny/);
+  });
+});
+
+describe("venus log scan", () => {
+  const holder = `0x${"11".repeat(20)}`;
+
+  function logFor(address: string) {
+    return { topics: [`0x${"ab".repeat(32)}`, `0x${address.slice(2).padStart(64, "0")}`] };
+  }
+
+  it("retries a dropped response and then keeps the logs", async () => {
+    let calls = 0;
+    const holders = await collectHolderAddresses({
+      vTokens: ["0xv"],
+      startBlock: 0,
+      endBlock: 10,
+      initialSpan: 100,
+      minSpan: 5,
+      deadlineMs: 10_000,
+      now: () => 0,
+      sleep: async () => undefined,
+      attempts: 3,
+      getLogs: async () => {
+        calls += 1;
+        if (calls === 1) throw new Error("header not found");
+        return [logFor(holder)];
+      },
+    });
+    expect(calls).toBe(2);
+    expect(holders.has(holder)).toBe(true);
+  });
+
+  it("splits a range that keeps failing into smaller ranges", async () => {
+    const seen: string[] = [];
+    const holders = await collectHolderAddresses({
+      vTokens: ["0xv"],
+      startBlock: 0,
+      endBlock: 99,
+      initialSpan: 100,
+      minSpan: 40,
+      deadlineMs: 10_000,
+      now: () => 0,
+      sleep: async () => undefined,
+      attempts: 1,
+      concurrency: 1,
+      getLogs: async (range) => {
+        seen.push(`${range.fromBlock}-${range.toBlock}`);
+        if (range.toBlock - range.fromBlock > 60) throw new Error("header not found");
+        return [logFor(holder)];
+      },
+    });
+    expect(seen).toEqual(["0-99", "0-49", "50-99"]);
+    expect(holders.has(holder)).toBe(true);
+  });
+
+  it("stops when the time budget is already spent", async () => {
+    let calls = 0;
+    await expect(
+      collectHolderAddresses({
+        vTokens: ["0xv"],
+        startBlock: 0,
+        endBlock: 10,
+        initialSpan: 100,
+        minSpan: 5,
+        deadlineMs: 100,
+        now: () => 100,
+        sleep: async () => undefined,
+        getLogs: async () => {
+          calls += 1;
+          return [];
+        },
+      }),
+    ).rejects.toThrow(/ran out of time/);
+    expect(calls).toBe(0);
+  });
+
+  it("keeps the last good estimate and its original timestamp", () => {
+    const previous = {
+      usd: 1234,
+      lowerBoundUsd: 900,
+      method: "Pro-rata from onchain balances at BSC block 1.",
+      asOf: "2026-10-08T18:00:00.000Z",
+      block: 1,
+    };
+    const kept = chooseVenusEstimate(null, previous, VENUS_CHECKED_ESTIMATE);
+    expect(kept.usd).toBe(1234);
+    expect(kept.asOf).toBe("2026-10-08T18:00:00.000Z");
+    expect(kept.method).toMatch(/did not refresh/);
+    const live = { ...previous, usd: 2000, asOf: "2026-10-09T03:00:00.000Z" };
+    expect(chooseVenusEstimate(live, previous, VENUS_CHECKED_ESTIMATE)).toEqual(live);
+    expect(chooseVenusEstimate(null, null, VENUS_CHECKED_ESTIMATE).asOf).toBe(VENUS_CHECKED_ESTIMATE.asOf);
   });
 });
 
