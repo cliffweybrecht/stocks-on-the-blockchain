@@ -309,9 +309,10 @@ export type RecordDeskVolumeResult =
 /**
  * Awaited persist of the DexScreener desk 24h for the America/New_York date of
  * `nowT`. Same upsert rules as the live desk: null omitted not $0; all-null
- * days are refused; the same Eastern day is replaced. Callers that must fail
- * closed (CLI) should treat `ok: false` as a hard error. The UI persist path
- * still swallows this. The chart does not plot that in-progress day.
+ * days are refused; the same Eastern day is replaced. The nightly
+ * `snapshot:volume` writer calls this at the 11:59 PM ET close. Page and API
+ * loads must not. Callers that must fail closed (CLI) should treat `ok: false`
+ * as a hard error. The chart does not plot that day until New York has moved on.
  */
 export async function recordDeskVolumeFromChain(
   store: DeskVolumeSnapshotStore,

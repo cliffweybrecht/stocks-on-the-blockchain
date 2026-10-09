@@ -39,6 +39,7 @@ export default async function HomePage() {
   try {
     // Closed snapshot days are a file read. Live discovery keeps running after
     // the budget so a cold desk cannot hold the document for the full hydrate.
+    // The in-progress Eastern day stays in memory until the nightly writer.
     void source.getEquityVolumeHistory().catch(() => undefined);
     const [historySettled, hourlySettled, chainsResult] = await Promise.all([
       source.getClosedDeskVolumeHistory().then(

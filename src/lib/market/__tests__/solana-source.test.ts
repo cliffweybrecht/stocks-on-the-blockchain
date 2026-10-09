@@ -851,31 +851,9 @@ describe("SolanaMarketDataSource", () => {
     expect(history.points.some((point) => point.kind === "rolling_24h")).toBe(false);
     expect(history.points.every((point) => point.kind === "calendar_day")).toBe(true);
     expect(history.points.some((point) => point.volumeUsd === 0)).toBe(false);
-    const stored = await snapshots.load();
-    expect(stored).toHaveLength(1);
-    expect(stored[0]?.combined24hUsd).toBeCloseTo(10_250.25);
-    expect(stored[0]?.publicEquity24hUsd).toBeCloseTo(1_250.25);
-    expect(stored[0]?.etfIndex24hUsd).toBe(9_000);
-    const easternToday = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "America/New_York",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(new Date());
-    if (stored[0] && stored[0].date < easternToday) {
-      expect(history.available).toBe(true);
-      expect(history.points).toEqual([
-        {
-          t: utcInstantForDayKey(stored[0].date),
-          volumeUsd: stored[0].combined24hUsd,
-          kind: "calendar_day",
-        },
-      ]);
-      expect(history.volume24hUsd).toBeCloseTo(1_250.25);
-    } else {
-      expect(history.points).toEqual([]);
-      expect(history.available).toBe(false);
-    }
+    expect(await snapshots.load()).toEqual([]);
+    expect(history.points).toEqual([]);
+    expect(history.available).toBe(false);
   });
 
   it("keeps prior DexScreener snapshot days and does not invent Gecko history when OHLCV fails", async () => {
@@ -917,6 +895,10 @@ describe("SolanaMarketDataSource", () => {
     expect(history.points.some((point) => point.kind === "calendar_day" && point.volumeUsd === 0)).toBe(false);
     expect(history.definition).toMatch(/DexScreener 24h snapshots/);
     expect(history.definition).not.toMatch(/No GeckoTerminal daily candles/);
+    const stored = await snapshots.load();
+    expect(stored).toHaveLength(1);
+    expect(stored[0]?.date).toBe("2026-09-14");
+    expect(stored[0]?.combined24hUsd).toBe(10);
   });
 
   it("reads hourly rolling 24h points from the hourly store and does not write the closed-day file", async () => {
@@ -1080,7 +1062,10 @@ describe("SolanaMarketDataSource", () => {
     expect(await snapshots.load()).toEqual([]);
 
     await source.getEquityVolumeHistory();
-    expect(await snapshots.load()).toHaveLength(1);
+    await source.listChains();
+    await source.getChain("solana");
+    await source.flushBackgroundWork();
+    expect(await snapshots.load()).toEqual([]);
   });
 
   it("picks up a new DexScreener total after the desk cache expires without writing solana.json", async () => {
