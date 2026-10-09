@@ -1237,7 +1237,27 @@
           "pools": [],
           "volumeSource": "gecko-hourly-et"
         }
-      ]
+      ],
+      "issuersByLane": {
+        "equity": {
+          "rhj": {
+            "usd": 105790469.4,
+            "mints": 109
+          }
+        },
+        "etf": {
+          "rhj": {
+            "usd": 47507444.74,
+            "mints": 10
+          }
+        },
+        "private": {
+          "rhj": {
+            "usd": 17972495.83,
+            "mints": 1
+          }
+        }
+      }
     },
     {
       "date": "2026-09-24",
@@ -2485,7 +2505,27 @@
           "pools": [],
           "volumeSource": "gecko-hourly-et"
         }
-      ]
+      ],
+      "issuersByLane": {
+        "equity": {
+          "rhj": {
+            "usd": 105668949.93,
+            "mints": 110
+          }
+        },
+        "etf": {
+          "rhj": {
+            "usd": 46164588.45,
+            "mints": 10
+          }
+        },
+        "private": {
+          "rhj": {
+            "usd": 20400277.07,
+            "mints": 1
+          }
+        }
+      }
     },
     {
       "date": "2026-09-25",
@@ -3703,7 +3743,27 @@
           "pools": [],
           "volumeSource": "gecko-hourly-et"
         }
-      ]
+      ],
+      "issuersByLane": {
+        "equity": {
+          "rhj": {
+            "usd": 90417311.26,
+            "mints": 105
+          }
+        },
+        "etf": {
+          "rhj": {
+            "usd": 42978504.22,
+            "mints": 12
+          }
+        },
+        "private": {
+          "rhj": {
+            "usd": 14638422.61,
+            "mints": 1
+          }
+        }
+      }
     },
     {
       "date": "2026-09-26",
@@ -4731,7 +4791,27 @@
           "pools": [],
           "volumeSource": "gecko-hourly-et"
         }
-      ]
+      ],
+      "issuersByLane": {
+        "equity": {
+          "rhj": {
+            "usd": 29734516.11,
+            "mints": 85
+          }
+        },
+        "etf": {
+          "rhj": {
+            "usd": 13253667.9,
+            "mints": 13
+          }
+        },
+        "private": {
+          "rhj": {
+            "usd": 3668346.62,
+            "mints": 1
+          }
+        }
+      }
     },
     {
       "date": "2026-09-27",
@@ -4742,47 +4822,26 @@
       "combined24hUsd": 87435223.37,
       "issuersByLane": {
         "equity": {
-          "ondo": {
-            "usd": 0.7500000000000004,
-            "mints": 205,
-            "pools": 25,
-            "withVolume": 25,
-            "liquidityUsd": 7621854338.659999
-          },
           "rhj": {
-            "usd": 18210535.030000012,
-            "mints": 177,
+            "usd": 59812069.8,
+            "mints": 98,
             "pools": 125,
             "withVolume": 125,
             "liquidityUsd": 29947363.46000001
           }
         },
         "etf": {
-          "ondo": {
-            "usd": 0.09,
-            "mints": 81,
-            "pools": 3,
-            "withVolume": 3,
-            "liquidityUsd": 691638138.23
-          },
           "rhj": {
-            "usd": 9454335.409999998,
-            "mints": 17,
+            "usd": 22865790.39,
+            "mints": 13,
             "pools": 17,
             "withVolume": 12,
             "liquidityUsd": 11753886.459999999
           }
         },
         "private": {
-          "ondo": {
-            "usd": 0.03,
-            "mints": 1,
-            "pools": 1,
-            "withVolume": 1,
-            "liquidityUsd": 5457610.42
-          },
           "rhj": {
-            "usd": 1901022.43,
+            "usd": 4757363.18,
             "mints": 1,
             "pools": 1,
             "withVolume": 1,
@@ -5971,47 +6030,26 @@
       "combined24hUsd": 188128955.19,
       "issuersByLane": {
         "equity": {
-          "ondo": {
-            "usd": null,
-            "mints": 198,
-            "pools": 0,
-            "withVolume": 0,
-            "liquidityUsd": null
-          },
           "rhj": {
-            "usd": 51874181.1,
-            "mints": 177,
+            "usd": 105327195.72,
+            "mints": 113,
             "pools": 131,
             "withVolume": 131,
             "liquidityUsd": 22372527.860000007
           }
         },
         "etf": {
-          "ondo": {
-            "usd": null,
-            "mints": 81,
-            "pools": 0,
-            "withVolume": 0,
-            "liquidityUsd": null
-          },
           "rhj": {
-            "usd": 20071855.349999994,
-            "mints": 17,
+            "usd": 49772514.91,
+            "mints": 11,
             "pools": 19,
             "withVolume": 11,
             "liquidityUsd": 12189581.919999998
           }
         },
         "private": {
-          "ondo": {
-            "usd": null,
-            "mints": 1,
-            "pools": 0,
-            "withVolume": 0,
-            "liquidityUsd": null
-          },
           "rhj": {
-            "usd": 21177203.16,
+            "usd": 33029244.56,
             "mints": 1,
             "pools": 1,
             "withVolume": 1,
@@ -7341,47 +7379,26 @@
       "combined24hUsd": 158864135.5,
       "issuersByLane": {
         "equity": {
-          "ondo": {
-            "usd": null,
-            "mints": 199,
-            "pools": 0,
-            "withVolume": 0,
-            "liquidityUsd": null
-          },
           "rhj": {
-            "usd": 45705418.78,
-            "mints": 177,
+            "usd": 101680651.14,
+            "mints": 110,
             "pools": 120,
             "withVolume": 120,
             "liquidityUsd": 21713727.13000001
           }
         },
         "etf": {
-          "ondo": {
-            "usd": null,
-            "mints": 81,
-            "pools": 0,
-            "withVolume": 0,
-            "liquidityUsd": null
-          },
           "rhj": {
-            "usd": 14606638.17,
-            "mints": 17,
+            "usd": 39044746.81,
+            "mints": 13,
             "pools": 19,
             "withVolume": 12,
             "liquidityUsd": 9582736.51
           }
         },
         "private": {
-          "ondo": {
-            "usd": null,
-            "mints": 1,
-            "pools": 0,
-            "withVolume": 0,
-            "liquidityUsd": null
-          },
           "rhj": {
-            "usd": 11750843.96,
+            "usd": 18138737.55,
             "mints": 1,
             "pools": 1,
             "withVolume": 1,
@@ -8701,47 +8718,26 @@
       "combined24hUsd": 160972326.06,
       "issuersByLane": {
         "equity": {
-          "ondo": {
-            "usd": 18.49000000000009,
-            "mints": 208,
-            "pools": 123,
-            "withVolume": 123,
-            "liquidityUsd": 35422899114.5
-          },
           "rhj": {
-            "usd": 47496105.95000001,
-            "mints": 177,
+            "usd": 102378816.84,
+            "mints": 112,
             "pools": 140,
             "withVolume": 140,
             "liquidityUsd": 23346430.07
           }
         },
         "etf": {
-          "ondo": {
-            "usd": 1.1100000000000008,
-            "mints": 81,
-            "pools": 37,
-            "withVolume": 37,
-            "liquidityUsd": 9550989497.92
-          },
           "rhj": {
-            "usd": 16923229.069999997,
-            "mints": 17,
+            "usd": 45533408.54,
+            "mints": 13,
             "pools": 19,
             "withVolume": 12,
             "liquidityUsd": 12061645.440000001
           }
         },
         "private": {
-          "ondo": {
-            "usd": 0.03,
-            "mints": 1,
-            "pools": 1,
-            "withVolume": 1,
-            "liquidityUsd": 5418754.79
-          },
           "rhj": {
-            "usd": 7291170.13,
+            "usd": 13060100.68,
             "mints": 1,
             "pools": 1,
             "withVolume": 1,
@@ -10081,47 +10077,26 @@
       "combined24hUsd": 155320533.75,
       "issuersByLane": {
         "equity": {
-          "ondo": {
-            "usd": 220.51000000000005,
-            "mints": 208,
-            "pools": 123,
-            "withVolume": 123,
-            "liquidityUsd": 35648870014.749985
-          },
           "rhj": {
-            "usd": 40809189.410000004,
-            "mints": 176,
+            "usd": 93978751.56,
+            "mints": 111,
             "pools": 132,
             "withVolume": 132,
             "liquidityUsd": 22708812.839999992
           }
         },
         "etf": {
-          "ondo": {
-            "usd": 36.75,
-            "mints": 81,
-            "pools": 36,
-            "withVolume": 36,
-            "liquidityUsd": 9611234402.06
-          },
           "rhj": {
-            "usd": 18470415.669999994,
-            "mints": 17,
+            "usd": 49637961.74,
+            "mints": 12,
             "pools": 20,
             "withVolume": 13,
             "liquidityUsd": 11255150.160000004
           }
         },
         "private": {
-          "ondo": {
-            "usd": 0.03,
-            "mints": 1,
-            "pools": 1,
-            "withVolume": 1,
-            "liquidityUsd": 5467400.65
-          },
           "rhj": {
-            "usd": 3020618.44,
+            "usd": 11703820.45,
             "mints": 1,
             "pools": 1,
             "withVolume": 1,
@@ -11441,47 +11416,26 @@
       "combined24hUsd": 126018353.15,
       "issuersByLane": {
         "equity": {
-          "ondo": {
-            "usd": null,
-            "mints": 205,
-            "pools": 0,
-            "withVolume": 0,
-            "liquidityUsd": null
-          },
           "rhj": {
-            "usd": 27891586.01,
-            "mints": 176,
+            "usd": 71605331.43,
+            "mints": 126,
             "pools": 147,
             "withVolume": 147,
             "liquidityUsd": 21977064.770000007
           }
         },
         "etf": {
-          "ondo": {
-            "usd": null,
-            "mints": 81,
-            "pools": 0,
-            "withVolume": 0,
-            "liquidityUsd": null
-          },
           "rhj": {
-            "usd": 16874312.28,
-            "mints": 17,
+            "usd": 41638655.08,
+            "mints": 14,
             "pools": 21,
             "withVolume": 13,
             "liquidityUsd": 11315031.790000001
           }
         },
         "private": {
-          "ondo": {
-            "usd": null,
-            "mints": 1,
-            "pools": 0,
-            "withVolume": 0,
-            "liquidityUsd": null
-          },
           "rhj": {
-            "usd": 3777288.81,
+            "usd": 12774366.64,
             "mints": 1,
             "pools": 1,
             "withVolume": 1,
@@ -12971,47 +12925,26 @@
       "combined24hUsd": 51892568.69,
       "issuersByLane": {
         "equity": {
-          "ondo": {
-            "usd": 0.7300000000000003,
-            "mints": 210,
-            "pools": 20,
-            "withVolume": 20,
-            "liquidityUsd": 5750588388.240001
-          },
           "rhj": {
-            "usd": 17914082.330000006,
-            "mints": 176,
+            "usd": 42066400.15,
+            "mints": 129,
             "pools": 150,
             "withVolume": 150,
             "liquidityUsd": 20089651.830000002
           }
         },
         "etf": {
-          "ondo": {
-            "usd": 0.24,
-            "mints": 81,
-            "pools": 8,
-            "withVolume": 8,
-            "liquidityUsd": 1392710056.4199998
-          },
           "rhj": {
-            "usd": 2506660.1599999997,
-            "mints": 17,
+            "usd": 8454170.7,
+            "mints": 13,
             "pools": 24,
             "withVolume": 15,
             "liquidityUsd": 10292460.61
           }
         },
         "private": {
-          "ondo": {
-            "usd": 0.03,
-            "mints": 1,
-            "pools": 1,
-            "withVolume": 1,
-            "liquidityUsd": 5437258.61
-          },
           "rhj": {
-            "usd": 532022.71,
+            "usd": 1371997.84,
             "mints": 1,
             "pools": 1,
             "withVolume": 1,
@@ -14521,47 +14454,26 @@
       "combined24hUsd": 116490654.63,
       "issuersByLane": {
         "equity": {
-          "ondo": {
-            "usd": 20.990000000000013,
-            "mints": 209,
-            "pools": 21,
-            "withVolume": 21,
-            "liquidityUsd": 7248269190.48
-          },
           "rhj": {
-            "usd": 35894960.64,
-            "mints": 176,
+            "usd": 98155687.9,
+            "mints": 103,
             "pools": 118,
             "withVolume": 118,
             "liquidityUsd": 20595466.68
           }
         },
         "etf": {
-          "ondo": {
-            "usd": 0.09,
-            "mints": 81,
-            "pools": 3,
-            "withVolume": 3,
-            "liquidityUsd": 670273313.84
-          },
           "rhj": {
-            "usd": 5608224.310000001,
-            "mints": 17,
+            "usd": 15244922.36,
+            "mints": 12,
             "pools": 20,
             "withVolume": 12,
             "liquidityUsd": 9924153.11
           }
         },
         "private": {
-          "ondo": {
-            "usd": 0.03,
-            "mints": 1,
-            "pools": 1,
-            "withVolume": 1,
-            "liquidityUsd": 5482471.84
-          },
           "rhj": {
-            "usd": 1307157.09,
+            "usd": 3090044.37,
             "mints": 1,
             "pools": 1,
             "withVolume": 1,
@@ -15801,47 +15713,26 @@
       "combined24hUsd": 114448418.44,
       "issuersByLane": {
         "equity": {
-          "ondo": {
-            "usd": 40.39,
-            "mints": 206,
-            "pools": 1,
-            "withVolume": 1,
-            "liquidityUsd": 171642350.12
-          },
           "rhj": {
-            "usd": 30452357.21,
-            "mints": 176,
+            "usd": 72324906.62,
+            "mints": 111,
             "pools": 130,
             "withVolume": 130,
             "liquidityUsd": 17482364.95
           }
         },
         "etf": {
-          "ondo": {
-            "usd": null,
-            "mints": 81,
-            "pools": 0,
-            "withVolume": 0,
-            "liquidityUsd": null
-          },
           "rhj": {
-            "usd": 15750857.009999998,
-            "mints": 17,
+            "usd": 34833341.45,
+            "mints": 11,
             "pools": 22,
             "withVolume": 12,
             "liquidityUsd": 11273506.009999998
           }
         },
         "private": {
-          "ondo": {
-            "usd": null,
-            "mints": 1,
-            "pools": 0,
-            "withVolume": 0,
-            "liquidityUsd": null
-          },
           "rhj": {
-            "usd": 2352414.29,
+            "usd": 7290170.37,
             "mints": 1,
             "pools": 1,
             "withVolume": 1,
@@ -17151,47 +17042,26 @@
       "combined24hUsd": 117211768.8,
       "issuersByLane": {
         "equity": {
-          "ondo": {
-            "usd": 130.54,
-            "mints": 207,
-            "pools": 2,
-            "withVolume": 2,
-            "liquidityUsd": 622277407.81
-          },
           "rhj": {
-            "usd": 34462563.72999999,
-            "mints": 176,
+            "usd": 71215121.17,
+            "mints": 116,
             "pools": 131,
             "withVolume": 131,
             "liquidityUsd": 16570604.699999997
           }
         },
         "etf": {
-          "ondo": {
-            "usd": null,
-            "mints": 81,
-            "pools": 0,
-            "withVolume": 0,
-            "liquidityUsd": null
-          },
           "rhj": {
-            "usd": 13649591.730000004,
-            "mints": 17,
+            "usd": 36707685.3,
+            "mints": 12,
             "pools": 20,
             "withVolume": 12,
             "liquidityUsd": 8698088.46
           }
         },
         "private": {
-          "ondo": {
-            "usd": null,
-            "mints": 1,
-            "pools": 0,
-            "withVolume": 0,
-            "liquidityUsd": null
-          },
           "rhj": {
-            "usd": 5781493.79,
+            "usd": 9288962.33,
             "mints": 1,
             "pools": 1,
             "withVolume": 1,
@@ -18562,8 +18432,8 @@
       "issuersByLane": {
         "equity": {
           "rhj": {
-            "usd": 72099125.56,
-            "mints": 176,
+            "usd": 133280014.85,
+            "mints": 121,
             "pools": 139,
             "withVolume": 139,
             "liquidityUsd": 17430681.85000001
@@ -18571,8 +18441,8 @@
         },
         "etf": {
           "rhj": {
-            "usd": 6854767.6,
-            "mints": 17,
+            "usd": 29841938.05,
+            "mints": 13,
             "pools": 13,
             "withVolume": 13,
             "liquidityUsd": 5213004.9799999995
@@ -18580,7 +18450,7 @@
         },
         "private": {
           "rhj": {
-            "usd": 5054930.47,
+            "usd": 7356381.28,
             "mints": 1,
             "pools": 1,
             "withVolume": 1,
@@ -20022,8 +19892,8 @@
       "issuersByLane": {
         "equity": {
           "rhj": {
-            "usd": 37801086.050000004,
-            "mints": 176,
+            "usd": 72180497.34,
+            "mints": 162,
             "pools": 164,
             "withVolume": 164,
             "liquidityUsd": 21889809.060000017
@@ -20031,8 +19901,8 @@
         },
         "etf": {
           "rhj": {
-            "usd": 12151972.0,
-            "mints": 17,
+            "usd": 43869763.65,
+            "mints": 14,
             "pools": 14,
             "withVolume": 14,
             "liquidityUsd": 7399147.299999999
@@ -20040,7 +19910,7 @@
         },
         "private": {
           "rhj": {
-            "usd": 1390115.37,
+            "usd": 6964279.84,
             "mints": 1,
             "pools": 1,
             "withVolume": 1,
