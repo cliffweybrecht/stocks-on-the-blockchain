@@ -8,6 +8,7 @@ const BNB_ISSUER_LABELS: Record<string, string> = {
   bstocks: "bStocks",
   paimon: "Paimon",
   colb: "Colb Finance",
+  fourmeme: "Four.meme 4Stock",
 };
 
 export function bnbIssuerPresentation(slug: string): { label: string; official: boolean } {

@@ -10,10 +10,12 @@ from pathlib import Path
 from bnb_volume_universe import (
     CHAIN_ID,
     CHAIN_SLUG,
+    FOURMEME_4STOCKS,
     HttpStatus,
     PAIMON_PRIME,
     add_colb_docs,
     add_cowswap_tokenlist,
+    add_fourmeme,
     add_jumper_bstocks,
     add_ondo_metadata,
     add_paimon,
@@ -368,6 +370,11 @@ class BnbUniverseTest(unittest.TestCase):
         self.assertEqual(issuers["bstocks"], 1)
         self.assertEqual(issuers["colb"], 1)
         self.assertGreaterEqual(issuers["paimon"], 1)
+        self.assertEqual(issuers["fourmeme"], 1)
+        bnc4 = next(row for row in rows if row["issuer"] == "fourmeme")
+        self.assertEqual(bnc4["symbol"], "BNC4")
+        self.assertEqual(bnc4["kind"], "equity")
+        self.assertEqual(bnc4["address"], FOURMEME_4STOCKS[0][2])
         self.assertEqual(meta["registries"]["ondo-gm"]["status"], 403)
         self.assertEqual(meta["registries"]["bstocks-finance"]["status"], 403)
         self.assertTrue(any("HTTP 403" in warning and "ondo" in warning for warning in warnings))
@@ -520,6 +527,97 @@ class BnbUniverseTest(unittest.TestCase):
         self.assertIsNone(reported_h24(-1))
         self.assertEqual(reported_h24(0), 0.0)
         self.assertEqual(reported_h24("0"), 0.0)
+
+    def test_fourmeme_seed_is_public_equity_and_easy_to_extend(self) -> None:
+        from bnb_volume_universe import Book
+
+        self.assertEqual(FOURMEME_4STOCKS[0][0], "BNC4")
+        self.assertEqual(FOURMEME_4STOCKS[0][3], "BNC")
+        book = Book()
+        self.assertEqual(add_fourmeme(book), 1)
+        self.assertEqual(add_fourmeme(book), 0)
+        row = book.rows[0]
+        self.assertEqual(row["issuer"], "fourmeme")
+        self.assertEqual(row["kind"], "equity")
+        self.assertEqual(row["symbol"], "BNC4")
+        self.assertEqual(row["name"], "Cea Industries")
+        self.assertEqual(row["ticker"], "BNC")
+        self.assertEqual(row["source"], "fourmeme")
+
+    def test_fourmeme_counts_only_base_against_real_quotes(self) -> None:
+        bnc4 = FOURMEME_4STOCKS[0][2]
+        usdt = "0x55d398326f99059ff775485246999027b3197955"
+        bncb = "0x4902C5ebc598265Ed2212b559B042De8a5Eeec3f"
+        meme = "0x" + "cd" * 20
+        pairs = [
+            {
+                "chainId": "bsc",
+                "pairAddress": "0xusdt",
+                "baseToken": {"address": bnc4},
+                "quoteToken": {"address": usdt},
+                "volume": {"h24": 100},
+            },
+            {
+                "chainId": "bsc",
+                "pairAddress": "0xusdt",
+                "baseToken": {"address": bnc4},
+                "quoteToken": {"address": usdt},
+                "volume": {"h24": 100},
+            },
+            {
+                "chainId": "bsc",
+                "pairAddress": "0xusdc",
+                "baseToken": {"address": bnc4},
+                "quoteToken": {"address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d"},
+                "volume": {"h24": 40},
+            },
+            {
+                "chainId": "bsc",
+                "pairAddress": "0xwbnb",
+                "baseToken": {"address": bnc4},
+                "quoteToken": {"address": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c"},
+                "volume": {"h24": 0},
+            },
+            {
+                "chainId": "bsc",
+                "pairAddress": "0xbncb",
+                "baseToken": {"address": bnc4},
+                "quoteToken": {"address": bncb},
+                "volume": {"h24": 500},
+            },
+            {
+                "chainId": "bsc",
+                "pairAddress": "0xmeme-quote",
+                "baseToken": {"address": meme, "symbol": "MEME"},
+                "quoteToken": {"address": bnc4},
+                "volume": {"h24": 9000},
+            },
+            {
+                "chainId": "bsc",
+                "pairAddress": "0xmeme-base",
+                "baseToken": {"address": bnc4},
+                "quoteToken": {"address": meme, "symbol": "BOB"},
+                "volume": {"h24": 700},
+            },
+            {
+                "chainId": "bsc",
+                "pairAddress": "0xother-stock",
+                "baseToken": {"address": meme},
+                "quoteToken": {"address": AAPL},
+                "volume": {"h24": 3},
+            },
+        ]
+        restricted = {bnc4.lower()}
+        totals, counts = sum_unique_pool_volumes(
+            pairs,
+            {bnc4, AAPL},
+            base_against_quotes=restricted,
+            quote_assets=_MOD.BNB_QUOTE_ASSETS,
+        )
+        self.assertEqual(totals[bnc4.lower()], 140.0)
+        self.assertEqual(counts[bnc4.lower()], 3)
+        self.assertEqual(totals[AAPL.lower()], 3.0)
+        self.assertEqual(counts[AAPL.lower()], 1)
 
     def test_writer_does_not_hardcode_an_issuer_allowlist(self) -> None:
         text = _SCRIPT.read_text() + Path(__file__).with_name("bnb_volume_universe.py").read_text()

@@ -6,8 +6,9 @@ Writes data/volume-snapshots/bnb.json.
   for every issuer, deduped by contract address. Stocksonchain alone only
   indexes Ondo and xStocks, so the writer also reads the Ondo GM API
   (bsc-56), the xStocks public asset list and CowSwap token list, the
-  Jumper bStocks catalog, Colb Finance's BNB pre-IPO contracts, and Paimon
-  pre-IPO SPV tokens. A 403 on one source does not blank the day.
+  Jumper bStocks catalog, Colb Finance's BNB pre-IPO contracts, Paimon
+  pre-IPO SPV tokens, and the Four.meme 4Stock seed (no public contract
+  list). A 403 on one source does not blank the day.
 - Lanes are public equity, ETF/index, and private (pre-IPO). ETF/index is
   classified before private. Private is fail-closed: Colb/Paimon wrappers, or
   registry kind preipo|private plus a private-company name/symbol. Crypto,
@@ -16,6 +17,11 @@ Writes data/volume-snapshots/bnb.json.
   Paimon Prime stay out. Other chains stay out.
 - 24h volume: DexScreener tokens/v1/bsc sum of non-null volume.h24 across
   unique pools per mint (chain 56 / bsc). Same method as the public lane.
+  Four.meme is also the quote asset for Stock Meme pairs. Those mints count
+  only pools where the 4Stock is the base token against a cash or wrapped
+  native quote (USDT, USDC, WBNB, BNB, and the other addresses in
+  BNB_QUOTE_ASSETS). tokens/v1 returns one primary pair, which for BNC4 is
+  the BNC4/BNCB stock pair, so those mints also read token-pairs/v1.
 - null != 0. Missing or invalid h24 is omitted; a reported 0 stays 0.
   A mint or lane with no reported volume stays null (sumNullable). No Gecko backfill.
 - issuersByLane partitions that same sum by issuer inside each lane
@@ -64,6 +70,27 @@ from volume_snapshot_day import snapshot_date_override, snapshot_day_key  # noqa
 
 UA = {"User-Agent": "Mozilla/5.0 (compatible; BnbVolumeSnapshot/1.0)"}
 DEX_BATCH = "https://api.dexscreener.com/tokens/v1/bsc/{addrs}"
+# Up to 30 pools. tokens/v1/bsc returns one primary pair, which is not enough
+# when that pair is another stock or the mint is a Stock Meme quote.
+DEX_TOKEN_PAIRS = "https://api.dexscreener.com/token-pairs/v1/bsc/{addr}"
+
+# Cash and wrapped-native quotes on BNB Chain. A Stock Meme or another
+# tokenized stock (BNCB, NVDAB) is not a quote for a 4Stock mint.
+BNB_QUOTE_ASSETS = frozenset(
+    {
+        "0x55d398326f99059ff775485246999027b3197955",  # USDT
+        "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d",  # USDC
+        "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c",  # WBNB
+        "0xe9e7cea3dedca5984780bafc599bd69add087d56",  # BUSD
+        "0xc5f0f7b66764f6ec8c8dff7ba683102295e16409",  # FDUSD
+        "0x1af3f329e8be154074d8769d1ffa4ee058b1dbc3",  # DAI
+        "0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d",  # USD1
+        "0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c",  # BTCB
+        "0x2170ed0880ac9a755fd29b2688956bd959f933f8",  # ETH
+        "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",  # native BNB placeholder
+        "0x0000000000000000000000000000000000000000",
+    }
+)
 
 
 def fetch_json(url: str, retries: int = 6) -> Any:
@@ -148,20 +175,43 @@ def pair_on_bnb(chain_id: Any) -> bool:
     return str(chain_id).strip().lower() in {CHAIN_SLUG, "bsc", "56", "bnb", "bnb-chain", "binancesmartchain"}
 
 
+def _quote_restricted_pool(mint: str, base: str, quote: str, quote_assets: set[str]) -> bool:
+    """True when this mint is the traded token against a real quote.
+
+    Stock Meme pools put the 4Stock on the quote side. Those stay out, as do
+    pools quoted in another stock or a meme.
+    """
+    return mint == base and quote in quote_assets
+
+
 def sum_unique_pool_volumes(
     pairs: list[Any],
     addresses: set[str],
     pool_details: dict[str, list[dict]] | None = None,
+    seen: dict[str, set[str]] | None = None,
+    *,
+    base_against_quotes: set[str] | None = None,
+    quote_assets: set[str] | None = None,
 ) -> tuple[dict[str, float | None], dict[str, int]]:
     """Sum each mint's non-null volume.h24 across unique BNB pools.
 
     Duplicate pair addresses count once. Pools with no reported h24 still count
     as pools but do not invent $0. An unindexed mint stays null.
+
+    Addresses in base_against_quotes count only as the base token against
+    quote_assets. Every other mint still counts on either side of the pool.
+    Pass seen to keep that dedup across calls.
     """
     wanted = {addr.lower() for addr in addresses}
+    restricted = {addr.lower() for addr in (base_against_quotes or ())}
+    quotes = {addr.lower() for addr in (quote_assets or ())}
     totals: dict[str, float | None] = {addr: None for addr in wanted}
     counts: dict[str, int] = {addr: 0 for addr in wanted}
-    seen: dict[str, set[str]] = {addr: set() for addr in wanted}
+    if seen is None:
+        seen = {addr: set() for addr in wanted}
+    else:
+        for addr in wanted:
+            seen.setdefault(addr, set())
     for pair in pairs:
         if not isinstance(pair, dict) or not pair_on_bnb(pair.get("chainId")):
             continue
@@ -177,6 +227,8 @@ def sum_unique_pool_volumes(
         for addr in {base, quote}:
             if addr not in wanted:
                 continue
+            if addr in restricted and not _quote_restricted_pool(addr, base, quote, quotes):
+                continue
             if pair_address:
                 if pair_address in seen[addr]:
                     continue
@@ -190,6 +242,27 @@ def sum_unique_pool_volumes(
     return totals, counts
 
 
+def _apply_pool_sum(
+    vols: dict[str, float | None],
+    pool_counts: dict[str, int],
+    mint_sum: dict[str, float | None],
+    mint_pools: dict[str, int],
+    *,
+    add: bool,
+) -> None:
+    for addr, total in mint_sum.items():
+        if total is None:
+            continue
+        if add and vols[addr] is not None:
+            vols[addr] = vols[addr] + total
+        else:
+            vols[addr] = total
+    for addr, n in mint_pools.items():
+        if not n:
+            continue
+        pool_counts[addr] = pool_counts.get(addr, 0) + n if add else n
+
+
 def hydrate_volumes(
     rows: list[dict],
 ) -> tuple[dict[str, float | None], dict[str, int], dict[str, list[dict]], list[str]]:
@@ -199,6 +272,13 @@ def hydrate_volumes(
     pool_details: dict[str, list[dict]] = {a: [] for a in by_addr}
     warnings: list[str] = []
     failed_batches = 0
+    # Stock Meme pairs quote the 4Stock. Only those mints are quote-restricted.
+    restricted = {
+        addr
+        for addr, row in by_addr.items()
+        if issuer_slug(str(row.get("issuer") or "")) == "fourmeme"
+    }
+    seen: dict[str, set[str]] = {addr: set() for addr in by_addr}
 
     for batch in chunks(list(by_addr.keys()), 20):
         addrs = ",".join(by_addr[a]["address"] for a in batch)
@@ -211,13 +291,38 @@ def hydrate_volumes(
             time.sleep(1)
             continue
         pairs = data if isinstance(data, list) else (data.get("pairs") or [])
-        mint_sum, mint_pools = sum_unique_pool_volumes(pairs, set(batch), pool_details)
-        for addr, total in mint_sum.items():
-            if total is not None:
-                vols[addr] = total
-        for addr, n in mint_pools.items():
-            if n:
-                pool_counts[addr] = n
+        mint_sum, mint_pools = sum_unique_pool_volumes(
+            pairs,
+            set(batch),
+            pool_details,
+            seen,
+            base_against_quotes=restricted,
+            quote_assets=BNB_QUOTE_ASSETS,
+        )
+        _apply_pool_sum(vols, pool_counts, mint_sum, mint_pools, add=False)
+        time.sleep(0.45)
+
+    # tokens/v1's primary pair for BNC4 is BNC4/BNCB. The cash-quote pools are
+    # on token-pairs/v1. Dedup shares `seen` with the batch pass.
+    for addr in sorted(restricted):
+        url = DEX_TOKEN_PAIRS.format(addr=by_addr[addr]["address"])
+        try:
+            data = fetch_json(url)
+        except Exception as e:  # noqa: BLE001
+            failed_batches += 1
+            print(f"warn fourmeme pairs failed: {e}", file=sys.stderr)
+            time.sleep(1)
+            continue
+        pairs = data if isinstance(data, list) else (data.get("pairs") or [])
+        mint_sum, mint_pools = sum_unique_pool_volumes(
+            pairs,
+            {addr},
+            pool_details,
+            seen,
+            base_against_quotes=restricted,
+            quote_assets=BNB_QUOTE_ASSETS,
+        )
+        _apply_pool_sum(vols, pool_counts, mint_sum, mint_pools, add=True)
         time.sleep(0.45)
 
     if failed_batches:
@@ -342,7 +447,10 @@ def main() -> int:
         "generatedAt": now.isoformat().replace("+00:00", "Z"),
         "sources": {
             "universe": "BNB chainId 56 equity/pre-IPO/ETF union by contract address",
-            "volume": "DexScreener tokens/v1/bsc volume.h24 unique-pool sumNullable",
+            "volume": (
+                "DexScreener tokens/v1/bsc volume.h24 unique-pool sumNullable; "
+                "Four.meme also reads token-pairs/v1 and keeps base-vs-cash-quote pools"
+            ),
             "chainId": CHAIN_ID,
             "chainSlug": CHAIN_SLUG,
             "issuers": issuers,
@@ -357,6 +465,7 @@ def main() -> int:
             "crypto, commodities, generic baskets, copycats, leveraged/inverse, perps, fan tokens, "
             "treasuries, and Paimon Prime stay out; public equity, pre-IPO, and ETF for every issuer; "
             "sumNullable of DexScreener volume.h24 across unique BNB pools; "
+            "Four.meme counts only base-token pools against cash or wrapped-native quotes; "
             "issuersByLane is that sum partitioned by issuer inside equity, etf, and private; "
             "assets[] is that same per-mint DexScreener sample; "
             "null means no reported volume (not zero)"

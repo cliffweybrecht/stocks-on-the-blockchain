@@ -235,6 +235,7 @@ describe("BNB snapshot file", () => {
     expect(rows.find((row) => row.slug === "paimon")?.privateUsd).toBeCloseTo(17_573.15, 2);
     expect(rows.find((row) => row.slug === "colb")?.privateUsd).toBeNull();
     expect(bnbIssuerPresentation("ondo").official).toBe(true);
+    expect(bnbIssuerPresentation("fourmeme")).toEqual({ label: "Four.meme 4Stock", official: true });
     expect(snapshotDeskHeadline(snapshotDeskDaysForRange(closed, "14d"), "14d", "BNB Chain").caption).not.toMatch(
       /trailing h24/i,
     );
