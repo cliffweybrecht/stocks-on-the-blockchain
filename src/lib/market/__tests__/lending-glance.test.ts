@@ -70,8 +70,9 @@ describe("lending glance", () => {
     expect(flags.map((flag) => flag.venueId)).toEqual(["kamino-xstocks"]);
     const glance = lendingGlance([full, dust], aggregateLendingTotals([full, dust]), flags);
     expect(glance.tone).toBe("stretched");
+    expect(glance.toneLine).toBe("A bigger pool is at least 90% full.");
     expect(glance.sentence).toBe(
-      "Kamino xStocks's dollar pool is 90.2% full, with $22.0M of stock locked and $5.0M borrowed against it.",
+      "$22.0M of stock tokens are locked and $5.0M is borrowed against them. The busiest pool, Kamino xStocks, is 90.2% full.",
     );
   });
 
@@ -81,7 +82,10 @@ describe("lending glance", () => {
     expect(flags).toEqual([]);
     const glance = lendingGlance([calm], aggregateLendingTotals([calm]), flags);
     expect(glance.tone).toBe("calm");
-    expect(glance.sentence).toMatch(/still have room/);
+    expect(glance.toneLine).toMatch(/still have room/);
+    expect(glance.sentence).toBe(
+      "$200.0K of stock tokens are locked and $100.0K is borrowed against them. The bigger pools still have room.",
+    );
   });
 
   it("flags a 10 point fullness jump or a 1 point rate jump, and skips smaller moves", () => {
@@ -137,11 +141,13 @@ describe("lending glance", () => {
       stableBorrowedUsd: 50,
       assets: [asset({ symbol: "NVDAc", collateralUsd: 100, maxLtv: null })],
     });
-    expect(lendingDropAnswer([room], "room", 0.5).sentence).toBe("A 50% drop stays inside the borrowing limit.");
+    expect(lendingDropAnswer([room], "room", 0.5).sentence).toBe(
+      "A 50% drop stays inside the borrowing limit. No stock would be sold off to repay loans.",
+    );
     expect(lendingDropAnswer([room], "room", 0.5).collateralAtRiskUsd).toBe(0);
     const breached = lendingDropAnswer([tight], "tight", 0.5);
     expect(breached.collateralAtRiskUsd).toBe(100);
-    expect(breached.sentence).toBe("A 50% drop would push about $100.0 of stock past the borrowing limit.");
+    expect(breached.sentence).toBe("A 50% drop means about $100.0 of stock could be sold off to repay loans.");
     const mixed = lendingDropAnswer([room, tight, aave], "all", 0.5);
     expect(mixed.collateralAtRiskUsd).toBe(100);
     expect(mixed.method).toMatch(/Aave did not publish a borrowing limit/);
@@ -172,7 +178,7 @@ describe("lending glance", () => {
     const hotter = row({ ...book, stableBorrowedUsd: 60 });
     const past = lendingDropAnswer([hotter], "stock:NVDA", 0.5);
     expect(past.collateralAtRiskUsd).toBe(80);
-    expect(past.sentence).toBe("A 50% drop would push about $80.0 of stock past the borrowing limit.");
+    expect(past.sentence).toBe("A 50% drop means about $80.0 of stock could be sold off to repay loans.");
     expect(lendingDropAnswer([book], "stock:NOPE", 0.2).sentence).toMatch(/not in this snapshot/);
   });
 
@@ -191,15 +197,17 @@ describe("lending glance", () => {
     const glance = lendingGlance(latest.rows, totals, flags);
     expect(glance.tone).toBe("stretched");
     expect(glance.sentence).toBe(
-      `Kamino xStocks's dollar pool is 90.2% full, with ${formatUsdCompact(totals.collateralUsd)} of stock locked and ${formatUsdCompact(totals.stableBorrowedUsd)} borrowed against it.`,
+      `${formatUsdCompact(totals.collateralUsd)} of stock tokens are locked and ${formatUsdCompact(totals.stableBorrowedUsd)} is borrowed against them. The busiest pool, Kamino xStocks, is 90.2% full.`,
     );
+    expect(glance.toneLine).toBe("A bigger pool is at least 90% full.");
     const scopes = lendingDropScopes(latest.rows);
     const table = lendingDropTable(latest.rows, scopes);
     const mild = table.all?.[lendingDropKey(0.1 as LendingDropFraction)];
     const mid = table.all?.[lendingDropKey(0.2 as LendingDropFraction)];
     expect(mild?.collateralAtRiskUsd).toBe(0);
     expect(mild?.sentence).toMatch(/stays inside the borrowing limit where a limit is published/);
-    expect(mid?.sentence).toMatch(/^A 20% drop would push about \$3\.0M of stock past the borrowing limit\.$/);
+    expect(mild?.sentence).toMatch(/No stock would be sold off/);
+    expect(mid?.sentence).toMatch(/^A 20% drop means about \$3\.0M of stock could be sold off to repay loans\.$/);
     expect(mid?.method).toMatch(/Aave/);
     expect(mid?.method).toMatch(/estimate/);
     expect(mid?.method).toMatch(/Sunday 8:00 PM Eastern/);

@@ -42,6 +42,8 @@ export interface LendingFillingFlag {
 export interface LendingGlanceCopy {
   sentence: string;
   tone: "calm" | "stretched" | "unknown";
+  /** One plain line beside Calm or Stretched. */
+  toneLine: string;
 }
 
 export interface LendingDropScope {
@@ -228,34 +230,47 @@ export function lendingFillingFlags(rows: readonly LendingRow[], previous: reado
   return flags;
 }
 
-function moneyWith(collateral: number | null, borrowed: number | null): string | null {
+function marketSentence(collateral: number | null, borrowed: number | null): string | null {
   if (collateral !== null && borrowed !== null) {
-    return `with ${formatUsdCompact(collateral)} of stock locked and ${formatUsdCompact(borrowed)} borrowed against it`;
+    return `${formatUsdCompact(collateral)} of stock tokens are locked and ${formatUsdCompact(borrowed)} is borrowed against them.`;
   }
-  if (collateral !== null) return `with ${formatUsdCompact(collateral)} of stock locked`;
-  if (borrowed !== null) return `with ${formatUsdCompact(borrowed)} borrowed`;
+  if (collateral !== null) return `${formatUsdCompact(collateral)} of stock tokens are locked. Borrowed dollars are not reported.`;
+  if (borrowed !== null) return `${formatUsdCompact(borrowed)} is borrowed. Stock locked is not reported.`;
   return null;
 }
 
+function standoutSentence(flag: LendingFillingFlag, rows: readonly LendingRow[]): string {
+  const row = rows.find((item) => item.id === flag.venueId);
+  const label = row ? lendingVenueLabel(row, rows) : flag.venue;
+  if (flag.kind === "full") return `The busiest pool, ${label}, is ${formatLendingFractionPct(row?.utilization)} full.`;
+  const clause = `${flag.clause.charAt(0).toUpperCase()}${flag.clause.slice(1)}`;
+  return clause.endsWith(".") ? clause : `${clause}.`;
+}
+
+function toneLine(flag: LendingFillingFlag | undefined, tone: LendingGlanceCopy["tone"]): string {
+  if (tone === "unknown") return "There is no lending snapshot yet.";
+  if (tone === "calm") return "The bigger pools still have room, and none jumped since yesterday.";
+  if (flag?.kind === "full") return "A bigger pool is at least 90% full.";
+  if (flag?.kind === "utilization-jump") return "A bigger pool filled up sharply since yesterday.";
+  return "A bigger pool's yearly cost jumped since yesterday.";
+}
+
 export function lendingGlance(rows: readonly LendingRow[], totals: LendingTotals, flags: readonly LendingFillingFlag[]): LendingGlanceCopy {
-  const money = moneyWith(totals.collateralUsd, totals.stableBorrowedUsd);
-  if (!money && flags.length === 0) return { sentence: "No lending snapshot yet.", tone: "unknown" };
+  const market = marketSentence(totals.collateralUsd, totals.stableBorrowedUsd);
   const lead = flags.find((flag) => flag.kind === "full") ?? flags[0];
+  if (!market && !lead) return { sentence: "No lending snapshot yet.", tone: "unknown", toneLine: toneLine(undefined, "unknown") };
   if (lead) {
+    const standout = standoutSentence(lead, rows);
     return {
-      sentence: money ? `${lead.clause}, ${money}.` : `${lead.clause}.`,
+      sentence: market ? `${market} ${standout}` : standout,
       tone: "stretched",
-    };
-  }
-  if (totals.collateralUsd !== null && totals.stableBorrowedUsd !== null) {
-    return {
-      sentence: `${formatUsdCompact(totals.collateralUsd)} of stock is locked and ${formatUsdCompact(totals.stableBorrowedUsd)} is borrowed against it, and the bigger pools still have room.`,
-      tone: "calm",
+      toneLine: toneLine(lead, "stretched"),
     };
   }
   return {
-    sentence: money ? `${money.charAt(0).toUpperCase()}${money.slice(1)}.` : "No lending snapshot yet.",
-    tone: money ? "calm" : "unknown",
+    sentence: market ? `${market} The bigger pools still have room.` : "No lending snapshot yet.",
+    tone: market ? "calm" : "unknown",
+    toneLine: toneLine(undefined, market ? "calm" : "unknown"),
   };
 }
 
@@ -402,8 +417,8 @@ export function lendingDropAnswer(rows: readonly LendingRow[], scopeId: string, 
   const where = pieces.exclusions.length > 0 ? " where a limit is published" : "";
   const sentence =
     atRisk > 0
-      ? `A ${pct} drop would push about ${formatUsdCompact(atRisk)} of stock past the borrowing limit.`
-      : `A ${pct} drop stays inside the borrowing limit${where}.`;
+      ? `A ${pct} drop means about ${formatUsdCompact(atRisk)} of stock could be sold off to repay loans.`
+      : `A ${pct} drop stays inside the borrowing limit${where}. No stock would be sold off to repay loans.`;
   return { sentence, method: methodText(pieces), collateralAtRiskUsd: atRisk };
 }
 

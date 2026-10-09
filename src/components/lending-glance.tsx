@@ -90,6 +90,32 @@ function HistoryList({ history, empty }: { history: { date: string; collateralUs
   );
 }
 
+function FullnessRing({ fraction }: { fraction: number | null }) {
+  const size = 28;
+  const stroke = 3;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const portion = fraction === null || !Number.isFinite(fraction) ? 0 : Math.max(0, Math.min(1, fraction));
+  const drawn = circumference * portion;
+  const center = size / 2;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0 text-foreground" aria-hidden>
+      <circle cx={center} cy={center} r={radius} fill="none" stroke="currentColor" strokeOpacity={0.18} strokeWidth={stroke} />
+      <circle
+        cx={center}
+        cy={center}
+        r={radius}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={stroke}
+        strokeLinecap="round"
+        strokeDasharray={`${drawn.toFixed(2)} ${(circumference - drawn).toFixed(2)}`}
+        transform={`rotate(-90 ${center} ${center})`}
+      />
+    </svg>
+  );
+}
+
 function MoneyButton({
   label,
   value,
@@ -162,8 +188,22 @@ export function LendingGlancePanel({
     <div className="space-y-8" data-lending-glance>
       <header className="max-w-3xl space-y-3">
         <p className="text-sm text-muted-foreground">Lending</p>
-        <p className="text-sm font-medium text-foreground" data-lending-tone={glance.tone}>
-          {glance.tone === "stretched" ? "Stretched" : glance.tone === "calm" ? "Calm" : "No snapshot"}
+        <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm" data-lending-tone={glance.tone}>
+          <span
+            className={
+              glance.tone === "calm"
+                ? "inline-flex items-center gap-1.5 font-medium text-price-up"
+                : glance.tone === "stretched"
+                  ? "inline-flex items-center gap-1.5 font-medium text-interpretive"
+                  : "inline-flex items-center gap-1.5 font-medium text-muted-foreground"
+            }
+          >
+            <span className="size-2 shrink-0 rounded-full bg-current" aria-hidden />
+            {glance.tone === "stretched" ? "Stretched" : glance.tone === "calm" ? "Calm" : "No snapshot"}
+          </span>
+          <span className="text-muted-foreground" data-lending-tone-line>
+            {glance.toneLine}
+          </span>
         </p>
         <h2 className="font-heading text-2xl font-semibold tracking-tight text-foreground sm:text-3xl" data-lending-glance-sentence>
           {glance.sentence}
@@ -195,6 +235,18 @@ export function LendingGlancePanel({
           pressed={drill?.kind === "chains" && drill.metric === "borrowed"}
           onClick={() => toggleChains("borrowed")}
         />
+      </div>
+
+      <div className="flex max-w-3xl flex-wrap items-center gap-x-6 gap-y-2 text-sm" data-lending-summary>
+        <p className="inline-flex items-center gap-2" data-lending-stat="full">
+          <FullnessRing fraction={totals.utilization} />
+          <span className="text-muted-foreground">How full</span>
+          <span className="num text-foreground">{formatLendingFractionPct(totals.utilization)}</span>
+        </p>
+        <p className="inline-flex items-center gap-2" data-lending-stat="cost">
+          <span className="text-muted-foreground">Yearly cost</span>
+          <span className="num text-foreground">{formatLendingApy(totals)}</span>
+        </p>
       </div>
 
       {flags.length > 0 ? (
