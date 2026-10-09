@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   buildHolderSnapshotAsset,
   combineHolderDeskPoints,
+  holderSnapshotTotals,
+  marketValueLanes,
   consecutiveChange,
   decimalAdjustedSupply,
   holderAssetRangeView,
@@ -41,12 +43,14 @@ function day(date: string, holderCount: number | null, supplyUsd: number | null)
     notes: holderCount === null ? ["missing"] : [],
     capturedAt: `${date}T03:59:00.000Z`,
   });
+  const lanes = marketValueLanes([row]);
   return {
     date,
     t: Date.parse(`${date}T00:00:00.000Z`) / 1000,
     capturedAt: row.capturedAt,
     holderCount,
     supplyUsd: row.supplyUsd,
+    ...lanes,
     assetCount: 1,
     assetsWithHolders: holderCount === null ? 0 : 1,
     assetsWithSupplyUsd: row.supplyUsd === null ? 0 : 1,
@@ -172,6 +176,39 @@ describe("holder snapshot days", () => {
     ]);
     expect(combined[0]?.holderCount).toBe(10);
     expect(combined[0]?.supplyUsd).toBe(150);
+  });
+});
+
+describe("market value lanes", () => {
+  it("sums supply × price by lane and leaves a missing price out of every total", () => {
+    const priced = (kind: "equity" | "private" | "etf", supply: number, price: number | null) =>
+      buildHolderSnapshotAsset({
+        asset: { ...asset, instrumentKind: kind, priceUsd: price },
+        totalSupplyRaw: "100",
+        totalSupplyDecimals: 0,
+        totalSupply: supply,
+        priceUsd: price,
+        holderCount: 1,
+        supplySource: "solana-rpc:getTokenSupply",
+        holderSource: "solana-rpc:getProgramAccounts:spl-token",
+        priceSource: "dexscreener:dexMedianPriceUsd",
+        notes: [],
+        capturedAt: "2026-10-08T03:59:00.000Z",
+      });
+    const equity = priced("equity", 2, 10);
+    const privateAsset = priced("private", 4, 5);
+    const etf = priced("etf", 3, 8);
+    const missing = priced("equity", 9, null);
+    expect(equity.priceUsd).toBe(10);
+    expect(equity.supplyUsd).toBe(20);
+    expect(missing.priceUsd).toBeNull();
+    expect(missing.supplyUsd).toBeNull();
+    const totals = holderSnapshotTotals([equity, privateAsset, etf, missing]);
+    expect(totals.publicMarketValueUsd).toBe(20);
+    expect(totals.privateMarketValueUsd).toBe(20);
+    expect(totals.etfMarketValueUsd).toBe(24);
+    expect(totals.supplyUsd).toBe(64);
+    expect(totals.assetsWithSupplyUsd).toBe(3);
   });
 });
 

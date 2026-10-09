@@ -29,6 +29,9 @@ import { FileDeskVolumeSnapshotStore } from "@/lib/market/volume-snapshot-store"
 import { closedSnapshotVolumePoints } from "@/lib/market/volume-snapshots";
 import { combineHolderDeskPoints, holderDeskPoints, holderPanelPoints } from "@/lib/market/holder-snapshots";
 import { loadHolderSnapshotFile } from "@/lib/market/holder-snapshot-store";
+import { combineOnchainMarketValueHistories } from "@/lib/market/onchain-market-value";
+import { loadOnchainMarketValueHistory } from "@/lib/market/onchain-market-value-file";
+import { BASE_CHAIN_ID, BNB_CHAIN_ID, ROBINHOOD_CHAIN_ID } from "@/lib/market/types";
 
 export const dynamic = "force-dynamic";
 
@@ -163,6 +166,24 @@ export default async function HomePage() {
       holderDeskPoints(robinhoodHolders),
     ]),
   );
+  const [solanaMarketValue, baseMarketValue, bnbMarketValue, robinhoodMarketValue] = await Promise.all([
+    loadOnchainMarketValueHistory(SOLANA_CHAIN_ID),
+    loadOnchainMarketValueHistory(BASE_CHAIN_ID),
+    loadOnchainMarketValueHistory(BNB_CHAIN_ID),
+    loadOnchainMarketValueHistory(ROBINHOOD_CHAIN_ID),
+  ]);
+  const marketValue = combineOnchainMarketValueHistories([
+    solanaMarketValue,
+    baseMarketValue,
+    bnbMarketValue,
+    robinhoodMarketValue,
+  ]);
+  const marketValueByChain = {
+    [SOLANA_CHAIN_ID]: solanaMarketValue,
+    [BASE_CHAIN_ID]: baseMarketValue,
+    [BNB_CHAIN_ID]: bnbMarketValue,
+    [ROBINHOOD_CHAIN_ID]: robinhoodMarketValue,
+  };
   const chainRanges = homeChainClosedRangeBoard({
     solanaClosed,
     solanaLanes,
@@ -177,7 +198,12 @@ export default async function HomePage() {
       priceTicker={priceTicker}
       solanaJump={jumpAssets.length > 0 ? { chainId: SOLANA_CHAIN_ID, assets: jumpAssets } : undefined}
     >
-      <DeskVolumeRangeProvider volumes={{}} initialRange="7d">
+      <DeskVolumeRangeProvider
+        volumes={{}}
+        marketValue={marketValue}
+        marketValueByChain={marketValueByChain}
+        initialRange="7d"
+      >
         <div className="space-y-4">
           <DailyVolumeChart
             history={history}

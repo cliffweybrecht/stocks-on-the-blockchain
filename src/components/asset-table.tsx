@@ -9,6 +9,7 @@ import { EquityCard } from "@/components/equity-card";
 import { PinCompareStrip } from "@/components/pin-compare-strip";
 import { useSolanaFavorites } from "@/components/use-solana-favorites";
 import { type AssetSortKey, sortAssets } from "@/lib/market/aggregate";
+import { compareByEquityCardMarketValue, equityCardMarketValueForRange } from "@/lib/market/onchain-market-value";
 import {
   compareByEquityCardRangeVolume,
   equityCardRangeTotal,
@@ -36,6 +37,7 @@ const CARD_VOLUME_POLL_ATTEMPTS = 100;
 const SORT_LABELS: Record<AssetSortKey, string> = {
   volume24hUsd: "24h volume",
   displayedLiquidityUsd: "Displayed liq",
+  marketValueUsd: "Market value",
   poolCount: "Pools",
   premiumDiscountPct: "RH vs DEX",
 };
@@ -214,7 +216,7 @@ export function AssetTable({
       issuer: next.issuer ?? issuerFilter,
     });
   const solanaDesk = chainId === SOLANA_CHAIN_ID;
-  /** Solana, Robinhood Chain, Base, and BNB Chain share the Volume | Liquidity markets strip. */
+  /** Solana, Robinhood Chain, Base, and BNB Chain share the Volume | Liquidity | Market value strip. */
   const marketsDesk = solanaDesk || chainId === ROBINHOOD_CHAIN_ID || chainId === BASE_CHAIN_ID || chainId === BNB_CHAIN_ID;
   const showIssuerFilter = (marketsDesk || enableFavorites) && (issuerFacets.length > 0 || unknownIssuerCount > 0);
   const activeIssuerLabel = issuerFilterLabel(issuerFilter, issuerFacets);
@@ -224,14 +226,26 @@ export function AssetTable({
     const scoped = pinnedOnly ? searched.filter((asset) => favorites.favoriteSet.has(asset.contractAddress)) : searched;
     const range = deskRange.range;
     const sorted =
-      sortKey === "volume24hUsd" && range !== "24h"
-        ? [...scoped].sort((a, b) => compareByEquityCardRangeVolume(a, b, deskRange.volumes, range))
-        : sortAssets(scoped, sortKey);
+      sortKey === "marketValueUsd"
+        ? [...scoped].sort((a, b) => compareByEquityCardMarketValue(a, b, deskRange.marketValue, range))
+        : sortKey === "volume24hUsd" && range !== "24h"
+          ? [...scoped].sort((a, b) => compareByEquityCardRangeVolume(a, b, deskRange.volumes, range))
+          : sortAssets(scoped, sortKey);
     if (pinnedOnly || !enableFavorites || favorites.favoriteSet.size === 0) return sorted;
     const pins = sorted.filter((asset) => favorites.favoriteSet.has(asset.contractAddress));
     const rest = sorted.filter((asset) => !favorites.favoriteSet.has(asset.contractAddress));
     return [...pins, ...rest];
-  }, [assets, deskRange.range, deskRange.volumes, enableFavorites, favorites.favoriteSet, pinnedOnly, query, sortKey]);
+  }, [
+    assets,
+    deskRange.marketValue,
+    deskRange.range,
+    deskRange.volumes,
+    enableFavorites,
+    favorites.favoriteSet,
+    pinnedOnly,
+    query,
+    sortKey,
+  ]);
 
   const compareRows = useMemo(() => {
     if (!enableFavorites) return [];
@@ -414,8 +428,13 @@ export function AssetTable({
       {rows.length > 0 ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {rows.map((asset) => {
-            const closedRange = deskRange.range === "24h" || sortKey === "displayedLiquidityUsd" ? null : deskRange.range;
+            const marketMode = sortKey === "marketValueUsd";
+            const closedRange =
+              marketMode || deskRange.range === "24h" || sortKey === "displayedLiquidityUsd" ? null : deskRange.range;
             const total = closedRange ? equityCardRangeTotal(deskRange.volumes, asset.contractAddress, closedRange) : null;
+            const market = marketMode
+              ? equityCardMarketValueForRange(deskRange.marketValue, asset.contractAddress, deskRange.range)
+              : null;
             return (
               <EquityCard
                 key={asset.contractAddress}
@@ -426,6 +445,17 @@ export function AssetTable({
                 rangeVolume={
                   closedRange
                     ? { id: closedRange, volumeUsd: total?.volumeUsd ?? null, days: total?.days ?? 0 }
+                    : null
+                }
+                rangeMarketValue={
+                  marketMode
+                    ? {
+                        id: deskRange.range,
+                        marketValueUsd: market?.marketValueUsd ?? null,
+                        days: market?.days ?? 0,
+                        recorded: market !== null,
+                        series: market?.series ?? [],
+                      }
                     : null
                 }
                 enableFavorites={enableFavorites}

@@ -65,7 +65,7 @@ Solana hourly does not use this script (the row key is an hour, and the commit s
 
 ## Holder and supply snapshots
 
-Holder counts and token supply are a separate nightly file. They do not change volume math. The day key is the same Eastern date. Source choice and its limits are in `docs/holder-snapshots.md`.
+Holder counts and token supply are a separate nightly file. They do not change volume math. The day key is the same Eastern date. `supplyUsd` on each asset is onchain market value (supply × the desk price). The day also stores public, private, and ETF/index sums. Source choice and its limits are in `docs/holder-snapshots.md`. The page only reads these files.
 
 | Chain | Command | File |
 | --- | --- | --- |

@@ -10,7 +10,7 @@ import { BASE_CHAIN_ID, BNB_CHAIN_ID, ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type 
  * Subgrid rows inherit these tracks, so rank, name, volume, and lanes stay lined up across the card.
  */
 export const CHAIN_VOLUME_TRACKS =
-  "grid-cols-[2.75rem_minmax(11rem,1.35fr)_minmax(9rem,1.2fr)_minmax(7rem,1fr)_minmax(7.25rem,1fr)_minmax(8.5rem,1.1fr)]";
+  "grid-cols-[2.75rem_minmax(11rem,1.35fr)_minmax(9rem,1.2fr)_minmax(7rem,1fr)_minmax(7.25rem,1fr)_minmax(8.5rem,1.1fr)_minmax(8rem,1fr)]";
 
 const HEADER_LABEL = "min-w-0 text-xs font-normal text-muted-foreground";
 
@@ -22,6 +22,10 @@ export interface ChainVolumeRow {
   combinedUsd?: number | null;
   /** Partial closed window, for example "4 of 7 days". */
   coverageHint?: string | null;
+  /** Onchain market value for the same range. Null stays empty. */
+  marketValueUsd?: number | null;
+  /** `24H`, `avg 7D · n of 7 days`, or `current`. */
+  marketValueHint?: string | null;
 }
 
 const RANGE_WORD: Record<VolumeChartRangeId, string> = {
@@ -60,11 +64,20 @@ export function ChainVolumeHeader({ range = "24h" }: { range?: VolumeChartRangeI
       <div className={cn(HEADER_LABEL, "text-right")}>{labels.publicLane}</div>
       <div className={cn(HEADER_LABEL, "text-right")}>{labels.privateLane}</div>
       <div className={cn(HEADER_LABEL, "text-right")}>{labels.etf}</div>
+      <div className={cn(HEADER_LABEL, "text-right")}>Market value</div>
     </div>
   );
 }
 
-export function ChainVolumeCard({ chain, rank, maxVolume, combinedUsd, coverageHint }: ChainVolumeRow) {
+export function ChainVolumeCard({
+  chain,
+  rank,
+  maxVolume,
+  combinedUsd,
+  coverageHint,
+  marketValueUsd = null,
+  marketValueHint = null,
+}: ChainVolumeRow) {
   const isSolana = chain.id === SOLANA_CHAIN_ID;
   const showLanes =
     isSolana || chain.id === ROBINHOOD_CHAIN_ID || chain.id === BASE_CHAIN_ID || chain.id === BNB_CHAIN_ID;
@@ -105,6 +118,14 @@ export function ChainVolumeCard({ chain, rank, maxVolume, combinedUsd, coverageH
       <div className="num min-w-0 text-right text-sm font-medium whitespace-nowrap" data-etf-volume>
         {showLanes ? formatUsdCompact(chain.etfVolume24hUsd) : null}
       </div>
+      <div className="min-w-0 text-right" data-market-value>
+        <p className="num text-sm font-medium whitespace-nowrap">{formatUsdCompact(marketValueUsd)}</p>
+        {marketValueHint ? (
+          <p className="mt-1 text-[10px] leading-none text-muted-foreground" data-market-value-hint>
+            {marketValueHint}
+          </p>
+        ) : null}
+      </div>
     </Link>
   );
 }
@@ -120,7 +141,7 @@ export function ChainVolumeTable({
   if (rows.length === 0) return null;
   return (
     <div className="overflow-x-auto" data-chain-volume-scroll>
-      <div className={cn("grid w-full min-w-[53rem] gap-x-4 gap-y-3", CHAIN_VOLUME_TRACKS)} data-chain-volume-table>
+      <div className={cn("grid w-full min-w-[62rem] gap-x-4 gap-y-3", CHAIN_VOLUME_TRACKS)} data-chain-volume-table>
         <ChainVolumeHeader range={range} />
         {rows.map((row) => (
           <ChainVolumeCard key={row.chain.id} {...row} />

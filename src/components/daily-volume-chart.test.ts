@@ -397,6 +397,12 @@ describe("DailyVolumeChart range shell", () => {
     expect(html).toContain("flex-nowrap");
     expect(html).toContain("justify-self-end");
     expect(html).not.toContain("flex-wrap");
+    expect(html).toContain('data-headline-metric-toggle');
+    expect(html).toContain('data-headline-metric="volume"');
+    expect(html).toContain('aria-pressed="true"');
+    expect(html).toContain('data-headline-metric="market-value"');
+    expect(html).toContain("Total Daily Tokenized Stock Volume");
+    expect(html).not.toContain("Onchain market value");
     for (const id of ["24h", "7d", "14d", "30d"]) {
       expect(html).toContain(`data-volume-range="${id}"`);
     }

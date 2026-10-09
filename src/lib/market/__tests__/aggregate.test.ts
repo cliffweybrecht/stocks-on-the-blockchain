@@ -164,6 +164,7 @@ describe("parseAssetSortKey", () => {
   it("maps query values and defaults to volume", () => {
     expect(parseAssetSortKey(undefined)).toBe("volume24hUsd");
     expect(parseAssetSortKey("liquidity")).toBe("displayedLiquidityUsd");
+    expect(parseAssetSortKey("market-value")).toBe("marketValueUsd");
     expect(parseAssetSortKey("pools")).toBe("poolCount");
     expect(parseAssetSortKey("premium")).toBe("premiumDiscountPct");
     expect(parseAssetSortKey("nope")).toBe("volume24hUsd");

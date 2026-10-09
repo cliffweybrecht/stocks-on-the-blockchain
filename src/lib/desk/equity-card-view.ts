@@ -7,11 +7,13 @@ import {
   equityCardRangeLabel,
   type EquityCardClosedRangeId,
 } from "@/lib/market/equity-card-range-volume";
+import { liveAssetMarketValueUsd, marketValueHint } from "@/lib/market/onchain-market-value";
+import type { AssetMarketValuePoint } from "@/lib/market/onchain-market-value";
 import type { AssetSummary, PriceHistoryPoint, VolumeHistoryPoint } from "@/lib/market/types";
 
 const DAY_SECONDS = 24 * 60 * 60;
 
-export type EquityCardMetricKind = "volume" | "liquidity";
+export type EquityCardMetricKind = "volume" | "liquidity" | "market-value";
 
 export interface EquityCardRangeHeadline {
   id: VolumeChartRangeId;
@@ -20,19 +22,29 @@ export interface EquityCardRangeHeadline {
   days: number;
 }
 
+export interface EquityCardMarketHeadline {
+  id: VolumeChartRangeId;
+  /** Null when this asset has no recorded close in the window. */
+  marketValueUsd: number | null;
+  days: number;
+  recorded: boolean;
+}
+
 export interface EquityCardHeadline {
   amountUsd: number | null;
-  label: "Vol" | "Liq" | "7D vol" | "14D vol" | "30D vol";
+  label: "Vol" | "Liq" | "Mkt" | "7D vol" | "14D vol" | "30D vol";
   kind: EquityCardMetricKind;
-  /** `n of N days` when the closed window is only partly recorded. */
+  /** `n of N days` when the closed window is only partly recorded. Market value uses `avg 7D · n of 7 days`. */
   coverageHint: string | null;
 }
 
 /**
- * Card headline for the Volume | Liquidity toggle.
+ * Card headline for the Volume | Liquidity | Market value toggle.
  * Volume is DexScreener 24h (`volume.h24`, summed on the mint).
- * Liquidity is the desk field `displayedLiquidityUsd` — the sum of DexScreener
- * `liquidity.usd` already used to rank the Liquidity list. Missing stays missing.
+ * Liquidity is the desk field `displayedLiquidityUsd`.
+ * Market value is supply × price. 24H is the last closed Eastern day.
+ * 7D, 14D, and 30D are the average of those closes. No stored close falls
+ * back to a live supply × price and says `current`.
  * Pools and RH vs DEX sorts keep the volume headline.
  */
 function finiteUsd(value: number | null | undefined): number | null {
@@ -41,10 +53,33 @@ function finiteUsd(value: number | null | undefined): number | null {
 }
 
 export function equityCardHeadline(
-  asset: Pick<AssetSummary, "volume24hUsd" | "displayedLiquidityUsd">,
+  asset: Pick<AssetSummary, "volume24hUsd" | "displayedLiquidityUsd"> & {
+    dexMedianPriceUsd?: number | null;
+    marketCapUsd?: number | null;
+    circulatingSupply?: number | null;
+    totalSupply?: number | null;
+  },
   sortKey: AssetSortKey,
   range?: EquityCardRangeHeadline | null,
+  market?: EquityCardMarketHeadline | null,
 ): EquityCardHeadline {
+  if (sortKey === "marketValueUsd") {
+    const live = liveAssetMarketValueUsd(asset);
+    if (market?.recorded && finiteUsd(market.marketValueUsd) !== null) {
+      return {
+        amountUsd: finiteUsd(market.marketValueUsd),
+        label: "Mkt",
+        kind: "market-value",
+        coverageHint: marketValueHint(market.id, market.days, true),
+      };
+    }
+    return {
+      amountUsd: live,
+      label: "Mkt",
+      kind: "market-value",
+      coverageHint: "current",
+    };
+  }
   if (sortKey === "displayedLiquidityUsd") {
     return {
       amountUsd: finiteUsd(asset.displayedLiquidityUsd),
@@ -104,6 +139,23 @@ export function equityCardDayPriceSeries(
     )
     .sort((a, b) => a.t - b.t);
   return day.length >= 2 ? day : null;
+}
+
+/**
+ * Market-value sparkline. One recorded close is not a line. A missing series
+ * stays missing rather than borrowing the volume sparkline.
+ */
+export function equityCardMarketValueSeries(
+  points: readonly AssetMarketValuePoint[] | null | undefined,
+): VolumeHistoryPoint[] | null {
+  if (!points || points.length < 2) return null;
+  const series: VolumeHistoryPoint[] = [];
+  for (const point of points) {
+    if (!Number.isFinite(point.t) || point.t <= 0) return null;
+    if (!Number.isFinite(point.marketValueUsd) || point.marketValueUsd < 0) return null;
+    series.push({ t: point.t, volumeUsd: point.marketValueUsd, kind: "calendar_day" });
+  }
+  return series;
 }
 
 /** Intra-day volume buckets for the card sparkline. Missing series stays missing. */

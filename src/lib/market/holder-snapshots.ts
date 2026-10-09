@@ -40,6 +40,9 @@ export interface HolderSnapshotAsset {
   totalSupplyRaw: string | null;
   totalSupplyDecimals: number | null;
   totalSupply: number | null;
+  /** Desk price used for `supplyUsd`. Missing stays null. It is not inferred. */
+  priceUsd: number | null;
+  /** Onchain market value: decimal-adjusted supply × `priceUsd`. Null when either side is missing. */
   supplyUsd: number | null;
   holderCount: number | null;
   sources: HolderSnapshotSources;
@@ -57,6 +60,12 @@ export interface HolderSnapshotDay {
   holderCount: number | null;
   /** Sum of per-token supplyUsd. Null when no token had both supply and a price. */
   supplyUsd: number | null;
+  /** Public equities. Null when none of those tokens had supply and a price. */
+  publicMarketValueUsd: number | null;
+  /** Private-market tokens. Null when none had supply and a price. */
+  privateMarketValueUsd: number | null;
+  /** ETF and index tokens. Null when none had supply and a price. */
+  etfMarketValueUsd: number | null;
   assetCount: number;
   assetsWithHolders: number;
   assetsWithSupplyUsd: number;
@@ -145,9 +154,27 @@ export function sumReported(values: readonly (number | null | undefined)[]): num
   return any ? sum : null;
 }
 
+/** Public / private / ETF-index market value. A lane with no priced supply stays null, not zero. */
+export function marketValueLanes(assets: readonly Pick<HolderSnapshotAsset, "instrumentKind" | "supplyUsd">[]): {
+  publicMarketValueUsd: number | null;
+  privateMarketValueUsd: number | null;
+  etfMarketValueUsd: number | null;
+} {
+  const lane = (kind: InstrumentKind) =>
+    sumReported(assets.filter((asset) => asset.instrumentKind === kind).map((asset) => asset.supplyUsd));
+  return {
+    publicMarketValueUsd: lane("equity"),
+    privateMarketValueUsd: lane("private"),
+    etfMarketValueUsd: lane("etf"),
+  };
+}
+
 export function holderSnapshotTotals(assets: readonly HolderSnapshotAsset[]): {
   holderCount: number | null;
   supplyUsd: number | null;
+  publicMarketValueUsd: number | null;
+  privateMarketValueUsd: number | null;
+  etfMarketValueUsd: number | null;
   assetCount: number;
   assetsWithHolders: number;
   assetsWithSupplyUsd: number;
@@ -155,6 +182,7 @@ export function holderSnapshotTotals(assets: readonly HolderSnapshotAsset[]): {
   return {
     holderCount: sumReported(assets.map((asset) => asset.holderCount)),
     supplyUsd: sumReported(assets.map((asset) => asset.supplyUsd)),
+    ...marketValueLanes(assets),
     assetCount: assets.length,
     assetsWithHolders: assets.filter((asset) => asset.holderCount !== null).length,
     assetsWithSupplyUsd: assets.filter((asset) => asset.supplyUsd !== null).length,
@@ -175,13 +203,15 @@ export function buildHolderSnapshotAsset(input: {
   capturedAt: string;
 }): HolderSnapshotAsset {
   const totalSupply = finiteSupply(input.totalSupply);
-  const supplyUsd = priceTimesSupply(input.priceUsd, totalSupply);
+  const priceUsd =
+    typeof input.priceUsd === "number" && Number.isFinite(input.priceUsd) && input.priceUsd > 0 ? input.priceUsd : null;
+  const supplyUsd = priceTimesSupply(priceUsd, totalSupply);
   const holderCount = asHolderCount(input.holderCount);
   const sources: HolderSnapshotSources = {
     totalSupply: totalSupply !== null || input.totalSupplyRaw ? input.supplySource : null,
     supplyUsd: supplyUsd !== null && input.priceSource && input.supplySource ? `${input.priceSource}×${input.supplySource}` : null,
     holderCount: holderCount !== null ? input.holderSource : null,
-    price: input.priceUsd !== null && input.priceUsd > 0 ? input.priceSource : null,
+    price: priceUsd !== null ? input.priceSource : null,
   };
   return {
     address: input.asset.address.trim(),
@@ -197,6 +227,7 @@ export function buildHolderSnapshotAsset(input: {
         ? input.totalSupplyDecimals
         : null,
     totalSupply,
+    priceUsd,
     supplyUsd,
     holderCount,
     sources,
@@ -226,12 +257,40 @@ export function serializeHolderSnapshotFile(file: HolderSnapshotFile): string {
   return `${JSON.stringify(file, null, 2)}\n`;
 }
 
+function asUsd(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return null;
+  return value;
+}
+
+function asPrice(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return null;
+  return value;
+}
+
+/**
+ * Older rows stored supplyUsd and left the lane totals off the day.
+ * A missing lane is filled from the assets. A stored number is kept.
+ */
+export function normalizeHolderSnapshotDay(day: HolderSnapshotDay): HolderSnapshotDay {
+  const lanes = marketValueLanes(day.assets);
+  return {
+    ...day,
+    publicMarketValueUsd: asUsd(day.publicMarketValueUsd) ?? lanes.publicMarketValueUsd,
+    privateMarketValueUsd: asUsd(day.privateMarketValueUsd) ?? lanes.privateMarketValueUsd,
+    etfMarketValueUsd: asUsd(day.etfMarketValueUsd) ?? lanes.etfMarketValueUsd,
+    assets: day.assets.map((asset) => ({
+      ...asset,
+      priceUsd: asPrice(asset.priceUsd),
+    })),
+  };
+}
+
 function asDay(value: unknown): HolderSnapshotDay | null {
   if (!value || typeof value !== "object") return null;
   const row = value as Partial<HolderSnapshotDay>;
   if (typeof row.date !== "string" || !DAY_KEY.test(row.date)) return null;
   if (!Array.isArray(row.assets)) return null;
-  return row as HolderSnapshotDay;
+  return normalizeHolderSnapshotDay(row as HolderSnapshotDay);
 }
 
 export function parseHolderSnapshotFile(payload: unknown, chainId: HolderSnapshotChainId): HolderSnapshotFile {

@@ -24,6 +24,47 @@ describe("equityCardHeadline", () => {
     expect(equityCardHeadline(row, "premiumDiscountPct").amountUsd).toBe(row.volume24hUsd);
   });
 
+  it("uses a recorded market-value close and labels a missing close current", () => {
+    const row = {
+      volume24hUsd: 10,
+      displayedLiquidityUsd: 4,
+      dexMedianPriceUsd: 2,
+      circulatingSupply: 5,
+    };
+    expect(
+      equityCardHeadline(row, "marketValueUsd", null, {
+        id: "7d",
+        marketValueUsd: 40,
+        days: 3,
+        recorded: true,
+      }),
+    ).toEqual({
+      amountUsd: 40,
+      label: "Mkt",
+      kind: "market-value",
+      coverageHint: "avg 7D · 3 of 7 days",
+    });
+    expect(
+      equityCardHeadline(row, "marketValueUsd", null, {
+        id: "24h",
+        marketValueUsd: null,
+        days: 0,
+        recorded: false,
+      }),
+    ).toEqual({
+      amountUsd: 10,
+      label: "Mkt",
+      kind: "market-value",
+      coverageHint: "current",
+    });
+    expect(equityCardHeadline({ volume24hUsd: 1, displayedLiquidityUsd: null }, "marketValueUsd")).toEqual({
+      amountUsd: null,
+      label: "Mkt",
+      kind: "market-value",
+      coverageHint: "current",
+    });
+  });
+
   it("does not invent a liquidity figure when the feed left it missing", () => {
     expect(equityCardHeadline({ volume24hUsd: 10, displayedLiquidityUsd: null }, "displayedLiquidityUsd")).toEqual({
       amountUsd: null,
