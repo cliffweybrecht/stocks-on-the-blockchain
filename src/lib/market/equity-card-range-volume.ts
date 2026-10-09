@@ -130,6 +130,19 @@ export function equityCardRangeVolumesFromSnapshot(
   return volumes;
 }
 
+/**
+ * Closed snapshot dates the equity-card ranges share, oldest first.
+ * Includes Gecko backfill days the volume window counts, and omits the
+ * in-progress Eastern day. Liquidity readings are not taken from this list.
+ */
+export function equityCardClosedSnapshotDates(
+  payload: unknown,
+  nowT: number,
+  backfill: unknown = null,
+): string[] {
+  return closedAssetDays(payload, nowT, backfill).map((day) => day.date);
+}
+
 function closedAssetDays(payload: unknown, nowT: number, backfill: unknown): ClosedAssetDay[] {
   const today = easternDayKey(nowT);
   if (!today) return [];

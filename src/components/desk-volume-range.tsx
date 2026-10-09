@@ -2,6 +2,10 @@
 
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import type { VolumeChartRangeId } from "@/lib/market/daily-volume-view";
+import {
+  EMPTY_EQUITY_CARD_LIQUIDITY,
+  type EquityCardLiquidityHistory,
+} from "@/lib/market/equity-card-range-liquidity";
 import type { EquityCardRangeVolumeMap } from "@/lib/market/equity-card-range-volume";
 
 const EMPTY_RANGE_VOLUMES: EquityCardRangeVolumeMap = {};
@@ -10,6 +14,7 @@ interface DeskVolumeRangeValue {
   range: VolumeChartRangeId;
   setRange: (range: VolumeChartRangeId) => void;
   volumes: EquityCardRangeVolumeMap;
+  liquidity: EquityCardLiquidityHistory;
 }
 
 const DeskVolumeRangeContext = createContext<DeskVolumeRangeValue | null>(null);
@@ -21,15 +26,18 @@ const DeskVolumeRangeContext = createContext<DeskVolumeRangeValue | null>(null);
  */
 export function DeskVolumeRangeProvider({
   volumes,
+  liquidity = EMPTY_EQUITY_CARD_LIQUIDITY,
   children,
   initialRange = "7d",
 }: {
   volumes: EquityCardRangeVolumeMap;
+  /** Closing reserves from nightly per-asset rows. Empty on desks that have none. */
+  liquidity?: EquityCardLiquidityHistory;
   children: ReactNode;
   initialRange?: VolumeChartRangeId;
 }) {
   const [range, setRange] = useState<VolumeChartRangeId>(initialRange);
-  const value = useMemo(() => ({ range, setRange, volumes }), [range, volumes]);
+  const value = useMemo(() => ({ range, setRange, volumes, liquidity }), [range, volumes, liquidity]);
   return <DeskVolumeRangeContext.Provider value={value}>{children}</DeskVolumeRangeContext.Provider>;
 }
 
@@ -41,5 +49,5 @@ export function useDeskVolumeRange(initialRange: VolumeChartRangeId = "7d"): Des
   const shared = useContext(DeskVolumeRangeContext);
   const [range, setRange] = useState<VolumeChartRangeId>(initialRange);
   if (shared) return shared;
-  return { range, setRange, volumes: EMPTY_RANGE_VOLUMES };
+  return { range, setRange, volumes: EMPTY_RANGE_VOLUMES, liquidity: EMPTY_EQUITY_CARD_LIQUIDITY };
 }

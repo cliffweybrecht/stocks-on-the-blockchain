@@ -1,12 +1,13 @@
 import type { ReactNode } from "react";
 import { DeskVolumeRangeProvider } from "@/components/desk-volume-range";
-import { loadEquityCardRangeVolumes } from "@/lib/market/equity-card-range-volume-file";
+import { loadEquityCardRangeMetrics } from "@/lib/market/equity-card-range-volume-file";
 
 export const dynamic = "force-dynamic";
 
 /**
  * One range for the volume toggle and the equity cards on every chain desk.
- * Totals are read from the local snapshot file before the page renders.
+ * Volume totals and closing liquidity are read from the local snapshot file
+ * before the page renders. The read does not write a tracked file.
  */
 export default async function ChainDeskLayout({
   children,
@@ -16,6 +17,10 @@ export default async function ChainDeskLayout({
   params: Promise<{ chainId: string }>;
 }) {
   const { chainId } = await params;
-  const volumes = await loadEquityCardRangeVolumes(chainId);
-  return <DeskVolumeRangeProvider volumes={volumes}>{children}</DeskVolumeRangeProvider>;
+  const { volumes, liquidity } = await loadEquityCardRangeMetrics(chainId);
+  return (
+    <DeskVolumeRangeProvider volumes={volumes} liquidity={liquidity}>
+      {children}
+    </DeskVolumeRangeProvider>
+  );
 }

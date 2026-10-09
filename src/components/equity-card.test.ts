@@ -60,6 +60,70 @@ describe("EquityCard range headline", () => {
     expect(html).not.toContain(formatUsdCompact(12_000));
   });
 
+  it("shows the range liquidity average, its hint, and that range's sparkline", () => {
+    const html = renderToStaticMarkup(
+      createElement(EquityCard, {
+        asset: asset(),
+        href: "/chains/solana/assets/AAPLx",
+        sortKey: "displayedLiquidityUsd",
+        dayVolumeSeries: [
+          { t: Date.now() / 1000 - 7200, volumeUsd: 50 },
+          { t: Date.now() / 1000 - 3600, volumeUsd: 80 },
+        ],
+        rangeLiquidity: {
+          id: "7d",
+          liquidityUsd: 6_500,
+          days: 4,
+          series: [
+            { date: "2026-10-01", t: 1, liquidityUsd: 4_000 },
+            { date: "2026-10-03", t: 2, liquidityUsd: 9_000 },
+          ],
+        },
+      }),
+    );
+    expect(html).toContain('data-card-range="7d"');
+    expect(html).toContain('data-card-liq-basis="average"');
+    expect(html).toContain("Liq");
+    expect(html).toContain("avg 7D · 4 of 7 days");
+    expect(html).toContain(formatUsdCompact(6_500));
+    expect(html).not.toContain(formatUsdCompact(4_000));
+    expect(html).toContain("AAPLx 7D liquidity");
+    expect(html).not.toContain("24h volume trend");
+  });
+
+  it("uses the last closed day in 24H and the live figure only as current", () => {
+    const closed = renderToStaticMarkup(
+      createElement(EquityCard, {
+        asset: asset(),
+        href: "/chains/solana/assets/AAPLx",
+        sortKey: "displayedLiquidityUsd",
+        rangeLiquidity: { id: "24h", liquidityUsd: 9_100, days: 1, series: [{ date: "2026-10-06", t: 1, liquidityUsd: 9_100 }] },
+      }),
+    );
+    expect(closed).toContain('data-card-liq-basis="close"');
+    expect(closed).toContain("24H");
+    expect(closed).toContain(formatUsdCompact(9_100));
+    expect(closed).not.toContain('role="img"');
+
+    const current = renderToStaticMarkup(
+      createElement(EquityCard, {
+        asset: asset(),
+        href: "/chains/solana/assets/AAPLx",
+        sortKey: "displayedLiquidityUsd",
+        dayVolumeSeries: [
+          { t: Date.now() / 1000 - 7200, volumeUsd: 50 },
+          { t: Date.now() / 1000 - 3600, volumeUsd: 80 },
+        ],
+        rangeLiquidity: { id: "14d", liquidityUsd: null, days: 0, series: [] },
+      }),
+    );
+    expect(current).toContain('data-card-liq-basis="current"');
+    expect(current).toContain("current");
+    expect(current).toContain(formatUsdCompact(4_000));
+    expect(current).not.toContain("24h volume trend");
+    expect(current).not.toContain('role="img"');
+  });
+
   it("renders the existing dash when the range has no recorded days", () => {
     const html = renderToStaticMarkup(
       createElement(EquityCard, {
