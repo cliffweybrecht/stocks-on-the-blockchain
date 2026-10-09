@@ -1,6 +1,6 @@
 import { captureEquityPerpsSnapshot } from "../src/lib/market/perps-fetch";
 import { savePerpsDay } from "../src/lib/market/perps-snapshot-file";
-import { buildPerpsDeskModel, selectPerpsRange } from "../src/lib/market/perps-snapshot";
+import { buildPerpsDeskModel, PERPS_SNAPSHOT_SCHEMA, selectPerpsRange } from "../src/lib/market/perps-snapshot";
 
 function billions(value: number | null): string {
   if (value === null) return "—";
@@ -18,7 +18,7 @@ captureEquityPerpsSnapshot()
       process.exit(1);
     }
     await savePerpsDay(day);
-    const model = buildPerpsDeskModel({ schema: "equity-perps-v1", records: [day] }, Date.parse(day.capturedAt) / 1000);
+    const model = buildPerpsDeskModel({ schema: PERPS_SNAPSHOT_SCHEMA, records: [day] }, Date.parse(day.capturedAt) / 1000);
     const view = selectPerpsRange(model.days, "24h", false);
     const capturedMs = Date.parse(day.capturedAt);
     const et = new Intl.DateTimeFormat("en-US", {

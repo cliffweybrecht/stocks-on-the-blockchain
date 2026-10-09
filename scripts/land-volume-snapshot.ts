@@ -12,9 +12,11 @@ import {
   parseOriginPrListNumber,
   parseOriginPrView,
   snapshotCommitSubject,
+  snapshotGitMaxBuffer,
   volumeSnapshotChain,
   type VolumeSnapshotChain,
 } from "../src/lib/market/snapshot-land";
+import { assertPerpsLandSnapshot } from "../src/lib/market/perps-snapshot";
 
 const HELP = `Land a DexScreener desk volume snapshot onto main.
 
@@ -62,11 +64,13 @@ function gitText(error: unknown): string {
 }
 
 function git(args: string[], cwd: string): string {
+  const maxBuffer = snapshotGitMaxBuffer(args);
   try {
     return execFileSync("git", args, {
       cwd,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
+      ...(maxBuffer === undefined ? {} : { maxBuffer }),
     });
   } catch (error) {
     throw new Error(gitText(error));
@@ -177,7 +181,10 @@ function verifyAppendOnly(
     const afterText = git(["show", `${rev}:${file}`], cwd);
     const before = beforeText ? JSON.parse(beforeText) : { records: [] };
     const after = JSON.parse(afterText) as unknown;
-    const check = assertAppendOnlySnapshot(before, after);
+    const check =
+      file === "data/perps-snapshots/perps.json"
+        ? assertPerpsLandSnapshot(before, after)
+        : assertAppendOnlySnapshot(before, after);
     if (!check.ok) return check;
     added.push(...check.added.map((date) => `${file}:${date}`));
   }

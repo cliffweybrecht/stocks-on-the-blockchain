@@ -137,7 +137,7 @@ npm run snapshot:perps
 npm run snapshot:land -- --chain perps --push-main
 ```
 
-The writer runs at 11:59 PM America/New_York and stores one Eastern day in `data/perps-snapshots/perps.json` (`equity-perps-v1`): venue, tier (onchain / major CEX / Binance+Bybit / long-tail), market, underlying, category, 24h volume, open interest, funding when the feed has it, source, and capture time. Missing numbers stay null. The default headline leaves out long-tail CoinGecko venues and any venue whose volume is over 25× open interest, or whose open interest is under $5M with volume over $100M. Those rows are still stored. Ostium stores lifetime volume so a later day can show the difference. See `docs/volume-snapshots.md`.
+The writer runs at 11:59 PM America/New_York and stores one Eastern day in `data/perps-snapshots/perps.json` (`equity-perps-v2`). Each row keeps per-venue volume, open interest, tier, credibility, market count, source, and category buckets, plus a capped ticker list (venue counts, onchain split, funding) and Ostium lifetime by symbol. It does not store the per-market book or prices. `equity-perps-v1` rows migrate on read. Missing numbers stay null. The default headline leaves out long-tail CoinGecko venues and any venue whose volume is over 25× open interest, or whose open interest is under $5M with volume over $100M. Those rows are still stored. Ostium stores lifetime volume so a later day can show the difference. See `docs/volume-snapshots.md`.
 
 ### Lending
 

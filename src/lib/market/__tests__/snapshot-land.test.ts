@@ -9,7 +9,9 @@ import {
   newestSnapshotDate,
   parseOriginPrListNumber,
   parseOriginPrView,
+  PERPS_SNAPSHOT_GIT_MAX_BUFFER,
   snapshotCommitSubject,
+  snapshotGitMaxBuffer,
   volumeSnapshotChain,
 } from "../snapshot-land";
 
@@ -106,6 +108,11 @@ describe("snapshot land guards", () => {
     expect(volumeSnapshotChain("robinhood-chain")?.label).toBe("Robinhood");
     expect(volumeSnapshotChain("perps")?.file).toBe("data/perps-snapshots/perps.json");
     expect(volumeSnapshotChain("ethereum")).toBeNull();
+    expect(snapshotGitMaxBuffer(["show", "origin/main:data/volume-snapshots/solana.json"])).toBeUndefined();
+    expect(snapshotGitMaxBuffer(["diff", "--", "data/volume-snapshots/bnb.json"])).toBeUndefined();
+    expect(snapshotGitMaxBuffer(["status", "--porcelain"])).toBeUndefined();
+    expect(snapshotGitMaxBuffer(["show", "origin/main:data/perps-snapshots/perps.json"])).toBe(PERPS_SNAPSHOT_GIT_MAX_BUFFER);
+    expect(snapshotGitMaxBuffer(["diff", "--", "data/perps-snapshots/perps.json"])).toBeGreaterThan(1024 * 1024);
     expect(assertSnapshotWorktree(["?? data/perps-snapshots/perps.json"]).ok).toBe(true);
     expect(
       assertSnapshotOnlyNameStatus(["A\tdata/perps-snapshots/perps.json"]).ok,
