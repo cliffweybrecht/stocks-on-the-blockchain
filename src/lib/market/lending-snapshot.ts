@@ -192,17 +192,31 @@ export function aggregateLendingTotals(rows: readonly LendingRow[]): LendingTota
   const stockBorrowedUsd = sumNullable(rows.map((row) => row.stockBorrowedUsd));
   const utilization = aggregateUtilization(rows);
   const band = lendingApyBand(rows.map((row) => ({ apy: row.borrowApy, weight: row.stableBorrowedUsd })));
-  const mins = rows.map((row) => row.borrowApyMin).filter((value): value is number => value !== null);
-  const maxes = rows.map((row) => row.borrowApyMax).filter((value): value is number => value !== null);
+  const spread = materialApySpread(rows);
   return {
     collateralUsd,
     stableBorrowedUsd,
     utilization,
     borrowApy: band.borrowApy,
-    borrowApyMin: mins.length > 0 ? Math.min(...mins) : band.borrowApyMin,
-    borrowApyMax: maxes.length > 0 ? Math.max(...maxes) : band.borrowApyMax,
+    borrowApyMin: spread ? spread.min : band.borrowApyMin,
+    borrowApyMax: spread ? spread.max : band.borrowApyMax,
     stockBorrowedUsd,
   };
+}
+
+/** Min and max of venues that are at least 5% of borrows. A dust book does not set the floor. */
+function materialApySpread(rows: readonly LendingRow[]): { min: number; max: number } | null {
+  const priced = rows.filter(
+    (row): row is LendingRow & { stableBorrowedUsd: number; borrowApy: number } =>
+      row.borrowApy !== null && row.stableBorrowedUsd !== null && row.stableBorrowedUsd > 0,
+  );
+  const weight = priced.reduce((sum, row) => sum + row.stableBorrowedUsd, 0);
+  if (!(weight > 0)) return null;
+  const material = priced.filter((row) => row.stableBorrowedUsd / weight >= 0.05);
+  const band = material.length > 0 ? material : priced;
+  const lows = band.map((row) => row.borrowApyMin ?? row.borrowApy);
+  const highs = band.map((row) => row.borrowApyMax ?? row.borrowApy);
+  return { min: Math.min(...lows), max: Math.max(...highs) };
 }
 
 function aggregateUtilization(rows: readonly LendingRow[]): number | null {
@@ -470,12 +484,24 @@ export interface LendingHeadline {
   costSentence: string;
 }
 
+function costSentence(totals: LendingTotals, hasEstimate: boolean): string {
+  if (totals.borrowApy === null) return "We do not have a typical yearly borrow cost yet.";
+  const typical = formatLendingFractionPct(totals.borrowApy);
+  const low = totals.borrowApyMin;
+  const high = totals.borrowApyMax;
+  const spread =
+    low !== null && high !== null && Math.abs(high - low) >= 0.005
+      ? ` The bigger pools charge from ${formatLendingFractionPct(low)} to ${formatLendingFractionPct(high)}.`
+      : "";
+  const venus = hasEstimate ? " Venus is not in this average." : "";
+  return `A typical borrower pays about ${typical} a year. Bigger loans count more than tiny ones.${spread}${venus}`;
+}
+
 export function lendingHeadline(rows: readonly LendingRow[], totals: LendingTotals): LendingHeadline {
   const estimate = lendingBorrowEstimateUsd(rows);
   const collateral = totals.collateralUsd;
   const borrowed = totals.stableBorrowedUsd;
   const full = totals.utilization;
-  const cost = formatLendingApy(totals);
   return {
     collateralSentence:
       collateral === null
@@ -493,12 +519,7 @@ export function lendingHeadline(rows: readonly LendingRow[], totals: LendingTota
         : estimate === null
           ? `${formatLendingFractionPct(full)} of the dollars in these lending pools is already lent out.`
           : `${formatLendingFractionPct(full)} of the dollars in these lending pools is already lent out. Venus is left out of this, because its pool is shared.`,
-    costSentence:
-      cost === "—"
-        ? "We do not have a typical yearly borrow cost yet."
-        : estimate === null
-          ? `A typical borrower pays about ${cost} a year. Bigger loans count more than tiny ones.`
-          : `A typical borrower pays about ${cost} a year. Bigger loans count more than tiny ones. Venus is not in this average.`,
+    costSentence: costSentence(totals, estimate !== null),
   };
 }
 

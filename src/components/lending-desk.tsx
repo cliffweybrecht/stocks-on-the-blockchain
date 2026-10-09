@@ -316,7 +316,7 @@ export function LendingDesk({ model }: { model: LendingDeskModel }) {
           testId="cost"
           label="Yearly cost"
           hint={{ label: "APY definition", text: HINTS.apy }}
-          value={formatLendingApy(model.totals)}
+          value={model.totals.borrowApy === null ? "—" : formatLendingFractionPct(model.totals.borrowApy)}
           sentence={headline.costSentence}
         />
       </section>

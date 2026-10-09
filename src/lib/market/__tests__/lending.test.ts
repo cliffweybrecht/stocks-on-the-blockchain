@@ -486,6 +486,18 @@ describe("lending aggregation", () => {
     const withEstimate = aggregateLendingTotals([kamino, estimateRow]);
     expect(withEstimate.stableBorrowedUsd).toBe(45 + 250);
     expect(withEstimate.utilization).toBeCloseTo(0.9, 6);
+    const dust = {
+      ...kamino,
+      id: "morpho-base",
+      stableBorrowedUsd: 1,
+      borrowApy: 0.9,
+      borrowApyMin: 0.001,
+      borrowApyMax: 0.9,
+    };
+    const desk = aggregateLendingTotals([kamino, dust]);
+    expect(desk.borrowApyMin).toBeCloseTo(kamino.borrowApyMin ?? 0, 6);
+    expect(desk.borrowApyMax).toBeCloseTo(kamino.borrowApyMax ?? 0, 6);
+    expect(lendingHeadline([kamino], desk).costSentence).toMatch(/typical borrower pays about/);
     const headline = lendingHeadline([kamino, estimateRow], withEstimate);
     expect(headline.collateralSentence).toMatch(/People put in/);
     expect(headline.borrowedSentence).toMatch(/estimated/);
