@@ -459,6 +459,7 @@ describe("committed Solana desk snapshots", () => {
       "2026-10-05",
       "2026-10-06",
       "2026-10-07",
+      "2026-10-08",
     ]);
     expect(snapshots.map((row) => row.combined24hUsd)).toEqual([
       173522731.07,
@@ -476,6 +477,7 @@ describe("committed Solana desk snapshots", () => {
       82265342.28,
       103263530.24999994,
       81272910.46000001,
+      89710661.26999998,
     ]);
     const sep23 = snapshots[0];
     expect(sep23?.publicEquity24hUsd).toBeNull();
@@ -493,6 +495,12 @@ describe("committed Solana desk snapshots", () => {
     );
     expect(oct3?.assets?.some((asset) => asset.volume24hUsd !== null)).toBe(true);
     expect(snapshots.find((row) => row.date === "2026-10-07")?.assets).toBeUndefined();
+    const oct8 = snapshots.find((row) => row.date === "2026-10-08");
+    expect(oct8?.t).toBe(1_791_432_000);
+    expect(oct8?.generatedAt).toBe("2026-10-09T04:20:08.601Z");
+    expect(oct8?.assets?.length).toBeGreaterThan(0);
+    expect(oct8?.assets?.some((asset) => asset.displayedLiquidityUsd !== null)).toBe(true);
+    expect(oct8?.assets?.some((asset) => asset.pools.some((pool) => pool.liquidityUsd !== null))).toBe(true);
   });
 
   it("holds the stored Sep 28 snapshot off 7D, 14D, and 30D while that Eastern day is in progress", () => {
