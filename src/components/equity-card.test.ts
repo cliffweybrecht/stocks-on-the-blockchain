@@ -42,6 +42,9 @@ describe("EquityCard range headline", () => {
     expect(html).toContain("Vol");
     expect(html).not.toContain("data-card-range-days");
     expect(html).toContain(formatUsdCompact(12_000));
+    expect(html).not.toContain("data-card-holders");
+    expect(html).not.toContain(">Holders<");
+    expect(html).not.toContain("data-card-supply");
   });
 
   it("shows the closed-range sum, its label, and a partial-day hint", () => {

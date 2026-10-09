@@ -40,7 +40,7 @@ import { findSnapshotDesk, loadClosedSnapshotDeskDays } from "@/lib/market/snaps
 import { BASE_CHAIN_ID, BNB_CHAIN_ID, ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type AssetSummary, type EquityVolumeHistoryResult } from "@/lib/market/types";
 import { parseCoverageFilter } from "@/lib/market/volume-coverage";
 import { FileDeskVolumeSnapshotStore } from "@/lib/market/volume-snapshot-store";
-import { holderAssetSeries, holderDeskPoints, holderPanelPoints, holderSnapshotChainId } from "@/lib/market/holder-snapshots";
+import { holderDeskPoints, holderPanelPoints, holderSnapshotChainId } from "@/lib/market/holder-snapshots";
 import { loadHolderSnapshotFile } from "@/lib/market/holder-snapshot-store";
 
 export const dynamic = "force-dynamic";
@@ -255,7 +255,6 @@ export default async function ChainPage({
   const catalogRows = [...assets, ...etfAssets, ...privateAssets].map(toPinCompareAsset);
   const holderChain = holderSnapshotChainId(chain.id);
   const holderFile = holderChain ? await loadHolderSnapshotFile(holderChain) : null;
-  const holderSeries = holderAssetSeries(holderFile);
 
   return (
     <PageShell
@@ -368,7 +367,6 @@ export default async function ChainPage({
             chainId={chain.id}
             showRobinhoodMarks={!marketsDesk}
             enableFavorites={marketsDesk}
-            holderSeries={holderChain ? holderSeries : undefined}
           />
         )}
         {holderChain ? (

@@ -15,8 +15,7 @@ import {
 } from "@/lib/desk/equity-card-view";
 import type { AssetMarketValuePoint } from "@/lib/market/onchain-market-value";
 import type { AssetSortKey } from "@/lib/market/aggregate";
-import { formatCount, formatPct, formatPrice, formatTokenAmount, formatUsdCompact } from "@/lib/market/format";
-import { holderAssetRangeView, type HolderAssetPoint } from "@/lib/market/holder-snapshots";
+import { formatPct, formatPrice, formatUsdCompact } from "@/lib/market/format";
 import type { AssetSummary, VolumeHistoryPoint } from "@/lib/market/types";
 
 const warmedAssetRoutes = new Set<string>();
@@ -58,7 +57,6 @@ export function EquityCard({
   enableFavorites,
   pinned,
   onTogglePin,
-  holderPoints,
 }: {
   asset: AssetSummary;
   href: string;
@@ -81,8 +79,6 @@ export function EquityCard({
   enableFavorites?: boolean;
   pinned?: boolean;
   onTogglePin?: () => void;
-  /** Nightly holder/supply points for this mint. Omitted on desks that do not track them. */
-  holderPoints?: readonly HolderAssetPoint[];
 }) {
   const deskRange = useDeskVolumeRange("7d");
   const priceUsd = equityCardSpotPriceUsd(asset);
@@ -91,7 +87,6 @@ export function EquityCard({
     ? equityCardMarketValueSeries(rangeMarketValue?.series)
     : equityCardDayVolumeSeries(dayVolumeSeries);
   const headline = equityCardHeadline(asset, sortKey, rangeVolume, marketMode ? rangeMarketValue : null);
-  const holders = holderPoints ? holderAssetRangeView(holderPoints, deskRange.range) : null;
   const rangeId = marketMode ? (rangeMarketValue?.id ?? deskRange.range) : rangeVolume && sortKey !== "displayedLiquidityUsd" ? rangeVolume.id : "24h";
   const marketBasis = !marketMode
     ? undefined
@@ -147,35 +142,6 @@ export function EquityCard({
         >
           {headline.coverageHint}
         </p>
-      ) : null}
-      {holders ? (
-        <div className="relative z-10 mt-3 space-y-1 pointer-events-none" data-card-holders>
-          <p className="flex items-baseline justify-between gap-2 text-xs">
-            <span className="text-neutral-500">Holders</span>
-            <span className="num text-neutral-100" data-card-holder-count>
-              {formatCount(holders.holderCount)}
-              {holders.holderChange !== null ? (
-                <span className="ml-1.5 text-neutral-400" data-card-holder-change>
-                  {holders.holderChange > 0 ? "+" : holders.holderChange < 0 ? "−" : ""}
-                  {formatCount(Math.abs(holders.holderChange))}
-                </span>
-              ) : null}
-            </span>
-          </p>
-          <p className="flex items-baseline justify-between gap-2 text-xs">
-            <span className="text-neutral-500">Supply</span>
-            <span className="num text-right text-neutral-100" data-card-supply>
-              {formatUsdCompact(holders.supplyUsd)}
-              <span className="text-neutral-400"> · {formatTokenAmount(holders.totalSupply)}</span>
-              {holders.supplyUsdChange !== null ? (
-                <span className="ml-1.5 text-neutral-400" data-card-supply-change>
-                  {holders.supplyUsdChange > 0 ? "+" : holders.supplyUsdChange < 0 ? "−" : ""}
-                  {formatUsdCompact(Math.abs(holders.supplyUsdChange))}
-                </span>
-              ) : null}
-            </span>
-          </p>
-        </div>
       ) : null}
       <div className="relative z-10 mt-auto flex min-w-0 items-end gap-2 pt-4 pointer-events-none">
         <div className="flex min-w-0 items-baseline gap-2">
