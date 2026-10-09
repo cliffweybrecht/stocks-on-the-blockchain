@@ -1028,6 +1028,111 @@
       "method": "Eastern day key 2026-10-05 (America/New_York midnight t); DexScreener volume.h24 sampled just after 11:59 PM ET, not a true closed ET-window; chain 4663 only; ETF/index before private; private admission is fail-closed; RHJ registry is the base set; Ondo mints come from DexScreener search plus GeckoTerminal when search missed them; admitted only when the on-chain name is (Ondo Tokenized) and bytecode matches the official clone; volume stays DexScreener h24 (null when that mint is not indexed); Rialto is a venue/meme token, not an issuer; xStock and PreStocks names on this chain are launchpad copycats and are excluded; unique-pool h24 dedupe; liquidity.usd is folded in and missing liquidity does not blank the day; null means no reported DexScreener volume (not zero)"
     },
     {
+      "date": "2026-10-06",
+      "t": 1791259200,
+      "publicEquity24hUsd": 34462694.26999999,
+      "private24hUsd": 5781493.79,
+      "etfIndex24hUsd": 13649591.730000004,
+      "combined24hUsd": 53893779.78999999,
+      "issuersByLane": {
+        "equity": {
+          "ondo": {
+            "usd": 130.54,
+            "mints": 207,
+            "pools": 2,
+            "withVolume": 2,
+            "liquidityUsd": 622277407.81
+          },
+          "rhj": {
+            "usd": 34462563.72999999,
+            "mints": 176,
+            "pools": 131,
+            "withVolume": 131,
+            "liquidityUsd": 16570604.699999997
+          }
+        },
+        "etf": {
+          "ondo": {
+            "usd": null,
+            "mints": 81,
+            "pools": 0,
+            "withVolume": 0,
+            "liquidityUsd": null
+          },
+          "rhj": {
+            "usd": 13649591.730000004,
+            "mints": 17,
+            "pools": 20,
+            "withVolume": 12,
+            "liquidityUsd": 8698088.46
+          }
+        },
+        "private": {
+          "ondo": {
+            "usd": null,
+            "mints": 1,
+            "pools": 0,
+            "withVolume": 0,
+            "liquidityUsd": null
+          },
+          "rhj": {
+            "usd": 5781493.79,
+            "mints": 1,
+            "pools": 1,
+            "withVolume": 1,
+            "liquidityUsd": 1670865.15
+          }
+        }
+      },
+      "publicMintCount": 383,
+      "publicPoolCount": 133,
+      "etfMintCount": 98,
+      "etfPoolCount": 20,
+      "preipoMintCount": 2,
+      "preipoPoolCount": 1,
+      "withVolumeEquityCount": 133,
+      "withVolumeEtfCount": 12,
+      "withVolumePrivateCount": 1,
+      "displayedLiquidityUsd": 645889419.0099996,
+      "generatedAt": "2026-10-07T04:25:07.213180Z",
+      "sources": {
+        "universe": "https://api.robinhood.com/rhj/assets",
+        "volume": "DexScreener tokens/v1/robinhood volume.h24 unique-pool sum",
+        "liquidity": "DexScreener liquidity.usd unique-pool sum; missing liquidity is null, not zero",
+        "chainId": 4663,
+        "chainSlug": "robinhood",
+        "issuers": {
+          "rhj": "Robinhood Assets Jersey Limited",
+          "ondo": "Ondo"
+        },
+        "otherIssuerScan": {
+          "candidates": 141,
+          "admitted": 0,
+          "rejected": 141,
+          "dexErrors": 0,
+          "geckoErrors": 1,
+          "geckoPages": 10
+        },
+        "ondoDiscovery": {
+          "candidateList": "https://raw.githubusercontent.com/ondoprotocol/gm-solana-simulator/main/constants.rs",
+          "nameMatches": 292,
+          "admitted": 289,
+          "searchErrors": 0,
+          "geckoAdded": 289,
+          "geckoErrors": 0,
+          "fingerprint": "7ff6feb2ee87facee6f597c341a3ff0110607d75c6436b8713591e5f57b88ba8",
+          "retried429": 12,
+          "retryAdmitted": 8,
+          "retryNoPool": 4
+        },
+        "liquidityNote": "liquidity.usd is DexScreener's displayed figure. Many Ondo Uniswap v3 WETH pools are one-sided (quote WETH near 0, h24 dust), so their liquidity.usd is virtual token inventory, not two-sided TVL. Missing liquidity stays null and does not blank the day.",
+        "liquidityPoolsMissingUsd": 0,
+        "liquidityPoolsReported": 146,
+        "failedDexBatches": 0
+      },
+      "method": "Eastern day key 2026-10-06 (America/New_York midnight t); DexScreener volume.h24 sampled just after 11:59 PM ET, not a true closed ET-window; chain 4663 only; ETF/index before private; private admission is fail-closed; RHJ registry is the base set; Ondo mints come from DexScreener search plus GeckoTerminal when search missed them; admitted only when the on-chain name is (Ondo Tokenized) and bytecode matches the official clone; volume stays DexScreener h24 (null when that mint is not indexed); Rialto is a venue/meme token, not an issuer; xStock and PreStocks names on this chain are launchpad copycats and are excluded; unique-pool h24 dedupe; liquidity.usd is folded in and missing liquidity does not blank the day; null means no reported DexScreener volume (not zero)"
+    },
+    {
       "date": "2026-10-07",
       "t": 1791345600,
       "publicEquity24hUsd": 72099125.56,
