@@ -165,6 +165,35 @@ class PoolDedupeAndNullTotalsTest(unittest.TestCase):
         self.assertEqual(rh.sum_nullable([public, private_with_zero, 5.0]), 15)
         self.assertIsNone(rh.sum_nullable([None, None, None]))
 
+    def test_stock_stock_pool_is_counted_once_on_the_base(self) -> None:
+        base, quote = "0xspy", "0xnvda"
+        vols = {base: None, quote: None}
+        counts = {base: 0, quote: 0}
+        seen = {base: set(), quote: set()}
+        rh.accumulate_pair_volumes(
+            [pair("0xpool", base, 100, quote=quote), pair("0xPOOL", base, 100, quote=quote)],
+            {base, quote},
+            vols,
+            counts,
+            seen,
+        )
+        self.assertEqual(vols[base], 100)
+        self.assertIsNone(vols[quote])
+        self.assertEqual(counts[base], 1)
+        self.assertEqual(counts[quote], 0)
+
+    def test_perps_are_excluded_from_spot_lanes(self) -> None:
+        self.assertIsNone(rh.classify("TSLAPERP", "Tesla Perpetual"))
+        self.assertIsNone(rh.classify("SPY", "SPY Perp"))
+        self.assertIsNone(rh.classify("NVDA", "NVIDIA", {"instrumentType": "perp"}))
+        self.assertEqual(rh.classify("AAPL", "Apple • Robinhood Token"), "equity")
+
+    def test_writer_reads_token_pairs_and_known_pools(self) -> None:
+        text = Path(__file__).resolve().parent.joinpath("snapshot-robinhood-volume.py").read_text()
+        self.assertIn("token-pairs/v1/robinhood", text)
+        self.assertIn("latest/dex/pairs/robinhood", text)
+        self.assertIn("volume_recipients", text)
+
     def test_other_chains_are_ignored(self) -> None:
         mint = "0xmint"
         vols = {mint: None}

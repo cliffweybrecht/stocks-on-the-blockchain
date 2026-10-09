@@ -3,7 +3,10 @@
 
 Mirrors Solana desk snapshot shape in data/volume-snapshots/robinhood.json.
 - Universe: official GET https://api.robinhood.com/rhj/assets (chain 4663)
-- 24h volume: DexScreener tokens/v1/robinhood unique-pool sum per mint
+- 24h volume: DexScreener token-pairs/v1/robinhood unique-pool sum per mint.
+  tokens/v1 is only a one-pair hint. Known pools beyond that 30-pair cap are
+  re-read from /latest/dex/pairs. A pool whose base and quote are both desk
+  tokens is counted once, on the base token.
 - Lanes: ETF/index is classified before private/pre-IPO. Private admission is
   fail-closed (ticker SPCX, or an explicit PRE-IPO / private-company signal in
   the official registry name or metadata). Crypto, commodities, generic baskets,
@@ -48,6 +51,11 @@ from volume_snapshot_day import snapshot_date_override, snapshot_day_key
 UA = {"User-Agent": "Mozilla/5.0 (compatible; RobinhoodVolumeSnapshot/1.0)"}
 RH_ASSETS = "https://api.robinhood.com/rhj/assets"
 DEX_BATCH = "https://api.dexscreener.com/tokens/v1/robinhood/{addrs}"
+# tokens/v1 returns one pair per token. token-pairs returns up to 30.
+DEX_TOKEN_PAIRS = "https://api.dexscreener.com/token-pairs/v1/robinhood/{addr}"
+# Pools the 30-pair cap would drop. Addresses come from prior snapshots and
+# data/volume-known-pools/robinhood.json.
+DEX_KNOWN_PAIRS = "https://api.dexscreener.com/latest/dex/pairs/robinhood/{addrs}"
 CHAIN_ID = 4663
 ETF_TICKERS = {
     "SPY", "QQQ", "GLD", "VTI", "BND", "SGOV", "SHY", "SMH", "XLK", "EWY",
@@ -241,16 +249,29 @@ def _blocked_from_private(sym: str, name: str, asset: dict | None) -> bool:
     )
 
 
+PERP_TEXT = re.compile(r"\b(?:perp|perps|perpetual)\b(?!\s+preferred\b)", re.IGNORECASE)
+
+
+def is_perp(sym: str, name: str, asset: dict | None = None) -> bool:
+    """Spot lanes do not include equity perps. Those live on the perps desk."""
+    if normalize_symbol(sym).endswith("PERP"):
+        return True
+    text = _signal_text(name, asset)
+    return PERP_TEXT.search(f"{sym} {text}") is not None
+
+
 def classify(sym: str, name: str = "", asset: dict | None = None) -> str | None:
     """Return equity, etf, or preipo. None is excluded from every volume lane.
 
     ETF/index is decided before private/pre-IPO. Private admission fails closed:
     only an exact SPCX ticker, an explicit PRE-IPO / private-company phrase, or
     an official registry class of private/pre-IPO. Crypto, commodities, generic
-    baskets, and copycats are never private.
+    baskets, copycats, and perps are never spot volume.
     """
     symbol = normalize_symbol(sym)
     label = name or ""
+    if is_perp(symbol, label, asset):
+        return None
     if is_etf_or_index(symbol, label, asset):
         return "etf"
     if has_explicit_private_signal(symbol, label, asset):
@@ -355,6 +376,21 @@ def pair_liquidity_usd(pair: dict) -> float | None:
     return reported_usd(raw)
 
 
+def volume_recipients(base: str, quote: str, universe: set[str]) -> list[str]:
+    """Desk tokens that receive this pool.
+
+    A pool is counted once. When both sides are desk tokens, only the base
+    token keeps the volume so the lane total is not the same trade twice.
+    """
+    ordered: list[str] = []
+    for addr in (base, quote):
+        if addr in universe and addr not in ordered:
+            ordered.append(addr)
+    if len(ordered) > 1:
+        return ordered[:1]
+    return ordered
+
+
 def accumulate_pair_volumes(
     pairs: list,
     universe: set[str],
@@ -363,7 +399,7 @@ def accumulate_pair_volumes(
     seen_pools: dict[str, set[str]],
     pool_details: dict[str, list[dict]] | None = None,
 ) -> None:
-    """Add each pool's h24 to a mint once. A repeated pair address / pair id is skipped."""
+    """Add each pool's h24 to one desk mint. A repeated pair address is skipped."""
     for pair in pairs:
         if not isinstance(pair, dict):
             continue
@@ -377,8 +413,8 @@ def accumulate_pair_volumes(
         quote = str(quote_token.get("address") or "").lower()
         vol = h24_volume(pair)
         seen_in_pair: set[str] = set()
-        for addr in (base, quote):
-            if addr not in universe or addr in seen_in_pair:
+        for addr in volume_recipients(base, quote, universe):
+            if addr in seen_in_pair:
                 continue
             seen_in_pair.add(addr)
             seen = seen_pools.setdefault(addr, set())
@@ -397,43 +433,116 @@ def accumulate_pair_volumes(
             vols[addr] = vol if prev is None else prev + vol
 
 
+def known_pair_addresses(snapshot_file: Path) -> list[str]:
+    """Pair addresses already seen, plus the committed known-pools list.
+
+    token-pairs caps at 30. These addresses are fetched again via
+    /latest/dex/pairs so a pool that fell off that list still counts.
+    """
+    found: list[str] = []
+    seen: set[str] = set()
+
+    def add(raw: object) -> None:
+        if not isinstance(raw, str):
+            return
+        text = raw.strip()
+        key = text.lower()
+        if not key.startswith("0x") or key in seen:
+            return
+        seen.add(key)
+        found.append(text)
+
+    extra = Path(__file__).resolve().parents[1] / "data" / "volume-known-pools" / "robinhood.json"
+    for path in (extra, snapshot_file):
+        if not path.exists():
+            continue
+        try:
+            payload = json.loads(path.read_text())
+        except (OSError, json.JSONDecodeError):
+            continue
+        for addr in payload.get("pairs") or []:
+            add(addr)
+        for rec in payload.get("records") or []:
+            if not isinstance(rec, dict):
+                continue
+            for asset in rec.get("assets") or []:
+                if not isinstance(asset, dict):
+                    continue
+                for pool in asset.get("pools") or []:
+                    if isinstance(pool, dict):
+                        add(pool.get("pairAddress"))
+    return found
+
+
+def _fetch_pairs(url: str) -> list | None:
+    """Pair rows, or None when every retry failed. An empty list is a real empty."""
+    data = None
+    for attempt in range(6):
+        try:
+            data = fetch_json(url, retries=1)
+            break
+        except Exception as e:  # noqa: BLE001
+            message = str(e)
+            if "404" in message or "400" in message:
+                return []
+            wait = 2.5 * (attempt + 1)
+            print(f"warn dex retry {attempt + 1}/6 after {wait:.1f}s: {e}", file=sys.stderr)
+            time.sleep(wait)
+    if data is None:
+        return None
+    if isinstance(data, list):
+        return data
+    if isinstance(data, dict):
+        pairs = data.get("pairs")
+        if isinstance(pairs, list):
+            return pairs
+        pair = data.get("pair")
+        if isinstance(pair, dict):
+            return [pair]
+    return []
+
+
 def hydrate_volumes(
     rows: list[dict],
-) -> tuple[dict[str, float | None], dict[str, int], dict[str, list[dict]]]:
-    """Return address(lower) -> volume24hUsd or None if no DexScreener volume."""
+    known_pairs: list[str] | None = None,
+) -> tuple[dict[str, float | None], dict[str, int], dict[str, list[dict]], int]:
+    """Return address(lower) -> volume24hUsd or None if no DexScreener volume.
+
+    tokens/v1 is one pair per token. Every mint also reads token-pairs, and
+    known pool addresses are read from /latest/dex/pairs. Seen pool ids keep
+    a pool on one mint.
+    """
     by_addr = {r["address"].lower(): r for r in rows}
     universe = set(by_addr)
     vols: dict[str, float | None] = {a: None for a in universe}
     pool_counts: dict[str, int] = {a: 0 for a in universe}
     pool_details: dict[str, list[dict]] = {a: [] for a in universe}
     seen_pools: dict[str, set[str]] = {a: set() for a in universe}
-
     failed_batches = 0
-    for batch in chunks(list(by_addr.keys()), 20):
-        # DexScreener wants original casing sometimes; use registry addresses
-        addrs = ",".join(by_addr[a]["address"] for a in batch)
-        url = DEX_BATCH.format(addrs=addrs)
-        data = None
-        for attempt in range(6):
-            try:
-                data = fetch_json(url, retries=1)
-                break
-            except Exception as e:  # noqa: BLE001
-                wait = 2.5 * (attempt + 1)
-                print(f"warn batch retry {attempt + 1}/6 after {wait:.1f}s: {e}", file=sys.stderr)
-                time.sleep(wait)
-        if data is None:
+
+    def consume(pairs: list | None) -> None:
+        nonlocal failed_batches
+        if pairs is None:
             failed_batches += 1
-            print("warn batch abandoned after retries", file=sys.stderr)
-            time.sleep(2)
-            continue
-        pairs = data if isinstance(data, list) else (data.get("pairs") or [])
+            return
         accumulate_pair_volumes(pairs, universe, vols, pool_counts, seen_pools, pool_details)
-        time.sleep(0.8)
+
+    for batch in chunks(list(by_addr.keys()), 20):
+        addrs = ",".join(by_addr[a]["address"] for a in batch)
+        consume(_fetch_pairs(DEX_BATCH.format(addrs=addrs)))
+        time.sleep(0.35)
+
+    for addr in sorted(by_addr):
+        consume(_fetch_pairs(DEX_TOKEN_PAIRS.format(addr=by_addr[addr]["address"])))
+        time.sleep(0.25)
+
+    for batch in chunks(list(known_pairs or []), 30):
+        consume(_fetch_pairs(DEX_KNOWN_PAIRS.format(addrs=",".join(batch))))
+        time.sleep(0.35)
 
     if failed_batches:
-        print(f"warn hydrate incomplete: {failed_batches} abandoned batches", file=sys.stderr)
-    return vols, pool_counts, pool_details
+        print(f"warn hydrate incomplete: {failed_batches} DexScreener responses failed", file=sys.stderr)
+    return vols, pool_counts, pool_details, failed_batches
 
 
 def sum_nullable(values: list[float | None]) -> float | None:
@@ -491,7 +600,14 @@ def main() -> int:
         print("snapshot:robinhood failed: empty RH registry", file=sys.stderr)
         return 1
 
-    vols, pool_counts, pool_details = hydrate_volumes(rows)
+    vols, pool_counts, pool_details, failed_batches = hydrate_volumes(rows, known_pair_addresses(out_file))
+    if failed_batches:
+        print(
+            f"snapshot:robinhood failed: {failed_batches} DexScreener responses failed "
+            "(refusing a one-pair under-count)",
+            file=sys.stderr,
+        )
+        return 1
 
     eq_vol, eq_mints, eq_pools = lane_totals(rows, vols, pool_counts, "equity")
     etf_vol, etf_mints, etf_pools = lane_totals(rows, vols, pool_counts, "etf")
@@ -517,14 +633,19 @@ def main() -> int:
         "generatedAt": now.isoformat().replace("+00:00", "Z"),
         "sources": {
             "universe": RH_ASSETS,
-            "volume": "DexScreener tokens/v1/robinhood volume.h24 unique-pool sum",
+            "volume": (
+                "DexScreener token-pairs/v1/robinhood volume.h24, plus known pools "
+                "from /latest/dex/pairs; tokens/v1 is not the pair list; "
+                "a pool with two desk tokens is counted once on the base"
+            ),
             "chainId": CHAIN_ID,
             "chainSlug": "robinhood",
         },
         "assets": assets_for(rows, vols, pool_details),
         "method": (
             "ETF/index before private; private admission is fail-closed; "
-            "equity ranking excludes etf+preipo; DexScreener h24 deduped by pool; "
+            "equity ranking excludes etf+preipo; perps are excluded; "
+            "DexScreener h24 deduped by pool and counted once when both sides are desk tokens; "
             "assets[] is the same per-mint DexScreener sample (null is not zero)"
         ),
     }
