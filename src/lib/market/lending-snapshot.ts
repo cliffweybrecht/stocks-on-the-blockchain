@@ -47,8 +47,32 @@ export interface LendingRow {
   borrowApyMax: number | null;
   /** Stock tokens borrowed, when the source reports a short book. */
   stockBorrowedUsd: number | null;
+  /** Stock tokens this venue accepts, with max LTV when the source reports it. */
+  assets?: LendingAsset[];
+  /** Plain note about a gap in the row. Not a place for invented numbers. */
+  note?: string | null;
+  /**
+   * Set when stableBorrowedUsd is an estimate, not a pool total.
+   * The dollars still live on stableBorrowedUsd so the desk total can include them.
+   */
+  borrowEstimate?: LendingBorrowEstimate | null;
   source: string;
   error: string | null;
+}
+
+export interface LendingAsset {
+  symbol: string;
+  address: string;
+  collateralUsd: number | null;
+  /** Max borrow as a fraction of collateral. 0.7 means $70 per $100 of stock. */
+  maxLtv: number | null;
+}
+
+export interface LendingBorrowEstimate {
+  method: string;
+  /** ISO time the estimate was measured. May be earlier than the snapshot. */
+  asOf: string;
+  lowerBoundUsd: number | null;
 }
 
 export interface LendingSourceNote {
@@ -81,6 +105,13 @@ export interface LendingChainGroup {
   totals: LendingTotals;
 }
 
+export interface LendingHistoryPoint {
+  date: string;
+  capturedAt: string;
+  collateralUsd: number | null;
+  stableBorrowedUsd: number | null;
+}
+
 export interface LendingDeskModel {
   date: string | null;
   capturedAt: string | null;
@@ -89,6 +120,7 @@ export interface LendingDeskModel {
   chains: LendingChainGroup[];
   totals: LendingTotals;
   failures: LendingSourceNote[];
+  history: LendingHistoryPoint[];
 }
 
 export function lendingChainLabel(chainId: string): string {
@@ -116,6 +148,7 @@ export function emptyLendingDeskModel(readError?: string): LendingDeskModel {
     chains: [],
     totals: emptyLendingTotals(),
     failures: [],
+    history: [],
   };
 }
 
@@ -227,12 +260,28 @@ export function groupLendingRows(rows: readonly LendingRow[]): LendingChainGroup
     });
 }
 
+export function lendingHistoryFromDays(days: readonly LendingDaySnapshot[]): LendingHistoryPoint[] {
+  return [...days]
+    .sort((a, b) => a.date.localeCompare(b.date) || a.capturedAt.localeCompare(b.capturedAt))
+    .map((day) => {
+      const totals = aggregateLendingTotals(day.rows);
+      return {
+        date: day.date,
+        capturedAt: day.capturedAt,
+        collateralUsd: totals.collateralUsd,
+        stableBorrowedUsd: totals.stableBorrowedUsd,
+      };
+    });
+}
+
 export function buildLendingDeskModel(
   file: LendingDaySnapshot | null,
   readError?: string,
+  history?: readonly LendingDaySnapshot[],
 ): LendingDeskModel {
   if (!file) return emptyLendingDeskModel(readError);
   const rows = file.rows;
+  const days = history && history.length > 0 ? history : [file];
   return {
     date: file.date,
     capturedAt: file.capturedAt,
@@ -241,6 +290,7 @@ export function buildLendingDeskModel(
     chains: groupLendingRows(rows),
     totals: aggregateLendingTotals(rows),
     failures: file.failures,
+    history: lendingHistoryFromDays(days),
   };
 }
 
@@ -280,9 +330,39 @@ function parseRow(value: unknown): LendingRow | null {
     borrowApyMin: nullableFraction(row.borrowApyMin),
     borrowApyMax: nullableFraction(row.borrowApyMax),
     stockBorrowedUsd: nullableUsd(row.stockBorrowedUsd),
+    assets: parseAssets(row.assets),
+    note: asNonEmptyString(row.note),
+    borrowEstimate: parseBorrowEstimate(row.borrowEstimate),
     source: asNonEmptyString(row.source) ?? "",
     error: asNonEmptyString(row.error),
   };
+}
+
+function parseAssets(value: unknown): LendingAsset[] {
+  if (!Array.isArray(value)) return [];
+  const assets: LendingAsset[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") continue;
+    const asset = item as Partial<LendingAsset>;
+    const address = asNonEmptyString(asset.address);
+    if (!address) continue;
+    assets.push({
+      symbol: asNonEmptyString(asset.symbol) ?? address,
+      address,
+      collateralUsd: nullableUsd(asset.collateralUsd),
+      maxLtv: nullableFraction(asset.maxLtv),
+    });
+  }
+  return assets;
+}
+
+function parseBorrowEstimate(value: unknown): LendingBorrowEstimate | null {
+  if (!value || typeof value !== "object") return null;
+  const estimate = value as Partial<LendingBorrowEstimate>;
+  const method = asNonEmptyString(estimate.method);
+  const asOf = asNonEmptyString(estimate.asOf);
+  if (!method || !asOf) return null;
+  return { method, asOf, lowerBoundUsd: nullableUsd(estimate.lowerBoundUsd) };
 }
 
 function nullableUsd(value: unknown): number | null {
@@ -364,5 +444,96 @@ export function formatLendingApy(row: Pick<LendingTotals, "borrowApy" | "borrowA
 /** Shown only when a source reports stock-token borrows above zero. A zero stays hidden. */
 export function formatStockBorrowedNote(value: number | null | undefined): string | null {
   if (value === null || value === undefined || !Number.isFinite(value) || !(value > 0)) return null;
-  return `Stock tokens borrowed ${formatUsdCompact(value)}`;
+  return `Stock tokens lent for shorting ${formatUsdCompact(value)}`;
+}
+
+/** Compact estimate. Missing stays a dash. $255,389 reads as ~$0.26M. */
+export function formatLendingEstimateUsd(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  const abs = Math.abs(value);
+  if (abs >= 100_000) return `~$${(value / 1_000_000).toFixed(2)}M`;
+  if (abs >= 1_000) return `~$${(value / 1_000).toFixed(0)}K`;
+  return `~${formatUsdCompact(value)}`;
+}
+
+export function lendingBorrowEstimateUsd(rows: readonly LendingRow[]): number | null {
+  const amounts = rows
+    .filter((row) => row.borrowEstimate && row.stableBorrowedUsd !== null)
+    .map((row) => row.stableBorrowedUsd);
+  return sumNullable(amounts);
+}
+
+export interface LendingHeadline {
+  collateralSentence: string;
+  borrowedSentence: string;
+  fullSentence: string;
+  costSentence: string;
+}
+
+export function lendingHeadline(rows: readonly LendingRow[], totals: LendingTotals): LendingHeadline {
+  const estimate = lendingBorrowEstimateUsd(rows);
+  const collateral = totals.collateralUsd;
+  const borrowed = totals.stableBorrowedUsd;
+  const full = totals.utilization;
+  const cost = formatLendingApy(totals);
+  return {
+    collateralSentence:
+      collateral === null
+        ? "We do not have a total yet for stock tokens locked up so people can borrow."
+        : `People put in ${formatUsdCompact(collateral)} of stock tokens so they could borrow dollars against them.`,
+    borrowedSentence:
+      borrowed === null
+        ? "We do not have a total yet for dollars borrowed against that stock."
+        : estimate === null
+          ? `People borrowed ${formatUsdCompact(borrowed)} of stablecoins (USDC, USDG, PYUSD, and similar) against that stock.`
+          : `People borrowed ${formatUsdCompact(borrowed)} of stablecoins (USDC, USDG, PYUSD, and similar) against that stock. About ${formatLendingEstimateUsd(estimate)} of that is estimated, because Venus mixes these stocks with other coins.`,
+    fullSentence:
+      full === null
+        ? "We cannot say how full the dollar pools are until both the dollars supplied and the dollars borrowed are known."
+        : estimate === null
+          ? `${formatLendingFractionPct(full)} of the dollars in these lending pools is already lent out.`
+          : `${formatLendingFractionPct(full)} of the dollars in these lending pools is already lent out. Venus is left out of this, because its pool is shared.`,
+    costSentence:
+      cost === "—"
+        ? "We do not have a typical yearly borrow cost yet."
+        : estimate === null
+          ? `A typical borrower pays about ${cost} a year. Bigger loans count more than tiny ones.`
+          : `A typical borrower pays about ${cost} a year. Bigger loans count more than tiny ones. Venus is not in this average.`,
+  };
+}
+
+export function lendingMaxLtvRange(rows: readonly LendingRow[]): { min: number; max: number } | null {
+  const values: number[] = [];
+  for (const row of rows) {
+    for (const asset of row.assets ?? []) {
+      if (asset.maxLtv !== null && Number.isFinite(asset.maxLtv) && asset.maxLtv > 0 && asset.maxLtv <= 1.05) {
+        values.push(asset.maxLtv);
+      }
+    }
+  }
+  if (values.length === 0) return null;
+  return { min: Math.min(...values), max: Math.max(...values) };
+}
+
+export function formatLtvPerHundred(fraction: number): string {
+  return `$${Math.round(fraction * 100)}`;
+}
+
+/** Plain LTV line for the explainer. No dollar example when the snapshot has no max LTV. */
+export function lendingLtvExplainer(rows: readonly LendingRow[]): string {
+  const range = lendingMaxLtvRange(rows);
+  if (!range) {
+    return "Each token has a limit on how many dollars you can borrow for every $100 of stock. That limit is called LTV.";
+  }
+  const low = formatLtvPerHundred(range.min);
+  const high = formatLtvPerHundred(range.max);
+  if (low === high) return `You can borrow up to ${low} for every $100 of stock. That limit is called LTV.`;
+  return `You can borrow up to ${low}–${high} for every $100 of stock, depending on the token. That limit is called LTV.`;
+}
+
+export function lendingStockBorrows(rows: readonly LendingRow[]): { venue: string; chainLabel: string; usd: number }[] {
+  return rows
+    .filter((row): row is LendingRow & { stockBorrowedUsd: number } => typeof row.stockBorrowedUsd === "number" && row.stockBorrowedUsd > 0)
+    .map((row) => ({ venue: row.venue, chainLabel: row.chainLabel, usd: row.stockBorrowedUsd }))
+    .sort((a, b) => b.usd - a.usd || a.venue.localeCompare(b.venue));
 }

@@ -1,15 +1,18 @@
+import { readBeacons, readSymbols } from "./lending-bsc";
 import { buildEquityAddressBook, bookHasChain, type EquityAddressBook, xstocksPageHasNext } from "./lending-addresses";
 import {
+  BSTOCK_BEACON,
   noteFromRow,
   parseAaveEquitiesHub,
   parseJupiterLend,
   parseKaminoReserveMetrics,
-  parseListaBStock,
+  parseListaBook,
   parseMorphoMarkets,
   parseVenusMarkets,
-  withListaApy,
+  tokenAmountUsd,
 } from "./lending-parse";
 import { lendingDayFromCapture, type LendingDaySnapshot, type LendingRow, type LendingSourceNote } from "./lending-snapshot";
+import { scanVenusBStockBorrow, VENUS_CHECKED_ESTIMATE, type VenusBorrowEstimate } from "./lending-venus-estimate";
 
 const UA = "Mozilla/5.0 (compatible; StocksOnTheBlockchain/1.0)";
 
@@ -20,9 +23,9 @@ const JUPITER_VAULTS = "https://lite-api.jup.ag/lend/v1/borrow/vaults";
 const JUPITER_LIQUIDITY = "https://lite-api.jup.ag/lend/v1/liquidity/tokens";
 const MORPHO_GRAPHQL = "https://api.morpho.org/graphql";
 const AAVE_GRAPHQL = "https://api.v4.aave.com/graphql";
-const VENUS_MARKETS = "https://api.venus.io/markets?chainId=56&limit=100";
+const VENUS_MARKETS = "https://api.venus.io/markets/core-pool?chainId=56&limit=100";
 const LISTA_OVERALL = "https://api.lista.org/api/moolah/overall";
-const LISTA_MARKETS = "https://api.lista.org/api/moolah/borrow/markets?chain=bsc&zone=5&pageSize=50&page=";
+const LISTA_ALL_MARKETS = "https://api.lista.org/api/moolah/allMarkets?chain=bsc";
 const XSTOCKS_ASSETS = "https://api.xstocks.fi/api/v2/public/assets?pageSize=100&page=";
 const STOCKSONCHAIN = "https://stocksonchain.io/api/tokens.json";
 const RHJ_ASSETS = "https://api.robinhood.com/rhj/assets";
@@ -37,6 +40,7 @@ const MORPHO_QUERY = `query LendingMarkets($chainId: Int!, $skip: Int!) {
   markets(first: 1000, skip: $skip, where: { chainId_in: [$chainId] }) {
     pageInfo { count countTotal }
     items {
+      lltv
       loanAsset { address symbol }
       collateralAsset { address symbol }
       state { collateralAssetsUsd borrowAssetsUsd supplyAssetsUsd borrowApy }
@@ -175,18 +179,12 @@ async function fetchAaveHubAssets(): Promise<unknown> {
   return assets;
 }
 
-async function fetchListaMarkets(): Promise<unknown[]> {
-  const rows: unknown[] = [];
-  for (let page = 1; page <= 10; page += 1) {
-    const payload = await getJsonRetry(`${LISTA_MARKETS}${page}`);
-    const data = (payload as { data?: { total?: unknown; list?: unknown[] } }).data;
-    const list = data?.list ?? [];
-    if (list.length === 0) break;
-    rows.push(...list);
-    const total = Number(data?.total);
-    if (Number.isFinite(total) && rows.length >= total) break;
-  }
-  return rows;
+async function fetchListaMarketDetail(id: string): Promise<{ borrowRate: number | null; loanPrice: number | null }> {
+  const payload = await getJsonRetry(`https://api.lista.org/api/moolah/market/${id}`);
+  const data = (payload as { data?: { borrowRate?: unknown; loanTokenPrice?: unknown } }).data;
+  const borrowRate = typeof data?.borrowRate === "number" && Number.isFinite(data.borrowRate) ? data.borrowRate : null;
+  const loanPrice = typeof data?.loanTokenPrice === "number" && Number.isFinite(data.loanTokenPrice) ? data.loanTokenPrice : null;
+  return { borrowRate, loanPrice };
 }
 
 function failure(source: string, message: string): LendingSourceNote {
@@ -194,6 +192,7 @@ function failure(source: string, message: string): LendingSourceNote {
 }
 
 export async function captureLendingSnapshot(nowMs = Date.now()): Promise<LendingDaySnapshot> {
+  const venusEstimatePromise = settle("Venus estimate", () => scanVenusBStockBorrow(nowMs));
   const [
     kaminoList,
     jupiterVaults,
@@ -216,7 +215,7 @@ export async function captureLendingSnapshot(nowMs = Date.now()): Promise<Lendin
     settle("Jupiter liquidity", () => getJsonRetry(JUPITER_LIQUIDITY)),
     settle("Venus", () => getJsonRetry(VENUS_MARKETS, { headers: { "accept-version": "stable" } })),
     settle("Lista", () => getJsonRetry(LISTA_OVERALL)),
-    settle("Lista markets", () => fetchListaMarkets()),
+    settle("Lista markets", () => getJsonRetry(LISTA_ALL_MARKETS)),
     settle("Aave V4", () => fetchAaveHubAssets()),
     settle("xStocks registry", () => fetchXStocksPages()),
     settle("Stocks On Chain", () => getJsonRetry(STOCKSONCHAIN)),
@@ -248,6 +247,8 @@ export async function captureLendingSnapshot(nowMs = Date.now()): Promise<Lendin
     failures.push(failure("xStock mints", "No verified Solana xStock mints, so Kamino and Jupiter cannot be matched."));
   }
 
+  const listaRowPromise = captureLista(listaOverall, listaMarkets);
+  const venusEstimate = await venusEstimatePromise;
   const rows: LendingRow[] = [];
   rows.push(...(await captureKamino(kaminoList.data, book)));
   rows.push(captureJupiter(jupiterVaults, jupiterLiquidity, book));
@@ -256,8 +257,8 @@ export async function captureLendingSnapshot(nowMs = Date.now()): Promise<Lendin
     const fetched = morphoChains[index];
     rows.push(captureMorpho(chainId, fetched, book));
   }
-  rows.push(captureVenus(venus));
-  rows.push(captureLista(listaOverall, listaMarkets));
+  rows.push(await captureVenus(venus, venusEstimate));
+  rows.push(await listaRowPromise);
 
   for (const row of rows) {
     const note = noteFromRow(row);
@@ -352,28 +353,169 @@ function captureMorpho(
   return parseMorphoMarkets(result.data, { chainId, book, source });
 }
 
-function captureVenus(result: { data: unknown; error: string | null }): LendingRow {
+async function captureVenus(
+  result: { data: unknown; error: string | null },
+  estimate: { data: unknown; error: string | null },
+): Promise<LendingRow> {
+  const measured = estimate.data && typeof estimate.data === "object" && "usd" in estimate.data ? (estimate.data as VenusBorrowEstimate) : null;
+  const borrowEstimate = measured && typeof measured.usd === "number" ? measured : VENUS_CHECKED_ESTIMATE;
   if (result.error) {
-    const row = parseVenusMarkets(null, VENUS_MARKETS);
+    const row = parseVenusMarkets(null, VENUS_MARKETS, { estimate: borrowEstimate });
     return { ...row, error: result.error };
   }
-  return parseVenusMarkets(result.data, VENUS_MARKETS);
+  const listed = venusBstockAddresses(result.data);
+  let equityAddresses: Set<string> | null = null;
+  if (listed.size > 0) {
+    try {
+      const beacons = await readBeacons([...listed]);
+      const confirmed = new Set<string>();
+      let unread = false;
+      for (const address of listed) {
+        const beacon = beacons.get(address);
+        if (!beacon) unread = true;
+        else if (beacon === BSTOCK_BEACON) confirmed.add(address);
+      }
+      if (!unread) equityAddresses = confirmed;
+    } catch {
+      equityAddresses = null;
+    }
+  }
+  return parseVenusMarkets(result.data, VENUS_MARKETS, {
+    equityAddresses,
+    estimate: borrowEstimate,
+  });
 }
 
-function captureLista(
+function venusBstockAddresses(payload: unknown): Set<string> {
+  const root = payload && typeof payload === "object" ? (payload as { result?: unknown }).result : null;
+  const list = Array.isArray(payload) ? payload : Array.isArray(root) ? root : [];
+  const addresses = new Set<string>();
+  for (const item of list) {
+    if (!item || typeof item !== "object") continue;
+    const row = item as { category?: unknown; underlyingAddress?: unknown };
+    if (row.category !== "bstocks") continue;
+    if (typeof row.underlyingAddress === "string") addresses.add(row.underlyingAddress.toLowerCase());
+  }
+  return addresses;
+}
+
+async function captureLista(
   overall: { data: unknown; error: string | null },
   markets: { data: unknown; error: string | null },
-): LendingRow {
-  const row = overall.error
-    ? { ...parseListaBStock(null, LISTA_OVERALL), error: overall.error }
-    : parseListaBStock(overall.data, LISTA_OVERALL);
-  if (markets.error || !Array.isArray(markets.data)) {
-    if (markets.error && (row.collateralUsd !== null || row.stableBorrowedUsd !== null)) {
-      return { ...row, error: row.error ?? `Lista borrow rates did not load (${markets.error}).` };
-    }
-    return row;
+): Promise<LendingRow> {
+  if (overall.error) {
+    const row = parseListaBook({ overall: null, markets: markets.data, source: LISTA_OVERALL });
+    return { ...row, error: overall.error };
   }
-  return withListaApy(row, markets.data);
+  if (markets.error || markets.data == null) {
+    const row = parseListaBook({ overall: overall.data, markets: null, source: LISTA_ALL_MARKETS });
+    return { ...row, error: markets.error ?? "Lista markets did not load." };
+  }
+  const list = Array.isArray(markets.data)
+    ? markets.data
+    : markets.data && typeof markets.data === "object" && Array.isArray((markets.data as { data?: unknown }).data)
+      ? (markets.data as { data: unknown[] }).data
+      : null;
+  const zone5 = (list ?? []).filter((item) => {
+    if (!item || typeof item !== "object") return false;
+    const row = item as { zone?: unknown; chain?: unknown };
+    return Number(row.zone) === 5 && String(row.chain ?? "").toLowerCase() === "bsc";
+  });
+  const collateral = [
+    ...new Set(
+      zone5
+        .map((item) => {
+          const token = (item as { collateralToken?: unknown }).collateralToken;
+          return typeof token === "string" ? token.toLowerCase() : "";
+        })
+        .filter(Boolean),
+    ),
+  ];
+  let rejected = new Set<string>();
+  let symbols = new Map<string, string>();
+  try {
+    const beacons = await readBeacons(collateral);
+    rejected = new Set(
+      collateral.filter((address) => {
+        const beacon = beacons.get(address);
+        return beacon !== null && beacon !== undefined && beacon !== BSTOCK_BEACON;
+      }),
+    );
+  } catch {
+    rejected = new Set();
+  }
+  try {
+    symbols = await readSymbols(collateral);
+  } catch {
+    symbols = new Map();
+  }
+  const loanMarkets = (list ?? []).filter((item) => {
+    if (!item || typeof item !== "object") return false;
+    const row = item as { zone?: unknown; loanToken?: unknown; totalBorrowAssets?: unknown; id?: unknown };
+    if (Number(row.zone) === 5) return false;
+    const loan = typeof row.loanToken === "string" ? row.loanToken.toLowerCase() : "";
+    if (!collateral.includes(loan) || rejected.has(loan)) return false;
+    const raw = Number(row.totalBorrowAssets);
+    return Number.isFinite(raw) && raw > 0 && typeof row.id === "string";
+  }) as { id: string; totalBorrowAssets?: unknown }[];
+  const loanPrices = new Map<string, number>();
+  const rates: { apy: number | null; weight: number | null }[] = [];
+  const borrowMarkets = zone5.filter((item) => {
+    const raw = Number((item as { totalBorrowAssets?: unknown }).totalBorrowAssets);
+    return Number.isFinite(raw) && raw > 0;
+  });
+  const details = await mapPool([...new Set([...loanMarkets, ...borrowMarkets])], 12, async (item) => {
+    const id = String((item as { id: string }).id);
+    try {
+      return { id, ...(await fetchListaMarketDetail(id)) };
+    } catch {
+      return { id, borrowRate: null, loanPrice: null };
+    }
+  });
+  const detailById = new Map(details.map((detail) => [detail.id.toLowerCase(), detail]));
+  for (const market of loanMarkets) {
+    const detail = detailById.get(market.id.toLowerCase());
+    if (detail?.loanPrice !== null && detail?.loanPrice !== undefined) loanPrices.set(market.id.toLowerCase(), detail.loanPrice);
+  }
+  let ratesComplete = true;
+  for (const market of borrowMarkets) {
+    const row = market as { id?: unknown; totalBorrowAssets?: unknown; collateralToken?: unknown };
+    const id = typeof row.id === "string" ? row.id.toLowerCase() : "";
+    const collateralToken = typeof row.collateralToken === "string" ? row.collateralToken.toLowerCase() : "";
+    if (rejected.has(collateralToken)) continue;
+    const detail = detailById.get(id);
+    const weight = detail?.loanPrice != null ? tokenAmountUsd(row.totalBorrowAssets, detail.loanPrice) : null;
+    if (weight === null || !(weight > 0) || detail?.borrowRate === null || detail?.borrowRate === undefined) {
+      ratesComplete = false;
+      continue;
+    }
+    rates.push({ apy: detail.borrowRate, weight });
+  }
+  return parseListaBook({
+    overall: overall.data,
+    markets: markets.data,
+    rejectedCollateral: rejected,
+    symbols,
+    loanPrices,
+    rates: ratesComplete ? rates : undefined,
+    source: LISTA_OVERALL,
+  });
+}
+
+async function mapPool<T, R>(items: readonly T[], limit: number, run: (item: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let cursor = 0;
+  async function worker() {
+    while (cursor < items.length) {
+      const index = cursor;
+      cursor += 1;
+      const item = items[index];
+      if (item === undefined) return;
+      out[index] = await run(item);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, () => worker()));
+  return out;
 }
 
 function dedupeFailures(notes: LendingSourceNote[]): LendingSourceNote[] {

@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Lending",
-  description: "Onchain borrowing and lending against tokenized stocks.",
+  description: "Plain-language look at borrowing dollars against tokenized stocks.",
 };
 
 export default async function LendingPage() {

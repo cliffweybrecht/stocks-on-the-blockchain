@@ -8,6 +8,7 @@ import {
   parseJupiterLend,
   parseKaminoReserveMetrics,
   parseListaBStock,
+  parseListaBook,
   parseMorphoMarkets,
   parseVenusMarkets,
   withListaApy,
@@ -17,14 +18,19 @@ import {
   buildLendingDeskModel,
   formatLendingApy,
   formatLendingCapturedAt,
+  formatLendingEstimateUsd,
   formatLendingFractionPct,
   formatStockBorrowedNote,
   groupLendingRows,
   lendingDayFromCapture,
+  lendingHeadline,
+  lendingHistoryFromDays,
+  lendingLtvExplainer,
   lendingUtilization,
   parseLendingSnapshot,
   serializeLendingSnapshot,
 } from "../lending-snapshot";
+import { attributeVenusBorrow } from "../lending-venus-estimate";
 import { saveLendingDay, loadLatestLendingSnapshot } from "../lending-snapshot-file";
 import { runLendingSnapshotCli } from "../lending-snapshot-job";
 import { easternDayKey } from "../volume-snapshots";
@@ -275,6 +281,155 @@ describe("lending parsers", () => {
     expect(row.utilization).toBeCloseTo(38960.44 / (38960.44 + 14341.75), 6);
     expect(row.borrowApy).toBeCloseTo(0.025, 6);
   });
+
+  it("keeps Lista zone-5 collateral and treats a bStock loan as shorting, not collateral", () => {
+    const stock = "0x02fca66c1d1afb4e2a7884261eb00f63598a7436";
+    const usdt = "0x55d398326f99059ff775485246999027b3197955";
+    const spy = "0x7138b48df7d98d7e3cc221bfe7192d0a178182d8";
+    const row = parseListaBook({
+      source: "lista",
+      overall: {
+        data: {
+          bStock: {
+            totalCollateral: "7801097",
+            totalBorrowed: "3899635",
+            totalAvailable: "1435054",
+            topCollateralTokens: [
+              { tokenAddress: spy, tokenSymbol: "SPYB", collateralUsd: "1794472" },
+              { tokenAddress: stock, tokenSymbol: "NVDAB", collateralUsd: "707185" },
+            ],
+          },
+        },
+      },
+      markets: [
+        {
+          id: "0xaaa",
+          zone: 5,
+          chain: "bsc",
+          collateralToken: spy,
+          loanToken: usdt,
+          lltv: "850000000000000000",
+          totalBorrowAssets: "100",
+        },
+        {
+          id: "0xbbb",
+          zone: 5,
+          chain: "bsc",
+          collateralToken: stock,
+          loanToken: usdt,
+          lltv: "750000000000000000",
+          totalBorrowAssets: "50",
+        },
+        {
+          id: "0x717ccd0f7a90a358cb18183e05a161fdc6e58416eeb8f663345aaedbe9ef4ac5",
+          zone: 0,
+          chain: "bsc",
+          collateralToken: usdt,
+          loanToken: stock,
+          lltv: "700000000000000000",
+          totalBorrowAssets: "338571520375712366231",
+        },
+        {
+          id: "0xother",
+          zone: 0,
+          chain: "bsc",
+          collateralToken: usdt,
+          loanToken: "0x1111111111111111111111111111111111111111",
+          lltv: "800000000000000000",
+          totalBorrowAssets: "999000000000000000000",
+        },
+      ],
+      loanPrices: new Map([["0x717ccd0f7a90a358cb18183e05a161fdc6e58416eeb8f663345aaedbe9ef4ac5", 232.39589378]]),
+      rates: [
+        { apy: 0.02, weight: 100 },
+        { apy: 0.04, weight: 50 },
+      ],
+    });
+    expect(row.collateralUsd).toBeCloseTo(7_801_097, 0);
+    expect(row.stableBorrowedUsd).toBeCloseTo(3_899_635, 0);
+    expect(row.utilization).toBeCloseTo(3_899_635 / (3_899_635 + 1_435_054), 4);
+    expect(row.stockBorrowedUsd).toBeCloseTo(338.571520375712366231 * 232.39589378, 0);
+    expect(row.assets?.map((asset) => asset.symbol)).toEqual(["SPYB", "NVDAB"]);
+    expect(row.assets?.[0]?.maxLtv).toBeCloseTo(0.85, 6);
+    expect(row.assets?.[1]?.collateralUsd).toBeCloseTo(707_185, 0);
+    expect(row.borrowApy).toBeCloseTo((0.02 * 100 + 0.04 * 50) / 150, 6);
+    expect(row.note).toBeNull();
+  });
+
+  it("blanks Lista totals when a zone-5 token is not on the bStock beacon", () => {
+    const stock = "0x02fca66c1d1afb4e2a7884261eb00f63598a7436";
+    const stranger = "0x9999999999999999999999999999999999999999";
+    const row = parseListaBook({
+      source: "lista",
+      overall: { data: { bStock: { totalCollateral: "7801097", totalBorrowed: "3899635", totalAvailable: "1" } } },
+      markets: [
+        { id: "0x1", zone: 5, chain: "bsc", collateralToken: stock, loanToken: "0x55d398326f99059ff775485246999027b3197955", lltv: "0.75", totalBorrowAssets: "1" },
+        { id: "0x2", zone: 5, chain: "bsc", collateralToken: stranger, loanToken: "0x55d398326f99059ff775485246999027b3197955", lltv: "0.5", totalBorrowAssets: "1" },
+      ],
+      rejectedCollateral: new Set([stranger]),
+    });
+    expect(row.collateralUsd).toBeNull();
+    expect(row.stableBorrowedUsd).toBeNull();
+    expect(row.utilization).toBeNull();
+    expect(row.assets?.map((asset) => asset.address)).toEqual([stock]);
+    expect(row.note).toMatch(/not on the bStock beacon/);
+  });
+
+  it("reads a Jupiter collateral factor as max LTV in thousandths", () => {
+    const row = parseJupiterLend({
+      equityMints: new Set([NVDA]),
+      source: "jup",
+      vaults: [
+        {
+          supplyToken: { address: NVDA, symbol: "NVDAx", decimals: 8, price: "200" },
+          borrowToken: { address: USDC, symbol: "USDC", decimals: 6, price: "1" },
+          totalSupply: String(1 * 1e8),
+          totalBorrow: String(10 * 1e6),
+          borrowRate: "477",
+          collateralFactor: "650",
+        },
+      ],
+      liquidityTokens: [],
+    });
+    expect(row.assets?.[0]?.maxLtv).toBeCloseTo(0.65, 6);
+    expect(row.assets?.[0]?.symbol).toBe("NVDAx");
+  });
+
+  it("keeps Venus utilization blank and labels the shared-pool borrow as an estimate", () => {
+    const nvda = "0x02fca66c1d1afb4e2a7884261eb00f63598a7436";
+    const skh = "0x00000000000000000000000000000000000000ab";
+    const row = parseVenusMarkets(
+      {
+        result: [
+          { category: "bstocks", underlyingSymbol: "NVDAB", underlyingAddress: nvda, totalSupplyUnderlyingCents: "34400000", totalBorrowCents: "0", collateralFactorMantissa: "600000000000000000" },
+          { category: "bstocks", underlyingSymbol: "SKHYB", underlyingAddress: skh, totalSupplyUnderlyingCents: "5800000", totalBorrowCents: "0", collateralFactorMantissa: "500000000000000000" },
+          { category: "bstocks", underlyingSymbol: "FAKEB", underlyingAddress: "0x00000000000000000000000000000000000000ff", totalSupplyUnderlyingCents: "900000000", totalBorrowCents: "0", collateralFactorMantissa: "800000000000000000" },
+          { category: "stablecoins", underlyingSymbol: "USDT", underlyingAddress: "0x55d398326f99059ff775485246999027b3197955", totalSupplyUnderlyingCents: "100", totalBorrowCents: "80" },
+        ],
+      },
+      "venus",
+      {
+        equityAddresses: new Set([nvda, skh]),
+        estimate: {
+          usd: 255_389.46,
+          lowerBoundUsd: 195_590.93,
+          method: "pro-rata test",
+          asOf: "2026-10-09T02:20:00.000Z",
+        },
+      },
+    );
+    expect(row.collateralUsd).toBeCloseTo(402_000, 6);
+    expect(row.assets?.map((asset) => asset.symbol)).toEqual(["NVDAB", "SKHYB"]);
+    expect(row.assets?.[1]?.maxLtv).toBeCloseTo(0.5, 6);
+    expect(row.stableBorrowedUsd).toBeCloseTo(255_389.46, 2);
+    expect(row.utilization).toBeNull();
+    expect(row.borrowApy).toBeNull();
+    expect(formatLendingApy(row)).toBe("—");
+    expect(formatLendingEstimateUsd(row.stableBorrowedUsd)).toBe("~$0.26M");
+    expect(row.borrowEstimate?.lowerBoundUsd).toBeCloseTo(195_590.93, 2);
+    expect(row.note).toMatch(/estimate/);
+    expect(row.note).toMatch(/\$195\.6K/);
+  });
 });
 
 describe("lending aggregation", () => {
@@ -323,6 +478,38 @@ describe("lending aggregation", () => {
     const mixed = aggregateLendingTotals([kamino, shared]);
     expect(mixed.utilization).toBeCloseTo((0.9 * 45 + 0.8 * 40) / 85, 6);
     expect(mixed.collateralUsd).toBe(180);
+    const estimateRow = parseVenusMarkets(
+      { result: [{ category: "bstocks", underlyingSymbol: "NVDAB", underlyingAddress: "0x02fca66c1d1afb4e2a7884261eb00f63598a7436", totalSupplyUnderlyingCents: "10000", totalBorrowCents: "0", collateralFactorMantissa: "600000000000000000" }] },
+      "venus",
+      { estimate: { usd: 250, lowerBoundUsd: 200, method: "pro-rata", asOf: "2026-10-09T02:20:00.000Z" } },
+    );
+    const withEstimate = aggregateLendingTotals([kamino, estimateRow]);
+    expect(withEstimate.stableBorrowedUsd).toBe(45 + 250);
+    expect(withEstimate.utilization).toBeCloseTo(0.9, 6);
+    const headline = lendingHeadline([kamino, estimateRow], withEstimate);
+    expect(headline.collateralSentence).toMatch(/People put in/);
+    expect(headline.borrowedSentence).toMatch(/estimated/);
+    expect(headline.fullSentence).toMatch(/Venus is left out/);
+    expect(lendingLtvExplainer([estimateRow])).toBe("You can borrow up to $60 for every $100 of stock. That limit is called LTV.");
+    expect(lendingLtvExplainer([missing])).toMatch(/does not|Each token has a limit/);
+    const history = lendingHistoryFromDays([
+      lendingDayFromCapture(Date.parse("2026-10-09T01:20:00.000Z"), [kamino], []),
+    ]);
+    expect(history).toHaveLength(1);
+    expect(history[0]?.collateralUsd).toBe(100);
+    expect(history[0]?.stableBorrowedUsd).toBe(45);
+    const attributed = attributeVenusBorrow([
+      { borrowUsd: 100, bstockBorrowPowerUsd: 50, totalBorrowPowerUsd: 100 },
+      { borrowUsd: 40, bstockBorrowPowerUsd: 40, totalBorrowPowerUsd: 40 },
+    ]);
+    expect(attributed?.estimateUsd).toBeCloseTo(90, 6);
+    expect(attributed?.lowerBoundUsd).toBeCloseTo(40, 6);
+    expect(attributed?.onlyBstockAccounts).toBe(1);
+    expect(attributeVenusBorrow([])).toBeNull();
+    expect(formatLendingEstimateUsd(null)).toBe("—");
+    const roundTrip = parseLendingSnapshot(JSON.parse(serializeLendingSnapshot(lendingDayFromCapture(capturedAt, [estimateRow], []))));
+    expect(roundTrip?.rows[0]?.borrowEstimate?.method).toBe("pro-rata");
+    expect(roundTrip?.rows[0]?.assets?.[0]?.symbol).toBe("NVDAB");
   });
 
   it("writes one Eastern-day file and stays quiet when amounts exist", async () => {
