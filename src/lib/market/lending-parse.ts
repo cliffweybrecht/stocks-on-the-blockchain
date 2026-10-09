@@ -542,6 +542,31 @@ export function parseMorphoMarkets(payload: unknown, options: {
   });
 }
 
+/** Equity markets with a stablecoin borrow. Ids are Morpho market ids, used to page loans. */
+export function morphoEquityBorrowMarketIds(
+  payload: unknown,
+  options: { chainId: number; book: EquityAddressBook },
+): { ids: string[]; incomplete: boolean } | null {
+  if (!Array.isArray(payload)) return null;
+  const equities = options.book.evm.get(options.chainId);
+  if (!equities || equities.size === 0) return null;
+  const ids: string[] = [];
+  let incomplete = false;
+  for (const item of payload) {
+    const market = parseMorphoMarket(item, options.chainId);
+    if (!market || market.collateral === null || !equities.has(market.collateral)) continue;
+    const loanIsStable = market.loan !== null && !equities.has(market.loan) && isStableSymbol(market.loanSymbol);
+    if (!loanIsStable || market.borrowUsd === null || !(market.borrowUsd > 0)) continue;
+    const marketId = item && typeof item === "object" ? asNonEmptyString((item as { marketId?: unknown }).marketId) : null;
+    if (!marketId) {
+      incomplete = true;
+      continue;
+    }
+    ids.push(marketId);
+  }
+  return { ids, incomplete };
+}
+
 interface AaveAsset {
   address: string | null;
   symbol: string | null;
@@ -550,12 +575,15 @@ interface AaveAsset {
   borrowedUsd: number | null;
   borrowApy: number | null;
   utilization: number | null;
+  /** Borrowing limit as a fraction. Null when the reserve did not publish one. */
+  maxLtv: number | null;
 }
 
 function parseAaveAsset(value: unknown): AaveAsset | null {
   if (!value || typeof value !== "object") return null;
   const row = value as {
     underlying?: { address?: unknown; info?: { symbol?: unknown } };
+    collateralFactor?: { normalized?: unknown; value?: unknown };
     summary?: {
       supplied?: { amount?: { value?: unknown }; exchange?: { value?: unknown } };
       borrowed?: { exchange?: { value?: unknown } };
@@ -571,6 +599,7 @@ function parseAaveAsset(value: unknown): AaveAsset | null {
     borrowedUsd: usd(row.summary?.borrowed?.exchange?.value),
     borrowApy: aaveFraction(row.summary?.borrowApy),
     utilization: aaveFraction(row.summary?.utilizationRate),
+    maxLtv: aaveFraction(row.collateralFactor),
   };
 }
 
@@ -624,7 +653,7 @@ export function parseAaveEquitiesHub(payload: unknown, options: {
           address: asset.address,
           collateralUsd: asset.suppliedUsd,
           collateralTokens: asset.suppliedTokens,
-          maxLtv: null,
+          maxLtv: asset.maxLtv,
         });
       }
       continue;

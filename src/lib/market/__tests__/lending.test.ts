@@ -9,6 +9,7 @@ import {
   parseKaminoReserveMetrics,
   parseListaBStock,
   parseListaBook,
+  morphoEquityBorrowMarketIds,
   parseMorphoMarkets,
   parseVenusMarkets,
   withListaApy,
@@ -288,6 +289,30 @@ describe("lending parsers", () => {
     expect(formatStockBorrowedNote(0)).toBeNull();
     expect(row.assets?.find((item) => item.symbol === "NVDAc")?.collateralTokens).toBeCloseTo(1827.10293105, 6);
     expect(row.assets?.find((item) => item.symbol === "AAPLc")?.collateralTokens).toBeNull();
+    expect(row.assets?.find((item) => item.symbol === "NVDAc")?.maxLtv).toBeNull();
+  });
+
+  it("reads Aave collateral factor as the borrowing limit", () => {
+    const priced = asset("0xb20000000000000000000078ee7ce2fe4908108c", "NVDAc", "100", "0");
+    const row = parseAaveEquitiesHub(
+      [{ ...priced, collateralFactor: { value: "0.7000", normalized: "70.0000" } }],
+      { equityAddresses: new Set(["0xb20000000000000000000078ee7ce2fe4908108c"]), source: "aave" },
+    );
+    expect(row.assets?.[0]?.maxLtv).toBeCloseTo(0.7, 6);
+    const equityBook = buildEquityAddressBook({
+      xstocksPages: [{ nodes: [{ symbol: "NVDAx", deployments: [{ network: "Ethereum", address: REAL_NVDA }] }] }],
+    });
+    const listed = morphoEquityBorrowMarketIds(
+      [{ ...market(REAL_NVDA, "NVDA", USDG, "USDG", 100, 40, 40, 0.2), marketId: "0xabc" }],
+      { chainId: 1, book: equityBook },
+    );
+    expect(listed?.ids).toEqual(["0xabc"]);
+    expect(listed?.incomplete).toBe(false);
+    const missing = morphoEquityBorrowMarketIds(
+      [market(REAL_NVDA, "NVDA", USDG, "USDG", 100, 40, 40, 0.2)],
+      { chainId: 1, book: equityBook },
+    );
+    expect(missing?.incomplete).toBe(true);
   });
 
   it("reads Venus bStocks in cents and does not invent stable borrows", () => {

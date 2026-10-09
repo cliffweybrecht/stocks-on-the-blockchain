@@ -9,11 +9,13 @@ import {
   parseListaBook,
   parseMorphoMarkets,
   parseVenusMarkets,
+  morphoEquityBorrowMarketIds,
   tokenAmountUsd,
   type ListaCollateralQuote,
 } from "./lending-parse";
+import { loansFromAavePositions, loansFromMorphoPositions, poolLoanHealth, positionLoanHealth } from "./lending-health";
 import { asReportedNumber, tokenCountFromBaseUnits } from "./numbers";
-import { lendingDayFromCapture, type LendingDaySnapshot, type LendingRow, type LendingSourceNote } from "./lending-snapshot";
+import { lendingDayFromCapture, type LendingDaySnapshot, type LendingLoanHealth, type LendingRow, type LendingSourceNote } from "./lending-snapshot";
 import { chooseVenusEstimate, scanVenusBStockBorrow, VENUS_CHECKED_ESTIMATE, type VenusBorrowEstimate } from "./lending-venus-estimate";
 
 const UA = "Mozilla/5.0 (compatible; StocksOnTheBlockchain/1.0)";
@@ -42,6 +44,7 @@ const MORPHO_QUERY = `query LendingMarkets($chainId: Int!, $skip: Int!) {
   markets(first: 1000, skip: $skip, where: { chainId_in: [$chainId] }) {
     pageInfo { count countTotal }
     items {
+      marketId
       lltv
       loanAsset { address symbol }
       collateralAsset { address symbol decimals }
@@ -147,38 +150,188 @@ async function fetchMorphoChain(chainId: number): Promise<unknown[]> {
   return items;
 }
 
-async function fetchAaveHubAssets(): Promise<unknown> {
-  const hubsPayload = await getJsonRetry(AAVE_GRAPHQL, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      query: `query { hubs(request: { query: { chainIds: [8453] } }) { id name chain { chainId } } }`,
-    }),
-  });
-  const hubs = (hubsPayload as { data?: { hubs?: { id?: string; name?: string }[] } }).data?.hubs ?? [];
+const AAVE_CHAIN = 8453;
+
+async function fetchAaveBook(asOf: string): Promise<{ assets: unknown[]; loanHealth: LendingLoanHealth }> {
+  const hubsPayload = await aaveQuery(`query { hubs(request: { query: { chainIds: [${AAVE_CHAIN}] } }) { id name } }`);
+  const hubs = (hubsPayload as { hubs?: { id?: string; name?: string }[] }).hubs ?? [];
   const hub = hubs.find((item) => /coinbase stocks/i.test(item.name ?? ""));
   if (!hub?.id) throw new Error("Aave V4 Base Coinbase stocks hub was not listed.");
-  const assetsPayload = await getJsonRetry(AAVE_GRAPHQL, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      query: `query HubAssets($hubId: String!) {
-        hubAssets(request: { query: { hubId: $hubId } }) {
-          underlying { address info { symbol } }
-          summary {
-            supplied { amount { value } exchange { value } }
-            borrowed { exchange { value } }
-            borrowApy { normalized value }
-            utilizationRate { normalized value }
-          }
+  const assetsPayload = await aaveQuery(
+    `query HubAssets($hubId: String!) {
+      hubAssets(request: { query: { hubId: $hubId } }) {
+        underlying { address info { symbol } }
+        summary {
+          supplied { amount { value } exchange { value } }
+          borrowed { exchange { value } }
+          borrowApy { normalized value }
+          utilizationRate { normalized value }
+        }
+      }
+    }`,
+    { hubId: hub.id },
+  );
+  const assets = (assetsPayload as { hubAssets?: unknown }).hubAssets;
+  if (!Array.isArray(assets)) throw new Error("Aave hub assets were missing.");
+  let assetsWithFactors = assets;
+  let loanHealth = poolLoanHealth({
+    asOf,
+    source: AAVE_GRAPHQL,
+    fallback: "Aave loans did not load, so this is the pool estimate.",
+  });
+  try {
+    const spokePayload = await aaveQuery(
+      `query Spokes($hubId: String!) { spokes(request: { query: { hubId: $hubId } }) { id name } }`,
+      { hubId: hub.id },
+    );
+    const spokes = (spokePayload as { spokes?: { id?: string; name?: string }[] }).spokes ?? [];
+    const spoke = spokes.find((item) => /coinbase stocks/i.test(item.name ?? "")) ?? spokes[0];
+    if (!spoke?.id) throw new Error("Aave Coinbase stocks spoke was not listed.");
+    const reservesPayload = await aaveQuery(
+      `query Reserves($spokeId: String!) {
+        reserves(request: { query: { spokeId: $spokeId } }) {
+          id
+          asset { underlying { address } }
+          settings { collateralFactor { value normalized } }
+          summary { borrowed { exchange { value } } }
         }
       }`,
-      variables: { hubId: hub.id },
-    }),
+      { spokeId: spoke.id },
+    );
+    const reserves = (reservesPayload as { reserves?: unknown }).reserves;
+    if (!Array.isArray(reserves)) throw new Error("Aave reserves were missing.");
+    const priced = attachAaveFactors(assets, reserves);
+    assetsWithFactors = priced;
+    loanHealth = await aavePositionHealth(reserves, asOf);
+    return { assets: priced, loanHealth };
+  } catch (error) {
+    return {
+      assets: assetsWithFactors,
+      loanHealth: poolLoanHealth({
+        asOf,
+        source: AAVE_GRAPHQL,
+        fallback: `Aave loans did not load (${errorMessage(error)}), so this is the pool estimate.`,
+      }),
+    };
+  }
+}
+
+function attachAaveFactors(assets: unknown[], reserves: readonly unknown[]): unknown[] {
+  const factors = new Map<string, { value?: unknown; normalized?: unknown }>();
+  for (const reserve of reserves) {
+    if (!reserve || typeof reserve !== "object") continue;
+    const row = reserve as {
+      asset?: { underlying?: { address?: unknown } };
+      settings?: { collateralFactor?: { value?: unknown; normalized?: unknown } };
+    };
+    const address = typeof row.asset?.underlying?.address === "string" ? row.asset.underlying.address.toLowerCase() : "";
+    if (!address || !row.settings?.collateralFactor) continue;
+    factors.set(address, row.settings.collateralFactor);
+  }
+  return assets.map((asset) => {
+    if (!asset || typeof asset !== "object") return asset;
+    const address = (asset as { underlying?: { address?: unknown } }).underlying?.address;
+    const key = typeof address === "string" ? address.toLowerCase() : "";
+    const factor = factors.get(key);
+    if (!factor) return asset;
+    return { ...asset, collateralFactor: factor };
   });
-  const assets = (assetsPayload as { data?: { hubAssets?: unknown } }).data?.hubAssets;
-  if (!Array.isArray(assets)) throw new Error("Aave hub assets were missing.");
-  return assets;
+}
+
+async function aavePositionHealth(reserves: readonly unknown[], asOf: string): Promise<LendingLoanHealth> {
+  const borrowedIds: string[] = [];
+  for (const reserve of reserves) {
+    if (!reserve || typeof reserve !== "object") continue;
+    const row = reserve as { id?: unknown; summary?: { borrowed?: { exchange?: { value?: unknown } } } };
+    const id = typeof row.id === "string" ? row.id : "";
+    const borrowed = asReportedNumber(row.summary?.borrowed?.exchange?.value);
+    if (id && borrowed !== null && borrowed > 0) borrowedIds.push(id);
+  }
+  const holders = await aaveBorrowedHolders(borrowedIds);
+  const positions = await aaveUserPositions(holders);
+  const read = loansFromAavePositions(positions);
+  if (read.loans.length === 0) {
+    return poolLoanHealth({
+      asOf,
+      source: AAVE_GRAPHQL,
+      fallback:
+        read.unpricedLoanCount > 0
+          ? "Aave listed borrowers but did not price their collateral, so this is the pool estimate."
+          : "Aave did not list a priced loan, so this is the pool estimate.",
+    });
+  }
+  return positionLoanHealth({ asOf, source: AAVE_GRAPHQL, loans: read.loans, unpricedLoanCount: read.unpricedLoanCount });
+}
+
+async function aaveBorrowedHolders(reserveIds: readonly string[]): Promise<string[]> {
+  const addresses = new Set<string>();
+  for (const reserveId of reserveIds) {
+    let cursor: string | null = null;
+    for (let page = 0; page < 40; page += 1) {
+      const payload = await aaveQuery(
+        `query Holders($id: String!, $cursor: String) {
+          reserveHolders(request: { reserve: { reserveId: $id }, filter: BORROWED, orderBy: { amount: DESC }, pageSize: FIFTY, cursor: $cursor }) {
+            items { address }
+            pageInfo { next }
+          }
+        }`,
+        { id: reserveId, cursor },
+      );
+      const result = (payload as { reserveHolders?: { items?: { address?: unknown }[]; pageInfo?: { next?: unknown } } }).reserveHolders;
+      const items = result?.items ?? [];
+      for (const item of items) {
+        if (typeof item.address === "string" && item.address) addresses.add(item.address);
+      }
+      const next = typeof result?.pageInfo?.next === "string" && result.pageInfo.next ? result.pageInfo.next : null;
+      if (!next || items.length === 0) break;
+      if (page === 39) throw new Error("Aave borrower list was too long to finish.");
+      cursor = next;
+    }
+  }
+  return [...addresses];
+}
+
+async function aaveUserPositions(holders: readonly string[]): Promise<unknown[]> {
+  const positions: unknown[] = [];
+  const batchSize = 10;
+  for (let index = 0; index < holders.length; index += batchSize) {
+    const batch = holders.slice(index, index + batchSize);
+    const variables: Record<string, string> = {};
+    const declarations: string[] = [];
+    const fields: string[] = [];
+    batch.forEach((holder, offset) => {
+      variables[`u${offset}`] = holder;
+      declarations.push(`$u${offset}: EvmAddress!`);
+      fields.push(
+        `p${offset}: userPositions(request: { user: $u${offset}, filter: { chainIds: [${AAVE_CHAIN}] }, orderBy: { healthFactor: ASC } }) { healthFactor { current } totalCollateral { current { value } } totalDebt { current { value } } spoke { name } }`,
+      );
+    });
+    const payload = await aaveQuery(`query Batch(${declarations.join(", ")}) { ${fields.join("\n")} }`, variables);
+    const body = payload as Record<string, unknown>;
+    batch.forEach((_, offset) => {
+      const list = body[`p${offset}`];
+      if (Array.isArray(list)) positions.push(...list);
+    });
+  }
+  return positions;
+}
+
+async function aaveQuery(query: string, variables?: Record<string, unknown>): Promise<unknown> {
+  const payload = await getJsonRetry(AAVE_GRAPHQL, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ query, variables }),
+  });
+  return graphqlData(payload);
+}
+
+function graphqlData(payload: unknown): unknown {
+  if (!payload || typeof payload !== "object") throw new Error("GraphQL response was empty.");
+  const body = payload as { data?: unknown; errors?: { message?: string }[] };
+  const message = body.errors?.find((error) => error?.message)?.message;
+  if (message) throw new Error(message.replace(/\s+/g, " ").trim().slice(0, 160));
+  if (body.data === undefined || body.data === null) throw new Error("GraphQL data was missing.");
+  return body.data;
 }
 
 async function fetchListaMarketDetail(id: string): Promise<{ borrowRate: number | null; loanPrice: number | null }> {
@@ -197,6 +350,7 @@ export async function captureLendingSnapshot(
   nowMs = Date.now(),
   options?: { previousVenusEstimate?: VenusBorrowEstimate | null },
 ): Promise<LendingDaySnapshot> {
+  const asOf = new Date(nowMs).toISOString();
   const venusEstimatePromise = settle("Venus estimate", () => scanVenusBStockBorrow(nowMs));
   const [
     kaminoList,
@@ -221,7 +375,7 @@ export async function captureLendingSnapshot(
     settle("Venus", () => getJsonRetry(VENUS_MARKETS, { headers: { "accept-version": "stable" } })),
     settle("Lista", () => getJsonRetry(LISTA_OVERALL)),
     settle("Lista markets", () => getJsonRetry(LISTA_ALL_MARKETS)),
-    settle("Aave V4", () => fetchAaveHubAssets()),
+    settle("Aave V4", () => fetchAaveBook(asOf)),
     settle("xStocks registry", () => fetchXStocksPages()),
     settle("Stocks On Chain", () => getJsonRetry(STOCKSONCHAIN)),
     settle("Robinhood Chain registry", () => getJsonRetry(RHJ_ASSETS)),
@@ -254,16 +408,17 @@ export async function captureLendingSnapshot(
 
   const listaRowPromise = captureLista(listaOverall, listaMarkets);
   const venusEstimate = await venusEstimatePromise;
-  const rows: LendingRow[] = [];
-  rows.push(...(await captureKamino(kaminoList.data, book)));
-  rows.push(captureJupiter(jupiterVaults, jupiterLiquidity, book));
-  rows.push(captureAave(aave, book));
-  for (const [index, chainId] of MORPHO_CHAINS.entries()) {
-    const fetched = morphoChains[index];
-    rows.push(captureMorpho(chainId, fetched, book));
-  }
-  rows.push(await captureVenus(venus, venusEstimate, options?.previousVenusEstimate ?? null));
-  rows.push(await listaRowPromise);
+  const morphoRows = await Promise.all(
+    MORPHO_CHAINS.map((chainId, index) => captureMorpho(chainId, morphoChains[index], book, asOf)),
+  );
+  const rows: LendingRow[] = [
+    ...(await captureKamino(kaminoList.data, book)),
+    captureJupiter(jupiterVaults, jupiterLiquidity, book),
+    captureAave(aave, book),
+    ...morphoRows,
+    await captureVenus(venus, venusEstimate, options?.previousVenusEstimate ?? null),
+    await listaRowPromise,
+  ].map((row) => (row.loanHealth ? row : { ...row, loanHealth: poolLoanHealth({ asOf, source: row.source, fallback: poolFallback(row) }) }));
 
   for (const row of rows) {
     const note = noteFromRow(row);
@@ -334,28 +489,133 @@ function captureJupiter(
 
 function captureAave(result: { data: unknown; error: string | null }, book: EquityAddressBook): LendingRow {
   const source = AAVE_GRAPHQL;
-  if (result.error) {
-    const row = parseAaveEquitiesHub(null, { equityAddresses: book.evm.get(8453) ?? null, source });
-    return { ...row, error: result.error };
+  const fetched = result.data && typeof result.data === "object" ? (result.data as { assets?: unknown; loanHealth?: LendingLoanHealth }) : null;
+  const assets = fetched && Array.isArray(fetched.assets) ? fetched.assets : null;
+  const loanHealth = fetched?.loanHealth ?? null;
+  if (result.error || !assets) {
+    const row = parseAaveEquitiesHub(null, { equityAddresses: book.evm.get(AAVE_CHAIN) ?? null, source });
+    return { ...row, error: result.error ?? "Aave hub assets were missing.", loanHealth };
   }
-  const addresses = bookHasChain(book, 8453) ? (book.evm.get(8453) ?? null) : null;
-  return parseAaveEquitiesHub(result.data, {
-    equityAddresses: addresses,
-    source,
-  });
+  const addresses = bookHasChain(book, AAVE_CHAIN) ? (book.evm.get(AAVE_CHAIN) ?? null) : null;
+  return { ...parseAaveEquitiesHub(assets, { equityAddresses: addresses, source }), loanHealth };
 }
 
-function captureMorpho(
+async function captureMorpho(
   chainId: number,
   result: { data: unknown; error: string | null } | undefined,
   book: EquityAddressBook,
-): LendingRow {
+  asOf: string,
+): Promise<LendingRow> {
   const source = MORPHO_GRAPHQL;
   if (!result || result.error) {
     const row = parseMorphoMarkets(null, { chainId, book, source });
-    return { ...row, error: result?.error ?? "Morpho markets did not load." };
+    return {
+      ...row,
+      error: result?.error ?? "Morpho markets did not load.",
+      loanHealth: poolLoanHealth({ asOf, source, fallback: "Morpho loans did not load, so this is the pool estimate." }),
+    };
   }
-  return parseMorphoMarkets(result.data, { chainId, book, source });
+  const row = parseMorphoMarkets(result.data, { chainId, book, source });
+  return { ...row, loanHealth: await morphoLoanHealth(result.data, chainId, book, asOf, row) };
+}
+
+async function morphoLoanHealth(
+  markets: unknown,
+  chainId: number,
+  book: EquityAddressBook,
+  asOf: string,
+  row: LendingRow,
+): Promise<LendingLoanHealth> {
+  const source = MORPHO_GRAPHQL;
+  try {
+    const listed = morphoEquityBorrowMarketIds(markets, { chainId, book });
+    if (!listed) {
+      return poolLoanHealth({ asOf, source, fallback: "Morpho loans could not be matched to stock tokens, so this is the pool estimate." });
+    }
+    if (listed.incomplete) {
+      return poolLoanHealth({ asOf, source, fallback: "Morpho did not publish an id for every borrowed market, so this is the pool estimate." });
+    }
+    if (listed.ids.length === 0) {
+      if ((row.stableBorrowedUsd ?? 0) > 1) {
+        return poolLoanHealth({
+          asOf,
+          source,
+          fallback: "Morpho did not list the borrowed stock markets, so this is the pool estimate.",
+        });
+      }
+      return positionLoanHealth({ asOf, source, loans: [], unpricedLoanCount: 0 });
+    }
+    const items = await fetchMorphoPositions(chainId, listed.ids);
+    const read = loansFromMorphoPositions(items);
+    if (read.loans.length === 0 && (row.stableBorrowedUsd ?? 0) > 1) {
+      return poolLoanHealth({
+        asOf,
+        source,
+        fallback:
+          read.unpricedLoanCount > 0
+            ? "Morpho listed loans but did not price their collateral, so this is the pool estimate."
+            : "Morpho did not list a priced loan, so this is the pool estimate.",
+      });
+    }
+    return positionLoanHealth({ asOf, source, loans: read.loans, unpricedLoanCount: read.unpricedLoanCount });
+  } catch (error) {
+    return poolLoanHealth({
+      asOf,
+      source,
+      fallback: `Morpho loans did not load (${errorMessage(error)}), so this is the pool estimate.`,
+    });
+  }
+}
+
+async function fetchMorphoPositions(chainId: number, marketIds: readonly string[]): Promise<unknown[]> {
+  const items: unknown[] = [];
+  for (let index = 0; index < marketIds.length; index += 40) {
+    const keys = marketIds.slice(index, index + 40);
+    let seen = 0;
+    for (let skip = 0; skip < 10_000; skip += 500) {
+      const payload = await getJsonRetry(MORPHO_GRAPHQL, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          query: `query Positions($chainId: Int!, $keys: [String!]!, $skip: Int!) {
+            marketPositions(first: 500, skip: $skip, where: { chainId_in: [$chainId], marketUniqueKey_in: $keys, borrowShares_gte: 1 }) {
+              pageInfo { count countTotal }
+              items {
+                healthFactor
+                priceVariationToLiquidationPrice
+                state { collateralUsd borrowAssetsUsd }
+              }
+            }
+          }`,
+          variables: { chainId, keys, skip },
+        }),
+      });
+      const data = graphqlData(payload) as {
+        marketPositions?: { pageInfo?: { count?: number; countTotal?: number }; items?: unknown[] };
+      };
+      const page = data.marketPositions?.items ?? [];
+      items.push(...page);
+      seen += page.length;
+      const total = data.marketPositions?.pageInfo?.countTotal;
+      if (page.length === 0 || page.length < 500 || (typeof total === "number" && seen >= total)) break;
+      if (skip + 500 >= 10_000) throw new Error("Morpho loan list was too long to finish.");
+    }
+  }
+  return items;
+}
+
+function poolFallback(row: LendingRow): string {
+  if (row.id.startsWith("kamino")) {
+    return "Kamino publishes a loan only when the wallet is known, not a list of every loan, so this is the pool estimate.";
+  }
+  if (row.id.startsWith("jupiter")) return "Jupiter does not publish each loan here, so this is the pool estimate.";
+  if (row.id.startsWith("lista")) return "Lista does not publish each loan here, so this is the pool estimate.";
+  if (row.id.startsWith("venus")) {
+    return "Venus does not publish each loan here, and borrowed dollars are an estimate, so this is the pool estimate.";
+  }
+  if (row.id.startsWith("morpho")) return "Morpho loans did not load, so this is the pool estimate.";
+  if (row.id.startsWith("aave")) return "Aave loans did not load, so this is the pool estimate.";
+  return "Each loan was not available, so this is the pool estimate.";
 }
 
 async function captureVenus(
