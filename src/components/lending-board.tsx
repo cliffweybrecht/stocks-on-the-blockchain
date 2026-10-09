@@ -241,20 +241,28 @@ function Cost({ row }: { row: LendingBoardRow }) {
   return <span className="num text-sm text-foreground">{formatLendingApy(row)}</span>;
 }
 
-function Deposited({ usd, tokens }: { usd: number | null; tokens: number | null }) {
+function Deposited({ usd, tokens, note }: { usd: number | null; tokens: number | null; note?: string | null }) {
+  const dollars = (
+    <span className="num text-sm text-muted-foreground" data-missing={usd === null ? "true" : undefined}>
+      {formatUsdCompact(usd)}
+    </span>
+  );
+  const reason = usd === null && note ? <span className="max-w-[14rem] text-right text-xs leading-4 text-muted-foreground">{note}</span> : null;
   if (tokens !== null) {
     return (
       <span className="inline-flex flex-col items-end">
         <span className="num text-sm font-medium text-foreground">{formatTokenAmount(tokens)}</span>
-        <span className="num text-sm text-muted-foreground" data-missing={usd === null ? "true" : undefined}>
-          {formatUsdCompact(usd)}
-        </span>
+        {dollars}
+        {reason}
       </span>
     );
   }
   return (
-    <span className="num text-sm font-medium text-foreground" data-missing={usd === null ? "true" : undefined}>
-      {formatUsdCompact(usd)}
+    <span className="inline-flex flex-col items-end">
+      <span className="num text-sm font-medium text-foreground" data-missing={usd === null ? "true" : undefined}>
+        {formatUsdCompact(usd)}
+      </span>
+      {reason}
     </span>
   );
 }
@@ -314,7 +322,7 @@ function SectionTable({ section }: { section: SectionModel }) {
                 <div>
                   <dt className="text-xs uppercase tracking-wide text-muted-foreground">Deposited</dt>
                   <dd className="mt-1">
-                    <Deposited usd={row.collateralUsd} tokens={row.collateralTokens} />
+                    <Deposited usd={row.collateralUsd} tokens={row.collateralTokens} note={row.priceNote} />
                   </dd>
                 </div>
                 <div>
@@ -351,7 +359,7 @@ function SectionTable({ section }: { section: SectionModel }) {
                   <Cost row={row} />
                 </td>
                 <td className="px-4 py-4 text-right">
-                  <Deposited usd={row.collateralUsd} tokens={row.collateralTokens} />
+                  <Deposited usd={row.collateralUsd} tokens={row.collateralTokens} note={row.priceNote} />
                 </td>
                 <td className="px-4 py-4 text-right">
                   <Fullness value={row.utilization} unavailable={row.howFullUnavailable} />

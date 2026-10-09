@@ -1,4 +1,4 @@
-import { readBeacons, readSymbols } from "./lending-bsc";
+import { bscBatchRotating, padAddress, readBeacons, readSymbols } from "./lending-bsc";
 import { buildEquityAddressBook, bookHasChain, type EquityAddressBook, xstocksPageHasNext } from "./lending-addresses";
 import {
   BSTOCK_BEACON,
@@ -10,7 +10,9 @@ import {
   parseMorphoMarkets,
   parseVenusMarkets,
   tokenAmountUsd,
+  type ListaCollateralQuote,
 } from "./lending-parse";
+import { asReportedNumber, tokenCountFromBaseUnits } from "./numbers";
 import { lendingDayFromCapture, type LendingDaySnapshot, type LendingRow, type LendingSourceNote } from "./lending-snapshot";
 import { chooseVenusEstimate, scanVenusBStockBorrow, VENUS_CHECKED_ESTIMATE, type VenusBorrowEstimate } from "./lending-venus-estimate";
 
@@ -42,8 +44,8 @@ const MORPHO_QUERY = `query LendingMarkets($chainId: Int!, $skip: Int!) {
     items {
       lltv
       loanAsset { address symbol }
-      collateralAsset { address symbol }
-      state { collateralAssetsUsd borrowAssetsUsd supplyAssetsUsd borrowApy }
+      collateralAsset { address symbol decimals }
+      state { collateralAssets collateralAssetsUsd borrowAssetsUsd supplyAssetsUsd borrowApy }
     }
   }
 }`;
@@ -164,7 +166,7 @@ async function fetchAaveHubAssets(): Promise<unknown> {
         hubAssets(request: { query: { hubId: $hubId } }) {
           underlying { address info { symbol } }
           summary {
-            supplied { exchange { value } }
+            supplied { amount { value } exchange { value } }
             borrowed { exchange { value } }
             borrowApy { normalized value }
             utilizationRate { normalized value }
@@ -496,15 +498,131 @@ async function captureLista(
     }
     rates.push({ apy: detail.borrowRate, weight });
   }
+  const quoteTokens = collateral.filter((address) => !rejected.has(address));
+  const marketsByCollateral = new Map<string, string[]>();
+  for (const item of zone5) {
+    const row = item as { collateralToken?: unknown; id?: unknown };
+    const token = typeof row.collateralToken === "string" ? row.collateralToken.toLowerCase() : "";
+    const id = typeof row.id === "string" ? row.id : "";
+    if (!token || !id || rejected.has(token)) continue;
+    const ids = marketsByCollateral.get(token) ?? [];
+    ids.push(id);
+    marketsByCollateral.set(token, ids);
+  }
+  const quotes = await fetchListaCollateralQuotes(
+    quoteTokens.map((address) => ({ address, marketIds: marketsByCollateral.get(address) ?? [] })),
+  );
   return parseListaBook({
     overall: overall.data,
     markets: markets.data,
     rejectedCollateral: rejected,
     symbols,
     loanPrices,
+    quotes,
     rates: ratesComplete ? rates : undefined,
     source: LISTA_OVERALL,
   });
+}
+
+const LISTA_MOOLAH = "0x8F73b65B4caAf64FBA2aF91cC5D4a2A1318E5D8C";
+const BALANCE_OF_SELECTOR = "0x70a08231";
+const DECIMALS_SELECTOR = "0x313ce567";
+
+function listaVaultPrice(payload: unknown): number | null {
+  const data = payload && typeof payload === "object" ? (payload as { data?: unknown }).data : null;
+  const list = data && typeof data === "object" ? (data as { list?: unknown }).list : null;
+  if (!Array.isArray(list)) return null;
+  for (const item of list) {
+    if (!item || typeof item !== "object") continue;
+    const price = asReportedNumber((item as { collateralPrice?: unknown }).collateralPrice);
+    if (price !== null && price >= 0) return price;
+  }
+  return null;
+}
+
+/**
+ * Token count is the collateral's balance inside Lista Moolah.
+ * Dollars are that count times the vault collateral price. The headline total is not touched.
+ */
+async function fetchListaCollateralQuotes(
+  tokens: readonly { address: string; marketIds: readonly string[] }[],
+): Promise<Map<string, ListaCollateralQuote>> {
+  const quotes = new Map<string, ListaCollateralQuote>();
+  if (tokens.length === 0) return quotes;
+  const prices = new Map<string, number | null>();
+  await mapPool(tokens, 8, async (token) => {
+    // The first listed market often has no vault. A later market publishes collateralPrice.
+    let price: number | null = null;
+    for (const marketId of token.marketIds) {
+      try {
+        const payload = await getJsonRetry(`https://api.lista.org/api/moolah/market/vault/${marketId}`);
+        price = listaVaultPrice(payload);
+        if (price !== null) break;
+      } catch {
+        price = null;
+      }
+    }
+    prices.set(token.address, price);
+  });
+  let balances = new Map<string, number | null>();
+  let balanceNote: string | null = null;
+  try {
+    balances = await readMoolahBalances(tokens.map((token) => token.address));
+  } catch (error) {
+    balanceNote = error instanceof Error ? error.message : "Lista collateral balance was not read.";
+  }
+  for (const token of tokens) {
+    const price = prices.get(token.address) ?? null;
+    const count = balances.get(token.address) ?? null;
+    if (balanceNote && count === null) {
+      quotes.set(token.address, { tokens: null, usd: null, note: "Lista collateral balance was not read." });
+      continue;
+    }
+    if (count === null && price === null) {
+      quotes.set(token.address, { tokens: null, usd: null, note: "Lista did not publish a price for this token." });
+      continue;
+    }
+    if (price === null) {
+      quotes.set(token.address, { tokens: count, usd: null, note: "Lista did not publish a price for this token." });
+      continue;
+    }
+    const usd = count === null ? null : count * price;
+    quotes.set(token.address, {
+      tokens: count,
+      usd: usd !== null && Number.isFinite(usd) && usd >= 0 ? usd : null,
+      note: count === null ? "Lista collateral balance was not read." : null,
+    });
+  }
+  return quotes;
+}
+
+async function readMoolahBalances(addresses: readonly string[]): Promise<Map<string, number | null>> {
+  const unique = [...new Set(addresses.map((address) => address.toLowerCase()))];
+  const calls = unique.flatMap((address) => [
+    { method: "eth_call", params: [{ to: address, data: BALANCE_OF_SELECTOR + padAddress(LISTA_MOOLAH) }, "latest"] },
+    { method: "eth_call", params: [{ to: address, data: DECIMALS_SELECTOR }, "latest"] },
+  ]);
+  const results = await bscBatchRotating(calls);
+  const map = new Map<string, number | null>();
+  unique.forEach((address, index) => {
+    const raw = wordOrNull(results[index * 2]);
+    const decimalsWord = wordOrNull(results[index * 2 + 1]);
+    if (raw === null || decimalsWord === null || decimalsWord > BigInt(36)) {
+      map.set(address, null);
+      return;
+    }
+    map.set(address, tokenCountFromBaseUnits(raw, Number(decimalsWord)));
+  });
+  return map;
+}
+
+function wordOrNull(hex: string | null | undefined): bigint | null {
+  if (!hex || hex === "0x") return null;
+  try {
+    return BigInt(hex);
+  } catch {
+    return null;
+  }
 }
 
 async function mapPool<T, R>(items: readonly T[], limit: number, run: (item: T) => Promise<R>): Promise<R[]> {

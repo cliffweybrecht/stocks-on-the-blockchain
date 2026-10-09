@@ -25,6 +25,7 @@ import {
   lendingDayFromCapture,
   lendingHeadline,
   lendingHistoryFromDays,
+  lendingHistorySeries,
   lendingLtvExplainer,
   lendingUtilization,
   parseLendingSnapshot,
@@ -34,7 +35,18 @@ import { existsSync } from "node:fs";
 import { lendingChainLogo, lendingStockLogo, lendingVenueLogo } from "../lending-logos";
 import { classifyLendingSymbol, isSmallLendingBook, lendingActionChips, lendingActionLines, lendingBoardRows, lendingChainShareParts, lendingStockGroups } from "../lending-stocks";
 import { lendingGlossary } from "../lending-glossary";
-import { attributeVenusBorrow, chooseVenusEstimate, collectHolderAddresses, VENUS_CHECKED_ESTIMATE } from "../lending-venus-estimate";
+import { tokenCountFromRaw } from "../numbers";
+import {
+  attributeVenusBorrow,
+  chooseVenusEstimate,
+  collectHolderAddresses,
+  missingVenusLogRanges,
+  parseVenusHolderCache,
+  venusCacheMatches,
+  venusCoveredThrough,
+  VENUS_CHECKED_ESTIMATE,
+  type VenusHolderCache,
+} from "../lending-venus-estimate";
 import { saveLendingDay, loadLatestLendingSnapshot } from "../lending-snapshot-file";
 import { runLendingSnapshotCli } from "../lending-snapshot-job";
 import { easternDayKey } from "../volume-snapshots";
@@ -110,7 +122,7 @@ describe("lending parsers", () => {
   it("splits Kamino stock collateral from the stable lend pool and ignores cbBTC", () => {
     const row = parseKaminoReserveMetrics(
       [
-        { liquidityToken: "NVDAx", liquidityTokenMint: NVDA, totalSupplyUsd: "20000000", totalBorrowUsd: "100000", borrowApy: "0.05" },
+        { liquidityToken: "NVDAx", liquidityTokenMint: NVDA, totalSupply: "12.5", totalSupplyUsd: "20000000", totalBorrowUsd: "100000", borrowApy: "0.05" },
         { liquidityToken: "cbBTC", liquidityTokenMint: CBBTC, totalSupplyUsd: "600000", totalBorrowUsd: "0", borrowApy: "0.01" },
         { liquidityToken: "USDC", liquidityTokenMint: USDC, totalSupplyUsd: "5700000", totalBorrowUsd: "5100000", borrowApy: "0.055" },
         { liquidityToken: "USDG", liquidityTokenMint: "usdgmint", totalSupplyUsd: "10000", totalBorrowUsd: "1000", borrowApy: "0.07" },
@@ -122,6 +134,7 @@ describe("lending parsers", () => {
     expect(row.lendSupplyUsd).toBe(5_710_000);
     expect(row.utilization).toBeCloseTo(5_101_000 / 5_710_000, 6);
     expect(row.stockBorrowedUsd).toBe(100_000);
+    expect(row.assets?.find((asset) => asset.symbol === "NVDAx")?.collateralTokens).toBe(12.5);
     expect(row.borrowApy).toBeCloseTo(0.055, 3);
     expect(row.chainId).toBe("solana");
   });
@@ -224,6 +237,29 @@ describe("lending parsers", () => {
     expect(formatLendingApy(row)).toBe("29.0%");
   });
 
+  it("reads Morpho collateral token counts from raw base units", () => {
+    const book = buildEquityAddressBook({});
+    book.evm.set(1, new Set([REAL_NVDA]));
+    const row = parseMorphoMarkets(
+      [
+        {
+          ...market(REAL_NVDA, "NVDA", USDG, "USDG", 533_001.71, 10, 10, 0.05),
+          collateralAsset: { address: REAL_NVDA, symbol: "NVDA", decimals: 18 },
+          state: {
+            collateralAssets: "679725875423757769262",
+            collateralAssetsUsd: 533_001.71,
+            borrowAssetsUsd: 10,
+            supplyAssetsUsd: 10,
+            borrowApy: 0.05,
+          },
+        },
+      ],
+      { chainId: 1, book, source: "morpho" },
+    );
+    expect(row.assets?.[0]?.collateralTokens).toBeCloseTo(679.72587542, 6);
+    expect(tokenCountFromRaw("12.5", 18)).toBeNull();
+  });
+
   it("refuses Morpho symbol matching when the verified list is empty", () => {
     const row = parseMorphoMarkets(
       [market(REAL_NVDA, "NVDA", USDG, "USDG", 100, 40, 40, 0.2)],
@@ -237,7 +273,7 @@ describe("lending parsers", () => {
   it("reads the Aave equities hub as stock collateral versus USDC borrowed", () => {
     const row = parseAaveEquitiesHub(
       [
-        asset("0xb20000000000000000000078ee7ce2fe4908108c", "NVDAc", "1170000", "0"),
+        asset("0xb20000000000000000000078ee7ce2fe4908108c", "NVDAc", "1170000", "0", "0", "0", "1827.10293105"),
         asset("0xb200000000000000000000c2e324d24d7eecd1fb", "AAPLc", "500000", "0"),
         asset("0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", "USDC", "5280000", "1510000", "0.0128", "0.287"),
         asset(FAKE_NVDA, "NVDAc", "9000000", "0"),
@@ -250,6 +286,8 @@ describe("lending parsers", () => {
     expect(row.borrowApy).toBeCloseTo(0.0128, 6);
     expect(row.stockBorrowedUsd).toBe(0);
     expect(formatStockBorrowedNote(0)).toBeNull();
+    expect(row.assets?.find((item) => item.symbol === "NVDAc")?.collateralTokens).toBeCloseTo(1827.10293105, 6);
+    expect(row.assets?.find((item) => item.symbol === "AAPLc")?.collateralTokens).toBeNull();
   });
 
   it("reads Venus bStocks in cents and does not invent stable borrows", () => {
@@ -436,6 +474,65 @@ describe("lending parsers", () => {
     expect(row.note).toMatch(/estimate/);
     expect(row.note).toMatch(/\$195\.6K/);
   });
+
+  it("counts Venus underlying tokens from cash, borrows, and reserves", () => {
+    const row = parseVenusMarkets(
+      {
+        result: [
+          {
+            category: "bstocks",
+            underlyingSymbol: "SKHYB",
+            underlyingAddress: "0x00000000000000000000000000000000000000ab",
+            totalSupplyUnderlyingCents: "5909412",
+            totalBorrowCents: "0",
+            cashMantissa: "341567365943742812233",
+            totalBorrowsMantissa: "1000000000000000000",
+            totalReservesMantissa: "0",
+            underlyingDecimal: 18,
+          },
+        ],
+      },
+      "venus",
+    );
+    expect(row.assets?.[0]?.collateralTokens).toBeCloseTo(342.56736594, 6);
+    expect(row.assets?.[0]?.collateralUsd).toBeCloseTo(59_094.12, 2);
+  });
+
+  it("prices Lista long-tail collateral from a quote and keeps the headline total", () => {
+    const spy = "0x7138b48df7d98d7e3cc221bfe7192d0a178182d8";
+    const apple = "0x431a3bee82e2ca41e49895cbece5bb0f76a89b7a";
+    const quiet = "0x2222222222222222222222222222222222222222";
+    const row = parseListaBook({
+      source: "lista",
+      overall: {
+        data: {
+          bStock: {
+            totalCollateral: "7801097",
+            totalBorrowed: "3899635",
+            totalAvailable: "1",
+            topCollateralTokens: [{ tokenAddress: spy, tokenSymbol: "SPYB", collateralUsd: "1794472" }],
+          },
+        },
+      },
+      markets: [
+        { id: "0x1", zone: 5, chain: "bsc", collateralToken: spy, loanToken: "0x55d398326f99059ff775485246999027b3197955", lltv: "0.85", totalBorrowAssets: "1" },
+        { id: "0x2", zone: 5, chain: "bsc", collateralToken: apple, loanToken: "0x55d398326f99059ff775485246999027b3197955", lltv: "0.75", totalBorrowAssets: "1" },
+        { id: "0x3", zone: 5, chain: "bsc", collateralToken: quiet, loanToken: "0x55d398326f99059ff775485246999027b3197955", lltv: "0.5", totalBorrowAssets: "0" },
+      ],
+      quotes: new Map([
+        [spy, { tokens: 2311.51654, usd: 1_700_000, note: null }],
+        [apple, { tokens: 1.16672, usd: 29.48, note: null }],
+        [quiet, { tokens: 4, usd: null, note: "Lista did not publish a price for this token." }],
+      ]),
+    });
+    expect(row.collateralUsd).toBe(7_801_097);
+    expect(row.assets?.find((asset) => asset.symbol === "SPYB")).toMatchObject({ collateralUsd: 1_794_472, collateralTokens: 2311.51654, priceNote: null });
+    expect(row.assets?.find((asset) => asset.symbol === "0x431a3bee82e2ca41e49895cbece5bb0f76a89b7a")?.collateralUsd).toBeCloseTo(29.48, 2);
+    const unpriced = row.assets?.find((asset) => asset.address === quiet);
+    expect(unpriced?.collateralUsd).toBeNull();
+    expect(unpriced?.collateralTokens).toBe(4);
+    expect(unpriced?.priceNote).toMatch(/did not publish a price/);
+  });
 });
 
 describe("lending aggregation", () => {
@@ -516,6 +613,15 @@ describe("lending aggregation", () => {
     expect(history).toHaveLength(1);
     expect(history[0]?.collateralUsd).toBe(100);
     expect(history[0]?.stableBorrowedUsd).toBe(45);
+    expect(lendingHistorySeries(history).kind).toBe("single");
+    expect(lendingHistorySeries([]).kind).toBe("empty");
+    const second = lendingDayFromCapture(Date.parse("2026-10-10T01:20:00.000Z"), [kamino], []);
+    expect(lendingHistorySeries(lendingHistoryFromDays([second, ...history.map(() => second)])).kind).toBe("line");
+    const twoDays = lendingHistorySeries([
+      history[0] ?? { date: "2026-10-08", capturedAt: "", collateralUsd: 100, stableBorrowedUsd: 45 },
+      { date: "2026-10-09", capturedAt: "", collateralUsd: 110, stableBorrowedUsd: 40 },
+    ]);
+    expect(twoDays.kind).toBe("line");
     const attributed = attributeVenusBorrow([
       { borrowUsd: 100, bstockBorrowPowerUsd: 50, totalBorrowPowerUsd: 100 },
       { borrowUsd: 40, bstockBorrowPowerUsd: 40, totalBorrowPowerUsd: 40 },
@@ -632,10 +738,12 @@ describe("lending board rows", () => {
     expect(share.main.map((chain) => chain.chainLabel)).toEqual(["Solana"]);
     expect(share.smallerUsd).toBe(27.9);
     expect(lendingChainLogo("solana")).toBe("/lending-logos/chains/solana.png");
+    expect(lendingChainLogo("robinhood-chain")).toBe("/lending-logos/chains/robinhood.png");
     expect(lendingVenueLogo("kamino-xstocks")).toBe("/lending-logos/venues/kamino.png");
     expect(lendingStockLogo("not-a-mint", "NVDA")).toBe("/lending-logos/tickers/NVDA.png");
     expect(lendingStockLogo("not-a-mint", "SPCX")).toBeNull();
     expect(existsSync("public/lending-logos/chains/solana.png")).toBe(true);
+    expect(existsSync("public/lending-logos/chains/robinhood.png")).toBe(true);
     expect(existsSync("public/lending-logos/tickers/NVDA.png")).toBe(true);
   });
 });
@@ -877,6 +985,32 @@ describe("venus log scan", () => {
     expect(chooseVenusEstimate(live, previous, VENUS_CHECKED_ESTIMATE)).toEqual(live);
     expect(chooseVenusEstimate(null, null, VENUS_CHECKED_ESTIMATE).asOf).toBe(VENUS_CHECKED_ESTIMATE.asOf);
   });
+
+  it("resumes a Venus log cache from the contiguous prefix and skips finished ranges", () => {
+    const ranges = [
+      { fromBlock: 104_000_000, toBlock: 104_009_999 },
+      { fromBlock: 104_020_000, toBlock: 104_029_999 },
+      { fromBlock: 104_010_000, toBlock: 104_019_999 },
+    ];
+    expect(venusCoveredThrough(104_000_000, ranges)).toBe(104_029_999);
+    expect(venusCoveredThrough(104_000_000, [{ fromBlock: 104_010_000, toBlock: 104_019_999 }])).toBe(103_999_999);
+    const missing = missingVenusLogRanges(100, 129, 10, [
+      { fromBlock: 100, toBlock: 109 },
+      { fromBlock: 120, toBlock: 129 },
+    ]);
+    expect(missing).toEqual([{ fromBlock: 110, toBlock: 119 }]);
+    const cache: VenusHolderCache = {
+      schema: "venus-holder-cache-v1",
+      vTokens: ["0xabc"],
+      startBlock: 104_000_000,
+      ranges,
+      addresses: ["0x1111111111111111111111111111111111111111"],
+    };
+    expect(venusCacheMatches(cache, 104_000_000, ["0xAbC"])).toBe(true);
+    expect(venusCacheMatches(cache, 1, ["0xabc"])).toBe(false);
+    expect(parseVenusHolderCache({ ...cache, schema: "nope" })).toBeNull();
+    expect(parseVenusHolderCache(cache)?.addresses).toEqual(["0x1111111111111111111111111111111111111111"]);
+  });
 });
 
 function market(
@@ -908,14 +1042,15 @@ function asset(
   borrowed: string,
   borrowApy = "0",
   utilization = "0",
+  tokens?: string,
 ) {
   return {
     underlying: { address, info: { symbol } },
     summary: {
-      supplied: { exchange: { value: supplied } },
+      supplied: { amount: tokens === undefined ? undefined : { value: tokens }, exchange: { value: supplied } },
       borrowed: { exchange: { value: borrowed } },
-        borrowApy: { value: borrowApy, normalized: String(Number(borrowApy) * 100) },
-        utilizationRate: { value: utilization, normalized: String(Number(utilization) * 100) },
+      borrowApy: { value: borrowApy, normalized: String(Number(borrowApy) * 100) },
+      utilizationRate: { value: utilization, normalized: String(Number(utilization) * 100) },
     },
   };
 }
