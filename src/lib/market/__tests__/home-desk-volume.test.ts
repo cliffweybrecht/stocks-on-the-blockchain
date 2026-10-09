@@ -208,8 +208,8 @@ describe("recorded Solana and Robinhood snapshots", () => {
     const seven = filterVolumeRange(merged, "7d");
     expect(seven).toHaveLength(7);
     // Sep 29 is still recorded. It sits outside this window because the
-    // 2026-10-06 Solana snapshot is closed at this clock. Robinhood has no
-    // 2026-10-06 row, so that day keeps the Solana total alone.
+    // 2026-10-06 Solana snapshot is closed at this clock. The Robinhood
+    // 2026-10-06 bar is included in that day's combined total.
     expect(seven.map((point) => new Date(point.t * 1000).toISOString().slice(0, 10))).toEqual([
       "2026-09-30",
       "2026-10-01",
@@ -219,7 +219,7 @@ describe("recorded Solana and Robinhood snapshots", () => {
       "2026-10-05",
       "2026-10-06",
     ]);
-    expect(sumVolumePoints(seven)).toBeCloseTo(995_384_139.84, 1);
+    expect(sumVolumePoints(seven)).toBeCloseTo(1_049_277_919.63, 1);
     const solanaSeven = sumVolumePoints(filterVolumeRange(solana, "7d"));
     expect(solanaSeven).toBeCloseTo(700_511_148.9, 1);
     expect(sumVolumePoints(seven)).toBeGreaterThan(solanaSeven ?? 0);
@@ -229,10 +229,10 @@ describe("recorded Solana and Robinhood snapshots", () => {
     expect(sumVolumePoints(filterVolumeRange(merged, "30d"))).toBe(sumVolumePoints(merged));
 
     const row = robinhoodHomeChainVolume(robinhood);
-    expect(row.volume24hUsd).toBeCloseTo(30_452_397.6, 1);
-    expect(row.privateVolume24hUsd).toBeCloseTo(2_352_414.29, 1);
-    expect(row.etfVolume24hUsd).toBeCloseTo(15_750_857.01, 1);
-    expect(robinhoodHomeVolumeDetail(robinhood)).toContain("2026-10-05");
+    expect(row.volume24hUsd).toBeCloseTo(34_462_694.27, 1);
+    expect(row.privateVolume24hUsd).toBeCloseTo(5_781_493.79, 1);
+    expect(row.etfVolume24hUsd).toBeCloseTo(13_649_591.73, 1);
+    expect(robinhoodHomeVolumeDetail(robinhood)).toContain("2026-10-06");
   });
 });
 
