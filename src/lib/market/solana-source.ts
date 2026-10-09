@@ -149,7 +149,6 @@ import {
 import { FileDeskVolumeSnapshotStore } from "./volume-snapshot-store";
 import {
   buildSnapshotEquityVolumeHistory,
-  recordDeskVolumeFromChain,
   type DeskVolumeSnapshotStore,
 } from "./volume-snapshots";
 import type { TokenIdentity } from "./solana-classifier";
@@ -292,8 +291,11 @@ export class SolanaMarketDataSource implements MarketDataSource {
   private cache: CachedSnapshot | null = null;
   private inflight: Promise<CachedSnapshot> | null = null;
   private inflightMode: SnapshotMode | null = null;
-  /** Page loads persist the in-progress Eastern day. The 24H poll must not. */
-  private inflightPersistDesk = true;
+  /**
+   * Page loads may enrich the in-memory desk. They never write a tracked snapshot.
+   * The 24H poll does not start that enrichment.
+   */
+  private inflightEnrichDesk = true;
   private backgroundWork: Promise<void> | null = null;
   private readonly memory: SolanaHydrateMemory;
   private readonly deskSnapshots: DeskVolumeSnapshotStore;
@@ -885,34 +887,33 @@ export class SolanaMarketDataSource implements MarketDataSource {
     return this.cache;
   }
 
-  private commitCache(next: CachedSnapshot, persistDeskVolume = true): CachedSnapshot {
+  private commitCache(next: CachedSnapshot, enrichDesk = true): CachedSnapshot {
     const merged = this.preferRicherCache(next);
     this.cache = merged;
-    if (persistDeskVolume) {
-      this.scheduleEnrichment();
-      void this.persistDeskVolume(merged);
-    }
+    // Live totals stay on this in-memory snapshot. Closed days are written only
+    // by the nightly snapshot job, at the 11:59 PM ET close.
+    if (enrichDesk) this.scheduleEnrichment();
     return merged;
   }
 
   /**
    * Start a desk refresh, or join one already running.
-   * A caller that must persist can upgrade an in-flight poll refresh before it commits.
-   * A poll cannot downgrade a refresh the page already asked to persist.
+   * A page can upgrade an in-flight 24H poll so the refresh enriches before it commits.
+   * A poll cannot downgrade a refresh the page already asked to enrich.
    */
-  private beginRefresh(mode: SnapshotMode, persistDeskVolume: boolean): Promise<CachedSnapshot> {
+  private beginRefresh(mode: SnapshotMode, enrichDesk: boolean): Promise<CachedSnapshot> {
     if (this.inflight && (this.inflightMode === mode || this.inflightMode === "full" || mode === "light")) {
-      if (persistDeskVolume) this.inflightPersistDesk = true;
+      if (enrichDesk) this.inflightEnrichDesk = true;
       return this.inflight;
     }
     this.inflightMode = mode;
-    this.inflightPersistDesk = persistDeskVolume;
+    this.inflightEnrichDesk = enrichDesk;
     this.inflight = this.refresh(mode)
-      .then((next) => this.commitCache(next, this.inflightPersistDesk))
+      .then((next) => this.commitCache(next, this.inflightEnrichDesk))
       .finally(() => {
         this.inflight = null;
         this.inflightMode = null;
-        this.inflightPersistDesk = true;
+        this.inflightEnrichDesk = true;
       });
     return this.inflight;
   }
@@ -1246,7 +1247,6 @@ export class SolanaMarketDataSource implements MarketDataSource {
             refreshDurationMs: snapshot.mapped.provenance.refreshDurationMs ?? 0,
           });
           this.cache = this.preferRicherCache(next);
-          void this.persistDeskVolume(this.cache);
         }
         return;
       }
@@ -1294,7 +1294,6 @@ export class SolanaMarketDataSource implements MarketDataSource {
         refreshDurationMs: snapshot.mapped.provenance.refreshDurationMs ?? 0,
       });
       this.cache = this.preferRicherCache(next);
-      void this.persistDeskVolume(this.cache);
       const remaining = this.cache.pendingPreviewMints.length + this.cache.pendingFullMints.length;
       if (remaining === 0 || remaining >= startedPending) break;
       passes += 1;
@@ -1308,17 +1307,17 @@ export class SolanaMarketDataSource implements MarketDataSource {
 
   private async loadCached(
     mode: SnapshotMode,
-    options?: { persistDeskVolume?: boolean },
+    options?: { enrichDesk?: boolean },
   ): Promise<CachedSnapshot> {
-    const persistDeskVolume = options?.persistDeskVolume !== false;
+    const enrichDesk = options?.enrichDesk !== false;
     const now = Date.now();
     const hit = this.cacheSatisfies(mode, now);
     if (hit) {
-      if (persistDeskVolume) this.scheduleEnrichment();
+      if (enrichDesk) this.scheduleEnrichment();
       if (hit.expiresAt <= now && !this.inflight) {
-        void this.beginRefresh(mode, persistDeskVolume).catch(() => undefined);
-      } else if (hit.expiresAt <= now && persistDeskVolume) {
-        this.inflightPersistDesk = true;
+        void this.beginRefresh(mode, enrichDesk).catch(() => undefined);
+      } else if (hit.expiresAt <= now && enrichDesk) {
+        this.inflightEnrichDesk = true;
       }
       const age = now - hit.createdAt;
       hit.mapped.provenance.cacheStatus = hit.pendingPreviewMints.length + hit.pendingFullMints.length > 0
@@ -1331,7 +1330,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
     }
 
     if (this.inflight && (this.inflightMode === mode || this.inflightMode === "full" || mode === "light")) {
-      if (persistDeskVolume) this.inflightPersistDesk = true;
+      if (enrichDesk) this.inflightEnrichDesk = true;
       const pending = await this.inflight;
       if (mode === "full" && pending.aggregation !== "all-pools") {
         // fall through to a full refresh
@@ -1340,7 +1339,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
       }
     }
 
-    return this.beginRefresh(mode, persistDeskVolume);
+    return this.beginRefresh(mode, enrichDesk);
   }
 
   private preferRicherCache(next: CachedSnapshot): CachedSnapshot {
@@ -1704,6 +1703,10 @@ export class SolanaMarketDataSource implements MarketDataSource {
     return out;
   }
 
+  /**
+   * Closed snapshot days from the file, plus the live desk total in memory.
+   * Does not write `solana.json`. The in-progress Eastern day is not a record.
+   */
   async getEquityVolumeHistory(): Promise<EquityVolumeHistoryResult> {
     const now = Date.now();
     if (this.volumeHistoryCache && this.volumeHistoryCache.expiresAt > now) {
@@ -1772,7 +1775,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
    */
   async getLiveDeskRolling24h(): Promise<DeskLiveRolling24h | null> {
     try {
-      const cached = await this.loadCached("full", { persistDeskVolume: false });
+      const cached = await this.loadCached("full", { enrichDesk: false });
       const chain = cached.mapped.chain;
       return {
         publicVolume24hUsd: chain.volume24hUsd,
@@ -1784,18 +1787,6 @@ export class SolanaMarketDataSource implements MarketDataSource {
     }
   }
 
-  private async persistDeskVolume(snapshot: CachedSnapshot): Promise<void> {
-    try {
-      const generatedAt = snapshot.mapped.provenance.generatedAt ?? snapshot.mapped.provenance.fetchedAt;
-      const result = await recordDeskVolumeFromChain(this.deskSnapshots, snapshot.mapped.chain, generatedAt);
-      if (result.ok && result.written) {
-        this.volumeHistoryCache = null;
-      }
-    } catch {
-      // Disk failures must not take down the live desk.
-    }
-  }
-
   private async buildEquityVolumeHistory(): Promise<EquityVolumeHistoryResult> {
     let chain;
     let generatedAt: string;
@@ -1804,7 +1795,6 @@ export class SolanaMarketDataSource implements MarketDataSource {
       const snapshot = await this.loadCached(mode);
       chain = snapshot.mapped.chain;
       generatedAt = snapshot.mapped.provenance.generatedAt ?? snapshot.mapped.provenance.fetchedAt;
-      await this.persistDeskVolume(snapshot);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Solana snapshot failed.";
       return emptyEquityVolumeHistory(message);

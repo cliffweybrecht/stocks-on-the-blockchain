@@ -105,7 +105,7 @@ export default async function ChainPage({
   let listError: string | null = null;
   try {
     if (chainId === SOLANA_CHAIN_ID) {
-      // Persist today's desk row in the background. The document reads the closed-day file.
+      // Warm the in-memory desk. The document reads the closed-day file and does not write it.
       void source.getEquityVolumeHistory().catch(() => undefined);
       const live = await withDocumentBudget(source.getChain(chainId), null);
       if (live) {
