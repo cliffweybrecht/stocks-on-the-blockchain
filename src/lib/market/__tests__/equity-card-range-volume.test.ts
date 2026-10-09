@@ -119,8 +119,13 @@ describe("recorded snapshot files", () => {
     expect(thirty?.days).toBe(volumes[AAPL_C]?.["14d"]?.days);
   });
 
-  it("finds no per-asset rows in Robinhood and sums backfilled BNB SPCXB", () => {
-    expect(equityCardRangeVolumesFromSnapshot(readSnapshot("robinhood.json"), NOW)).toEqual({});
+  it("sums Robinhood per-asset rows and the corrected BNB SPCXB backfill", () => {
+    const robinhood = equityCardRangeVolumesFromSnapshot(readSnapshot("robinhood.json"), NOW);
+    expect(robinhood["0xaf3d76f1834a1d425780943c99ea8a608f8a93f9"]?.["7d"]?.days).toBe(7);
+    expect(robinhood["0xaf3d76f1834a1d425780943c99ea8a608f8a93f9"]?.["7d"]?.volumeUsd).toBeCloseTo(
+      18_365_542.18,
+      2,
+    );
     const bnb = equityCardRangeVolumesFromSnapshot(readSnapshot("bnb.json"), NOW);
     const spcxb = "0xbe9d156892e55e7154bcd3cb0fea677f9d3103e1";
     expect(bnb[spcxb]?.["7d"]?.days).toBe(7);

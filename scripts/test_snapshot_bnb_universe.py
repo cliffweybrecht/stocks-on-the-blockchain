@@ -625,6 +625,49 @@ class BnbUniverseTest(unittest.TestCase):
         self.assertEqual(totals[AAPL.lower()], 3.0)
         self.assertEqual(counts[AAPL.lower()], 1)
 
+    def test_stock_stock_pool_is_counted_once_on_the_base(self) -> None:
+        quote = "0x" + "11" * 20
+        pairs = [
+            {
+                "chainId": "bsc",
+                "pairAddress": "0xcross",
+                "baseToken": {"address": AAPL},
+                "quoteToken": {"address": NVDA},
+                "volume": {"h24": 80},
+            },
+            {
+                "chainId": "bsc",
+                "pairAddress": "0xcross",
+                "baseToken": {"address": AAPL},
+                "quoteToken": {"address": NVDA},
+                "volume": {"h24": 80},
+            },
+            {
+                "chainId": "bsc",
+                "pairAddress": "0xusdt",
+                "baseToken": {"address": NVDA},
+                "quoteToken": {"address": quote},
+                "volume": {"h24": 5},
+            },
+        ]
+        tracked = {
+            AAPL.lower(): {"address": AAPL},
+            NVDA.lower(): {"address": NVDA},
+            QQQ.lower(): {"address": QQQ},
+        }
+        totals, counts, _details, _pair_h24 = _MOD.fold_desk_pools(pairs, tracked)
+        self.assertEqual(totals[AAPL.lower()], 80.0)
+        self.assertEqual(totals[NVDA.lower()], 5.0)
+        self.assertEqual(counts[AAPL.lower()], 1)
+        self.assertEqual(counts[NVDA.lower()], 1)
+
+    def test_writer_reads_token_pairs_for_every_mint(self) -> None:
+        text = Path(__file__).resolve().parent.joinpath("snapshot-bnb-volume.py").read_text()
+        self.assertIn("token-pairs/v1/bsc", text)
+        self.assertIn("latest/dex/pairs/bsc", text)
+        self.assertIn("for addr in sorted(by_addr)", text)
+        self.assertNotIn("for addr in sorted(restricted)", text)
+
     def test_writer_does_not_hardcode_an_issuer_allowlist(self) -> None:
         text = _SCRIPT.read_text() + Path(__file__).with_name("bnb_volume_universe.py").read_text()
         self.assertNotIn("ALLOWED_ISSUERS", text)
