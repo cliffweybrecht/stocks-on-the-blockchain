@@ -1462,6 +1462,15 @@ export class SolanaMarketDataSource implements MarketDataSource {
     return { chains: [cached.mapped.chain], provenance: cached.mapped.provenance };
   }
 
+  /**
+   * Nightly desk capture. Always builds the full pool set. A warm light cache
+   * is the home-page preview and is not this file's volume.
+   */
+  async captureFullChain(): Promise<ChainDetailResult | null> {
+    const cached = await this.loadCached("full", { enrichDesk: false });
+    return this.detailFromCache(cached);
+  }
+
   async getChain(chainId: string): Promise<ChainDetailResult | null> {
     if (chainId !== SOLANA_CHAIN_ID) return null;
     const now = Date.now();

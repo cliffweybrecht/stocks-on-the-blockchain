@@ -62,6 +62,15 @@ export interface DeskVolumeSnapshot {
   publicMintCount: number | null;
   publicPoolCount: number | null;
   generatedAt: string;
+  /** Gecko Eastern candles, DexScreener h24 fallback, or a mix. */
+  volumeSource?: string;
+  dexCombined24hUsd?: number | null;
+  geckoCombined24hUsd?: number | null;
+  /** Set when DexScreener and Gecko totals differ by more than 5%. */
+  crossCheck?: string | null;
+  gapPct?: number | null;
+  /** Previous stored dollars when a day was replaced from Gecko coverage. */
+  correction?: Record<string, unknown>;
   /**
    * Per-mint DexScreener rows for this Eastern day.
    * Absent on totals-only rewrites and on days recorded before per-asset rows.
@@ -250,6 +259,10 @@ export function deskVolumeSnapshotFromChain(
   generatedAt: string,
   nowT?: number,
   assetSource?: readonly DeskSnapshotAssetSource[],
+  extras?: Pick<
+    DeskVolumeSnapshot,
+    "volumeSource" | "dexCombined24hUsd" | "geckoCombined24hUsd" | "crossCheck" | "gapPct" | "correction"
+  >,
 ): DeskVolumeSnapshot {
   const parsed = Date.parse(generatedAt);
   const tSource =
@@ -279,6 +292,12 @@ export function deskVolumeSnapshotFromChain(
   // Only a live desk sample sets `assets`. A totals-only rewrite leaves the key
   // off so a previous nightly row for this date is kept.
   if (assetSource) snapshot.assets = deskSnapshotAssetsFromSummaries(assetSource);
+  if (extras?.volumeSource) snapshot.volumeSource = extras.volumeSource;
+  if (extras && "dexCombined24hUsd" in extras) snapshot.dexCombined24hUsd = extras.dexCombined24hUsd;
+  if (extras && "geckoCombined24hUsd" in extras) snapshot.geckoCombined24hUsd = extras.geckoCombined24hUsd;
+  if (extras?.crossCheck) snapshot.crossCheck = extras.crossCheck;
+  if (extras?.gapPct !== undefined && extras.gapPct !== null) snapshot.gapPct = extras.gapPct;
+  if (extras?.correction) snapshot.correction = extras.correction;
   return snapshot;
 }
 
@@ -327,8 +346,12 @@ export async function recordDeskVolumeFromChain(
   generatedAt: string,
   nowT?: number,
   assetSource?: readonly DeskSnapshotAssetSource[],
+  extras?: Pick<
+    DeskVolumeSnapshot,
+    "volumeSource" | "dexCombined24hUsd" | "geckoCombined24hUsd" | "crossCheck" | "gapPct" | "correction"
+  >,
 ): Promise<RecordDeskVolumeResult> {
-  const incoming = deskVolumeSnapshotFromChain(chain, generatedAt, nowT, assetSource);
+  const incoming = deskVolumeSnapshotFromChain(chain, generatedAt, nowT, assetSource, extras);
   if (incoming.t <= 0 || !incoming.date) {
     return { ok: false, reason: "DexScreener desk snapshot has no America/New_York day — snapshot not written." };
   }
@@ -494,6 +517,14 @@ function parseOneSnapshot(row: unknown): DeskVolumeSnapshot | null {
     publicPoolCount: Number.isFinite(rec.publicPoolCount as number) ? (rec.publicPoolCount as number) : null,
     generatedAt,
   };
+  if (typeof rec.volumeSource === "string" && rec.volumeSource.trim()) snapshot.volumeSource = rec.volumeSource;
+  if ("dexCombined24hUsd" in rec) snapshot.dexCombined24hUsd = asNonNegativeNumber(rec.dexCombined24hUsd);
+  if ("geckoCombined24hUsd" in rec) snapshot.geckoCombined24hUsd = asNonNegativeNumber(rec.geckoCombined24hUsd);
+  if (typeof rec.crossCheck === "string" && rec.crossCheck.trim()) snapshot.crossCheck = rec.crossCheck;
+  if (typeof rec.gapPct === "number" && Number.isFinite(rec.gapPct)) snapshot.gapPct = rec.gapPct;
+  if (rec.correction && typeof rec.correction === "object" && !Array.isArray(rec.correction)) {
+    snapshot.correction = rec.correction as Record<string, unknown>;
+  }
   if (Array.isArray(rec.assets)) snapshot.assets = parseSnapshotAssets(rec.assets);
   return snapshot;
 }

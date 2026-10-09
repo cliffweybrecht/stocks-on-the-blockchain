@@ -1,6 +1,6 @@
 # Volume snapshots
 
-Daily desk volume is a DexScreener `volume.h24` sample taken near the end of the America/New_York calendar day. It is not a trade-level sum and not a GeckoTerminal daily bar. Null volume is omitted, not stored as $0. A missing day stays a gap.
+Daily desk volume for Solana, Robinhood, and BNB is the sum of GeckoTerminal hourly USD candles whose open falls in that America/New_York day (midnight through the next midnight). Each pool counts once. DexScreener token-pairs plus the known-pools list, and GeckoTerminal token pools for addresses DexScreener does not list, are the pool set. If the candle read fails, that pool keeps its DexScreener all-pools `volume.h24` and the row is tagged `dexscreener-h24-fallback`. Null volume is omitted, not stored as $0. A day is not left blank when either source reported a number. When the two totals differ by more than 5%, both are stored and the row is tagged.
 
 The row `date` is that Eastern `YYYY-MM-DD`. `t` is unix time for midnight on that date in `America/New_York`.
 
@@ -27,7 +27,9 @@ At 11:59 PM Eastern, UTC is already the next calendar day. The day key is still 
 
 `scripts/snapshot-bnb-volume.py` and `scripts/snapshot-robinhood-volume.py` are on `main`, same as the Base and Solana writers. Nightly runs use those writers, then land only the JSON row. Closed-day rows keep the lane totals and add `assets[]` (address, symbol, issuer when known, instrumentKind, volume24hUsd, displayedLiquidityUsd, pools). Hourly files stay totals only.
 
-BNB counts DexScreener `token-pairs/v1/bsc` for every mint, cash and wrapped-native quotes only, and keeps a known-pool list in `data/volume-snapshots/bnb-pools.json`. A stock-versus-stock pool counts once. Uniswap v4 pools DexScreener does not list are filled from GeckoTerminal when liquidity is at least about $1,000. Each asset row includes `poolCount`. Days 2026-09-23 through 2026-10-08 were rebuilt once from GeckoTerminal hourly bars on the America/New_York day (`backfillSource: geckoterminal-hourly`). The pre-correction lane totals stay on `originalCombined24hUsd` and the original lane fields.
+Solana's nightly writer calls `captureFullChain` (every token-pairs pool, not a warm light preview) and then GeckoTerminal token pools for addresses DexScreener missed. Robinhood and BNB do the same from their Python writers: token-pairs, the known-pools list, and GeckoTerminal token pools, including PancakeSwap Infinity and Uniswap v4. New pool addresses are written back to `data/volume-known-pools/`. Perps stay out of the spot lanes.
+
+BNB still keeps `data/volume-snapshots/bnb-pools.json`. A stock-versus-stock pool counts once. Days are rebuilt from GeckoTerminal hourly bars on the America/New_York day when those candles cover the day. The replaced dollars stay on `correction`. A day Gecko cannot cover keeps the stored value and is tagged.
 
 Solana hourly is a rolling h24 total for one Eastern hour, not a closed day. Its job prompt already lands the row. Do not append hourly rows to `solana.json`.
 

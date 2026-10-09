@@ -213,27 +213,27 @@ describe("BNB snapshot file", () => {
   it("keeps the 2026-10-05 lanes and drops the in-progress Eastern day", () => {
     const day = closed[closed.length - 1];
     expect(day?.date).toBe("2026-10-05");
-    expect(day?.combined24hUsd).toBeCloseTo(53_682_083.96, 2);
-    expect(day?.publicEquity24hUsd).toBeCloseTo(31_468_194.28, 2);
-    expect(day?.etfIndex24hUsd).toBeCloseTo(22_165_547.65, 2);
-    expect(day?.private24hUsd).toBeCloseTo(48_342.03, 2);
+    expect(day?.combined24hUsd).toBeCloseTo(160_701_412.02, 2);
+    expect(day?.publicEquity24hUsd).toBeCloseTo(77_778_363.48, 2);
+    expect(day?.etfIndex24hUsd).toBeCloseTo(30_456_663.33, 2);
+    expect(day?.private24hUsd).toBeCloseTo(52_466_385.21, 2);
     const duringOct5 = Date.parse("2026-10-05T12:00:00-04:00") / 1000;
     expect(closedSnapshotDeskDays(days, duringOct5).at(-1)?.date).toBe("2026-10-04");
   });
 
   it("reads issuersByLane, including the September days that originally had no split", () => {
     const early = snapshotDeskIssuerRows(days.filter((day) => day.date <= "2026-09-26"));
-    expect(early.find((row) => row.slug === "bstocks")?.equityUsd).toBeCloseTo(65_782_800.53, 2);
+    expect(early.find((row) => row.slug === "bstocks")?.equityUsd).toBeCloseTo(145_619_355.14, 2);
     const rows = snapshotDeskIssuerRows(snapshotDeskDaysForRange(closed, "24h"));
-    expect(rows.find((row) => row.slug === "bstocks")?.equityUsd).toBeCloseTo(30_560_828.07, 2);
+    expect(rows.find((row) => row.slug === "bstocks")?.equityUsd).toBeCloseTo(76_024_185.22, 2);
     expect(rows.find((row) => row.slug === "ondo")).toMatchObject({
       official: true,
-      equityUsd: expect.closeTo(617_350, 2),
-      etfUsd: expect.closeTo(8_475_948.56, 2),
+      equityUsd: expect.closeTo(1_250_241.48, 2),
+      etfUsd: expect.closeTo(12_803_688.62, 2),
       privateUsd: null,
     });
-    expect(rows.find((row) => row.slug === "xstocks")?.equityUsd).toBeNull();
-    expect(rows.find((row) => row.slug === "paimon")?.privateUsd).toBeCloseTo(48_342.03, 2);
+    expect(rows.find((row) => row.slug === "xstocks")?.equityUsd).toBeCloseTo(45.74, 2);
+    expect(rows.find((row) => row.slug === "paimon")?.privateUsd).toBeCloseTo(52_466_385.21, 2);
     expect(rows.find((row) => row.slug === "colb")?.privateUsd).toBeNull();
     expect(bnbIssuerPresentation("ondo").official).toBe(true);
     expect(bnbIssuerPresentation("fourmeme")).toEqual({ label: "Four.meme 4Stock", official: true });
@@ -313,9 +313,9 @@ describe("home snapshot desks", () => {
         bnb,
       ],
     );
-    expect(ranked.map((row) => row.id)).toEqual(["solana", "base", "robinhood-chain", "bnb"]);
+    expect(ranked.map((row) => row.id)).toEqual(["bnb", "solana", "base", "robinhood-chain"]);
     expect(ranked.filter((row) => row.id === "base")).toHaveLength(1);
-    expect(ranked[1]?.name).toBe("Base");
+    expect(ranked.find((row) => row.id === "base")?.name).toBe("Base");
   });
 
   it("does not invent a 7D bar before Base snapshots begin", () => {
