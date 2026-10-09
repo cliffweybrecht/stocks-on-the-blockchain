@@ -245,7 +245,7 @@ export function LendingGlancePanel({
         </p>
         <p className="inline-flex items-center gap-2" data-lending-stat="cost">
           <span className="text-muted-foreground">Yearly cost</span>
-          <span className="num text-foreground">{formatLendingApy(totals)}</span>
+          <span className="num text-foreground">{totals.borrowApy === null ? "—" : formatLendingFractionPct(totals.borrowApy)}</span>
         </p>
       </div>
 
