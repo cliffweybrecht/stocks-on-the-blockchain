@@ -254,6 +254,21 @@ export function parseOriginPrListNumber(text: string): number | null {
   return match ? Number(match[1]) : null;
 }
 
+/**
+ * stdout cap for `execFileSync` in the land script. Undefined keeps Node's
+ * default 1 MiB and is the result for every command that does not name the
+ * equity-perps snapshot. Callers must omit `maxBuffer` when this is undefined
+ * so other chains keep the default.
+ */
+export const PERPS_SNAPSHOT_GIT_MAX_BUFFER = 32 * 1024 * 1024;
+
+export function snapshotGitMaxBuffer(args: readonly string[]): number | undefined {
+  for (const arg of args) {
+    if (arg.includes("data/perps-snapshots/")) return PERPS_SNAPSHOT_GIT_MAX_BUFFER;
+  }
+  return undefined;
+}
+
 export const SNAPSHOT_LAND_PUSH_REJECTED = `Origin rejected merging this snapshot PR.
 Landed locally instead when possible: git merge --no-ff into main, push origin main (never force), then comment the merge commit and close the PR.
 Do not force-push main.`;
