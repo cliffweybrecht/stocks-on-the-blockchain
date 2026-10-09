@@ -1121,6 +1121,2935 @@
         "failedDexAddresses": []
       },
       "method": "Eastern day key 2026-10-07 (America/New_York midnight t); DexScreener volume.h24 sampled at 2026-10-08 12:11:11 AM EDT, not a true closed 12:00 AM\u201311:59 PM ET window; chain 4663 only; ETF/index before private; private admission is fail-closed; RHJ registry is the sole counted issuer; Ondo-named (Ondo Tokenized) clones on 4663 are excluded and are not an issuer; HOODon/BMNRon/CPERon copycats, PreStocks/xStock launchpad tokens, and Rialto (a venue) are excluded; a new equity/ETF/pre-IPO issuer is reported and not added; unique-pool h24 (a pool whose both tokens are RHJ is attributed once, to the base token); liquidity.usd is folded in and missing liquidity does not blank the day; null means no reported DexScreener volume (not zero)"
+    },
+    {
+      "date": "2026-10-08",
+      "t": 1791432000,
+      "publicEquity24hUsd": 37801086.050000004,
+      "private24hUsd": 1390115.37,
+      "etfIndex24hUsd": 12151972.0,
+      "combined24hUsd": 51343173.42,
+      "issuersByLane": {
+        "equity": {
+          "rhj": {
+            "usd": 37801086.050000004,
+            "mints": 176,
+            "pools": 164,
+            "withVolume": 164,
+            "liquidityUsd": 21889809.060000017
+          }
+        },
+        "etf": {
+          "rhj": {
+            "usd": 12151972.0,
+            "mints": 17,
+            "pools": 14,
+            "withVolume": 14,
+            "liquidityUsd": 7399147.299999999
+          }
+        },
+        "private": {
+          "rhj": {
+            "usd": 1390115.37,
+            "mints": 1,
+            "pools": 1,
+            "withVolume": 1,
+            "liquidityUsd": 692826.49
+          }
+        }
+      },
+      "publicMintCount": 176,
+      "publicPoolCount": 164,
+      "etfMintCount": 17,
+      "etfPoolCount": 14,
+      "preipoMintCount": 1,
+      "preipoPoolCount": 1,
+      "withVolumeEquityCount": 164,
+      "withVolumeEtfCount": 14,
+      "withVolumePrivateCount": 1,
+      "displayedLiquidityUsd": 29981782.850000013,
+      "generatedAt": "2026-10-09T04:22:10.464848Z",
+      "sources": {
+        "universe": "https://api.robinhood.com/rhj/assets",
+        "volume": "DexScreener tokens/v1/robinhood volume.h24 unique-pool sum",
+        "liquidity": "DexScreener liquidity.usd unique-pool sum; missing liquidity is null, not zero",
+        "chainId": 4663,
+        "chainSlug": "robinhood",
+        "issuers": {
+          "rhj": "Robinhood Assets (Jersey) Limited"
+        },
+        "sample": {
+          "sampledAt": "2026-10-09T04:22:20.111561Z",
+          "note": "DexScreener volume.h24 approximation taken at the run time, not a true closed 12:00 AM\u201311:59 PM America/New_York window"
+        }
+      },
+      "assets": [
+        {
+          "address": "0x521Cf887E6531c6F667b5BC4D896E5d9bfE8EB2E",
+          "symbol": "AAOI",
+          "instrumentKind": "equity",
+          "volume24hUsd": 942.39,
+          "displayedLiquidityUsd": 5594.46,
+          "pools": [
+            {
+              "pairAddress": "0x36b652d2f4bde8958638747d3e45fcb2089fbd2a3c298a17d0d5b458e25c3228",
+              "dexId": "uniswap",
+              "volume24hUsd": 942.39,
+              "liquidityUsd": 5594.46
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xaF3D76f1834A1d425780943C99Ea8A608f8a93f9",
+          "symbol": "AAPL",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1285287.51,
+          "displayedLiquidityUsd": 270890.06,
+          "pools": [
+            {
+              "pairAddress": "0x8bb3514e2204E1cDF3Ac149EFEe7Ff04D91B719f",
+              "dexId": "uniswap",
+              "volume24hUsd": 1285287.51,
+              "liquidityUsd": 270890.06
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x3139D77Ace0cbAA5bDfD38bD1F1911a794AF0B0e",
+          "symbol": "ABCL",
+          "instrumentKind": "equity",
+          "volume24hUsd": 71.63,
+          "displayedLiquidityUsd": 2209.42,
+          "pools": [
+            {
+              "pairAddress": "0xa94b759be671dece5ce7f832ce98dee1bca776799320855c7ae5d7b415d1d90d",
+              "dexId": "uniswap",
+              "volume24hUsd": 71.63,
+              "liquidityUsd": 2209.42
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x232B8ed6377BE97813853B0Ac104c4Cda8378d1B",
+          "symbol": "ADBE",
+          "instrumentKind": "equity",
+          "volume24hUsd": 279.99,
+          "displayedLiquidityUsd": 4361.19,
+          "pools": [
+            {
+              "pairAddress": "0x49e97643ddea30fbb23b4207cb8206215432a3088b79baee925bf07cee35b872",
+              "dexId": "uniswap",
+              "volume24hUsd": 279.99,
+              "liquidityUsd": 4361.19
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x748c32c3ca24eDf31ea597Db1F3d330a7a6DA3Dc",
+          "symbol": "ALAB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 41.7,
+          "displayedLiquidityUsd": 3287.02,
+          "pools": [
+            {
+              "pairAddress": "0x2402e7a9b73a54f18310091f876fd19efe6e0da60a2d913c7eccd11cb88a8d94",
+              "dexId": "uniswap",
+              "volume24hUsd": 41.7,
+              "liquidityUsd": 3287.02
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x36046893810a7E7fCE501229d57dc3FC8c8716d0",
+          "symbol": "AMAT",
+          "instrumentKind": "equity",
+          "volume24hUsd": 89.71,
+          "displayedLiquidityUsd": 2869.8,
+          "pools": [
+            {
+              "pairAddress": "0x846b5cF169c577654bC0DA8dAD0fe9A9fa409a82",
+              "dexId": "0x70Fb47DB7Ca14a04CAE64DD4bDC2e86C8656943d",
+              "volume24hUsd": 89.71,
+              "liquidityUsd": 2869.8
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x99D9D8663545151603863C5AcbD6FC3218899009",
+          "symbol": "AMBA",
+          "instrumentKind": "equity",
+          "volume24hUsd": 451.61,
+          "displayedLiquidityUsd": 2436.27,
+          "pools": [
+            {
+              "pairAddress": "0x767f3d7cd19ce87cdd7388325d10e19d979187ffe3f288b7cea05bb29f00a62a",
+              "dexId": "uniswap",
+              "volume24hUsd": 451.61,
+              "liquidityUsd": 2436.27
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x05a3d1Cd21d0C88145E82600E62e7E496e0F222B",
+          "symbol": "AMC",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1698346.76,
+          "displayedLiquidityUsd": 374530.94,
+          "pools": [
+            {
+              "pairAddress": "0x7499938c352d5b5b8f0c648722aca5ee964ef9b85c3a3041f1ec379726291d9d",
+              "dexId": "uniswap",
+              "volume24hUsd": 1698346.76,
+              "liquidityUsd": 374530.94
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x86923f96303D656E4aa86D9d42D1e57ad2023fdC",
+          "symbol": "AMD",
+          "instrumentKind": "equity",
+          "volume24hUsd": 969544.28,
+          "displayedLiquidityUsd": 375136.92,
+          "pools": [
+            {
+              "pairAddress": "0xe6e17efdbdd916526293cf1b509171be4ffb04f47c4a5fe1a7367acdaa6ffd82",
+              "dexId": "uniswap",
+              "volume24hUsd": 969544.28,
+              "liquidityUsd": 375136.92
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xDd356AA38F40A7b7076755aC854B6FBb1F0D305B",
+          "symbol": "AMKR",
+          "instrumentKind": "equity",
+          "volume24hUsd": 29.39,
+          "displayedLiquidityUsd": 1168.82,
+          "pools": [
+            {
+              "pairAddress": "0xc19d2a4b00988a3b1ec24b03207c7ad2a01a3c47e3ed1a524ae8cdc9ade5caa8",
+              "dexId": "uniswap",
+              "volume24hUsd": 29.39,
+              "liquidityUsd": 1168.82
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x12f190a9F9d7D37a250758b26824B97CE941bF54",
+          "symbol": "AMZN",
+          "instrumentKind": "equity",
+          "volume24hUsd": 441408.58,
+          "displayedLiquidityUsd": 543506.77,
+          "pools": [
+            {
+              "pairAddress": "0x68beff3b4270ffbbb78a48d7670648909b9de6736456b0f450fee242e1d10a8b",
+              "dexId": "uniswap",
+              "volume24hUsd": 441408.58,
+              "liquidityUsd": 543506.77
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x28bABD556b60E53663B8615036479a29c2CDd1Bf",
+          "symbol": "ANET",
+          "instrumentKind": "equity",
+          "volume24hUsd": 67.52,
+          "displayedLiquidityUsd": 2483.07,
+          "pools": [
+            {
+              "pairAddress": "0xf127159e45c56c4994b378fb06efa0795aa37fa655e3e59a56bd6cd2db55678e",
+              "dexId": "uniswap",
+              "volume24hUsd": 67.52,
+              "liquidityUsd": 2483.07
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xb8DBf92F9741c9ac1c32115E78581f23509916FD",
+          "symbol": "APLD",
+          "instrumentKind": "equity",
+          "volume24hUsd": 361.16,
+          "displayedLiquidityUsd": 2369.45,
+          "pools": [
+            {
+              "pairAddress": "0xbb27d182a1b8bc6f693d52033613b49e242eb0d476ce389bdd9f402215dedf6f",
+              "dexId": "uniswap",
+              "volume24hUsd": 361.16,
+              "liquidityUsd": 2369.45
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xA249BAF1063Af884807C1E1400AEf7784836917E",
+          "symbol": "APP",
+          "instrumentKind": "equity",
+          "volume24hUsd": 25.23,
+          "displayedLiquidityUsd": 1941.81,
+          "pools": [
+            {
+              "pairAddress": "0x31e660ad6d70aa80bae8c77ff7808ec09a6048d98c75e7bb659ca44ed64ca434",
+              "dexId": "uniswap",
+              "volume24hUsd": 25.23,
+              "liquidityUsd": 1941.81
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x47F93d52cBeC7C6D2CfC080e154002370a60dAEA",
+          "symbol": "ASML",
+          "instrumentKind": "equity",
+          "volume24hUsd": 8060.89,
+          "displayedLiquidityUsd": 25082.03,
+          "pools": [
+            {
+              "pairAddress": "0xedb22516B14Eb2d1C86927Db373B0E8bF70F5cD1",
+              "dexId": "uniswap",
+              "volume24hUsd": 8060.89,
+              "liquidityUsd": 25082.03
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x1AF6446f07eb1d97c546AFC8c9544cBDF3AD5137",
+          "symbol": "ASTS",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1732.83,
+          "displayedLiquidityUsd": 8174.31,
+          "pools": [
+            {
+              "pairAddress": "0x4e67b9742f8991a5ed481d10ab0b2ca5532ee14e33f7d1cec1e894e95bd74632",
+              "dexId": "uniswap",
+              "volume24hUsd": 1732.83,
+              "liquidityUsd": 8174.31
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x373C06c4f7BDe527D7Dae4BA169E42b55E393CeD",
+          "symbol": "AUR",
+          "instrumentKind": "equity",
+          "volume24hUsd": 44.1,
+          "displayedLiquidityUsd": 1736.94,
+          "pools": [
+            {
+              "pairAddress": "0x1ffa8861f0d1ec16bf6aae357e1edcc7e2a19aae3a7aaacefd3830012b63c724",
+              "dexId": "uniswap",
+              "volume24hUsd": 44.1,
+              "liquidityUsd": 1736.94
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xF6290b5e7C26502e2dA514C31509849718EA76A5",
+          "symbol": "AVAV",
+          "instrumentKind": "equity",
+          "volume24hUsd": 208.61,
+          "displayedLiquidityUsd": 1977.53,
+          "pools": [
+            {
+              "pairAddress": "0x8da879c4540ba1dd717cb80cab1316b8ba087377c7af4c1b09d1e7db3d394b93",
+              "dexId": "uniswap",
+              "volume24hUsd": 208.61,
+              "liquidityUsd": 1977.53
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x156E175DD063a8cE274C50654eF40e0032b3fbcF",
+          "symbol": "AVGO",
+          "instrumentKind": "equity",
+          "volume24hUsd": 32002.53,
+          "displayedLiquidityUsd": 160652.83,
+          "pools": [
+            {
+              "pairAddress": "0x5B7C404f1d7d77F9f3885aB13d7764F8a173028c",
+              "dexId": "uniswap",
+              "volume24hUsd": 32002.53,
+              "liquidityUsd": 160652.83
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x141eEa040c2250eEc0314e336975e81f85f6585e",
+          "symbol": "AXTI",
+          "instrumentKind": "equity",
+          "volume24hUsd": 21.46,
+          "displayedLiquidityUsd": 2730.69,
+          "pools": [
+            {
+              "pairAddress": "0x47d2dc7d27a3d6da9be82fba26ee4aaab935246adde2f0d98431c9cdbbc46978",
+              "dexId": "uniswap",
+              "volume24hUsd": 21.46,
+              "liquidityUsd": 2730.69
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x4D21483a44Bf67a86b77E3dA301411880797D452",
+          "symbol": "BA",
+          "instrumentKind": "equity",
+          "volume24hUsd": 24410.19,
+          "displayedLiquidityUsd": 94523.52,
+          "pools": [
+            {
+              "pairAddress": "0xc6517047b189c72D3bAa9eF37D1d28F27a63638a",
+              "dexId": "uniswap",
+              "volume24hUsd": 24410.19,
+              "liquidityUsd": 94523.52
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xad25Ac6C84D497db898fa1E8387bf6Af3532a1c4",
+          "symbol": "BABA",
+          "instrumentKind": "equity",
+          "volume24hUsd": 52049.86,
+          "displayedLiquidityUsd": 18653.18,
+          "pools": [
+            {
+              "pairAddress": "0x1791fc651cc794a282e5dbcb56d0b2b38eff8754b677c8876e86901521ecc439",
+              "dexId": "uniswap",
+              "volume24hUsd": 52049.86,
+              "liquidityUsd": 18653.18
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x48E39E56aCdbA37b09020C0b734A613C9a2f100A",
+          "symbol": "BB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 15371.39,
+          "displayedLiquidityUsd": 41007.09,
+          "pools": [
+            {
+              "pairAddress": "0xc250650901b49785b18443a0b1bfee10b98f5c20f11988635252030e5283a288",
+              "dexId": "uniswap",
+              "volume24hUsd": 15371.39,
+              "liquidityUsd": 41007.09
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x822CC93fFD030293E9842c30BBD678F530701867",
+          "symbol": "BE",
+          "instrumentKind": "equity",
+          "volume24hUsd": 159878.05,
+          "displayedLiquidityUsd": 110480.12,
+          "pools": [
+            {
+              "pairAddress": "0x1baD145C8F06444E0dF81c28257cd20231Bd1f16",
+              "dexId": "uniswap",
+              "volume24hUsd": 159878.05,
+              "liquidityUsd": 110480.12
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xceF9027c7d6985b85f0BA431125073529A947A68",
+          "symbol": "BULL",
+          "instrumentKind": "equity",
+          "volume24hUsd": 2412.51,
+          "displayedLiquidityUsd": 87208.75,
+          "pools": [
+            {
+              "pairAddress": "0xdfc620485cebd394955e7cde9e3d336ec8dabe24a7c80c4b9de71ea896208e79",
+              "dexId": "uniswap",
+              "volume24hUsd": 2412.51,
+              "liquidityUsd": 87208.75
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x5c90450Bbb4273D7b2f17CF6917AEB237A569679",
+          "symbol": "CBRS",
+          "instrumentKind": "equity",
+          "volume24hUsd": 106.56,
+          "displayedLiquidityUsd": 1736.78,
+          "pools": [
+            {
+              "pairAddress": "0x52c4673e8afaae9e6f27776bf567d8eb7d98881409ccbf355ed044717e26735d",
+              "dexId": "uniswap",
+              "volume24hUsd": 106.56,
+              "liquidityUsd": 1736.78
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x9651342CeA770aE9a2969Ba2A52611523146aef9",
+          "symbol": "CCL",
+          "instrumentKind": "equity",
+          "volume24hUsd": 604.96,
+          "displayedLiquidityUsd": 5917.33,
+          "pools": [
+            {
+              "pairAddress": "0xB19AcE635Ef3A28B85bFB01Bae97d0DE80750680",
+              "dexId": "uniswap",
+              "volume24hUsd": 604.96,
+              "liquidityUsd": 5917.33
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xaE517A2903E68bd929Dfd15be875F8369D53e94a",
+          "symbol": "CEG",
+          "instrumentKind": "equity",
+          "volume24hUsd": 9865.94,
+          "displayedLiquidityUsd": 37981.48,
+          "pools": [
+            {
+              "pairAddress": "0x21e190d0a42ad1b36f957bf2490eef78825d13a579d3a326bf10aadc1d634f4f",
+              "dexId": "uniswap",
+              "volume24hUsd": 9865.94,
+              "liquidityUsd": 37981.48
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x8cF07C5A878945185d327aAa6e33FAa95F95e7bF",
+          "symbol": "CELH",
+          "instrumentKind": "equity",
+          "volume24hUsd": 831.28,
+          "displayedLiquidityUsd": 2127.37,
+          "pools": [
+            {
+              "pairAddress": "0x09f150a102ad6e0a9afe7905c976ddc3d649bf977a9c73ce4846e3826f9f0ea9",
+              "dexId": "uniswap",
+              "volume24hUsd": 831.28,
+              "liquidityUsd": 2127.37
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x44f6D488021f8233B9416294d1FE9b1fEe28382d",
+          "symbol": "CIEN",
+          "instrumentKind": "equity",
+          "volume24hUsd": 770.78,
+          "displayedLiquidityUsd": 2166.29,
+          "pools": [
+            {
+              "pairAddress": "0xc95560483f794e8d894f17917d3f6df5d8460e99d4cd7b46bc10c5e2d8f94196",
+              "dexId": "uniswap",
+              "volume24hUsd": 770.78,
+              "liquidityUsd": 2166.29
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x62200915e7DEab1eC7f79fb246daDbB80eACdDd0",
+          "symbol": "CLOV",
+          "instrumentKind": "equity",
+          "volume24hUsd": 313.42,
+          "displayedLiquidityUsd": 5323.56,
+          "pools": [
+            {
+              "pairAddress": "0xab0bb756ffa9b93d889fc6c1dcba22283ec668c365b47c23ffea77d76befa940",
+              "dexId": "uniswap",
+              "volume24hUsd": 313.42,
+              "liquidityUsd": 5323.56
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xBf449977089c718C004a66C554B26B94ef3Ad4De",
+          "symbol": "CLS",
+          "instrumentKind": "equity",
+          "volume24hUsd": 23.6,
+          "displayedLiquidityUsd": 2374.3,
+          "pools": [
+            {
+              "pairAddress": "0x568633ce8967d55c31ce8b8f565ee58b301db699a7543d8381b256a57e75fbf1",
+              "dexId": "uniswap",
+              "volume24hUsd": 23.6,
+              "liquidityUsd": 2374.3
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xcBB95BBF36099d34dA091dc6Fa6F49EfA257Cee3",
+          "symbol": "CLSK",
+          "instrumentKind": "equity",
+          "volume24hUsd": 263.91,
+          "displayedLiquidityUsd": 1023.06,
+          "pools": [
+            {
+              "pairAddress": "0x7a9fd17b8630ce49d0860a31d7fa8b482b6a7f3bebd81318b0555fce76bb828e",
+              "dexId": "uniswap",
+              "volume24hUsd": 263.91,
+              "liquidityUsd": 1023.06
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x92F9F459F1a9a5AD266b182BE7Bffd1C6c666894",
+          "symbol": "COHR",
+          "instrumentKind": "equity",
+          "volume24hUsd": 111.27,
+          "displayedLiquidityUsd": 3001.29,
+          "pools": [
+            {
+              "pairAddress": "0xf630e3ddabc02fec5c77eae4c65ce42f5a28818ba3ec1826d732648db10e9d28",
+              "dexId": "uniswap",
+              "volume24hUsd": 111.27,
+              "liquidityUsd": 3001.29
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x6330D8C3178a418788dF01a47479c0ce7CCF450b",
+          "symbol": "COIN",
+          "instrumentKind": "equity",
+          "volume24hUsd": 620108.92,
+          "displayedLiquidityUsd": 766574.79,
+          "pools": [
+            {
+              "pairAddress": "0x6707aeAc7D0e519B083219d27BB427364363183A",
+              "dexId": "uniswap",
+              "volume24hUsd": 620108.92,
+              "liquidityUsd": 766574.79
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x4EA005168D7F09a7A0Ba9D1DEf21a479950E44C2",
+          "symbol": "COST",
+          "instrumentKind": "equity",
+          "volume24hUsd": 109704.27,
+          "displayedLiquidityUsd": 591166.77,
+          "pools": [
+            {
+              "pairAddress": "0x0a2121A50A09eD0796ae81F9c53fF9398355a398",
+              "dexId": "uniswap",
+              "volume24hUsd": 109704.27,
+              "liquidityUsd": 591166.77
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xdF0992E440dD0be65BD8439b609d6D4366bf1CB5",
+          "symbol": "CRCL",
+          "instrumentKind": "equity",
+          "volume24hUsd": 7765778.77,
+          "displayedLiquidityUsd": 6765880.28,
+          "pools": [
+            {
+              "pairAddress": "0x654E4143e82a5824445Ade0824351C2A9ACD95a8",
+              "dexId": "uniswap",
+              "volume24hUsd": 7765778.77,
+              "liquidityUsd": 6765880.28
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x4D67253bc223e6b0e104F1084c1fb2b669dDC41b",
+          "symbol": "CRDO",
+          "instrumentKind": "equity",
+          "volume24hUsd": 57.44,
+          "displayedLiquidityUsd": 2451.07,
+          "pools": [
+            {
+              "pairAddress": "0x595d46b6ac80fcbc35cf07fbde5252d1cc7a68363e3e1e30a4a68101f3ea73e2",
+              "dexId": "uniswap",
+              "volume24hUsd": 57.44,
+              "liquidityUsd": 2451.07
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xd95B44124e475743a7589e68F3D74008A5536D44",
+          "symbol": "CRM",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1436.67,
+          "displayedLiquidityUsd": 17426.96,
+          "pools": [
+            {
+              "pairAddress": "0x5d0434f1dcf45ff9450c1a63b5c9e088f90cfebf483458164e81be6fb96e2b2a",
+              "dexId": "uniswap",
+              "volume24hUsd": 1436.67,
+              "liquidityUsd": 17426.96
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xea72Ecca2d0f6bFA1394DBBCff85b52CD4233931",
+          "symbol": "CRWD",
+          "instrumentKind": "equity",
+          "volume24hUsd": 32.92,
+          "displayedLiquidityUsd": 1988.45,
+          "pools": [
+            {
+              "pairAddress": "0x50e7c15c5ccbc3ee5d2dd8ac60d32803ec01cf0aca1043a8ec2580e063c8fce2",
+              "dexId": "uniswap",
+              "volume24hUsd": 32.92,
+              "liquidityUsd": 1988.45
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x5f10A1C971B69e47e059e1dC91901B59b3fB49C3",
+          "symbol": "CRWV",
+          "instrumentKind": "equity",
+          "volume24hUsd": 22203.24,
+          "displayedLiquidityUsd": 45500.47,
+          "pools": [
+            {
+              "pairAddress": "0x237014478f7ef98afbe7412ac35b6a3f96b8fb111de48b7c4dbf49dba4bd9c4b",
+              "dexId": "uniswap",
+              "volume24hUsd": 22203.24,
+              "liquidityUsd": 45500.47
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x63D5a3b6939a33f1e75d8Bcd85759858239600DB",
+          "symbol": "CTSH",
+          "instrumentKind": "equity",
+          "volume24hUsd": 237.31,
+          "displayedLiquidityUsd": 1625.0,
+          "pools": [
+            {
+              "pairAddress": "0x672208ab6e5af6c473e9dbf7a2c160e89b5dbd94bfd94e8ddf828e8b789f047f",
+              "dexId": "uniswap",
+              "volume24hUsd": 237.31,
+              "liquidityUsd": 1625.0
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xa4f319104089FE321dc8093C6E707d4fE190A988",
+          "symbol": "CVNA",
+          "instrumentKind": "equity",
+          "volume24hUsd": 255.88,
+          "displayedLiquidityUsd": 7057.29,
+          "pools": [
+            {
+              "pairAddress": "0x4e001c9d3c2969f8b3d0c348e8842941355f1fa2ed8791456758ce26249883d9",
+              "dexId": "uniswap",
+              "volume24hUsd": 255.88,
+              "liquidityUsd": 7057.29
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x27c99fBde9D0d2AA4f4Bfb4943f237843DdF6958",
+          "symbol": "DDOG",
+          "instrumentKind": "equity",
+          "volume24hUsd": 182841.04,
+          "displayedLiquidityUsd": 39978.89,
+          "pools": [
+            {
+              "pairAddress": "0x977c78c96cd9b306d87c235dee5a69ccab913b0f775575627e709643ad416598",
+              "dexId": "uniswap",
+              "volume24hUsd": 182841.04,
+              "liquidityUsd": 39978.89
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x941AE714EC6D8130c7B75d67160Ca08f1e7d11Dd",
+          "symbol": "DELL",
+          "instrumentKind": "equity",
+          "volume24hUsd": 99786.03,
+          "displayedLiquidityUsd": 376550.4,
+          "pools": [
+            {
+              "pairAddress": "0xc30c89cB7815A1488b7998D15eEC73961707Fc5a",
+              "dexId": "uniswap",
+              "volume24hUsd": 99786.03,
+              "liquidityUsd": 376550.4
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x1D11f0496982706C5e14A514D4E79F2e6BdE4516",
+          "symbol": "DJT",
+          "instrumentKind": "equity",
+          "volume24hUsd": 91572.2,
+          "displayedLiquidityUsd": 212832.35,
+          "pools": [
+            {
+              "pairAddress": "0x55f2df399bf61fd758b99848452eaf217ee9d2f98fb9c79deb23fe9a2652bc5a",
+              "dexId": "uniswap",
+              "volume24hUsd": 91572.2,
+              "liquidityUsd": 212832.35
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xc02f12B9fe9E707079EC0d546f3050d3F6C1F8bD",
+          "symbol": "DOCN",
+          "instrumentKind": "equity",
+          "volume24hUsd": 527.33,
+          "displayedLiquidityUsd": 2593.67,
+          "pools": [
+            {
+              "pairAddress": "0xa6f6e5bcaf6d56bea6fa12573eef544788f379bd1aa6b7140cee88150f6553ce",
+              "dexId": "uniswap",
+              "volume24hUsd": 527.33,
+              "liquidityUsd": 2593.67
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x39EC44Bee4F6A116c6F9B8De566848a985C53C60",
+          "symbol": "ELF",
+          "instrumentKind": "equity",
+          "volume24hUsd": 20.97,
+          "displayedLiquidityUsd": 6042.03,
+          "pools": [
+            {
+              "pairAddress": "0xde350b1f58a33826eecbc54c599ab87391a13a14d5eb4992b4f09b78eba4d49f",
+              "dexId": "uniswap",
+              "volume24hUsd": 20.97,
+              "liquidityUsd": 6042.03
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x7f0aBeF0C07280F82c6a08ead09dEd6BAE2C13Fc",
+          "symbol": "EWY",
+          "instrumentKind": "etf",
+          "volume24hUsd": 312.59,
+          "displayedLiquidityUsd": 2915.44,
+          "pools": [
+            {
+              "pairAddress": "0xde52c62a72be945c5a81d3149695e403de15c045ac9c31b80e05a45b6d8cb768",
+              "dexId": "uniswap",
+              "volume24hUsd": 312.59,
+              "liquidityUsd": 2915.44
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x25C288E6D899b9BC30160965aD9644c67e73bE0C",
+          "symbol": "F",
+          "instrumentKind": "equity",
+          "volume24hUsd": 20993.78,
+          "displayedLiquidityUsd": 105427.11,
+          "pools": [
+            {
+              "pairAddress": "0x4dbAC19E895322ac5b93abad9008691632bFFC05",
+              "dexId": "uniswap",
+              "volume24hUsd": 20993.78,
+              "liquidityUsd": 105427.11
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xa48F22A46C0F1C46CA7D111CB6c137c271987180",
+          "symbol": "FICO",
+          "instrumentKind": "equity",
+          "volume24hUsd": 102.85,
+          "displayedLiquidityUsd": 1873.15,
+          "pools": [
+            {
+              "pairAddress": "0x367d62c1746bb0219398249abb919b07527f153686c7528a2458621512bb51df",
+              "dexId": "uniswap",
+              "volume24hUsd": 102.85,
+              "liquidityUsd": 1873.15
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x41F4267525a8AFf329540eF24fD83d9044758B33",
+          "symbol": "FIG",
+          "instrumentKind": "equity",
+          "volume24hUsd": 96922.38,
+          "displayedLiquidityUsd": 129365.52,
+          "pools": [
+            {
+              "pairAddress": "0xca5904C0a9d42F0Ec1Bf760FDf779907877144fD",
+              "dexId": "uniswap",
+              "volume24hUsd": 96922.38,
+              "liquidityUsd": 129365.52
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x9ECe29A4A2397C0a35fb5fA8EE2b9509130a98cc",
+          "symbol": "FISV",
+          "instrumentKind": "equity",
+          "volume24hUsd": 460.17,
+          "displayedLiquidityUsd": 1705.26,
+          "pools": [
+            {
+              "pairAddress": "0x1725d684f22412ec3d2a9704897cb7ae979c89545c095de334a3ab61efbad10f",
+              "dexId": "uniswap",
+              "volume24hUsd": 460.17,
+              "liquidityUsd": 1705.26
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x93Dbb1d2Dc5D63F4abACFF30485273f538Df68Ac",
+          "symbol": "FIX",
+          "instrumentKind": "equity",
+          "volume24hUsd": 161.51,
+          "displayedLiquidityUsd": 4934.64,
+          "pools": [
+            {
+              "pairAddress": "0x747a731b1ef419ce6006993cf907266a24069c81fb004ec78d2d17ba5863b724",
+              "dexId": "uniswap",
+              "volume24hUsd": 161.51,
+              "liquidityUsd": 4934.64
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x282e87451E10fA6679BC7D76C69BE44cD3fC777C",
+          "symbol": "FLNC",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1.18,
+          "displayedLiquidityUsd": 167.55,
+          "pools": [
+            {
+              "pairAddress": "0xd7e7ec5f3acda5e526035fdd8e230c4bfc82af26043ed7b071eb62e057ec6194",
+              "dexId": "uniswap",
+              "volume24hUsd": 1.18,
+              "liquidityUsd": 167.55
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x03BC731Ffb162cdd7B98D3C6542bFC291126075d",
+          "symbol": "FLY",
+          "instrumentKind": "equity",
+          "volume24hUsd": 30.14,
+          "displayedLiquidityUsd": 2941.88,
+          "pools": [
+            {
+              "pairAddress": "0x1b3dc6132f18c53360e19413ec398f9508b35b1b3cec84d5243f68802fe8334e",
+              "dexId": "uniswap",
+              "volume24hUsd": 30.14,
+              "liquidityUsd": 2941.88
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x3FB8976980d486084b2eb4a404BD12e72823958f",
+          "symbol": "FTNT",
+          "instrumentKind": "equity",
+          "volume24hUsd": 23.9,
+          "displayedLiquidityUsd": 651.31,
+          "pools": [
+            {
+              "pairAddress": "0xe49c047687f85d33053892ea209cc675d89baacf97c85996e53ec092be444c8c",
+              "dexId": "uniswap",
+              "volume24hUsd": 23.9,
+              "liquidityUsd": 651.31
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xeB30663bDFf0622Ef4e4E5cBb4E975F19f33f51D",
+          "symbol": "FUTU",
+          "instrumentKind": "equity",
+          "volume24hUsd": 160.47,
+          "displayedLiquidityUsd": 11878.23,
+          "pools": [
+            {
+              "pairAddress": "0x26d55d21a7a072ebb10bdaf24a054f66243f91550a4ec5f791b9eeac613a68e2",
+              "dexId": "uniswap",
+              "volume24hUsd": 160.47,
+              "liquidityUsd": 11878.23
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x63b814DDBd6BF339f25Fed8c36158a008D5B373e",
+          "symbol": "GE",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1444.85,
+          "displayedLiquidityUsd": 26748.82,
+          "pools": [
+            {
+              "pairAddress": "0x4669f93ee59066abfe3a5234ed5d33f967ebd23d3f72ceb88fd6fbc99f16becc",
+              "dexId": "uniswap",
+              "volume24hUsd": 1444.85,
+              "liquidityUsd": 26748.82
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x94B8AAE43A1cCc08Aa64B7D1F29b4D920aF4a0C9",
+          "symbol": "GEV",
+          "instrumentKind": "equity",
+          "volume24hUsd": 212.5,
+          "displayedLiquidityUsd": 2517.99,
+          "pools": [
+            {
+              "pairAddress": "0x3f662de3c574895681cfdd41e5639c85bcf31bd3046e04903a090a3bb4e2ab47",
+              "dexId": "uniswap",
+              "volume24hUsd": 212.5,
+              "liquidityUsd": 2517.99
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xC9a981FEE1F9DEc688bb123ccDeCc63D0deBFC4e",
+          "symbol": "GLD",
+          "instrumentKind": "etf",
+          "volume24hUsd": 2243777.78,
+          "displayedLiquidityUsd": 1623432.43,
+          "pools": [
+            {
+              "pairAddress": "0xBA2f1ed4cEB2169D538d1e614D847E83C5A55913",
+              "dexId": "uniswap",
+              "volume24hUsd": 2243777.78,
+              "liquidityUsd": 1623432.43
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x7c04E6A3368F2A1DE3874f0e80d2e0A1a9915da6",
+          "symbol": "GLW",
+          "instrumentKind": "equity",
+          "volume24hUsd": 221.5,
+          "displayedLiquidityUsd": 1001.7,
+          "pools": [
+            {
+              "pairAddress": "0x684aa60e68b957a5fb3cb83c55473cd35ba5cb27ac3eb1ec840dcc42439618f8",
+              "dexId": "uniswap",
+              "volume24hUsd": 221.5,
+              "liquidityUsd": 1001.7
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x2D427692E928fa156ec22acfaBaFA0447C5805B7",
+          "symbol": "GLXY",
+          "instrumentKind": "equity",
+          "volume24hUsd": 81302.9,
+          "displayedLiquidityUsd": 135540.27,
+          "pools": [
+            {
+              "pairAddress": "0xC67C2D200E0b7E5D99F4CFBede8CB09B48892f2c",
+              "dexId": "uniswap",
+              "volume24hUsd": 81302.9,
+              "liquidityUsd": 135540.27
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x1b0E319c6A659F002271B69dB8A7df2F911c153E",
+          "symbol": "GME",
+          "instrumentKind": "equity",
+          "volume24hUsd": 51298.29,
+          "displayedLiquidityUsd": 74414.19,
+          "pools": [
+            {
+              "pairAddress": "0x24c65014991e23383da21f9081f99c6e4bc128bbd4075c1b7d67a7e44efa4f2e",
+              "dexId": "uniswap",
+              "volume24hUsd": 51298.29,
+              "liquidityUsd": 74414.19
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x2e0847E8910a9732eB3fb1bb4b70a580ADAD4FE3",
+          "symbol": "GOOGL",
+          "instrumentKind": "equity",
+          "volume24hUsd": 3452961.83,
+          "displayedLiquidityUsd": 829248.58,
+          "pools": [
+            {
+              "pairAddress": "0x34D0dC122CF9A8Eb296fC5e0D3A233625D7d19b7",
+              "dexId": "uniswap",
+              "volume24hUsd": 3452961.83,
+              "liquidityUsd": 829248.58
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xCceE82fE024c36fA15E1005edE3E9e4787e23D09",
+          "symbol": "HIMS",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1448245.3,
+          "displayedLiquidityUsd": 355282.76,
+          "pools": [
+            {
+              "pairAddress": "0x67983c0d78cea3a8b4a5cc283feeeefd278a8ae5c6504b983b0c72bde13d1c0c",
+              "dexId": "uniswap",
+              "volume24hUsd": 1448245.3,
+              "liquidityUsd": 355282.76
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x59dd09d4900C2E4B5F75b7c0d4E6796fcc234Cb1",
+          "symbol": "HPE",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.63,
+          "displayedLiquidityUsd": 1045.44,
+          "pools": [
+            {
+              "pairAddress": "0x9e7dfa4d633346a21b06d2e85ab0ba508672b2575766643ac8330de340e711eb",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.63,
+              "liquidityUsd": 1045.44
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xAEa445c5F3DB1a462998ccC422A875A361ee5d99",
+          "symbol": "HWM",
+          "instrumentKind": "equity",
+          "volume24hUsd": 358.82,
+          "displayedLiquidityUsd": 1699.55,
+          "pools": [
+            {
+              "pairAddress": "0xf98b47b7db37c1727e078a8df7bf1d63915529263089e010d976d56d31f34e8e",
+              "dexId": "uniswap",
+              "volume24hUsd": 358.82,
+              "liquidityUsd": 1699.55
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x980dcf6766FA79f5Cf0c4AAdb3ab477ff15a9619",
+          "symbol": "IBM",
+          "instrumentKind": "equity",
+          "volume24hUsd": 161678.81,
+          "displayedLiquidityUsd": 216543.22,
+          "pools": [
+            {
+              "pairAddress": "0x8cD848ce18b829C5c769AFf27164078bB52e0E97",
+              "dexId": "uniswap",
+              "volume24hUsd": 161678.81,
+              "liquidityUsd": 216543.22
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x7c148F74ac7445D1F28366b7FcDC6792a9Fcd0Cf",
+          "symbol": "IBRX",
+          "instrumentKind": "equity",
+          "volume24hUsd": 548.44,
+          "displayedLiquidityUsd": 2200.06,
+          "pools": [
+            {
+              "pairAddress": "0xde46baa778f381fe00d9843dcbd2d7d679033cfe6a38a4c02578991427363cf1",
+              "dexId": "uniswap",
+              "volume24hUsd": 548.44,
+              "liquidityUsd": 2200.06
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xACEF2e09adb47aD6aBeBAD9fF06689E60615C2B6",
+          "symbol": "INDA",
+          "instrumentKind": "etf",
+          "volume24hUsd": 6606.47,
+          "displayedLiquidityUsd": 41057.71,
+          "pools": [
+            {
+              "pairAddress": "0x7d0895d8162b0be326ef944faeb5a84f4a08377b9bc9f010e38fa4d268a94469",
+              "dexId": "uniswap",
+              "volume24hUsd": 6606.47,
+              "liquidityUsd": 41057.71
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xf1953DAB6FaD537488d5A022361FfAa8B4c95eC6",
+          "symbol": "INOD",
+          "instrumentKind": "equity",
+          "volume24hUsd": 14.6,
+          "displayedLiquidityUsd": 1007.7,
+          "pools": [
+            {
+              "pairAddress": "0xa7f653a771e460f0740a57530348405b8f762128a465507943021e20100f8a12",
+              "dexId": "uniswap",
+              "volume24hUsd": 14.6,
+              "liquidityUsd": 1007.7
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xc72b96e0E48ecd4DC75E1e45396e26300BC39681",
+          "symbol": "INTC",
+          "instrumentKind": "equity",
+          "volume24hUsd": 991045.91,
+          "displayedLiquidityUsd": 476559.88,
+          "pools": [
+            {
+              "pairAddress": "0x7fb585f108d921de3b197cf7e26b5aebc96b035fec13f972b868e008ea062394",
+              "dexId": "uniswap",
+              "volume24hUsd": 991045.91,
+              "liquidityUsd": 476559.88
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x56d23beE5f41A7120170b0c603Dae30128e460e9",
+          "symbol": "INTU",
+          "instrumentKind": "equity",
+          "volume24hUsd": 819.63,
+          "displayedLiquidityUsd": 3377.31,
+          "pools": [
+            {
+              "pairAddress": "0x3110946d50b4f1d2a5a956d5a6e2181961d8b2081f9cb99aa8cef2299ac1f842",
+              "dexId": "uniswap",
+              "volume24hUsd": 819.63,
+              "liquidityUsd": 3377.31
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x558378E000D634A36593E338eBacdd6207640EfE",
+          "symbol": "IONQ",
+          "instrumentKind": "equity",
+          "volume24hUsd": 23.29,
+          "displayedLiquidityUsd": 2385.61,
+          "pools": [
+            {
+              "pairAddress": "0xa5fb5171610a57253725ddecc264ea2c832867ea81559880960300fabd848ca7",
+              "dexId": "uniswap",
+              "volume24hUsd": 23.29,
+              "liquidityUsd": 2385.61
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xF0AB0c93bE6F41369d302e55db1A96b3c430212D",
+          "symbol": "IREN",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1027.45,
+          "displayedLiquidityUsd": 9502.39,
+          "pools": [
+            {
+              "pairAddress": "0x2566088fd6aa48831800109ad3360328f6c4131da2043b948e1bacdde5151e9f",
+              "dexId": "uniswap",
+              "volume24hUsd": 1027.45,
+              "liquidityUsd": 9502.39
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xEAf2512dFC1bEAc608F8794B3793CD4E02894Aa6",
+          "symbol": "JBL",
+          "instrumentKind": "equity",
+          "volume24hUsd": 388.12,
+          "displayedLiquidityUsd": 976.1,
+          "pools": [
+            {
+              "pairAddress": "0xcc7af572cbd4a8e7a10230dcb639977bbf1c3b76f59e68c570977721d41d7ec4",
+              "dexId": "uniswap",
+              "volume24hUsd": 388.12,
+              "liquidityUsd": 976.1
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x03DfbBE0AC4E7bCDaFd08eD41A400326B77D8c80",
+          "symbol": "JNJ",
+          "instrumentKind": "equity",
+          "volume24hUsd": 14413.68,
+          "displayedLiquidityUsd": 38760.36,
+          "pools": [
+            {
+              "pairAddress": "0x7F0aCE18D1dCEd47063CF26e649bc8AB14D09e67",
+              "dexId": "uniswap",
+              "volume24hUsd": 14413.68,
+              "liquidityUsd": 38760.36
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xb334C5cE741B80B5B671F47F5C269Cb193fe8E24",
+          "symbol": "JOBY",
+          "instrumentKind": "equity",
+          "volume24hUsd": 11.74,
+          "displayedLiquidityUsd": 2467.13,
+          "pools": [
+            {
+              "pairAddress": "0xdacc8365f75d6ddc5eda60a0ff048a506cd4785dcf870dd5ebd42c4a6ae23739",
+              "dexId": "uniswap",
+              "volume24hUsd": 11.74,
+              "liquidityUsd": 2467.13
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x96b933C74eCB4A0926b9210cef7b743EF46be2E9",
+          "symbol": "KLAC",
+          "instrumentKind": "equity",
+          "volume24hUsd": 22.59,
+          "displayedLiquidityUsd": 527.63,
+          "pools": [
+            {
+              "pairAddress": "0x5c7d204cf492ebf491aac9e52d2e1099aff7397f9d5f87a7bebf7a1e450d48e4",
+              "dexId": "uniswap",
+              "volume24hUsd": 22.59,
+              "liquidityUsd": 527.63
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x12e3c047bf9AeCAF9dDC98c05C31BFD1dd043993",
+          "symbol": "KSS",
+          "instrumentKind": "equity",
+          "volume24hUsd": 984.93,
+          "displayedLiquidityUsd": 3005.57,
+          "pools": [
+            {
+              "pairAddress": "0x3f19293823a9a7be7a1fe5d4b628c0f2357ce0b6c388d95a8c52135bf55a1529",
+              "dexId": "uniswap",
+              "volume24hUsd": 984.93,
+              "liquidityUsd": 3005.57
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x7FD06a4d81cCfA3F351394E144d5191874C31313",
+          "symbol": "KTOS",
+          "instrumentKind": "equity",
+          "volume24hUsd": 226.94,
+          "displayedLiquidityUsd": 2023.39,
+          "pools": [
+            {
+              "pairAddress": "0x2dc444dda358d7a75a5e92915c388efeaa9e770ab2599b6fdc540f94b1001c71",
+              "dexId": "uniswap",
+              "volume24hUsd": 226.94,
+              "liquidityUsd": 2023.39
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x48d60243c66437c6ac3c2495Be94747aEd5Dfe25",
+          "symbol": "LHX",
+          "instrumentKind": "equity",
+          "volume24hUsd": 31.33,
+          "displayedLiquidityUsd": 1955.07,
+          "pools": [
+            {
+              "pairAddress": "0x03a1cfe761577decac15d9fa5ed606718289098a0a0c48b5358b3aff1154cce5",
+              "dexId": "uniswap",
+              "volume24hUsd": 31.33,
+              "liquidityUsd": 1955.07
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x8eF20885F94e3D9bc7eB3080279188Bd5ED7c08C",
+          "symbol": "LITE",
+          "instrumentKind": "equity",
+          "volume24hUsd": 3139.71,
+          "displayedLiquidityUsd": 32104.95,
+          "pools": [
+            {
+              "pairAddress": "0xE9a9471633faF6C0cE15065e74D71a9A02867633",
+              "dexId": "ramses",
+              "volume24hUsd": 3139.71,
+              "liquidityUsd": 32104.95
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x8005d266423c7ea827372c9c864491e5786600ea",
+          "symbol": "LLY",
+          "instrumentKind": "equity",
+          "volume24hUsd": 878486.4,
+          "displayedLiquidityUsd": 255795.27,
+          "pools": [
+            {
+              "pairAddress": "0xF212D02146a897F5F686E9d629F6A73da534324a",
+              "dexId": "uniswap",
+              "volume24hUsd": 878486.4,
+              "liquidityUsd": 255795.27
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x329fcACEb9AD6F9580DD5F643fed0646900D043c",
+          "symbol": "LMT",
+          "instrumentKind": "equity",
+          "volume24hUsd": 3812.91,
+          "displayedLiquidityUsd": 88118.58,
+          "pools": [
+            {
+              "pairAddress": "0x0b118d2480ebdb11374d3ad2ea1b935e9458a9f704222004b3b8de07bc98f1eb",
+              "dexId": "uniswap",
+              "volume24hUsd": 3812.91,
+              "liquidityUsd": 88118.58
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x57b0030166DB0C31690d1A5aA167e2e26e2C29a4",
+          "symbol": "LRCX",
+          "instrumentKind": "equity",
+          "volume24hUsd": 367.25,
+          "displayedLiquidityUsd": 2486.07,
+          "pools": [
+            {
+              "pairAddress": "0x545f5bc9a76365f5d838a9aef6e184177f49d491519306f639c93743365c1656",
+              "dexId": "uniswap",
+              "volume24hUsd": 367.25,
+              "liquidityUsd": 2486.07
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x4e62068525Ab11FE768e29dfD00ef909B9803016",
+          "symbol": "LULU",
+          "instrumentKind": "equity",
+          "volume24hUsd": 13909.36,
+          "displayedLiquidityUsd": 89021.62,
+          "pools": [
+            {
+              "pairAddress": "0x0F4227D27082B3BCA6818381b9ea6460275e49f4",
+              "dexId": "uniswap",
+              "volume24hUsd": 13909.36,
+              "liquidityUsd": 89021.62
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xDdf2266b79abf0B48898959B0ed6E6adf512be74",
+          "symbol": "MDB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 24.41,
+          "displayedLiquidityUsd": 1582.97,
+          "pools": [
+            {
+              "pairAddress": "0x408cc9adea9d52929a432ac23f7257818791df504078bee61fab6745dd054bd8",
+              "dexId": "uniswap",
+              "volume24hUsd": 24.41,
+              "liquidityUsd": 1582.97
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xc0D6457C16Cc70d6790Dd43521C899C87ce02f35",
+          "symbol": "META",
+          "instrumentKind": "equity",
+          "volume24hUsd": 280713.98,
+          "displayedLiquidityUsd": 109915.73,
+          "pools": [
+            {
+              "pairAddress": "0x960f79D8DfEC7F2F0C1b24CdAC6BB9Df1371C6e2",
+              "dexId": "ramses",
+              "volume24hUsd": 280713.98,
+              "liquidityUsd": 109915.73
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xc6Cbad1016b38B797610c25E1dc7D95988B1f362",
+          "symbol": "MOD",
+          "instrumentKind": "equity",
+          "volume24hUsd": 31.98,
+          "displayedLiquidityUsd": 580.15,
+          "pools": [
+            {
+              "pairAddress": "0xd80181d68dfc90f15b2357c5de6ba13895058bbb5a551ded07d1e0fc660fd44d",
+              "dexId": "uniswap",
+              "volume24hUsd": 31.98,
+              "liquidityUsd": 580.15
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x52D50D0280AD1054b43f052bD70a49a212A1b128",
+          "symbol": "MPWR",
+          "instrumentKind": "equity",
+          "volume24hUsd": 628.71,
+          "displayedLiquidityUsd": 2519.2,
+          "pools": [
+            {
+              "pairAddress": "0x0e12c4fbb7ecd127e221007455718fc07239df9f646d673160af20640794d981",
+              "dexId": "uniswap",
+              "volume24hUsd": 628.71,
+              "liquidityUsd": 2519.2
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x43B07D15cE533bEc5476d70C22a78a1B2B662155",
+          "symbol": "MRNA",
+          "instrumentKind": "equity",
+          "volume24hUsd": 381510.68,
+          "displayedLiquidityUsd": 194666.88,
+          "pools": [
+            {
+              "pairAddress": "0xB40196272A6d2EB5edF6d93bc4DC39856AD95E0E",
+              "dexId": "uniswap",
+              "volume24hUsd": 381510.68,
+              "liquidityUsd": 194666.88
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x62fd0668e10D8B72339BE2DCF7643001688ff13B",
+          "symbol": "MRVL",
+          "instrumentKind": "equity",
+          "volume24hUsd": 6012.76,
+          "displayedLiquidityUsd": 18083.68,
+          "pools": [
+            {
+              "pairAddress": "0x5201ea77c950aBB8d3706A20bF3b83d872E4A98b",
+              "dexId": "uniswap",
+              "volume24hUsd": 6012.76,
+              "liquidityUsd": 18083.68
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xe93237C50D904957Cf27E7B1133b510C669c2e74",
+          "symbol": "MSFT",
+          "instrumentKind": "equity",
+          "volume24hUsd": 451838.08,
+          "displayedLiquidityUsd": 379689.47,
+          "pools": [
+            {
+              "pairAddress": "0x18074ca08154f613c70444ef22793ff1875e9bdc92bab25a5ee0f39107c77258",
+              "dexId": "uniswap",
+              "volume24hUsd": 451838.08,
+              "liquidityUsd": 379689.47
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xec262a75e413fAfD0dF80480274532C79D42da09",
+          "symbol": "MSTR",
+          "instrumentKind": "equity",
+          "volume24hUsd": 4970934.97,
+          "displayedLiquidityUsd": 2364579.85,
+          "pools": [
+            {
+              "pairAddress": "0x319bac87e616a89e241c10aeb8afd4892a852cdd8b373cd9765ecddc40b87cfe",
+              "dexId": "uniswap",
+              "volume24hUsd": 4970934.97,
+              "liquidityUsd": 2364579.85
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xC93f4d80e268AB922e871bd169156C3CC41894e6",
+          "symbol": "MTSI",
+          "instrumentKind": "equity",
+          "volume24hUsd": 834.43,
+          "displayedLiquidityUsd": 2315.42,
+          "pools": [
+            {
+              "pairAddress": "0xe0fa8194377bd00cf1a8367570727ee7d0b97b3284f51e30e190b49b3d7aa0a0",
+              "dexId": "uniswap",
+              "volume24hUsd": 834.43,
+              "liquidityUsd": 2315.42
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xfF080c8ce2E5feadaCa0Da81314Ae59D232d4afD",
+          "symbol": "MU",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1156618.75,
+          "displayedLiquidityUsd": 442188.12,
+          "pools": [
+            {
+              "pairAddress": "0xcc2a903a8744a65258bb07fbeea553a25410f731c9fef306321d0c176a09542c",
+              "dexId": "uniswap",
+              "volume24hUsd": 1156618.75,
+              "liquidityUsd": 442188.12
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x48961813349333209994750ffA89b3c5C22eC969",
+          "symbol": "MXL",
+          "instrumentKind": "equity",
+          "volume24hUsd": 858.46,
+          "displayedLiquidityUsd": 4187.85,
+          "pools": [
+            {
+              "pairAddress": "0x6d967ECA453181e410be4b8F8a83A3523618696E",
+              "dexId": "ramses",
+              "volume24hUsd": 858.46,
+              "liquidityUsd": 4187.85
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x9D9c6684F596F66a64C030B93A886D51Fd4D7931",
+          "symbol": "NBIS",
+          "instrumentKind": "equity",
+          "volume24hUsd": 17684.39,
+          "displayedLiquidityUsd": 122370.69,
+          "pools": [
+            {
+              "pairAddress": "0x7c2f9ce1214ba9baf56d1b6a1fc640c1b63e9a711172c0c7d10e5a9c4a3d4f0c",
+              "dexId": "uniswap",
+              "volume24hUsd": 17684.39,
+              "liquidityUsd": 122370.69
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x116F00968269B7bfbaD4109cE591d6E74c0601d4",
+          "symbol": "NET",
+          "instrumentKind": "equity",
+          "volume24hUsd": 41709.17,
+          "displayedLiquidityUsd": 42918.91,
+          "pools": [
+            {
+              "pairAddress": "0xA9Caebb1b2fB2b954F192572b309aEf1cAf6a330",
+              "dexId": "uniswap",
+              "volume24hUsd": 41709.17,
+              "liquidityUsd": 42918.91
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xE0444EF8BF4eD74f74FD73686e2ddF4C1c5591E8",
+          "symbol": "NFLX",
+          "instrumentKind": "equity",
+          "volume24hUsd": 54717.24,
+          "displayedLiquidityUsd": 212787.03,
+          "pools": [
+            {
+              "pairAddress": "0x59895C0302F41aEaa129D2fa2442CEc01E7eF45E",
+              "dexId": "uniswap",
+              "volume24hUsd": 54717.24,
+              "liquidityUsd": 212787.03
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xBEF75684C43c4ea7BD18Dd532a2244674Ee8b926",
+          "symbol": "NNE",
+          "instrumentKind": "equity",
+          "volume24hUsd": 2107.05,
+          "displayedLiquidityUsd": 8233.19,
+          "pools": [
+            {
+              "pairAddress": "0x9b0ca1c4906f6517a12802513c3ae6f1c1e3ec47d81c6d23437fc401b6e2771b",
+              "dexId": "uniswap",
+              "volume24hUsd": 2107.05,
+              "liquidityUsd": 8233.19
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x0C3260aF4B8f13a69c4c2dFb84fD667890CDFa14",
+          "symbol": "NOW",
+          "instrumentKind": "equity",
+          "volume24hUsd": 294.09,
+          "displayedLiquidityUsd": 577.35,
+          "pools": [
+            {
+              "pairAddress": "0x6d2b24576c695662b9991f8e4a4488628c8a1dfeb28206e6adb5f3bc514b9d01",
+              "dexId": "uniswap",
+              "volume24hUsd": 294.09,
+              "liquidityUsd": 577.35
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x408c14038a04f7bD235329E26d2bf569ee20e250",
+          "symbol": "NU",
+          "instrumentKind": "equity",
+          "volume24hUsd": 4836.7,
+          "displayedLiquidityUsd": 39876.22,
+          "pools": [
+            {
+              "pairAddress": "0x0E3FaEd512E7909758EB924E6919e0057Bd6b45E",
+              "dexId": "uniswap",
+              "volume24hUsd": 4836.7,
+              "liquidityUsd": 39876.22
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xd0601CE157Db5bdC3162BbaC2a2C8aF5320D9EEC",
+          "symbol": "NVDA",
+          "instrumentKind": "equity",
+          "volume24hUsd": 6509462.98,
+          "displayedLiquidityUsd": 1040290.46,
+          "pools": [
+            {
+              "pairAddress": "0x6444a8e0b267406a15db74ca00c4a24bdfa81ed3180f5b6d0851f8ed6f4f29c5",
+              "dexId": "uniswap",
+              "volume24hUsd": 6509462.98,
+              "liquidityUsd": 1040290.46
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xbE6702d7b70315376dC48a3293f24f0982F86386",
+          "symbol": "NVTS",
+          "instrumentKind": "equity",
+          "volume24hUsd": 282.83,
+          "displayedLiquidityUsd": 1020.33,
+          "pools": [
+            {
+              "pairAddress": "0x5ea9601ea0ffe2593fad6f0a184fe21a67e4d6d9da31b0528a66b0d860d5c0f0",
+              "dexId": "uniswap",
+              "volume24hUsd": 282.83,
+              "liquidityUsd": 1020.33
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x8B2f88497f15A18E9D4FFa1a8fFB8538399aE774",
+          "symbol": "OKLO",
+          "instrumentKind": "equity",
+          "volume24hUsd": 423.81,
+          "displayedLiquidityUsd": 1161.47,
+          "pools": [
+            {
+              "pairAddress": "0xecc9829947db75dbefebb8600812f8dc528fd379179ca00037f4d8b1de202730",
+              "dexId": "uniswap",
+              "volume24hUsd": 423.81,
+              "liquidityUsd": 1161.47
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xbBD09F72b025360FeE5C928053Dca6248d35be54",
+          "symbol": "ON",
+          "instrumentKind": "equity",
+          "volume24hUsd": 2358.73,
+          "displayedLiquidityUsd": 10570.41,
+          "pools": [
+            {
+              "pairAddress": "0xfcE637eeAd7D62d9ED27F81D9767de03e9E534Cf",
+              "dexId": "uniswap",
+              "volume24hUsd": 2358.73,
+              "liquidityUsd": 10570.41
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x8ff63eAeEe3fE54Ba450c4F5538064Ec5A893Aef",
+          "symbol": "ONTO",
+          "instrumentKind": "equity",
+          "volume24hUsd": 115.16,
+          "displayedLiquidityUsd": 3609.53,
+          "pools": [
+            {
+              "pairAddress": "0x8b9aa6d8470414b929ed9258a35b48ee3d91281eebc703173ba165e2e81e2b6a",
+              "dexId": "uniswap",
+              "volume24hUsd": 115.16,
+              "liquidityUsd": 3609.53
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xb0992820E760d836549ba69BC7598b4af75dEE03",
+          "symbol": "ORCL",
+          "instrumentKind": "equity",
+          "volume24hUsd": 23906.0,
+          "displayedLiquidityUsd": 128839.45,
+          "pools": [
+            {
+              "pairAddress": "0xc2ce4784e1e72cf0221b51b30c8aaadf6c0b12863cf03ab3687854fb7b1d850a",
+              "dexId": "uniswap",
+              "volume24hUsd": 23906.0,
+              "liquidityUsd": 128839.45
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x40E7a279850e443f582059ae5dC1c3b6563E6395",
+          "symbol": "OUST",
+          "instrumentKind": "equity",
+          "volume24hUsd": 48.74,
+          "displayedLiquidityUsd": 2366.92,
+          "pools": [
+            {
+              "pairAddress": "0xf38ae903c26900adce810188c2e09ffb22349e0a9eb752660fd78a286cde1a0d",
+              "dexId": "uniswap",
+              "volume24hUsd": 48.74,
+              "liquidityUsd": 2366.92
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x1Cdad396DB64BDa184d5182A97Dd9B3C62100b7D",
+          "symbol": "P",
+          "instrumentKind": "equity",
+          "volume24hUsd": 168.25,
+          "displayedLiquidityUsd": 1466.04,
+          "pools": [
+            {
+              "pairAddress": "0xfe95b4c84b339951f20db6302f1b0927046dd2b1b74014867eb51e2f27eca31b",
+              "dexId": "uniswap",
+              "volume24hUsd": 168.25,
+              "liquidityUsd": 1466.04
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xB039597eD45CBa7B6E2fb9E8BE51802969CEe5Be",
+          "symbol": "PANW",
+          "instrumentKind": "equity",
+          "volume24hUsd": 13.86,
+          "displayedLiquidityUsd": 2262.82,
+          "pools": [
+            {
+              "pairAddress": "0x41c9ec9295e1cdbf05e6137214a1a7bb8bbbc53d7bbb5e5d4bdc1f0bceb894cf",
+              "dexId": "uniswap",
+              "volume24hUsd": 13.86,
+              "liquidityUsd": 2262.82
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xfb2664f07B6Aadd29ea7a59D8859b1AeB8645cDa",
+          "symbol": "PATH",
+          "instrumentKind": "equity",
+          "volume24hUsd": 271.66,
+          "displayedLiquidityUsd": 4945.16,
+          "pools": [
+            {
+              "pairAddress": "0xb96d0facfa437573f6e99d46f1e7aded8a0d097219c1f8e56ba60f25119f1130",
+              "dexId": "uniswap",
+              "volume24hUsd": 271.66,
+              "liquidityUsd": 4945.16
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x9b23573b156B52565012F5cE02CDF60AFBaa70Be",
+          "symbol": "PENG",
+          "instrumentKind": "equity",
+          "volume24hUsd": 20009.22,
+          "displayedLiquidityUsd": 60942.11,
+          "pools": [
+            {
+              "pairAddress": "0x9B977d504D94CF1efBEe30531392545FA55349Ab",
+              "dexId": "ramses",
+              "volume24hUsd": 20009.22,
+              "liquidityUsd": 60942.11
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x7066A64c24e4206CD62E83bf198c1E7EB361F51e",
+          "symbol": "PFE",
+          "instrumentKind": "equity",
+          "volume24hUsd": 78151.2,
+          "displayedLiquidityUsd": 70913.09,
+          "pools": [
+            {
+              "pairAddress": "0xC7d573Fcda6D2107C97fb582ae18411F9Db32E7f",
+              "dexId": "uniswap",
+              "volume24hUsd": 78151.2,
+              "liquidityUsd": 70913.09
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xAA4d64474c172010aB57719cb9951E6142a100d3",
+          "symbol": "PL",
+          "instrumentKind": "equity",
+          "volume24hUsd": 222.96,
+          "displayedLiquidityUsd": 2114.15,
+          "pools": [
+            {
+              "pairAddress": "0x7de70efc572684e85388658e83376a9158f9a964261098d047a2bd498b4d411c",
+              "dexId": "uniswap",
+              "volume24hUsd": 222.96,
+              "liquidityUsd": 2114.15
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x894E1EC2D74FFE5AEF8Dc8A9e84686acCB964F2A",
+          "symbol": "PLTR",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1387625.51,
+          "displayedLiquidityUsd": 376757.21,
+          "pools": [
+            {
+              "pairAddress": "0xb8d9b6b622bb03dd06d95790553f327710a73d85d845a59fa9e652638ca96ae6",
+              "dexId": "uniswap",
+              "volume24hUsd": 1387625.51,
+              "liquidityUsd": 376757.21
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xcf6B2D875361be807EAfa57458c80f28521F9333",
+          "symbol": "POET",
+          "instrumentKind": "equity",
+          "volume24hUsd": 413.87,
+          "displayedLiquidityUsd": 1355.21,
+          "pools": [
+            {
+              "pairAddress": "0xa1C781ed62AC2d0283f50fF5A843647a56ddd80a",
+              "dexId": "uniswap",
+              "volume24hUsd": 413.87,
+              "liquidityUsd": 1355.21
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x237c16D66590F67B886d978ACD362EAeaD8B18c7",
+          "symbol": "POWL",
+          "instrumentKind": "equity",
+          "volume24hUsd": 335.12,
+          "displayedLiquidityUsd": 2152.08,
+          "pools": [
+            {
+              "pairAddress": "0x4d17362c5ca3f564b71e6e4ab66cba4e5e6d7d8b012ac033c4b8615faf21d4a0",
+              "dexId": "uniswap",
+              "volume24hUsd": 335.12,
+              "liquidityUsd": 2152.08
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x4189F0c66EBBB0bfeF1C31f763131361EF32f77C",
+          "symbol": "PR",
+          "instrumentKind": "equity",
+          "volume24hUsd": 69.97,
+          "displayedLiquidityUsd": 2165.67,
+          "pools": [
+            {
+              "pairAddress": "0x901b66955655f09ebad078d6bde885171f4f72c9d2d56a8e025332fd38af453d",
+              "dexId": "uniswap",
+              "volume24hUsd": 69.97,
+              "liquidityUsd": 2165.67
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xC583c60aeF9Dc401Da72cEC1B404743a93cea1Cc",
+          "symbol": "QBTS",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.77,
+          "displayedLiquidityUsd": 556.59,
+          "pools": [
+            {
+              "pairAddress": "0x0b286c8e761932f02fbd289857ad5b21c07da136108ba3ebc3a20ab4685f5a5e",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.77,
+              "liquidityUsd": 556.59
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x0f17206447090e464C277571124dD2688E48AEA9",
+          "symbol": "QCOM",
+          "instrumentKind": "equity",
+          "volume24hUsd": 16164.4,
+          "displayedLiquidityUsd": 59735.48,
+          "pools": [
+            {
+              "pairAddress": "0x106af997d180cf37a574c42c04179f267b9245cf221b1c57fb3e491137915de6",
+              "dexId": "uniswap",
+              "volume24hUsd": 16164.4,
+              "liquidityUsd": 59735.48
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xD5f3879160bc7c32ebb4dC785F8a4F505888de68",
+          "symbol": "QQQ",
+          "instrumentKind": "etf",
+          "volume24hUsd": 1522055.8,
+          "displayedLiquidityUsd": 1123227.14,
+          "pools": [
+            {
+              "pairAddress": "0xD60A5d14dB690B7Afad71F76B108071D7175597d",
+              "dexId": "uniswap",
+              "volume24hUsd": 1522055.8,
+              "liquidityUsd": 1123227.14
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x59818904ab4cE163b3cE4FfB64f2D6Ca02c434B4",
+          "symbol": "QUBT",
+          "instrumentKind": "equity",
+          "volume24hUsd": 32131.02,
+          "displayedLiquidityUsd": 111265.65,
+          "pools": [
+            {
+              "pairAddress": "0x227Bbce9A81B3694b01754298a983Be3F9E44A93",
+              "dexId": "uniswap",
+              "volume24hUsd": 32131.02,
+              "liquidityUsd": 111265.65
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xF0C4BF4C582cb3836e98394b1d4e7B7281101bE8",
+          "symbol": "RBLX",
+          "instrumentKind": "equity",
+          "volume24hUsd": 58167.96,
+          "displayedLiquidityUsd": 200434.94,
+          "pools": [
+            {
+              "pairAddress": "0x6d25417718A8D6c529130a8ccC4BfBf0a18219D3",
+              "dexId": "uniswap",
+              "volume24hUsd": 58167.96,
+              "liquidityUsd": 200434.94
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xFDE6b5d9BB419B10C23268c74e369AbFF39C0460",
+          "symbol": "RCAT",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1755.72,
+          "displayedLiquidityUsd": 38779.84,
+          "pools": [
+            {
+              "pairAddress": "0xd3c27381f7d1ef4dcd8ec4ba66e74fe88d06ab5250c1393769d4dd0e996a8dc9",
+              "dexId": "uniswap",
+              "volume24hUsd": 1755.72,
+              "liquidityUsd": 38779.84
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x05b37Fb53A299a1b874A619e1c4C404D52C36F4C",
+          "symbol": "RDDT",
+          "instrumentKind": "equity",
+          "volume24hUsd": 179054.59,
+          "displayedLiquidityUsd": 127501.18,
+          "pools": [
+            {
+              "pairAddress": "0x714187EeD11d8fc9500ff6798734c8BB63a8A19b",
+              "dexId": "uniswap",
+              "volume24hUsd": 179054.59,
+              "liquidityUsd": 127501.18
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x92Ef19E82bD8fF36661DE838D5eaE7e5CEF0EfFE",
+          "symbol": "RDW",
+          "instrumentKind": "equity",
+          "volume24hUsd": 231.05,
+          "displayedLiquidityUsd": 1931.64,
+          "pools": [
+            {
+              "pairAddress": "0x8e373ecc92c00a656e65a554c084bd1260067e6ae820fd87c9bb4101df4c9c96",
+              "dexId": "uniswap",
+              "volume24hUsd": 231.05,
+              "liquidityUsd": 1931.64
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x284358abc07F9359f19f4b5b4aC91901Be2597Ba",
+          "symbol": "RGTI",
+          "instrumentKind": "equity",
+          "volume24hUsd": 197.81,
+          "displayedLiquidityUsd": 9992.38,
+          "pools": [
+            {
+              "pairAddress": "0x36e1be89ed77bb72e67bc6e8c23c65b6d8e03adf9155fb4c144f4250f7bc35df",
+              "dexId": "uniswap",
+              "volume24hUsd": 197.81,
+              "liquidityUsd": 9992.38
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xB1BF26c1D20ff267A4f93550d1E0d06ac40a114B",
+          "symbol": "RIVN",
+          "instrumentKind": "equity",
+          "volume24hUsd": 5177.15,
+          "displayedLiquidityUsd": 56956.69,
+          "pools": [
+            {
+              "pairAddress": "0xb30A75B200D98A600a3766869344928E35823E23",
+              "dexId": "uniswap",
+              "volume24hUsd": 5177.15,
+              "liquidityUsd": 56956.69
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x3b14C39E89D60D627b42a1A4CA45b5bb45Fc12e2",
+          "symbol": "RKLB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1407.89,
+          "displayedLiquidityUsd": 18872.25,
+          "pools": [
+            {
+              "pairAddress": "0xbbc15d66fef8391f53569e19016e86545be9de3f302b82db93ed6165236d22f3",
+              "dexId": "uniswap",
+              "volume24hUsd": 1407.89,
+              "liquidityUsd": 18872.25
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x756Bc80af765C82da966a788858d65aDF14f3793",
+          "symbol": "RUN",
+          "instrumentKind": "equity",
+          "volume24hUsd": 384.44,
+          "displayedLiquidityUsd": 16723.41,
+          "pools": [
+            {
+              "pairAddress": "0x5129717011e7417662397c00D8E96df3e64D7d58",
+              "dexId": "0x649Fee51B30dce68Eed7B356F5Ec6185e3982ADf",
+              "volume24hUsd": 384.44,
+              "liquidityUsd": 16723.41
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xd63ABB2C13d7a8421a8017a712802053568e3C1D",
+          "symbol": "SCHD",
+          "instrumentKind": "etf",
+          "volume24hUsd": 16.32,
+          "displayedLiquidityUsd": 276.69,
+          "pools": [
+            {
+              "pairAddress": "0x2e9538d273c5d568394e15e3cebf4d906ebe9ba2315715f236479d86f1f028cd",
+              "dexId": "uniswap",
+              "volume24hUsd": 16.32,
+              "liquidityUsd": 276.69
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x92FD66527192E3e61d4DDd13322Aa222DE86F9B5",
+          "symbol": "SGOV",
+          "instrumentKind": "etf",
+          "volume24hUsd": 534704.0,
+          "displayedLiquidityUsd": 330285.34,
+          "pools": [
+            {
+              "pairAddress": "0x6Ba50150B17Ffd0972915Aaf04fFd5E8f4Fa49b4",
+              "dexId": "uniswap",
+              "volume24hUsd": 534704.0,
+              "liquidityUsd": 330285.34
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xF53F66751B1Eff985311b693531E3290F600c410",
+          "symbol": "SHOP",
+          "instrumentKind": "equity",
+          "volume24hUsd": 11.04,
+          "displayedLiquidityUsd": 15756.31,
+          "pools": [
+            {
+              "pairAddress": "0x3edfbf6a3c6ef62b822be53c749bab2e52006866ffaa2566b4936823e2c94683",
+              "dexId": "uniswap",
+              "volume24hUsd": 11.04,
+              "liquidityUsd": 15756.31
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x84CAb63bc87912E71ad199ff14A0bA45de68FeF8",
+          "symbol": "SKHY",
+          "instrumentKind": "equity",
+          "volume24hUsd": 12948.11,
+          "displayedLiquidityUsd": 71667.16,
+          "pools": [
+            {
+              "pairAddress": "0x994db79a9e80b73d726171d0e834dfe6fdce7987539dcf5cceef7b2b95c5fd95",
+              "dexId": "uniswap",
+              "volume24hUsd": 12948.11,
+              "liquidityUsd": 71667.16
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x285b231728c7E4333799183DF1094d775246a535",
+          "symbol": "SLS",
+          "instrumentKind": "equity",
+          "volume24hUsd": 450.02,
+          "displayedLiquidityUsd": 1589.63,
+          "pools": [
+            {
+              "pairAddress": "0xeac99c4a9e4244a762abbcabc07780ff3a3228de0404942ea18e53e7afba37dc",
+              "dexId": "uniswap",
+              "volume24hUsd": 450.02,
+              "liquidityUsd": 1589.63
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x411eFb0E7f985935DAec3D4C3ebaEa0d0AD7D89f",
+          "symbol": "SLV",
+          "instrumentKind": "etf",
+          "volume24hUsd": 84121.68,
+          "displayedLiquidityUsd": 134344.86,
+          "pools": [
+            {
+              "pairAddress": "0x48Abc7052509cAF820C4C22559F08381f9AFD823",
+              "dexId": "uniswap",
+              "volume24hUsd": 84121.68,
+              "liquidityUsd": 134344.86
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xc01aA1fECeC0605b13bc84874ff7256C0f5F562a",
+          "symbol": "SMCI",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1663.05,
+          "displayedLiquidityUsd": 10856.82,
+          "pools": [
+            {
+              "pairAddress": "0x85664e8E308f6a936494768C9F4dbaA7b6D299A8",
+              "dexId": "ramses",
+              "volume24hUsd": 1663.05,
+              "liquidityUsd": 10856.82
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x072f979c2CAc8e1391B0162a87Fee094bF8744a0",
+          "symbol": "SMH",
+          "instrumentKind": "etf",
+          "volume24hUsd": 17.19,
+          "displayedLiquidityUsd": 955.72,
+          "pools": [
+            {
+              "pairAddress": "0x99baa5a39dde70af936a5a91dedcabad096da7342cc2436e136f83e8eca391c4",
+              "dexId": "uniswap",
+              "volume24hUsd": 17.19,
+              "liquidityUsd": 955.72
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x1Eebee7F74517e0279dFb09d25B0407bEEc3FDd6",
+          "symbol": "SMR",
+          "instrumentKind": "equity",
+          "volume24hUsd": 251.11,
+          "displayedLiquidityUsd": 5027.47,
+          "pools": [
+            {
+              "pairAddress": "0xc180ed307d9426ffe3881aa8fb02ceffb83663d845c6633181fa771031a23d8a",
+              "dexId": "uniswap",
+              "volume24hUsd": 251.11,
+              "liquidityUsd": 5027.47
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xF6589F11Bc40b669e584073F428B05562F568733",
+          "symbol": "SNAP",
+          "instrumentKind": "equity",
+          "volume24hUsd": 74128.93,
+          "displayedLiquidityUsd": 109608.64,
+          "pools": [
+            {
+              "pairAddress": "0x2e4cc4c65587faca7a08b69a13c86ca8c86599d90ad818ceaa1a875176f5fb52",
+              "dexId": "uniswap",
+              "volume24hUsd": 74128.93,
+              "liquidityUsd": 109608.64
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xB90A19fF0Af67f7779afF50A882A9CfF42446400",
+          "symbol": "SNDK",
+          "instrumentKind": "equity",
+          "volume24hUsd": 57775.17,
+          "displayedLiquidityUsd": 229903.8,
+          "pools": [
+            {
+              "pairAddress": "0x2707cb88a6a40fa0f948f58958051ba097d6f6a3cf7f87929bd68ccc5becea24",
+              "dexId": "uniswap",
+              "volume24hUsd": 57775.17,
+              "liquidityUsd": 229903.8
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xBa0CAB75495255d0cB58E22B648bFED4ECD1F47E",
+          "symbol": "SNOW",
+          "instrumentKind": "equity",
+          "volume24hUsd": 4490.9,
+          "displayedLiquidityUsd": 49056.11,
+          "pools": [
+            {
+              "pairAddress": "0xac720e95589b7124f0affbdb9e66c7ec6e824c68eae00dc54f9e11b0b294bac8",
+              "dexId": "uniswap",
+              "volume24hUsd": 4490.9,
+              "liquidityUsd": 49056.11
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x98E75885157C80992A8D41b696D8c9C6Fb30A926",
+          "symbol": "SOFI",
+          "instrumentKind": "equity",
+          "volume24hUsd": 8.8,
+          "displayedLiquidityUsd": 8352.19,
+          "pools": [
+            {
+              "pairAddress": "0x7aeb16c54d3d45445f5b3b2577c0099aeedb4ebd915efc3909d42771a5e616d6",
+              "dexId": "uniswap",
+              "volume24hUsd": 8.8,
+              "liquidityUsd": 8352.19
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x6E3Dfd9f7e1649BaA14D25cac18C94d62dB10A54",
+          "symbol": "SOUN",
+          "instrumentKind": "equity",
+          "volume24hUsd": 9.12,
+          "displayedLiquidityUsd": 3449.41,
+          "pools": [
+            {
+              "pairAddress": "0x87be6c780459662d43b05c769343025ca2b59498e8b69d636f8659095c77b5d2",
+              "dexId": "uniswap",
+              "volume24hUsd": 9.12,
+              "liquidityUsd": 3449.41
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x75742c18BC1f1C5c5f448f4C9D9C6F66dafAAa38",
+          "symbol": "SOXX",
+          "instrumentKind": "etf",
+          "volume24hUsd": 19517.86,
+          "displayedLiquidityUsd": 7065.3,
+          "pools": [
+            {
+              "pairAddress": "0xa97cff59a20a8d95518ad7f85584fb455f4dc8dee0f3921978ee51d0d5202e2e",
+              "dexId": "uniswap",
+              "volume24hUsd": 19517.86,
+              "liquidityUsd": 7065.3
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x4a0E65A3EcceC6dBe60AE065F2e7bb85Fae35eEa",
+          "symbol": "SPCX",
+          "instrumentKind": "private",
+          "volume24hUsd": 1390115.37,
+          "displayedLiquidityUsd": 692826.49,
+          "pools": [
+            {
+              "pairAddress": "0xC3c9F0171490Ef0F4536fe493F3b0EbB5ee0CB5e",
+              "dexId": "uniswap",
+              "volume24hUsd": 1390115.37,
+              "liquidityUsd": 692826.49
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xAd622320e520de39e72d41EF07438C3Fd3354875",
+          "symbol": "SPMO",
+          "instrumentKind": "etf",
+          "volume24hUsd": 20.55,
+          "displayedLiquidityUsd": 435.69,
+          "pools": [
+            {
+              "pairAddress": "0x7931fb8c36996a6ade40d5b93c0f531c1b877dd9925946829686de3b0bbc42ee",
+              "dexId": "uniswap",
+              "volume24hUsd": 20.55,
+              "liquidityUsd": 435.69
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x117cc2133c37B721F49dE2A7a74833232B3B4C0C",
+          "symbol": "SPY",
+          "instrumentKind": "etf",
+          "volume24hUsd": 5649861.09,
+          "displayedLiquidityUsd": 1698771.4,
+          "pools": [
+            {
+              "pairAddress": "0xDDCBBa3666f578E3F09516f21Ff85BFee859AB5e",
+              "dexId": "uniswap",
+              "volume24hUsd": 5649861.09,
+              "liquidityUsd": 1698771.4
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xb1969f6604CA1AE7a2cD3F1827876e914594CA2D",
+          "symbol": "TE",
+          "instrumentKind": "equity",
+          "volume24hUsd": 606.52,
+          "displayedLiquidityUsd": 1882.97,
+          "pools": [
+            {
+              "pairAddress": "0x383c4652647302804d11b7ad53b729c567cf185b147f9d9bfe7e71195e5647af",
+              "dexId": "uniswap",
+              "volume24hUsd": 606.52,
+              "liquidityUsd": 1882.97
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x5B97476b922F3305131B8f0B9D333172E87f4aaE",
+          "symbol": "TEAM",
+          "instrumentKind": "equity",
+          "volume24hUsd": 52.99,
+          "displayedLiquidityUsd": 1038.24,
+          "pools": [
+            {
+              "pairAddress": "0x432e417b7d855d9ba9a87131585c18350bf89eb40cfc83e8f28d7ec4b0efde42",
+              "dexId": "uniswap",
+              "volume24hUsd": 52.99,
+              "liquidityUsd": 1038.24
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xB1CC0EC7Db69Cf43539119814df40071b9d61793",
+          "symbol": "TEM",
+          "instrumentKind": "equity",
+          "volume24hUsd": 34.11,
+          "displayedLiquidityUsd": 2103.53,
+          "pools": [
+            {
+              "pairAddress": "0xcf2605e1d19103efa0445216057b6432686c1ef305cf2573cfa887b090b22bfe",
+              "dexId": "uniswap",
+              "volume24hUsd": 34.11,
+              "liquidityUsd": 2103.53
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x2778C5024D5cA2CdB0f8eAD671ffc69963AdCD9C",
+          "symbol": "TER",
+          "instrumentKind": "equity",
+          "volume24hUsd": 224.04,
+          "displayedLiquidityUsd": 1830.75,
+          "pools": [
+            {
+              "pairAddress": "0xabae74f2df8f5344edbfe344f414042ee019815253858827ce2c059464d88976",
+              "dexId": "uniswap",
+              "volume24hUsd": 224.04,
+              "liquidityUsd": 1830.75
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x89776d4Cd68193597A2fC132cfaC1fDe36CCeA8a",
+          "symbol": "TSEM",
+          "instrumentKind": "equity",
+          "volume24hUsd": 123.3,
+          "displayedLiquidityUsd": 1123.05,
+          "pools": [
+            {
+              "pairAddress": "0x6798541c367768eb496f3b581576eaa2b08d493f23bd2634c7b203446a612616",
+              "dexId": "uniswap",
+              "volume24hUsd": 123.3,
+              "liquidityUsd": 1123.05
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x322F0929c4625eD5bAd873c95208D54E1c003b2d",
+          "symbol": "TSLA",
+          "instrumentKind": "equity",
+          "volume24hUsd": 205203.26,
+          "displayedLiquidityUsd": 360456.43,
+          "pools": [
+            {
+              "pairAddress": "0xA953CA88ff430e9487c60cA34d757414f4efdA07",
+              "dexId": "uniswap",
+              "volume24hUsd": 205203.26,
+              "liquidityUsd": 360456.43
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x58FfE4a942d3885bAa22D7520691F611EF09e7AA",
+          "symbol": "TSM",
+          "instrumentKind": "equity",
+          "volume24hUsd": 819092.42,
+          "displayedLiquidityUsd": 309662.22,
+          "pools": [
+            {
+              "pairAddress": "0x4c862e5846659b086fe73896bbb9058513417e4e6938a1be93aeb7a768fa5754",
+              "dexId": "uniswap",
+              "volume24hUsd": 819092.42,
+              "liquidityUsd": 309662.22
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x0b5fb4031cae9163db10B169Ee72685F0EdC8545",
+          "symbol": "TTD",
+          "instrumentKind": "equity",
+          "volume24hUsd": 36.59,
+          "displayedLiquidityUsd": 1242.89,
+          "pools": [
+            {
+              "pairAddress": "0xe3aeb53c306bf6cd472c97a14dd5ae1149c2a0f3149d6c5a4f666816bcf38725",
+              "dexId": "uniswap",
+              "volume24hUsd": 36.59,
+              "liquidityUsd": 1242.89
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x5e81213613b6B86EaB4c6c50d718d34359459786",
+          "symbol": "TTWO",
+          "instrumentKind": "equity",
+          "volume24hUsd": 54124.95,
+          "displayedLiquidityUsd": 161234.03,
+          "pools": [
+            {
+              "pairAddress": "0xD9Ab4b7fAe6DC2f7020134Ec744A8F53Ef3E5E24",
+              "dexId": "uniswap",
+              "volume24hUsd": 54124.95,
+              "liquidityUsd": 161234.03
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xcF364ea52787e289De6F32077834056E3E70D6A8",
+          "symbol": "UNH",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1516.76,
+          "displayedLiquidityUsd": 3442.4,
+          "pools": [
+            {
+              "pairAddress": "0x6901c42bf2baa57e6473fde740b4f25d4e0fe7278df8156af9406081a9755a0d",
+              "dexId": "uniswap",
+              "volume24hUsd": 1516.76,
+              "liquidityUsd": 3442.4
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xf23250dac154D05Bb671CB0d0eBEf3c635c79CE2",
+          "symbol": "UPS",
+          "instrumentKind": "equity",
+          "volume24hUsd": 9690.13,
+          "displayedLiquidityUsd": 93800.85,
+          "pools": [
+            {
+              "pairAddress": "0x3Ab74C45DceCC6A62898204Dd42143a816B44CB1",
+              "dexId": "uniswap",
+              "volume24hUsd": 9690.13,
+              "liquidityUsd": 93800.85
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xd917B029C761D264c6A312BBbcDA868658eF86a6",
+          "symbol": "USAR",
+          "instrumentKind": "equity",
+          "volume24hUsd": 24636.83,
+          "displayedLiquidityUsd": 90502.58,
+          "pools": [
+            {
+              "pairAddress": "0x04391780F519B7d3ba59c9590459D76e23d225C4",
+              "dexId": "uniswap",
+              "volume24hUsd": 24636.83,
+              "liquidityUsd": 90502.58
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xa30FA36Db767ad9eD3f7a60fC79526fB4d56D344",
+          "symbol": "USO",
+          "instrumentKind": "etf",
+          "volume24hUsd": 2090325.28,
+          "displayedLiquidityUsd": 2377313.3,
+          "pools": [
+            {
+              "pairAddress": "0x02175608F1b5E6b5ed221cCFdC7Be197D111D915",
+              "dexId": "uniswap",
+              "volume24hUsd": 2090325.28,
+              "liquidityUsd": 2377313.3
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x6006ed4B2F94110851ff7509D97D034f0EeD9226",
+          "symbol": "VICR",
+          "instrumentKind": "equity",
+          "volume24hUsd": 645.0,
+          "displayedLiquidityUsd": 2517.83,
+          "pools": [
+            {
+              "pairAddress": "0xae0da9f7f8d8383c6a82b870deb3771629fa8834c1bac2400d7773b1666ff3d3",
+              "dexId": "uniswap",
+              "volume24hUsd": 645.0,
+              "liquidityUsd": 2517.83
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xFA78C12E6488814A0262E4e802749a4a737d5fB7",
+          "symbol": "VRT",
+          "instrumentKind": "equity",
+          "volume24hUsd": 311.63,
+          "displayedLiquidityUsd": 1917.27,
+          "pools": [
+            {
+              "pairAddress": "0x62a8a9168d8712a0f9dbd3fac30411c7a880e4a8b5d7a1410b1ea5db3b8fcaf1",
+              "dexId": "uniswap",
+              "volume24hUsd": 311.63,
+              "liquidityUsd": 1917.27
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x26dCbfb34FC83CAbD6990f449674efDc6097fF85",
+          "symbol": "VSAT",
+          "instrumentKind": "equity",
+          "volume24hUsd": 625.59,
+          "displayedLiquidityUsd": 4011.42,
+          "pools": [
+            {
+              "pairAddress": "0xf807cc0ab7cced6d40ff3f4bea0fcddedc0eddc7bf2f824d2bdf1cf93aa012b4",
+              "dexId": "uniswap",
+              "volume24hUsd": 625.59,
+              "liquidityUsd": 4011.42
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x561e2a49212b7cCF47f2744Ccb83e200722fADBc",
+          "symbol": "VST",
+          "instrumentKind": "equity",
+          "volume24hUsd": 96.53,
+          "displayedLiquidityUsd": 2959.71,
+          "pools": [
+            {
+              "pairAddress": "0xce635f1f108601eef21351d84f3cf49c8adcc9c4f26c2efd0c6ba73ca0b5d053",
+              "dexId": "uniswap",
+              "volume24hUsd": 96.53,
+              "liquidityUsd": 2959.71
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x0594134DF3f171a354D9C85eBD65b7A6148F6D09",
+          "symbol": "VTI",
+          "instrumentKind": "etf",
+          "volume24hUsd": 550.66,
+          "displayedLiquidityUsd": 56359.33,
+          "pools": [
+            {
+              "pairAddress": "0xb78DD1A97fa544c65d7D1f12453EcaAF1e05c36d",
+              "dexId": "uniswap",
+              "volume24hUsd": 550.66,
+              "liquidityUsd": 56359.33
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x82DA4646242e1D962e96e932269Dc644c94a9CaA",
+          "symbol": "WDAY",
+          "instrumentKind": "equity",
+          "volume24hUsd": 3967.58,
+          "displayedLiquidityUsd": 5423.87,
+          "pools": [
+            {
+              "pairAddress": "0xf21c589a69e1c439d7b012de0e609fa7e7321cea6efabc66a987c6b1b901198d",
+              "dexId": "uniswap",
+              "volume24hUsd": 3967.58,
+              "liquidityUsd": 5423.87
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xF52597345A8Edf418bc4071b4a35112472277D3e",
+          "symbol": "WDC",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1109.91,
+          "displayedLiquidityUsd": 12538.16,
+          "pools": [
+            {
+              "pairAddress": "0xa4a0d1f0683b902c3b3438d0bce3676d9cb9264c7f859b0893e3388a645fb149",
+              "dexId": "uniswap",
+              "volume24hUsd": 1109.91,
+              "liquidityUsd": 12538.16
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x348Be1A8663f15edDe5CDf8A96BB69078f7aB6Fd",
+          "symbol": "WULF",
+          "instrumentKind": "equity",
+          "volume24hUsd": 435.22,
+          "displayedLiquidityUsd": 4684.46,
+          "pools": [
+            {
+              "pairAddress": "0x0c72e22D7a3EF8Bb845478e5D77aec87789dEfc6",
+              "dexId": "uniswap",
+              "volume24hUsd": 435.22,
+              "liquidityUsd": 4684.46
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x9e7ABD3C9139D14E4c86DcE0e455AAB7A0C2FB3E",
+          "symbol": "WYFI",
+          "instrumentKind": "equity",
+          "volume24hUsd": 2716.7,
+          "displayedLiquidityUsd": 39856.25,
+          "pools": [
+            {
+              "pairAddress": "0xade8f03250521f174360017d003aac3b30df3633ca31769e23a7906bb3c6262d",
+              "dexId": "uniswap",
+              "volume24hUsd": 2716.7,
+              "liquidityUsd": 39856.25
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x15Cd20759CE7F3285c29A319dE2D1A2e098c6f43",
+          "symbol": "XLK",
+          "instrumentKind": "etf",
+          "volume24hUsd": 84.73,
+          "displayedLiquidityUsd": 2706.95,
+          "pools": [
+            {
+              "pairAddress": "0xae84c62eb66f69bf94262fbe0d65029c2eb27d1a6f3712d06e7521caad0cba00",
+              "dexId": "uniswap",
+              "volume24hUsd": 84.73,
+              "liquidityUsd": 2706.95
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xA8eB3BCcbf2017eE7CBfb652eB51CF2E1B153289",
+          "symbol": "XNDU",
+          "instrumentKind": "equity",
+          "volume24hUsd": 64.48,
+          "displayedLiquidityUsd": 1174.46,
+          "pools": [
+            {
+              "pairAddress": "0x18502289dd37db0c0026b8099cf3a2018d70679120d1178eab5b1434bdeafae4",
+              "dexId": "uniswap",
+              "volume24hUsd": 64.48,
+              "liquidityUsd": 1174.46
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0xf9B46d3D1B22199D4D1025a9cEDB540A33F1a2d5",
+          "symbol": "XOM",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1981.1,
+          "displayedLiquidityUsd": 10168.6,
+          "pools": [
+            {
+              "pairAddress": "0xb3d129708f216d47fd3f996bc9dd0365912e6f14f961e0c61de76a0c1deef074",
+              "dexId": "uniswap",
+              "volume24hUsd": 1981.1,
+              "liquidityUsd": 10168.6
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x44c4F142009036cF477eD2d09932051843137CF1",
+          "symbol": "ZM",
+          "instrumentKind": "equity",
+          "volume24hUsd": 106.32,
+          "displayedLiquidityUsd": 6443.77,
+          "pools": [
+            {
+              "pairAddress": "0x46f1c54d32456c306e2c1e79f5ccf982654e3d7bd6df4bb4a06a69b27c67571b",
+              "dexId": "uniswap",
+              "volume24hUsd": 106.32,
+              "liquidityUsd": 6443.77
+            }
+          ],
+          "issuer": "rhj"
+        },
+        {
+          "address": "0x7dc013eB55e436f30d7ED1AFE4E36d6e45e3c3f7",
+          "symbol": "ZS",
+          "instrumentKind": "equity",
+          "volume24hUsd": 5588.64,
+          "displayedLiquidityUsd": 2176.18,
+          "pools": [
+            {
+              "pairAddress": "0xc243536d4469ad2b648a250fb249144dca8489507c85468e55f006ac01d5e259",
+              "dexId": "uniswap",
+              "volume24hUsd": 5588.64,
+              "liquidityUsd": 2176.18
+            }
+          ],
+          "issuer": "rhj"
+        }
+      ],
+      "method": "Eastern day key 2026-10-08 (America/New_York midnight t); DexScreener volume.h24 sampled at run time, not a true closed 12:00 AM\u201311:59 PM ET window; chain 4663 only; ETF/index before private; private admission is fail-closed; RHJ registry is the sole counted issuer; unique-pool h24 (a pool whose both tokens are RHJ is attributed once, to the base token); liquidity.usd is folded in and missing liquidity does not blank the day; assets[] is the same per-mint DexScreener sample; null means no reported DexScreener volume (not zero)"
     }
   ]
 }
