@@ -10,19 +10,23 @@ share tokens, and any later issuer the registries or DexScreener name.
 Robinhood Chain is a different network and is never included. ETF classification
 wins over the pre-IPO lane when a product matches both (Solana private-leg order).
 
-Lanes stay separate. SPCXc is pre-IPO. A listed mint with no DexScreener
-pools stays null, not $0. A lane with no reported h24 stays null. A day is
-written when at least one lane has h24. All-null days are not written. The
-nightly writer does not backfill from GeckoTerminal and does not invent history.
+Lanes stay separate. SPCXc is pre-IPO. A listed mint with no pool data stays
+null, not $0. A lane with no reported volume stays null. A day is written
+when at least one lane has a number. All-null days are not written.
 
-Volume is the sum of volume.h24 from token-pairs/v1/base/{token}. The batch
-/tokens/v1 endpoint is not used: it returns one pair per token. Known pools
-live in data/volume-snapshots/base-pools.json and are refetched via
+Volume for day D is the sum of GeckoTerminal hourly USD candles on every
+known pool from 00:00:00 through 23:59:59 America/New_York. DexScreener
+token-pairs/v1/base still discovers pools. The batch /tokens/v1 endpoint is
+not used: it returns one pair per token. Known pools live in
+data/volume-snapshots/base-pools.json and are refetched via
 latest/dex/pairs/base so a token past the 30-pair cap keeps every saved pool.
-Newly found pools are merged back into that file. A pool with two tracked
-tokens counts once, on the base token. A token whose volume falls more than
-90% from the previous row while its known main pool is still above $50k is
-warned and stored on volumeDropWarnings.
+GeckoTerminal token pools are merged in when DexScreener does not list them
+(Uniswap v4 and the rest of that list). The pool list is cached on the file
+so a nightly run does not paginate again. A pool with no GeckoTerminal candles
+keeps that pool's DexScreener h24 and is named on dexscreenerH24Fallbacks.
+A pool with two tracked tokens counts once, on the base token. A token whose
+volume falls more than 90% from the previous row while its known main pool is
+still above $50k is warned and stored on volumeDropWarnings.
 
 Each indexed pool also stores DexScreener liquidity.usd. Missing liquidity is
 null, not $0, and never blanks the day. Displayed liquidity is the sum of
@@ -36,6 +40,8 @@ BASE_SNAPSHOT_DATE or SNAPSHOT_DATE (YYYY-MM-DD) forces the key only.
 Run:
   python3 scripts/snapshot-base-volume.py
   python3 scripts/snapshot-base-volume.py --self-test
+  python3 scripts/snapshot-base-volume.py --dry-run
+  python3 scripts/snapshot-base-volume.py --recheck
   BASE_SNAPSHOT_DATE=2026-09-24 python3 scripts/snapshot-base-volume.py
   BASE_VOLUME_SNAPSHOT_DIR=/path/to/data/volume-snapshots python3 scripts/snapshot-base-volume.py
 """
@@ -52,6 +58,25 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
+
+from base_gecko_et import (
+    NOTE,
+    WINDOW_SOURCE,
+    GeckoClient,
+    cache_root,
+    catalog_from_known,
+    dex_absent_pools,
+    discover_pools,
+    fetch_candles,
+    fold_day,
+    index_tokens,
+    other_volume,
+    pool_list_is_fresh,
+    pool_owner,
+    pools_file_fetched_at,
+    recheck_records,
+    refresh_requested,
+)
 
 EASTERN = ZoneInfo("America/New_York")
 UA = {"User-Agent": "Mozilla/5.0 (compatible; BaseVolumeSnapshot/1.0)", "Accept": "application/json"}
@@ -1596,7 +1621,11 @@ def load_known_pools(path: Path) -> dict[str, dict]:
             else:
                 continue
             if pair.startswith("0x"):
-                pools[pair.lower()] = {"pairAddress": pair, "dexId": dex}
+                item = {"pairAddress": pair, "dexId": dex}
+                for field in ("baseToken", "quoteToken", "baseSymbol", "quoteSymbol", "listedOnDex", "source"):
+                    if isinstance(pool, dict) and pool.get(field) not in (None, ""):
+                        item[field] = pool[field]
+                pools[pair.lower()] = item
         main = row.get("mainPool")
         out[address.lower()] = {
             "address": address,
@@ -1609,11 +1638,21 @@ def load_known_pools(path: Path) -> dict[str, dict]:
     return out
 
 
-def save_known_pools(path: Path, known: dict[str, dict]) -> None:
+def save_known_pools(path: Path, known: dict[str, dict], meta: dict | None = None) -> None:
     tokens: dict[str, dict] = {}
     for key in sorted(known):
         row = known[key]
-        pools = [row["pools"][pk] for pk in sorted(row["pools"])]
+        pools = []
+        for pk in sorted(row["pools"]):
+            pool = row["pools"][pk]
+            saved = {
+                "pairAddress": pool.get("pairAddress") or pk,
+                "dexId": pool.get("dexId") or "unknown",
+            }
+            for field in ("baseToken", "quoteToken", "baseSymbol", "quoteSymbol", "listedOnDex", "source"):
+                if pool.get(field) not in (None, ""):
+                    saved[field] = pool[field]
+            pools.append(saved)
         item: dict[str, Any] = {
             "address": row["address"],
             "symbol": row.get("symbol") or "",
@@ -1624,8 +1663,12 @@ def save_known_pools(path: Path, known: dict[str, dict]) -> None:
         if row.get("mainPool"):
             item["mainPool"] = row["mainPool"]
         tokens[key] = item
+    payload: dict[str, Any] = {"version": 1, "tokens": tokens}
+    for key, value in (meta or {}).items():
+        if value is not None:
+            payload[key] = value
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"version": 1, "tokens": tokens}, indent=2) + "\n")
+    path.write_text(json.dumps(payload, indent=2) + "\n")
 
 
 def remember_pool(
@@ -1636,6 +1679,7 @@ def remember_pool(
     symbol: str = "",
     issuer: str = "",
     kind: str = "",
+    **extra: Any,
 ) -> None:
     if not token_address.startswith("0x") or not pair_address.startswith("0x"):
         return
@@ -1661,9 +1705,20 @@ def remember_pool(
     current = row["pools"].get(pk)
     dex = dex_id or "unknown"
     if current is None:
-        row["pools"][pk] = {"pairAddress": pair_address, "dexId": dex}
+        current = {"pairAddress": pair_address, "dexId": dex}
+        row["pools"][pk] = current
     elif dex != "unknown" and current.get("dexId") in {None, "", "unknown"}:
         current["dexId"] = dex
+    for field, value in extra.items():
+        if value is None or value == "":
+            continue
+        if field == "listedOnDex":
+            current[field] = bool(current.get(field) or value)
+            continue
+        if field == "source" and current.get("source") == "dexscreener":
+            continue
+        if not current.get(field):
+            current[field] = value
 
 
 def missing_known_pairs(returned: set[str], known_row: dict | None) -> list[str]:
@@ -1948,6 +2003,12 @@ def hydrate_volumes(
                     symbol=str(token.get("symbol") or ""),
                     issuer=str(token.get("issuer") or ""),
                     kind=str(token.get("kind") or ""),
+                    baseToken=str(base_token.get("address") or "").lower(),
+                    quoteToken=str(quote_token.get("address") or "").lower(),
+                    baseSymbol=str(base_token.get("symbol") or ""),
+                    quoteSymbol=str(quote_token.get("symbol") or ""),
+                    source="dexscreener",
+                    listedOnDex=True,
                 )
         return seen
 
@@ -2200,6 +2261,9 @@ def build_record(
     pool_details: dict[str, list[dict]] | None = None,
     pool_owners: dict[str, str] | None = None,
     volume_drop_warnings: list[dict] | None = None,
+    window_source: str | None = None,
+    dex_fallbacks: list[dict] | None = None,
+    window_hours: int | None = None,
 ) -> dict:
     details = pool_details or {}
     if pool_owners is not None:
@@ -2254,6 +2318,15 @@ def build_record(
             "universeAnchored": ANCHORED_DOCS,
             "universeDexScreenerSearch": DEX_SEARCH.format(q="ST0x"),
             "volume": (
+                "GeckoTerminal hourly USD candles summed from 00:00:00 through 23:59:59 America/New_York "
+                "across every known Base pool; DexScreener token-pairs/v1/base discovers pools and "
+                "known pools missing from that response are refetched via latest/dex/pairs/base; "
+                "GeckoTerminal token pools that DexScreener does not list are included; "
+                "a pool with no GeckoTerminal candles falls back to that pool's DexScreener h24; "
+                "a pool with two tracked tokens counts once, on the base token"
+            )
+            if window_source
+            else (
                 "DexScreener token-pairs/v1/base volume.h24 summed across unique pools; "
                 "known pools missing from that response are refetched via latest/dex/pairs/base; "
                 "a pool with two tracked tokens counts once, on the base token"
@@ -2281,10 +2354,21 @@ def build_record(
             "token-pairs/v1/base sums every returned pool and known pools outside that page are refetched; "
             "a pool whose base and quote are both tracked counts once on the base token; "
             "a token down more than 90% while its known main pool is still above $50k is stored on volumeDropWarnings; "
-            "no Gecko backfill; "
-            "date is the America/New_York calendar day"
+            + (
+                "volume is GeckoTerminal hourly candles on the America/New_York day; "
+                "a pool with no candles uses that pool's DexScreener h24; "
+                if window_source
+                else "no Gecko backfill; "
+            )
+            + "date is the America/New_York calendar day"
         ),
     }
+    if window_source:
+        record["windowSource"] = window_source
+    if window_hours is not None:
+        record["windowHours"] = window_hours
+    if dex_fallbacks is not None:
+        record["dexscreenerH24Fallbacks"] = dex_fallbacks
     if volume_drop_warnings:
         record["volumeDropWarnings"] = volume_drop_warnings
     return record
@@ -2354,12 +2438,92 @@ def main() -> int:
         requests_fail,
         unchecked,
     ) = hydrate_volumes(rows, known)
-    save_known_pools(pools_file, known)
-    if requests_ok == 0:
+    if requests_ok == 0 and not any((row.get("pools") or {}) for row in known.values()):
         print("snapshot:base failed: DexScreener returned no token-pair responses", file=sys.stderr)
         return 1
 
-    drops = volume_drop_warnings(rows, vols, known, pair_h24, previous)
+    started = time.monotonic()
+    dex_listed = set(pair_h24)
+    for known_row in known.values():
+        for key, pool in (known_row.get("pools") or {}).items():
+            if key in dex_listed:
+                pool["listedOnDex"] = True
+                if pool.get("source") != "geckoterminal":
+                    pool["source"] = "dexscreener"
+    tokens = index_tokens(rows, known, prior_payload.get("records") or [])
+    before_keys = {key for known_row in known.values() for key in (known_row.get("pools") or {})}
+    client = GeckoClient()
+    gecko_cache = cache_root()
+    fetched_at = pools_file_fetched_at(pools_file)
+    if pool_list_is_fresh(fetched_at, refresh=refresh_requested()):
+        print(f"snapshot:base gecko pool list cached fetchedAt={fetched_at}", flush=True)
+        catalog = catalog_from_known(known, dex_listed)
+    else:
+        catalog = discover_pools(tokens, known, dex_listed, client, gecko_cache, refresh=refresh_requested())
+        fetched_at = now.isoformat().replace("+00:00", "Z")
+    discover_s = time.monotonic() - started
+    save_known_pools(pools_file, known, {"geckoPoolsFetchedAt": fetched_at})
+    ohlcv_started = time.monotonic()
+    candles = fetch_candles(catalog, client, gecko_cache, refresh=False)
+    ohlcv_s = time.monotonic() - ohlcv_started
+
+    recheck = "--recheck" in sys.argv
+    recheck_table: list[dict] = []
+    if recheck:
+        recheck_table = recheck_records(prior_payload.get("records") or [], tokens, catalog, candles)
+        for item in recheck_table:
+            print(
+                "snapshot:base recheck {date} {previous} -> {combined} "
+                "equity={equity} etf={etf} private={private} skipped={skipped}".format(
+                    date=item["date"],
+                    previous=item["previous"],
+                    combined=item["combined"],
+                    equity=item["equity"],
+                    etf=item["etf"],
+                    private=item["private"],
+                    skipped=item["skipped"],
+                ),
+                flush=True,
+            )
+            if not item["skipped"]:
+                buckets = other_volume(item.get("poolRows") or [])
+                print(
+                    "snapshot:base recheck-buckets {date} other={other} dex_absent={dex_absent} "
+                    "cash={cash} stock={stock} unknown={unknown}".format(
+                        date=item["date"],
+                        other=buckets["other"],
+                        dex_absent=buckets["dexAbsent"],
+                        cash=buckets["cash"],
+                        stock=buckets["stock"],
+                        unknown=buckets["unknown"],
+                    ),
+                    flush=True,
+                )
+
+    liquidity: dict[str, float] = {}
+    for pools in pool_details.values():
+        for pool in pools:
+            key = str(pool.get("pairAddress") or "").lower()
+            liq = pool.get("liquidityUsd")
+            if key and isinstance(liq, (int, float)) and not isinstance(liq, bool):
+                liquidity[key] = float(liq)
+    for key, pool in catalog.items():
+        reserve = pool.get("reserveUsd")
+        if key not in liquidity and isinstance(reserve, (int, float)) and not isinstance(reserve, bool):
+            liquidity[key] = float(reserve)
+    folded = fold_day(tokens, catalog, candles, date, pair_h24, liquidity)
+    vols = folded["volumes"]
+    pool_details = folded["details"]
+    pool_counts = {addr: len(pool_details.get(addr) or []) for addr in tokens}
+    pool_owners = {}
+    for key, pool in catalog.items():
+        owner = pool_owner(pool, tokens)
+        if owner:
+            pool_owners[key] = owner
+    merged_h24 = dict(pair_h24)
+    for hit in folded["poolRows"]:
+        merged_h24[hit["key"]] = hit["volume"]
+    drops = volume_drop_warnings(rows, vols, known, merged_h24, previous)
     for warning in drops:
         print(
             "warn volume drop {symbol} {previous24hUsd} -> {volume24hUsd} "
@@ -2381,6 +2545,22 @@ def main() -> int:
         pool_details=pool_details,
         pool_owners=pool_owners,
         volume_drop_warnings=drops,
+        window_source=WINDOW_SOURCE,
+        dex_fallbacks=folded["fallbacks"],
+        window_hours=folded["windowHours"],
+    )
+    if NOTE not in record["notes"]:
+        record["notes"].append(NOTE)
+    absent = dex_absent_pools(catalog, before_keys)
+    absent_new = [pool for pool in absent if pool.get("newToFile")]
+    kept = other_volume(folded["poolRows"])
+    print(
+        f"snapshot:base gecko pools={len(catalog)} dex_absent={len(absent)} "
+        f"new_to_file={len(absent_new)} discover_s={discover_s:.0f} ohlcv_s={ohlcv_s:.0f} "
+        f"elapsed_s={time.monotonic() - started:.0f} "
+        f"other_quote={kept['other']} dex_absent_volume={kept['dexAbsent']} "
+        f"fallbacks={len(folded['fallbacks'])} window_hours={folded['windowHours']}",
+        flush=True,
     )
     def fmt(v: float | None) -> str:
         return "null" if v is None else f"{v:.2f}"
@@ -2410,22 +2590,34 @@ def main() -> int:
             flush=True,
         )
 
-    if not should_write(record):
+    dry_run = "--dry-run" in sys.argv
+    if not should_write(record) and not recheck:
         print(
-            "snapshot:base failed: DexScreener 24h is all-null (null omitted, not $0) — snapshot not written.",
+            "snapshot:base failed: volume is all-null (null omitted, not $0) — snapshot not written.",
             file=sys.stderr,
         )
         return 1
 
-    if "--dry-run" in sys.argv:
+    if dry_run and not recheck:
         print(f"snapshot:base dry-run did not write {out_file}", flush=True)
     else:
         payload = prior_payload if isinstance(prior_payload.get("records"), list) else {"version": 1, "records": []}
-        records = [r for r in payload["records"] if isinstance(r, dict) and r.get("date") != date]
-        records.append(record)
-        records.sort(key=lambda r: r.get("date") or "")
-        payload = {"version": 1, "records": records}
+        records = [r for r in payload["records"] if isinstance(r, dict)]
+        if not dry_run and should_write(record):
+            records = [r for r in records if r.get("date") != date]
+            records.append(record)
+        deduped: list[dict] = []
+        seen_dates: set[str] = set()
+        for row in sorted(records, key=lambda item: str(item.get("date") or "")):
+            key = str(row.get("date") or "")
+            if not key or key in seen_dates:
+                continue
+            seen_dates.add(key)
+            deduped.append(row)
+        payload = {"version": 1, "records": deduped}
         out_file.write_text(json.dumps(payload, indent=2) + "\n")
+        if dry_run:
+            print(f"snapshot:base recheck wrote history and did not add {date} -> {out_file}", flush=True)
 
     action = "dry-run" if "--dry-run" in sys.argv else "wrote"
     print(
