@@ -305,6 +305,10 @@ describe("createMarketDataSource", () => {
     expect(options.timeoutMs).toBe(9000);
     expect(options.volumeSnapshotDir).toBe("/tmp/snaps");
     expect(options.enableGeckoTerminal).toBe(false);
+    expect(solanaSourceOptionsFromEnv({}).enableSecuritizeRegistry).toBe(true);
+    expect(
+      solanaSourceOptionsFromEnv({ SOLANA_SECURITIZE_REGISTRY_ENABLED: "false" }).enableSecuritizeRegistry,
+    ).toBe(false);
     expect(solanaSourceOptionsFromEnv({}).enableJupiterTokenLogos).toBe(true);
     expect(solanaSourceOptionsFromEnv({ SOLANA_JUPITER_TOKEN_LOGOS_ENABLED: "false" }).enableJupiterTokenLogos).toBe(
       false,

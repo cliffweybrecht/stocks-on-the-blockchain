@@ -69,6 +69,7 @@ import {
   SUNRISE_REGISTRY_MAX_PAGES,
   sunriseTokensPath,
 } from "./solana-sunrise";
+import { DEFAULT_SECURITIZE_STOCKS_URL, parseSecuritizeStocksPage } from "./solana-securitize";
 import { DEFAULT_TESSERA_REGISTRY_URL, parseTesseraTokenMints } from "./solana-tessera";
 import {
   DEFAULT_XSTOCKS_REGISTRY_BASE_URL,
@@ -208,6 +209,8 @@ export interface SolanaMarketDataSourceOptions {
   tesseraRegistryUrl?: string;
   enableSunriseRegistry?: boolean;
   sunriseRegistryUrl?: string;
+  enableSecuritizeRegistry?: boolean;
+  securitizeRegistryUrl?: string;
   enableGeckoTerminal?: boolean;
   geckoTerminalBaseUrl?: string;
   enrichBudgetMs?: number;
@@ -386,6 +389,14 @@ export class SolanaMarketDataSource implements MarketDataSource {
 
   private get sunriseRegistryUrl() {
     return (this.options.sunriseRegistryUrl ?? DEFAULT_SUNRISE_REGISTRY_BASE_URL).replace(/\/+$/, "");
+  }
+
+  private get securitizeEnabled() {
+    return this.options.enableSecuritizeRegistry !== false;
+  }
+
+  private get securitizeRegistryUrl() {
+    return (this.options.securitizeRegistryUrl ?? DEFAULT_SECURITIZE_STOCKS_URL).replace(/\/+$/, "");
   }
 
   private get geckoEnabled() {
@@ -622,6 +633,13 @@ export class SolanaMarketDataSource implements MarketDataSource {
       cursor = parsed.nextCursor;
     }
     return identities;
+  }
+
+  private async loadSecuritizeIdentities(): Promise<TokenIdentity[]> {
+    const payload = await this.fetchSource(this.securitizeRegistryUrl, "Securitize stocks");
+    const parsed = parseSecuritizeStocksPage(payload);
+    this.rememberCatalogLogos(parsed.logos);
+    return parsed.identities;
   }
 
   private async loadGeckoTerminalIdentities(): Promise<TokenIdentity[]> {
@@ -1014,6 +1032,16 @@ export class SolanaMarketDataSource implements MarketDataSource {
         )
       : Promise.resolve({ identities: [] as TokenIdentity[], error: null as Error | null });
 
+    const securitizeTask = this.securitizeEnabled
+      ? this.loadSecuritizeIdentities().then(
+          (identities) => ({ identities, error: null as Error | null }),
+          (error: unknown) => ({
+            identities: [] as TokenIdentity[],
+            error: error instanceof Error ? error : new Error("Securitize stocks page failed."),
+          }),
+        )
+      : Promise.resolve({ identities: [] as TokenIdentity[], error: null as Error | null });
+
     const geckoTask = this.geckoEnabled
       ? this.loadGeckoTerminalIdentities().then(
           (identities) => ({ identities, error: null as Error | null }),
@@ -1024,14 +1052,16 @@ export class SolanaMarketDataSource implements MarketDataSource {
         )
       : Promise.resolve({ identities: [] as TokenIdentity[], error: null as Error | null });
 
-    const [searchResult, registryResult, ondoResult, tesseraResult, sunriseResult, geckoResult] = await Promise.all([
-      searchTask,
-      registryTask,
-      ondoTask,
-      tesseraTask,
-      sunriseTask,
-      geckoTask,
-    ]);
+    const [searchResult, registryResult, ondoResult, tesseraResult, sunriseResult, securitizeResult, geckoResult] =
+      await Promise.all([
+        searchTask,
+        registryTask,
+        ondoTask,
+        tesseraTask,
+        sunriseTask,
+        securitizeTask,
+        geckoTask,
+      ]);
     if (registryResult.error) {
       extraNotes.push(
         `xStocks public registry unavailable: ${registryResult.error.message}. Discovery continued from DexScreener search${this.ondoEnabled ? " and the public Ondo mint list" : ""}.`,
@@ -1052,6 +1082,11 @@ export class SolanaMarketDataSource implements MarketDataSource {
         `Sunrise public token list unavailable: ${sunriseResult.error.message}. Discovery continued from other live sources.`,
       );
     }
+    if (securitizeResult.error) {
+      extraNotes.push(
+        `Securitize stocks page unavailable: ${securitizeResult.error.message}. Discovery continued from other live sources.`,
+      );
+    }
     if (geckoResult.error) {
       extraNotes.push(
         `GeckoTerminal public search unavailable: ${geckoResult.error.message}. DexScreener remains the volume source. Discovery continued from other live sources.`,
@@ -1070,6 +1105,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
         ondoResult.identities,
         tesseraResult.identities,
         sunriseResult.identities,
+        securitizeResult.identities,
         geckoResult.identities,
       ]),
     );
@@ -1083,6 +1119,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
         (!this.ondoEnabled || ondoResult.error) &&
         (!this.tesseraEnabled || tesseraResult.error) &&
         (!this.sunriseEnabled || sunriseResult.error) &&
+        (!this.securitizeEnabled || securitizeResult.error) &&
         (!this.geckoEnabled || geckoResult.error)
       ) {
         throw new Error(
@@ -1092,6 +1129,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
             ondoResult.error?.message,
             tesseraResult.error?.message,
             sunriseResult.error?.message,
+            securitizeResult.error?.message,
             geckoResult.error?.message,
           ]
             .filter(Boolean)
@@ -1099,7 +1137,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
         );
       }
       throw new Error(
-        "No verifiable Solana tokenized stocks from live discovery + classifier. Coverage is as discoverable from DexScreener search, the xStocks public registry, the public Ondo GM mint list, the public Tessera T-Token mint list, the public Sunrise token list, public GeckoTerminal search, and the classifier — not a full chain index. Keyed issuer APIs are not used.",
+        "No verifiable Solana tokenized stocks from live discovery + classifier. Coverage is as discoverable from DexScreener search, the xStocks public registry, the public Ondo GM mint list, the public Tessera T-Token mint list, the public Sunrise token list, the public Securitize stocks catalog, public GeckoTerminal search, and the classifier — not a full chain index. Keyed issuer APIs are not used.",
       );
     }
 

@@ -8,6 +8,7 @@ import {
   writeCompleteAllMarketsDaily,
 } from "../all-markets-volume-cache";
 import { BACKPACK_SUNRISE_BATCH_TICKERS, DEFAULT_SOLANA_DISCOVERY_QUERIES } from "../solana-discover";
+import { SECURITIZE_OFFICIAL_MINTS } from "../solana-securitize";
 import { SolanaMarketDataSource, type SolanaMarketDataSourceOptions } from "../solana-source";
 import { MemoryDeskHourlyVolumeSnapshotStore, easternHourStamp } from "../volume-hourly-snapshots";
 import { MemoryDeskVolumeSnapshotStore, easternDayKey, utcInstantForDayKey } from "../volume-snapshots";
@@ -52,6 +53,7 @@ function testSource(options: SolanaMarketDataSourceOptions) {
     enableOndoRegistry: false,
     enableTesseraRegistry: false,
     enableSunriseRegistry: false,
+    enableSecuritizeRegistry: false,
     enableGeckoTerminal: false,
     enableJupiterTokenLogos: false,
     enableJupiterHolders: false,
@@ -366,6 +368,7 @@ describe("SolanaMarketDataSource", () => {
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("lululemon - Backpack Securities");
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("MGM Resorts - Backpack Securities");
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("Snap - Backpack Securities");
+    expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("Securitize");
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("T-SpaceX");
     expect(DEFAULT_SOLANA_DISCOVERY_QUERIES).toContain("tKalshi");
   });
@@ -547,6 +550,131 @@ describe("SolanaMarketDataSource", () => {
     expect(chain?.assets.find((asset) => asset.symbol === "NKE")?.volume24hUsd).toBe(2_500_000);
     expect(chain?.etfAssets?.map((asset) => asset.symbol)).toEqual(["DRAM"]);
     expect(chain?.assets.find((asset) => asset.symbol === "BP")).toBeUndefined();
+  });
+
+  it("lists verified Securitize mints with null volume until DexScreener indexes a pool", async () => {
+    const aapl = SECURITIZE_OFFICIAL_MINTS.find((row) => row.symbol === "AAPL");
+    const spcx = SECURITIZE_OFFICIAL_MINTS.find((row) => row.symbol === "SPCX");
+    const secz = SECURITIZE_OFFICIAL_MINTS.find((row) => row.symbol === "SECZ");
+    if (!aapl || !spcx || !secz) throw new Error("missing Securitize fixture");
+    const page = `<!doctype html><script id="__REACT_QUERY_STATE__" type="application/json">${JSON.stringify({
+      queries: [
+        {
+          queryKey: ["stocks-catalog"],
+          state: {
+            data: [
+              {
+                type: "stock",
+                chainNamespace: "solana",
+                symbol: "AAPL",
+                name: "Apple",
+                decimals: 6,
+                iconSrc: "data:image/png;base64,aaaa",
+                tradingConfig: { tokenAddress: aapl.address },
+              },
+              {
+                type: "stock",
+                chainNamespace: "solana",
+                symbol: "SPCX",
+                name: "Space Exploration Technologies Corp. Class A",
+                decimals: 6,
+                iconSrc: "data:image/png;base64,bbbb",
+                tradingConfig: { tokenAddress: spcx.address },
+              },
+              {
+                type: "stock",
+                chainNamespace: "solana",
+                symbol: "SECZ",
+                name: "Securitize Corp",
+                decimals: 6,
+                iconSrc: "data:image/png;base64,cccc",
+                tradingConfig: { tokenAddress: secz.address },
+              },
+              {
+                type: "stock",
+                chainNamespace: "solana",
+                symbol: "AAPL",
+                name: "Apple",
+                decimals: 6,
+                iconSrc: "https://cdn.example/fake-apple.png",
+                tradingConfig: { tokenAddress: "CopycatAppleSecuritize111111111111111111" },
+              },
+              {
+                type: "stable",
+                symbol: "USDC",
+                name: "USD Coin",
+                decimals: 6,
+                tradingConfig: { tokenAddress: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" },
+              },
+            ],
+          },
+        },
+      ],
+    })}</script>`;
+    const aaplPair = {
+      chainId: "solana",
+      dexId: "raydium",
+      pairAddress: "pair-aapl-securitize",
+      baseToken: { address: aapl.address, name: aapl.name, symbol: "AAPL" },
+      quoteToken: { address: "usdc", name: "USDC", symbol: "USDC" },
+      volume: { h24: 42 },
+      liquidity: { usd: 100 },
+    };
+    const emptySource = testSource({
+      requestGapMs: 0,
+      enableSecuritizeRegistry: true,
+      securitizeRegistryUrl: "https://stocks.securitize.io",
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("stocks.securitize.io")) {
+          return new Response(page, { status: 200, headers: { "content-type": "text/html" } });
+        }
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [] });
+        if (url.includes("/tokens/v1/solana/")) return jsonResponse([]);
+        if (url.includes("/token-pairs/v1/solana/")) return jsonResponse([]);
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    const empty = await emptySource.getChain("solana");
+    const apple = empty?.assets.find((asset) => asset.contractAddress === aapl.address);
+    const corp = empty?.assets.find((asset) => asset.contractAddress === secz.address);
+    const spacex = empty?.privateAssets?.find((asset) => asset.contractAddress === spcx.address);
+    expect(apple?.symbol).toBe("AAPL");
+    expect(apple?.name).toBe("Apple - Securitize");
+    expect(apple?.issuer).toBe("Securitize");
+    expect(apple?.volume24hUsd).toBeNull();
+    expect(apple?.poolCount).toBe(0);
+    expect(apple?.volumeCoverage).toBe("no_indexed_pools");
+    expect(apple?.logoUrl).toBe("https://metadata.securitize.io/aapl.png");
+    expect(corp?.logoUrl).toBe("https://metadata.securitize.io/secz_logo.png");
+    expect(corp?.volume24hUsd).toBeNull();
+    expect(spacex?.symbol).toBe("SPCX");
+    expect(spacex?.volume24hUsd).toBeNull();
+    expect(spacex?.volumeCoverage).toBe("no_indexed_pools");
+    expect(empty?.assets.find((asset) => asset.contractAddress === "CopycatAppleSecuritize111111111111111111")).toBeUndefined();
+    expect(empty?.privateAssets?.find((asset) => asset.symbol === "USDC")).toBeUndefined();
+
+    const indexed = testSource({
+      requestGapMs: 0,
+      enableSecuritizeRegistry: true,
+      securitizeRegistryUrl: "https://stocks.securitize.io",
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("stocks.securitize.io")) {
+          return new Response(page, { status: 200, headers: { "content-type": "text/html" } });
+        }
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [] });
+        if (url.includes("/tokens/v1/solana/") && url.includes(aapl.address)) return jsonResponse([aaplPair]);
+        if (url.includes(`/token-pairs/v1/solana/${aapl.address}`)) return jsonResponse([aaplPair]);
+        if (url.includes("/tokens/v1/solana/")) return jsonResponse([]);
+        if (url.includes("/token-pairs/v1/solana/")) return jsonResponse([]);
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+    const withPool = await indexed.getChain("solana");
+    expect(withPool?.assets.find((asset) => asset.contractAddress === aapl.address)?.volume24hUsd).toBe(42);
+    expect(withPool?.privateAssets?.find((asset) => asset.contractAddress === spcx.address)?.volume24hUsd).toBeNull();
   });
 
   it("reuses a cached light snapshot without refetching DexScreener", async () => {

@@ -149,6 +149,7 @@ describe("runDeskHourlyVolumeSnapshotJob", () => {
       enableOndoRegistry: false,
       enableTesseraRegistry: false,
       enableSunriseRegistry: false,
+      enableSecuritizeRegistry: false,
       enableGeckoTerminal: false,
       backgroundEnrichment: false,
       volumeSnapshotStore: dailySideEffect,
