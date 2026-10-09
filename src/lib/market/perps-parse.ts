@@ -5,15 +5,17 @@ import {
   type PerpsCategory,
   type PerpsClass,
 } from "./perps-classify";
-import { asNonNegativeNumber } from "./numbers";
-import type { PerpsDaySnapshot, PerpsMarketSnapshot, PerpsTier, PerpsVenueSnapshot, PerpsVolumeWindow } from "./perps-snapshot";
+import { asNonNegativeNumber, asReportedNumber, sumNullable } from "./numbers";
+import { perpsExcludeReason, type PerpsDaySnapshot, type PerpsMarketSnapshot, type PerpsTier, type PerpsVenueSnapshot, type PerpsVolumeWindow } from "./perps-snapshot";
 import { easternDayKey } from "./volume-snapshots";
 
 /**
  * Pure builder for one equity-perp snapshot. Network I/O lives in perps-fetch.
  * Tagged venues (exchange asset-class flags) seed the reference price.
  * Untagged venues match a normalized ticker only when the mark is within
- * 0.8–1.25 of that median. Long-tail CoinGecko venues are dropped.
+ * 0.8–1.25 of that median. Long-tail CoinGecko venues are stored and left
+ * out of the default headline. A volume/OI screen records outliers with
+ * credible=false so they stay out of the headline too.
  * Hyperliquid hourly candles report base size, not USD notional, so they
  * are not turned into an ET-day figure.
  */
@@ -40,10 +42,24 @@ const DIRECT_CG_MARKETS = new Set([
   "BingX (Futures)",
   "dYdX Chain",
   "Gate DEX",
+  "Toobit Futures",
+  "XT.COM (Derivatives)",
+  "Bitunix Futures",
+  "LBank (Futures)",
+  "WhiteBIT (Futures)",
+  "Phemex (Futures)",
+  "BTSE (Futures)",
+  "Deribit (Futures)",
+  "HTX (Futures)",
+  "Crypto.com (Futures)",
+  "GRVT",
+  "ApeX Omni",
+  "Nado",
+  "Pacifica",
+  "Orderly",
+  "Paradex",
+  "WEEX (Futures)",
 ]);
-
-/** Headline CoinGecko venues. Everything else on that feed is not credible. */
-const CREDIBLE_CG_MARKETS = new Set(["Binance (Futures)", "Bybit (Futures)"]);
 
 const BINGX_INDEX_ALIAS: Record<string, string> = {
   NASDAQ100: "US100",
@@ -83,6 +99,23 @@ export interface PerpsFeeds {
   coingecko: PerpsFeedResult<unknown>;
   ostium: PerpsFeedResult<unknown>;
   avantis: PerpsFeedResult<unknown>;
+  /** Absent in unit fixtures. The live fetcher always sets these. */
+  toobit?: PerpsFeedResult<unknown>;
+  xt?: { tickers: unknown; symbols: unknown; error: string | null };
+  bitunix?: PerpsFeedResult<unknown>;
+  whitebit?: PerpsFeedResult<unknown>;
+  phemex?: { tickers: unknown; products: unknown; error: string | null };
+  btse?: PerpsFeedResult<unknown>;
+  deribit?: PerpsFeedResult<unknown>;
+  htx?: { ticker: unknown; info: unknown; openInterest: unknown; error: string | null; oiError: string | null };
+  crypto?: PerpsFeedResult<unknown>;
+  lbank?: PerpsFeedResult<unknown>;
+  grvt?: PerpsFeedResult<unknown>;
+  apex?: PerpsFeedResult<unknown>;
+  nado?: PerpsFeedResult<unknown>;
+  pacifica?: PerpsFeedResult<unknown>;
+  orderly?: PerpsFeedResult<unknown>;
+  paradex?: PerpsFeedResult<unknown>;
 }
 
 interface Observation {
@@ -136,11 +169,12 @@ function text(value: unknown): string {
 function market(
   symbol: string,
   underlying: string,
-  category: PerpsCategory,
+  category: PerpsCategory | "preipo",
   volume24hUsd: number | null,
   openInterestUsd: number | null,
   priceUsd: number | null,
   lifetimeVolumeUsd?: number | null,
+  fundingRate?: number | null,
 ): PerpsMarketSnapshot {
   const row: PerpsMarketSnapshot = {
     symbol,
@@ -151,7 +185,12 @@ function market(
     priceUsd,
   };
   if (typeof lifetimeVolumeUsd === "number") row.lifetimeVolumeUsd = lifetimeVolumeUsd;
+  if (typeof fundingRate === "number") row.fundingRate = fundingRate;
   return row;
+}
+
+function rate(value: unknown): number | null {
+  return asReportedNumber(value);
 }
 
 function venueShell(
@@ -210,11 +249,12 @@ function observe(
   volume24hUsd: number | null,
   openInterestUsd: number | null,
   priceUsd: number | null,
+  fundingRate?: number | null,
   lifetimeVolumeUsd?: number | null,
 ): void {
   observations.push({ underlying, category, price: priceUsd });
-  if (!isStoredEquityCategory(category)) return;
-  markets.push(market(symbol, underlying, category, volume24hUsd, openInterestUsd, priceUsd, lifetimeVolumeUsd));
+  if (!isStoredEquityCategory(category) && category !== "preipo") return;
+  markets.push(market(symbol, underlying, category, volume24hUsd, openInterestUsd, priceUsd, lifetimeVolumeUsd, fundingRate));
 }
 
 function median(values: readonly number[]): number | null {
@@ -263,13 +303,13 @@ export function matchUntaggedPerp(
   symbol: string,
   price: number | null,
   reference: ReferenceBook,
-): { underlying: string; category: PerpsCategory } | null {
+): { underlying: string; category: PerpsCategory | "preipo" } | null {
   let underlying = normPerpSymbol(symbol);
   if (!reference.set.has(underlying) && underlying.endsWith("X") && reference.set.has(underlying.slice(0, -1))) {
     underlying = underlying.slice(0, -1);
   }
   const category = classifyPerpUnderlying(underlying);
-  if (category === "nonequity" || category === "etf-nonequity" || category === "preipo") return null;
+  if (category === "nonequity" || category === "etf-nonequity") return null;
   if (category === "index") return { underlying, category };
   const ref = reference.prices.get(underlying);
   if (ref === undefined || price === null || ref <= 0) return null;
@@ -307,11 +347,12 @@ function pushUntagged(
   price: number | null,
   volume24hUsd: number | null,
   openInterestUsd: number | null,
+  fundingRate?: number | null,
 ): void {
   const matched = matchUntaggedPerp(symbol, price, reference);
   if (!matched) return;
   markets.push(
-    market(symbol, matched.underlying, matched.category, volume24hUsd, openInterestUsd, price),
+    market(symbol, matched.underlying, matched.category, volume24hUsd, openInterestUsd, price, null, fundingRate),
   );
 }
 
@@ -375,6 +416,7 @@ function hyperliquidVenues(feeds: PerpsFeeds, observations: Observation[]): Perp
         vol(ctx.dayNtlVlm),
         oi,
         price,
+        rate(ctx.funding),
       );
     }
     if (markets.length === 0) continue;
@@ -428,6 +470,7 @@ function bitgetVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenue
       vol(ticker.usdtVolume),
       mul(vol(ticker.holdingAmount), price),
       price,
+      rate(ticker.fundingRate),
     );
   }
   return shell(null, markets);
@@ -512,6 +555,7 @@ function gateVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSn
       vol(ticker.volume_24h_quote),
       oi,
       price,
+      rate(ticker.funding_rate),
     );
   }
   return shell(null, markets);
@@ -560,6 +604,7 @@ function mexcVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSn
       vol(ticker.amount24),
       mul(vol(ticker.holdVol), vol(meta.contractSize), price),
       price,
+      rate(ticker.fundingRate),
     );
   }
   return shell(null, markets);
@@ -640,6 +685,7 @@ function kucoinVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenue
       vol(contract.turnoverOf24h),
       oi,
       price,
+      rate(contract.fundingFeeRate),
     );
   }
   return shell(null, markets);
@@ -680,6 +726,7 @@ function extendedVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVen
       vol(stats?.dailyVolume),
       vol(stats?.openInterest),
       px(stats?.markPrice),
+      rate(stats?.fundingRate),
     );
   }
   return shell(null, markets);
@@ -720,6 +767,7 @@ function bookVenue(
       price,
       vol(book.daily_quote_token_volume),
       mul(vol(book.open_interest), price),
+      rate(book.funding_rate) ?? rate(book.last_funding_rate),
     );
   }
   return shell(null, markets);
@@ -751,6 +799,7 @@ function ondoVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnaps
       px(contract.lastPrice),
       vol(contract.usdVolume),
       vol(contract.openInterestUsd),
+      rate(contract.fundingRate) ?? rate(contract.funding),
     );
   }
   return shell(null, markets);
@@ -781,7 +830,15 @@ function variationalVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVen
     const longOi = vol(oi?.long_open_interest);
     const shortOi = vol(oi?.short_open_interest);
     const openInterest = longOi === null && shortOi === null ? null : (longOi ?? 0) + (shortOi ?? 0);
-    pushUntagged(markets, reference, symbol, px(listing.mark_price), vol(listing.volume_24h), openInterest);
+    pushUntagged(
+      markets,
+      reference,
+      symbol,
+      px(listing.mark_price),
+      vol(listing.volume_24h),
+      openInterest,
+      rate(listing.funding_rate),
+    );
   }
   return shell(null, markets);
 }
@@ -808,7 +865,15 @@ function krakenVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSna
     const price = px(ticker.markPrice);
     const oi =
       ticker.openInterest === undefined || ticker.openInterest === null ? null : mul(vol(ticker.openInterest), price);
-    pushUntagged(markets, reference, text(ticker.symbol), price, vol(ticker.volumeQuote), oi);
+    pushUntagged(
+      markets,
+      reference,
+      text(ticker.symbol),
+      price,
+      vol(ticker.volumeQuote),
+      oi,
+      rate(ticker.fundingRate),
+    );
   }
   return shell(null, markets);
 }
@@ -849,52 +914,634 @@ function bingxVenue(feeds: PerpsFeeds): PerpsVenueSnapshot {
         vol(ticker.quoteVolume),
         null,
         px(ticker.lastPrice),
+        null,
+        rate(ticker.fundingRate),
       ),
     );
   }
   return shell(null, markets);
 }
 
-function coingeckoVenues(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnapshot[] {
-  const source = "GET https://api.coingecko.com/api/v3/derivatives?include_tickers=unexpired";
-  const note =
-    "Rolling 24h via CoinGecko. Binance and Bybit block this host. Long-tail CoinGecko venues are excluded. Ticker plus price band.";
-  const names: { market: string; venue: string }[] = [
-    { market: "Binance (Futures)", venue: "Binance" },
-    { market: "Bybit (Futures)", venue: "Bybit" },
-  ];
-  if (feeds.coingecko.error) {
-    return names.map((item) =>
-      emptyVenue(item.venue, "cex-coingecko", source, "rolling-24h", note, feeds.capturedAt, feeds.coingecko.error),
+function optionalShell(
+  feed: { error: string | null } | undefined,
+): { skip: true } | { skip: false; error: string | null } {
+  if (!feed) return { skip: true };
+  return { skip: false, error: feed.error };
+}
+
+function toobitVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnapshot | null {
+  const source = "GET https://api.toobit.com/quote/v1/contract/ticker/24hr";
+  const note = "Rolling 24h quote volume (qv) on *-SWAP-USDT. No equity tag; ticker plus price band. The ticker op field is not open interest.";
+  const gate = optionalShell(feeds.toobit);
+  if (gate.skip) return null;
+  const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
+    venueShell("Toobit", "cex-direct", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+  if (gate.error) return shell(gate.error);
+  const markets: PerpsMarketSnapshot[] = [];
+  for (const row of asList(feeds.toobit?.data)) {
+    const ticker = rec(row);
+    if (!ticker) continue;
+    const symbol = text(ticker.s);
+    if (!symbol.endsWith("-SWAP-USDT")) continue;
+    const price = px(ticker.c);
+    pushUntagged(markets, reference, symbol, price, vol(ticker.qv), null);
+  }
+  return shell(null, markets);
+}
+
+function xtVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSnapshot | null {
+  const feed = feeds.xt;
+  if (!feed) return null;
+  const source =
+    "GET https://fapi.xt.com/future/market/v1/public/q/tickers (v = quote vol) + /future/market/v3/public/symbol/list (labels STOCK/INDEX)";
+  const note = "Rolling 24h. Equity flag is label STOCK or INDEX. Open interest is not on this ticker.";
+  const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
+    venueShell("XT.COM", "cex-direct", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+  if (feed.error) return shell(feed.error);
+  const symbolRoot = rec(rec(feed.symbols)?.result);
+  const meta = indexBy(asList(symbolRoot?.symbols), "symbol");
+  const markets: PerpsMarketSnapshot[] = [];
+  for (const row of listFrom(feed.tickers, "result")) {
+    const ticker = rec(row);
+    if (!ticker) continue;
+    const symbol = text(ticker.s).toLowerCase();
+    const info = meta.get(symbol);
+    if (!info || text(info.contractType) !== "PERPETUAL" || info.tradeSwitch === false) continue;
+    const labels = asList(info.labels).map((item) => String(item));
+    const stock = labels.includes("STOCK");
+    const index = labels.includes("INDEX");
+    if (!stock && !index) continue;
+    const underlying = normPerpSymbol(symbol);
+    const classifiedName = classified(underlying, { forceIndex: index });
+    observe(observations, markets, symbol, classifiedName.underlying, classifiedName.category, vol(ticker.v), null, px(ticker.c));
+  }
+  return shell(null, markets);
+}
+
+function bitunixVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnapshot | null {
+  const feed = feeds.bitunix;
+  if (!feed) return null;
+  const source = "GET https://fapi.bitunix.com/api/v1/futures/market/tickers";
+  const note = "Rolling 24h quoteVol. No equity tag; ticker plus price band. Open interest is not on this ticker.";
+  const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
+    venueShell("Bitunix", "cex-direct", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+  if (feed.error) return shell(feed.error);
+  const markets: PerpsMarketSnapshot[] = [];
+  for (const row of listFrom(feed.data)) {
+    const ticker = rec(row);
+    if (!ticker) continue;
+    const price = px(ticker.markPrice) ?? px(ticker.lastPrice);
+    pushUntagged(markets, reference, text(ticker.symbol), price, vol(ticker.quoteVol), null);
+  }
+  return shell(null, markets);
+}
+
+function whitebitVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnapshot | null {
+  const feed = feeds.whitebit;
+  if (!feed) return null;
+  const source = "GET https://whitebit.com/api/v4/public/futures";
+  const note = "Rolling 24h money_volume. No equity tag; ticker plus price band. Open interest is open_interest × index price.";
+  const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
+    venueShell("WhiteBIT", "cex-direct", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+  if (feed.error) return shell(feed.error);
+  const markets: PerpsMarketSnapshot[] = [];
+  for (const row of listFrom(feed.data, "result")) {
+    const ticker = rec(row);
+    if (!ticker) continue;
+    const price = px(ticker.index_price) ?? px(ticker.last_price);
+    pushUntagged(
+      markets,
+      reference,
+      text(ticker.ticker_id),
+      price,
+      vol(ticker.money_volume),
+      mul(vol(ticker.open_interest), price),
+      rate(ticker.funding_rate),
     );
   }
-  const buckets = new Map<string, PerpsMarketSnapshot[]>(names.map((item) => [item.market, []]));
+  return shell(null, markets);
+}
+
+function phemexVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSnapshot | null {
+  const feed = feeds.phemex;
+  if (!feed) return null;
+  const source =
+    "GET https://api.phemex.com/md/v3/ticker/24hr/all (turnoverRv) + /public/products-plus perpProductsV2 (TradFi/PreMarket)";
+  const note =
+    "Rolling 24h. Equity flag is perpProductSubType TradFi or PreMarket. Commodities drop in classification. PreMarket is pre-IPO and stays out of the headline.";
+  const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
+    venueShell("Phemex", "cex-direct", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+  if (feed.error) return shell(feed.error);
+  const products = asList(rec(rec(feed.products)?.data)?.perpProductsV2);
+  const tickers = indexBy(listFrom(feed.tickers, "result"), "symbol");
+  const markets: PerpsMarketSnapshot[] = [];
+  for (const row of products) {
+    const product = rec(row);
+    if (!product) continue;
+    const sub = text(product.perpProductSubType);
+    if ((sub !== "TradFi" && sub !== "PreMarket") || text(product.status) !== "Listed") continue;
+    const symbol = text(product.symbol);
+    const ticker = tickers.get(symbol);
+    if (!ticker) continue;
+    const underlying = normPerpSymbol(text(product.contractUnderlyingAssets) || symbol);
+    const classifiedName = classified(underlying, { forcePreipo: sub === "PreMarket" });
+    const price = px(ticker.markRp) ?? px(ticker.lastRp);
+    observe(
+      observations,
+      markets,
+      symbol,
+      classifiedName.underlying,
+      classifiedName.category,
+      vol(ticker.turnoverRv),
+      mul(vol(ticker.openInterestRv), price),
+      price,
+      rate(ticker.fundingRateRr),
+    );
+  }
+  return shell(null, markets);
+}
+
+function btseVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnapshot | null {
+  const feed = feeds.btse;
+  if (!feed) return null;
+  const source = "GET https://api.btse.com/futures/api/v2.1/market_summary";
+  const note = "Rolling 24h. *PFC symbols, ticker plus price band. volume and openInterestUSD are USD.";
+  const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
+    venueShell("BTSE", "cex-direct", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+  if (feed.error) return shell(feed.error);
+  const markets: PerpsMarketSnapshot[] = [];
+  for (const row of asList(feed.data)) {
+    const ticker = rec(row);
+    if (!ticker || ticker.active === false) continue;
+    const symbol = text(ticker.symbol);
+    if (!symbol.endsWith("PFC")) continue;
+    pushUntagged(
+      markets,
+      reference,
+      symbol.slice(0, -3),
+      px(ticker.last),
+      vol(ticker.volume),
+      vol(ticker.openInterestUSD),
+    );
+  }
+  return shell(null, markets);
+}
+
+function deribitVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnapshot | null {
+  const feed = feeds.deribit;
+  if (!feed) return null;
+  const source = "GET https://www.deribit.com/api/v2/public/get_book_summary_by_currency?currency=USDC&kind=future";
+  const note = "Rolling 24h volume_usd on *_USDC-PERPETUAL. Ticker plus price band. Open interest is contracts × mark.";
+  const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
+    venueShell("Deribit", "cex-direct", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+  if (feed.error) return shell(feed.error);
+  const markets: PerpsMarketSnapshot[] = [];
+  for (const row of listFrom(feed.data, "result")) {
+    const ticker = rec(row);
+    if (!ticker) continue;
+    const instrument = text(ticker.instrument_name);
+    if (!instrument.endsWith("-PERPETUAL")) continue;
+    const price = px(ticker.mark_price);
+    pushUntagged(
+      markets,
+      reference,
+      text(ticker.base_currency) || instrument,
+      price,
+      vol(ticker.volume_usd),
+      mul(vol(ticker.open_interest), price),
+      rate(ticker.funding_8h) ?? rate(ticker.current_funding),
+    );
+  }
+  return shell(null, markets);
+}
+
+function htxVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSnapshot | null {
+  const feed = feeds.htx;
+  if (!feed) return null;
+  const source =
+    "GET https://api.hbdm.com/linear-swap-ex/market/detail/batch_merged?business_type=swap + /linear-swap-api/v1/swap_contract_info (tradfi_labels) + /swap_open_interest";
+  const note = feed.oiError
+    ? `Rolling 24h trade_turnover. Equity flag is tradfi_labels Stocks or Indices. Open interest left blank (${feed.oiError}).`
+    : "Rolling 24h trade_turnover. Equity flag is tradfi_labels Stocks or Indices. Open interest is the value field.";
+  const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
+    venueShell("HTX", "cex-direct", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+  if (feed.error) return shell(feed.error);
+  const info = indexBy(listFrom(feed.info), "contract_code");
+  const oi = indexBy(listFrom(feed.openInterest), "contract_code");
+  const markets: PerpsMarketSnapshot[] = [];
+  for (const row of listFrom(feed.ticker, "ticks")) {
+    const ticker = rec(row);
+    if (!ticker) continue;
+    const code = text(ticker.contract_code);
+    const meta = info.get(code);
+    const labels = asList(meta?.tradfi_labels).map((item) => String(item));
+    if (!meta || meta.contract_status !== 1) continue;
+    if (!labels.includes("Stocks") && !labels.includes("Indices")) continue;
+    const underlying = normPerpSymbol(text(meta.symbol) || code);
+    const classifiedName = classified(underlying, { forceIndex: labels.includes("Indices") });
+    const price = px(ticker.close);
+    observe(
+      observations,
+      markets,
+      code,
+      classifiedName.underlying,
+      classifiedName.category,
+      vol(ticker.trade_turnover),
+      vol(oi.get(code)?.value),
+      price,
+    );
+  }
+  return shell(null, markets);
+}
+
+function cryptoVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnapshot | null {
+  const feed = feeds.crypto;
+  if (!feed) return null;
+  const source = "GET https://api.crypto.com/exchange/v1/public/get-tickers";
+  const note = "Rolling 24h vv on *USD-PERP. No equity tag; ticker plus price band. Open interest is oi × mark.";
+  const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
+    venueShell("Crypto.com", "cex-direct", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+  if (feed.error) return shell(feed.error);
+  const markets: PerpsMarketSnapshot[] = [];
+  for (const row of asList(rec(rec(feed.data)?.result)?.data)) {
+    const ticker = rec(row);
+    if (!ticker) continue;
+    const symbol = text(ticker.i);
+    if (!symbol.endsWith("USD-PERP")) continue;
+    const price = px(ticker.k) ?? px(ticker.a);
+    pushUntagged(
+      markets,
+      reference,
+      symbol.slice(0, -"USD-PERP".length),
+      price,
+      vol(ticker.vv),
+      mul(vol(ticker.oi), price),
+    );
+  }
+  return shell(null, markets);
+}
+
+function lbankVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnapshot | null {
+  const feed = feeds.lbank;
+  if (!feed) return null;
+  const source = "GET https://lbkperp.lbank.com/cfd/openApi/v1/pub/marketData?productGroup=SwapU";
+  const note = "Rolling 24h turnover. No equity tag; ticker plus price band. Recorded even when the volume/OI screen excludes it.";
+  const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
+    venueShell("LBank", "cex-direct", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+  if (feed.error) return shell(feed.error);
+  const markets: PerpsMarketSnapshot[] = [];
+  for (const row of listFrom(feed.data)) {
+    const ticker = rec(row);
+    if (!ticker || String(ticker.instrumentStatus) !== "2") continue;
+    const price = px(ticker.markedPrice) ?? px(ticker.lastPrice);
+    pushUntagged(markets, reference, text(ticker.symbol), price, vol(ticker.turnover), null, rate(ticker.fundingRate));
+  }
+  return shell(null, markets);
+}
+
+function grvtVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSnapshot | null {
+  const feed = feeds.grvt;
+  if (!feed) return null;
+  const source =
+    "POST https://market-data.grvt.io/full/v1/all_instruments (asset_class EQUITY) + POST /full/v1/ticker per instrument";
+  const note = "Rolling 24h buy_volume_24h_q + sell_volume_24h_q. Equity flag is asset_class EQUITY. Open interest is base × mark.";
+  const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
+    venueShell("GRVT", "onchain", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+  if (feed.error) return shell(feed.error);
+  const root = rec(feed.data);
+  const tickers = new Map<string, Record<string, unknown>>();
+  for (const row of asList(root?.tickers)) {
+    const body = rec(row);
+    const result = rec(body?.result) ?? body;
+    const instrument = result ? text(result.instrument) : "";
+    if (result && instrument) tickers.set(instrument, result);
+  }
+  const markets: PerpsMarketSnapshot[] = [];
+  for (const row of asList(root?.instruments)) {
+    const inst = rec(row);
+    if (!inst || text(inst.asset_class) !== "EQUITY" || text(inst.status) !== "ACTIVE") continue;
+    const instrument = text(inst.instrument);
+    const ticker = tickers.get(instrument);
+    if (!ticker) continue;
+    const underlying = normPerpSymbol(text(inst.base) || instrument);
+    const classifiedName = classified(underlying);
+    const price = px(ticker.mark_price);
+    const buy = vol(ticker.buy_volume_24h_q);
+    const sell = vol(ticker.sell_volume_24h_q);
+    const volume = buy === null && sell === null ? null : (buy ?? 0) + (sell ?? 0);
+    observe(
+      observations,
+      markets,
+      instrument,
+      classifiedName.underlying,
+      classifiedName.category,
+      volume,
+      mul(vol(ticker.open_interest), price),
+      price,
+      rate(ticker.funding_rate),
+    );
+  }
+  return shell(null, markets);
+}
+
+function apexVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSnapshot | null {
+  const feed = feeds.apex;
+  if (!feed) return null;
+  const source = "GET https://omni.apex.exchange/api/v3/symbols (contractConfig.stockContract) + /api/v3/ticker?symbol=";
+  const note = "Rolling 24h turnover24h. Equity flag is the stockContract list. Open interest is openInterest × mark.";
+  const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
+    venueShell("ApeX Omni", "onchain", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+  if (feed.error) return shell(feed.error);
+  const root = rec(feed.data);
+  const bySymbol = new Map<string, Record<string, unknown>>();
+  for (const row of asList(root?.tickers)) {
+    const body = rec(row);
+    const ticker = rec(asList(body?.data)[0]);
+    const symbol = ticker ? text(ticker.symbol) : "";
+    if (ticker && symbol) bySymbol.set(symbol, ticker);
+  }
+  const markets: PerpsMarketSnapshot[] = [];
+  for (const row of asList(root?.contracts)) {
+    const contract = rec(row);
+    if (!contract || contract.enableTrade === false) continue;
+    const query = text(contract.crossSymbolName);
+    const ticker = bySymbol.get(query);
+    if (!ticker) continue;
+    const underlying = normPerpSymbol(text(contract.symbol) || query);
+    const classifiedName = classified(underlying, { forcePreipo: contract.isPrelaunch === true });
+    const price = px(ticker.markPrice) ?? px(ticker.lastPrice);
+    observe(
+      observations,
+      markets,
+      query || text(contract.symbol),
+      classifiedName.underlying,
+      classifiedName.category,
+      vol(ticker.turnover24h),
+      mul(vol(ticker.openInterest), price),
+      price,
+      rate(ticker.fundingRate),
+    );
+  }
+  return shell(null, markets);
+}
+
+function nadoVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnapshot | null {
+  const feed = feeds.nado;
+  if (!feed) return null;
+  const source = "GET https://archive.prod.nado.xyz/v2/contracts";
+  const note = "Rolling 24h quote_volume. No equity tag; ticker plus price band. open_interest_usd is USD.";
+  const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
+    venueShell("Nado", "onchain", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+  if (feed.error) return shell(feed.error);
+  const root = rec(feed.data);
+  if (!root) return shell("Empty Nado book.");
+  const markets: PerpsMarketSnapshot[] = [];
+  for (const value of Object.values(root)) {
+    const contract = rec(value);
+    if (!contract || text(contract.product_type) !== "perpetual") continue;
+    const base = text(contract.base_currency).replace(/-PERP$/, "");
+    pushUntagged(
+      markets,
+      reference,
+      base,
+      px(contract.mark_price) ?? px(contract.last_price),
+      vol(contract.quote_volume),
+      vol(contract.open_interest_usd),
+      rate(contract.funding_rate),
+    );
+  }
+  return shell(null, markets);
+}
+
+function pacificaVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnapshot | null {
+  const feed = feeds.pacifica;
+  if (!feed) return null;
+  const source = "GET https://api.pacifica.fi/api/v1/info/prices";
+  const note = "Rolling 24h volume_24h in USD. No equity tag; ticker plus price band. Open interest is base × mark.";
+  const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
+    venueShell("Pacifica", "onchain", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+  if (feed.error) return shell(feed.error);
+  const markets: PerpsMarketSnapshot[] = [];
+  for (const row of listFrom(feed.data)) {
+    const ticker = rec(row);
+    if (!ticker) continue;
+    const price = px(ticker.mark);
+    pushUntagged(
+      markets,
+      reference,
+      text(ticker.symbol),
+      price,
+      vol(ticker.volume_24h),
+      mul(vol(ticker.open_interest), price),
+      rate(ticker.funding),
+    );
+  }
+  return shell(null, markets);
+}
+
+function orderlyVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnapshot | null {
+  const feed = feeds.orderly;
+  if (!feed) return null;
+  const source = "GET https://api.orderly.org/v1/public/futures";
+  const note = "Rolling 24h 24h_amount. One shared book. Broker frontends are not added. Ticker plus price band.";
+  const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
+    venueShell("Orderly", "onchain", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+  if (feed.error) return shell(feed.error);
+  const markets: PerpsMarketSnapshot[] = [];
+  for (const row of asList(rec(rec(feed.data)?.data)?.rows)) {
+    const ticker = rec(row);
+    if (!ticker || text(ticker.status) !== "ACTIVE" || text(ticker.broker_id)) continue;
+    const price = px(ticker.mark_price);
+    pushUntagged(
+      markets,
+      reference,
+      text(ticker.display_symbol_name) || text(ticker.symbol),
+      price,
+      vol(ticker["24h_amount"]),
+      mul(vol(ticker.open_interest), price),
+      rate(ticker.last_funding_rate),
+    );
+  }
+  return shell(null, markets);
+}
+
+function paradexVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnapshot | null {
+  const feed = feeds.paradex;
+  if (!feed) return null;
+  const source = "GET https://api.prod.paradex.trade/v1/markets/summary?market=ALL";
+  const note = "Rolling 24h volume_24h on *-USD-PERP. Ticker plus price band. Counted once, not per frontend.";
+  const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
+    venueShell("Paradex", "onchain", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+  if (feed.error) return shell(feed.error);
+  const markets: PerpsMarketSnapshot[] = [];
+  for (const row of listFrom(feed.data, "results")) {
+    const ticker = rec(row);
+    if (!ticker) continue;
+    const symbol = text(ticker.symbol);
+    if (!symbol.endsWith("-USD-PERP")) continue;
+    const price = px(ticker.mark_price);
+    pushUntagged(
+      markets,
+      reference,
+      symbol,
+      price,
+      vol(ticker.volume_24h),
+      mul(vol(ticker.open_interest), price),
+      rate(ticker.funding_rate),
+    );
+  }
+  return shell(null, markets);
+}
+
+interface CgSpec {
+  market: string;
+  venue: string;
+  tier: PerpsTier;
+  note: string;
+}
+
+const CG_SPECS: readonly CgSpec[] = [
+  { market: "Binance (Futures)", venue: "Binance", tier: "cex-coingecko", note: "Binance blocks this host. CoinGecko only. The www.binance.com route is not used." },
+  { market: "Bybit (Futures)", venue: "Bybit", tier: "cex-coingecko", note: "Bybit blocks this host. CoinGecko only." },
+  { market: "Tapbit (Futures)", venue: "Tapbit", tier: "long-tail", note: "CoinGecko only, unverified. Opt-in long-tail. Not in the default headline." },
+  { market: "CoinW (Futures)", venue: "CoinW", tier: "long-tail", note: "CoinGecko only, unverified. Opt-in long-tail. Not in the default headline." },
+  { market: "Ourbit (Futures)", venue: "Ourbit", tier: "long-tail", note: "CoinGecko only, unverified. Opt-in long-tail. Not in the default headline." },
+  { market: "OrangeX Futures", venue: "OrangeX", tier: "long-tail", note: "CoinGecko only, unverified. Opt-in long-tail. Not in the default headline." },
+  { market: "BitKan (Futures)", venue: "BitKan", tier: "long-tail", note: "CoinGecko only, unverified. Opt-in long-tail. Not in the default headline." },
+  { market: "AlphaX (Futures)", venue: "AlphaX", tier: "long-tail", note: "CoinGecko only, unverified. Opt-in long-tail. Not in the default headline." },
+  { market: "Zoomex (Futures)", venue: "Zoomex", tier: "long-tail", note: "CoinGecko only, unverified. Opt-in long-tail. Not in the default headline." },
+  { market: "Arcus (Futures)", venue: "Arcus", tier: "onchain", note: "No public market API found. CoinGecko row for this onchain book." },
+  { market: "QFEX", venue: "QFEX", tier: "onchain", note: "Direct market data needs auth. CoinGecko row for this hybrid book." },
+  { market: "RISEx", venue: "RISEx", tier: "onchain", note: "No public market API found. CoinGecko row." },
+  { market: "edgeX", venue: "edgeX", tier: "onchain", note: "Direct API was blocked. CoinGecko row." },
+  { market: "Polymarket Perps", venue: "Polymarket Perps", tier: "onchain", note: "No public perps REST endpoint. CoinGecko row." },
+  { market: "Decibel", venue: "Decibel", tier: "onchain", note: "Aptos gateway needs an API key. CoinGecko row." },
+  { market: "Deepcoin (Derivatives)", venue: "Deepcoin", tier: "long-tail", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
+  { market: "BVOX (Futures)", venue: "BVOX", tier: "long-tail", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
+  { market: "KCEX (Futures)", venue: "KCEX", tier: "long-tail", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
+  { market: "Hotcoin (Futures)", venue: "Hotcoin", tier: "long-tail", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
+  { market: "Bitrue (Futures)", venue: "Bitrue", tier: "long-tail", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
+  { market: "BYDFi (Futures)", venue: "BYDFi", tier: "long-tail", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
+  { market: "BigONE Futures", venue: "BigONE", tier: "long-tail", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
+  { market: "Dipcoin (Futures)", venue: "Dipcoin", tier: "onchain", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
+  { market: "GMX Perpetuals V2 (Solana)", venue: "GMX V2 (Solana)", tier: "onchain", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
+  { market: "TurboFlow", venue: "TurboFlow", tier: "onchain", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
+];
+
+/** Direct venues whose CoinGecko open interest fills a blank, without a second volume row. */
+const CG_OI_MARKETS: Record<string, string> = {
+  Aster: "Aster (Futures)",
+  BingX: "BingX (Futures)",
+  "XT.COM": "XT.COM (Derivatives)",
+  Bitunix: "Bitunix Futures",
+  Toobit: "Toobit Futures",
+  LBank: "LBank (Futures)",
+};
+
+interface CgPoint {
+  underlying: string;
+  price: number | null;
+  openInterestUsd: number | null;
+  fundingRate: number | null;
+}
+
+function coingeckoVenues(feeds: PerpsFeeds, reference: ReferenceBook): { venues: PerpsVenueSnapshot[]; points: Map<string, CgPoint[]> } {
+  const source = "GET https://api.coingecko.com/api/v3/derivatives?include_tickers=unexpired";
+  const points = new Map<string, CgPoint[]>();
+  const specs = CG_SPECS;
+  if (feeds.coingecko.error) {
+    return {
+      venues: specs.map((item) =>
+        emptyVenue(item.venue, item.tier, `${source} (market=${item.market})`, "rolling-24h", item.note, feeds.capturedAt, feeds.coingecko.error),
+      ),
+      points,
+    };
+  }
+  const buckets = new Map<string, PerpsMarketSnapshot[]>(specs.map((item) => [item.market, []]));
+  const specByMarket = new Map(specs.map((item) => [item.market, item]));
   for (const row of asList(feeds.coingecko.data)) {
     const ticker = rec(row);
     if (!ticker || text(ticker.contract_type) !== "perpetual") continue;
     const marketName = text(ticker.market);
-    if (DIRECT_CG_MARKETS.has(marketName) || !CREDIBLE_CG_MARKETS.has(marketName)) continue;
-    const bucket = buckets.get(marketName);
-    if (!bucket) continue;
+    if (marketName === "Hyperliquid (Futures)") continue;
     const symbol = text(ticker.index_id) || text(ticker.symbol);
-    const matched = matchUntaggedPerp(symbol, px(ticker.price), reference);
-    if (!matched) continue;
-    bucket.push(
-      market(symbol, matched.underlying, matched.category, vol(ticker.volume_24h), vol(ticker.open_interest), px(ticker.price)),
+    const price = px(ticker.price);
+    const matched = matchUntaggedPerp(symbol, price, reference);
+    const point: CgPoint = {
+      underlying: matched?.underlying ?? normPerpSymbol(symbol),
+      price,
+      openInterestUsd: vol(ticker.open_interest),
+      fundingRate: rate(ticker.funding_rate),
+    };
+    const list = points.get(marketName) ?? [];
+    list.push(point);
+    points.set(marketName, list);
+    if (DIRECT_CG_MARKETS.has(marketName) || !specByMarket.has(marketName) || !matched) continue;
+    buckets.get(marketName)?.push(
+      market(symbol, matched.underlying, matched.category, vol(ticker.volume_24h), vol(ticker.open_interest), price, null, rate(ticker.funding_rate)),
     );
   }
-  return names.map((item) =>
-    venueShell(
-      item.venue,
-      "cex-coingecko",
-      `${source} (market=${item.market})`,
-      "rolling-24h",
-      note,
-      feeds.capturedAt,
-      null,
-      buckets.get(item.market) ?? [],
-    ),
-  );
+  return {
+    venues: specs.flatMap((item) => {
+      const markets = buckets.get(item.market) ?? [];
+      if (markets.length === 0 && item.tier !== "cex-coingecko") return [];
+      return [
+        venueShell(
+          item.venue,
+          item.tier,
+          `${source} (market=${item.market})`,
+          "rolling-24h",
+          item.note,
+          feeds.capturedAt,
+          null,
+          markets,
+        ),
+      ];
+    }),
+    points,
+  };
+}
+
+function fillMissingOpenInterest(venues: PerpsVenueSnapshot[], points: Map<string, CgPoint[]>): void {
+  for (const venue of venues) {
+    const marketName = CG_OI_MARKETS[venue.venue];
+    const rows = marketName ? points.get(marketName) : undefined;
+    if (!rows || rows.length === 0) continue;
+    let filled = 0;
+    for (const market of venue.markets) {
+      const needsOi = market.openInterestUsd === null;
+      const needsFunding = market.fundingRate === undefined || market.fundingRate === null;
+      if (!needsOi && !needsFunding) continue;
+      const hit = rows.find((row) => {
+        if (row.underlying !== market.underlying) return false;
+        if (market.category === "index") return true;
+        if (market.priceUsd === null || row.price === null || row.price <= 0 || market.priceUsd <= 0) return false;
+        const ratio = market.priceUsd / row.price;
+        return ratio >= PRICE_BAND_MIN && ratio <= PRICE_BAND_MAX;
+      });
+      if (!hit) continue;
+      if (needsOi && hit.openInterestUsd !== null) {
+        market.openInterestUsd = hit.openInterestUsd;
+        filled += 1;
+      }
+      if (needsFunding && hit.fundingRate !== null) market.fundingRate = hit.fundingRate;
+    }
+    if (filled > 0 && !venue.windowNote.includes("CoinGecko")) {
+      venue.windowNote = `${venue.windowNote} Open interest filled from CoinGecko where the venue feed left it blank.`;
+    }
+  }
+}
+
+function annotateCredibility(venue: PerpsVenueSnapshot): PerpsVenueSnapshot {
+  const volumes: (number | null)[] = [];
+  const ois: (number | null)[] = [];
+  for (const market of venue.markets) {
+    if (market.category === "preipo") continue;
+    volumes.push(market.volume24hUsd);
+    ois.push(market.openInterestUsd);
+  }
+  const excludeReason = perpsExcludeReason(sumNullable(volumes), sumNullable(ois));
+  return { ...venue, credible: excludeReason === null, excludeReason };
 }
 
 function ostiumVenue(feeds: PerpsFeeds): PerpsVenueSnapshot {
@@ -1001,7 +1648,11 @@ export function parseEquityPerpsFeeds(feeds: PerpsFeeds): PerpsDaySnapshot {
     kucoinVenue(feeds, referenceObservations),
     extendedVenue(feeds, referenceObservations),
   ];
+  for (const venue of [xtVenue(feeds, referenceObservations), phemexVenue(feeds, referenceObservations), htxVenue(feeds, referenceObservations), grvtVenue(feeds, referenceObservations), apexVenue(feeds, referenceObservations)]) {
+    if (venue) tagged.push(venue);
+  }
   const reference = buildReference(referenceObservations);
+  const coingecko = coingeckoVenues(feeds, reference);
   const venues = [
     ...tagged,
     bookVenue(feeds, reference, "lighter"),
@@ -1010,10 +1661,27 @@ export function parseEquityPerpsFeeds(feeds: PerpsFeeds): PerpsDaySnapshot {
     variationalVenue(feeds, reference),
     krakenVenue(feeds, reference),
     bingxVenue(feeds),
-    ...coingeckoVenues(feeds, reference),
+    ...coingecko.venues,
     ostiumVenue(feeds),
     avantisVenue(feeds),
-  ].sort((a, b) => a.venue.localeCompare(b.venue));
+  ];
+  for (const venue of [
+    toobitVenue(feeds, reference),
+    bitunixVenue(feeds, reference),
+    whitebitVenue(feeds, reference),
+    btseVenue(feeds, reference),
+    deribitVenue(feeds, reference),
+    cryptoVenue(feeds, reference),
+    lbankVenue(feeds, reference),
+    nadoVenue(feeds, reference),
+    pacificaVenue(feeds, reference),
+    orderlyVenue(feeds, reference),
+    paradexVenue(feeds, reference),
+  ]) {
+    if (venue) venues.push(venue);
+  }
+  fillMissingOpenInterest(venues, coingecko.points);
+  const annotated = venues.map(annotateCredibility).sort((a, b) => a.venue.localeCompare(b.venue));
 
-  return { date, capturedAt: feeds.capturedAt, venues };
+  return { date, capturedAt: feeds.capturedAt, venues: annotated };
 }

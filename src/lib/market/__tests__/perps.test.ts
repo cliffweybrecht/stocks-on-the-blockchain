@@ -4,10 +4,15 @@ import { hyperliquidEtDayNotional, matchUntaggedPerp, parseEquityPerpsFeeds, typ
 import {
   buildPerpsDeskModel,
   mergePerpsDay,
+  parsePerpsSnapshotFile,
+  perpsExcludeReason,
   selectPerpsRange,
+  serializePerpsSnapshot,
+  PERPS_SNAPSHOT_SCHEMA,
   type PerpsDaySnapshot,
   type PerpsSnapshotFile,
 } from "../perps-snapshot";
+import { assertAppendOnlySnapshot } from "../snapshot-land";
 import { volumeSnapshotChain } from "../snapshot-land";
 
 function emptyFeeds(overrides: Partial<PerpsFeeds> = {}): PerpsFeeds {
@@ -65,11 +70,14 @@ describe("equity perp classification", () => {
     expect(classifyPerpUnderlying("CSOPSKHYNIX2L")).toBe("leveraged-etf");
     expect(classifyPerpUnderlying("US500")).toBe("index");
     expect(classifyPerpUnderlying("XAU")).toBe("nonequity");
+    expect(classifyPerpUnderlying("XTI")).toBe("nonequity");
     expect(classifyPerpUnderlying("GLD")).toBe("etf-nonequity");
     expect(classifyPerpUnderlying("OPENAI")).toBe("preipo");
     expect(classifyPerpUnderlying("SPCX")).toBe("preipo");
     expect(normPerpSymbol("SPCXUSD1")).toBe("SPCX");
     expect(normPerpSymbol("POLYMARKETUSD1")).toBe("POLYMARKET");
+    expect(normPerpSymbol("AAPL-SWAP-USDT")).toBe("AAPL");
+    expect(normPerpSymbol("NVDA-USD-PERP")).toBe("NVDA");
   });
 
   it("keeps a ticker only when the mark agrees with the tagged-venue median", () => {
@@ -93,7 +101,7 @@ describe("equity perp classification", () => {
 });
 
 describe("equity perp snapshot", () => {
-  it("drops non-equity names, price mismatches, and long-tail CoinGecko venues", () => {
+  it("drops non-equity names and price mismatches, and keeps long-tail CoinGecko out of the headline", () => {
     const day = parseEquityPerpsFeeds(
       emptyFeeds({
         hyperliquid: { dexs: [{ dex: "xyz", book: hlBook(), error: null }], error: null },
@@ -110,7 +118,9 @@ describe("equity perp snapshot", () => {
         coingecko: {
           error: null,
           data: [
-            { market: "Tapbit (Futures)", contract_type: "perpetual", symbol: "NVDA", price: "100", volume_24h: "999999", open_interest: "1" },
+            { market: "Tapbit (Futures)", contract_type: "perpetual", symbol: "NVDA", price: "100", volume_24h: "999999", open_interest: "400000" },
+            { market: "Deepcoin (Derivatives)", contract_type: "perpetual", symbol: "NVDA", price: "100", volume_24h: "200000000", open_interest: "1000000" },
+            { market: "Hyperliquid (Futures)", contract_type: "perpetual", symbol: "NVDA", price: "100", volume_24h: "5000000000", open_interest: "1000000000" },
             { market: "Binance (Futures)", contract_type: "perpetual", index_id: "NVDAUSDT", price: "101", volume_24h: "40", open_interest: "5" },
             { market: "Bybit (Futures)", contract_type: "perpetual", symbol: "GOLDUSDT", price: "2400", volume_24h: "80", open_interest: "1" },
             { market: "OKX (Futures)", contract_type: "perpetual", symbol: "NVDAUSDT", price: "100", volume_24h: "70", open_interest: "1" },
@@ -148,7 +158,13 @@ describe("equity perp snapshot", () => {
     const binance = day.venues.find((venue) => venue.venue === "Binance");
     expect(binance?.tier).toBe("cex-coingecko");
     expect(binance?.markets.map((market) => market.underlying)).toEqual(["NVDA"]);
-    expect(day.venues.some((venue) => venue.venue.includes("Tapbit"))).toBe(false);
+    const tapbit = day.venues.find((venue) => venue.venue === "Tapbit");
+    expect(tapbit?.tier).toBe("long-tail");
+    expect(tapbit?.credible).toBe(true);
+    expect(tapbit?.markets[0]?.volume24hUsd).toBe(999999);
+    const deepcoin = day.venues.find((venue) => venue.venue === "Deepcoin");
+    expect(deepcoin?.credible).toBe(false);
+    expect(day.venues.some((venue) => venue.venue.includes("Hyperliquid") && venue.venue !== "Hyperliquid HIP-3 (xyz)")).toBe(false);
     expect(binance?.markets.some((market) => market.volume24hUsd === 70)).toBe(false);
 
     const ostium = day.venues.find((venue) => venue.venue === "Ostium");
@@ -161,6 +177,10 @@ describe("equity perp snapshot", () => {
     expect(view.headlineUsd).toBe(1000 + 250 + 400 + 30 + 40);
     expect(view.onchainUsd).toBe(1000 + 250 + 400 + 30);
     expect(view.cexCoingeckoUsd).toBe(40);
+    expect(view.longTailUsd).toBe(999999);
+    expect(view.includeLongTail).toBe(false);
+    const withTail = selectPerpsRange(model.days, "24h", false, true);
+    expect(withTail.headlineUsd).toBe(1000 + 250 + 400 + 30 + 40 + 999999);
     const hidden = selectPerpsRange(model.days, "24h", true);
     expect(hidden.headlineUsd).toBe(1000 + 400 + 30 + 40);
     expect(hidden.leveragedUsd).toBe(250);
@@ -250,5 +270,73 @@ describe("equity perp snapshot", () => {
     expect(week.headlineUsd).toBeNull();
     expect(week.caption).toMatch(/no closed Eastern day/);
     expect(week.caption).not.toMatch(/No equity-perp snapshot yet/);
+  });
+
+  it("keeps equity-perps-v1 and leaves a failed volume/OI screen out of the headline", () => {
+    expect(perpsExcludeReason(26, 1)).toMatch(/×/);
+    expect(perpsExcludeReason(25, 1)).toBeNull();
+    expect(perpsExcludeReason(100_000_001, 4_999_999)).toMatch(/\$5M/);
+    expect(perpsExcludeReason(50_000_000, null)).toBeNull();
+    const legacy = parsePerpsSnapshotFile({
+      schema: "equity-perps-v1",
+      records: [
+        {
+          date: "2026-10-07",
+          capturedAt: "2026-10-08T03:59:00.000Z",
+          venues: [
+            {
+              venue: "OKX",
+              tier: "cex-direct",
+              source: "https://www.okx.com",
+              volumeWindow: "rolling-24h",
+              windowNote: "",
+              capturedAt: "2026-10-08T03:59:00.000Z",
+              error: null,
+              markets: [
+                { symbol: "NVDA", underlying: "NVDA", category: "stock", volume24hUsd: 10, openInterestUsd: 5, priceUsd: 100 },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    expect(legacy.schema).toBe(PERPS_SNAPSHOT_SCHEMA);
+    expect(legacy.records[0]?.venues[0]?.credible).toBe(true);
+    const next = parsePerpsSnapshotFile(JSON.parse(serializePerpsSnapshot(legacy)));
+    expect(next.schema).toBe("equity-perps-v1");
+    const landed = assertAppendOnlySnapshot(legacy, {
+      schema: "equity-perps-v1",
+      records: [
+        ...legacy.records,
+        {
+          date: "2026-10-08",
+          capturedAt: "2026-10-09T03:59:00.000Z",
+          venues: [
+            {
+              venue: "Tapbit",
+              tier: "long-tail",
+              source: "https://api.coingecko.com",
+              volumeWindow: "rolling-24h",
+              windowNote: "",
+              capturedAt: "2026-10-09T03:59:00.000Z",
+              error: null,
+              credible: true,
+              markets: [
+                {
+                  symbol: "NVDA",
+                  underlying: "NVDA",
+                  category: "stock",
+                  volume24hUsd: 12,
+                  openInterestUsd: 4,
+                  fundingRate: 0.0001,
+                  priceUsd: 100,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    expect(landed.ok).toBe(true);
   });
 });

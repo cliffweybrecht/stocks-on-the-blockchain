@@ -63,6 +63,101 @@ async function pair(
   return { left: a.data, right: b.data, error: null };
 }
 
+async function mapPool<T, R>(items: readonly T[], limit: number, run: (item: T) => Promise<R>): Promise<R[]> {
+  const out = new Array<R>(items.length);
+  let next = 0;
+  async function worker() {
+    for (;;) {
+      const index = next;
+      next += 1;
+      if (index >= items.length) return;
+      const item = items[index];
+      if (item === undefined) return;
+      out[index] = await run(item);
+    }
+  }
+  const workers = Math.max(1, Math.min(limit, items.length));
+  if (items.length === 0) return out;
+  await Promise.all(Array.from({ length: workers }, () => worker()));
+  return out;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+async function fetchGrvt(): Promise<PerpsFeedResult<unknown>> {
+  try {
+    const payload = await getJson("https://market-data.grvt.io/full/v1/all_instruments", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ is_active: true }),
+    });
+    const result = asRecord(payload)?.result;
+    const instruments = (Array.isArray(result) ? result : []).filter((row) => {
+      const inst = asRecord(row);
+      return inst?.asset_class === "EQUITY" && inst.status === "ACTIVE";
+    });
+    const tickers = await mapPool(instruments, 8, async (row) => {
+      const instrument = asRecord(row)?.instrument;
+      if (typeof instrument !== "string") return null;
+      try {
+        return await getJson(
+          "https://market-data.grvt.io/full/v1/ticker",
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ instrument }),
+          },
+          15_000,
+        );
+      } catch {
+        return null;
+      }
+    });
+    return { data: { instruments, tickers }, error: null };
+  } catch (error) {
+    return { data: null, error: errorMessage(error) };
+  }
+}
+
+async function fetchApex(): Promise<PerpsFeedResult<unknown>> {
+  try {
+    const payload = await getJson("https://omni.apex.exchange/api/v3/symbols");
+    const config = asRecord(asRecord(payload)?.data)?.contractConfig;
+    const stock = asRecord(config)?.stockContract;
+    const contracts = (Array.isArray(stock) ? stock : []).filter((row) => asRecord(row)?.enableTrade !== false);
+    const tickers = await mapPool(contracts, 8, async (row) => {
+      const symbol = asRecord(row)?.crossSymbolName;
+      if (typeof symbol !== "string" || !symbol) return null;
+      try {
+        return await getJson(`https://omni.apex.exchange/api/v3/ticker?symbol=${encodeURIComponent(symbol)}`, undefined, 15_000);
+      } catch {
+        return null;
+      }
+    });
+    return { data: { contracts, tickers }, error: null };
+  } catch (error) {
+    return { data: null, error: errorMessage(error) };
+  }
+}
+
+async function fetchHtx(): Promise<NonNullable<PerpsFeeds["htx"]>> {
+  const [info, ticker, openInterest] = await Promise.all([
+    settle(() => getJson("https://api.hbdm.com/linear-swap-api/v1/swap_contract_info?business_type=swap")),
+    settle(() => getJson("https://api.hbdm.com/linear-swap-ex/market/detail/batch_merged?business_type=swap")),
+    settle(() => getJson("https://api.hbdm.com/linear-swap-api/v1/swap_open_interest?business_type=swap")),
+  ]);
+  return {
+    info: info.data,
+    ticker: ticker.data,
+    openInterest: openInterest.data,
+    error: info.error ?? ticker.error,
+    oiError: openInterest.error,
+  };
+}
+
 function dexNames(payload: unknown): string[] {
   if (!Array.isArray(payload)) return [];
   const names: string[] = [];
@@ -95,6 +190,22 @@ export async function fetchEquityPerpsFeeds(capturedAt: string): Promise<PerpsFe
     coingecko,
     ostium,
     avantis,
+    toobit,
+    xt,
+    bitunix,
+    whitebit,
+    phemex,
+    btse,
+    deribit,
+    htx,
+    crypto,
+    lbank,
+    grvt,
+    apex,
+    nado,
+    pacifica,
+    orderly,
+    paradex,
   ] = await Promise.all([
     settle(() => postInfo({ type: "perpDexs" })),
     pair(
@@ -131,6 +242,30 @@ export async function fetchEquityPerpsFeeds(capturedAt: string): Promise<PerpsFe
     settle(() => getJsonRetry("https://api.coingecko.com/api/v3/derivatives?include_tickers=unexpired")),
     settle(() => getJson("https://builder.prod.bedrock.ostium.io/v1/pairs?chainId=42161&first=1000")),
     settle(() => getJson("https://socket-api-pub.avantisfi.com/socket-api/v1/data")),
+    settle(() => getJson("https://api.toobit.com/quote/v1/contract/ticker/24hr")),
+    pair(
+      () => getJson("https://fapi.xt.com/future/market/v1/public/q/tickers"),
+      () => getJson("https://fapi.xt.com/future/market/v3/public/symbol/list"),
+    ),
+    settle(() => getJson("https://fapi.bitunix.com/api/v1/futures/market/tickers")),
+    settle(() => getJson("https://whitebit.com/api/v4/public/futures")),
+    pair(
+      () => getJson("https://api.phemex.com/md/v3/ticker/24hr/all"),
+      () => getJson("https://api.phemex.com/public/products-plus"),
+    ),
+    settle(() => getJson("https://api.btse.com/futures/api/v2.1/market_summary")),
+    settle(() => getJson("https://www.deribit.com/api/v2/public/get_book_summary_by_currency?currency=USDC&kind=future")),
+    fetchHtx(),
+    settle(() => getJson("https://api.crypto.com/exchange/v1/public/get-tickers")),
+    settle(() => getJson("https://lbkperp.lbank.com/cfd/openApi/v1/pub/marketData?productGroup=SwapU")),
+    fetchGrvt(),
+    fetchApex(),
+    settle(() =>
+      getJson("https://archive.prod.nado.xyz/v2/contracts", { headers: { "accept-encoding": "gzip" } }),
+    ),
+    settle(() => getJson("https://api.pacifica.fi/api/v1/info/prices")),
+    settle(() => getJson("https://api.orderly.org/v1/public/futures")),
+    settle(() => getJson("https://api.prod.paradex.trade/v1/markets/summary?market=ALL")),
   ]);
 
   let hyperliquid: PerpsFeeds["hyperliquid"] = { dexs: [], error: hyperliquidDexs.error };
@@ -171,6 +306,22 @@ export async function fetchEquityPerpsFeeds(capturedAt: string): Promise<PerpsFe
     coingecko,
     ostium,
     avantis,
+    toobit,
+    xt: { tickers: xt.left, symbols: xt.right, error: xt.error },
+    bitunix,
+    whitebit,
+    phemex: { tickers: phemex.left, products: phemex.right, error: phemex.error },
+    btse,
+    deribit,
+    htx,
+    crypto,
+    lbank,
+    grvt,
+    apex,
+    nado,
+    pacifica,
+    orderly,
+    paradex,
   };
 }
 
