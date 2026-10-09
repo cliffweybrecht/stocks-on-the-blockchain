@@ -146,6 +146,7 @@ describe("runDeskVolumeSnapshotJob", () => {
       enableOndoRegistry: false,
       enableTesseraRegistry: false,
       enableSunriseRegistry: false,
+      enableSecuritizeRegistry: false,
       enableGeckoTerminal: false,
       backgroundEnrichment: false,
       volumeSnapshotStore: store,

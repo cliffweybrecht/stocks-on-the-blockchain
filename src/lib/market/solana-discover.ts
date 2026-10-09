@@ -120,6 +120,7 @@ export const DEFAULT_SOLANA_DISCOVERY_QUERIES = [
   "tSpaceX",
   "tKalshi",
   "tOpenAI",
+  "Securitize",
 ];
 
 export const DEXSCREENER_TOKEN_BATCH_SIZE = 30;
@@ -169,7 +170,8 @@ function scoreIdentity(token: TokenIdentity): number {
     (token.name?.length ?? 0) +
     (token.symbol?.length ?? 0) +
     (token.labels?.length ?? 0) * 10 +
-    (token.underlyingInstrumentType ? 50 : 0)
+    (token.underlyingInstrumentType ? 50 : 0) +
+    (token.metadataUri ? 20 : 0)
   );
 }
 

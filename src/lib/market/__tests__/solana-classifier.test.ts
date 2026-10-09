@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { classifyTokenizedEquity, classifyTokenizedInstrument } from "../solana-classifier";
+import { SECURITIZE_OFFICIAL_MINTS } from "../solana-securitize";
 
 describe("classifyTokenizedEquity", () => {
   it("admits Backed xStock names without consulting an allowlist", () => {
@@ -550,6 +551,87 @@ describe("classifyTokenizedEquity", () => {
         address: "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
         symbol: "SPYx",
         name: "SP500 xStock",
+      }).kind,
+    ).toBe("reject");
+  });
+
+  it("admits verified Securitize mints and rejects a copycat Apple token", () => {
+    for (const mint of SECURITIZE_OFFICIAL_MINTS) {
+      expect(
+        classifyTokenizedInstrument({
+          address: mint.address,
+          symbol: mint.symbol,
+          name: mint.name,
+        }),
+      ).toMatchObject({
+        kind: mint.lane,
+        issuer: "Securitize",
+      });
+    }
+
+    const officialApple = SECURITIZE_OFFICIAL_MINTS.find((mint) => mint.symbol === "AAPL");
+    expect(officialApple?.lane).toBe("equity");
+    expect(
+      classifyTokenizedInstrument({
+        address: officialApple?.address ?? "",
+        symbol: "AAPL",
+        name: "Apple - Securitize",
+        metadataUri: "https://evil.example/aapl.json",
+      }),
+    ).toMatchObject({ kind: "equity", issuer: "Securitize" });
+
+    expect(
+      classifyTokenizedInstrument({
+        address: "CopycatAppleSecuritize111111111111111111",
+        symbol: "AAPL",
+        name: "Apple - Securitize",
+      }),
+    ).toMatchObject({ kind: "reject", reason: "Securitize branding without official mint or metadata" });
+    expect(
+      classifyTokenizedInstrument({
+        address: "CopycatAppleSecuritize111111111111111111",
+        symbol: "AAPL",
+        name: "Apple - Securitize",
+        metadataUri: "https://evil.example/apple.json",
+      }),
+    ).toMatchObject({ kind: "reject", reason: "Securitize branding without official mint or metadata" });
+    expect(
+      classifyTokenizedInstrument({
+        address: "CopycatAppleSecuritize111111111111111111",
+        symbol: "AAPL",
+        name: "Apple - Securitize",
+        metadataUri: "http://metadata.securitize.io/aapl.json",
+      }),
+    ).toMatchObject({ kind: "reject", reason: "Securitize branding without official mint or metadata" });
+    expect(
+      classifyTokenizedInstrument({
+        address: "CopycatAppleSecuritize111111111111111111",
+        symbol: "AAPL",
+        name: "Apple - Securitize",
+        metadataUri: "https://metadata.securitize.io.attacker.com/aapl.json",
+      }),
+    ).toMatchObject({ kind: "reject", reason: "Securitize branding without official mint or metadata" });
+    expect(
+      classifyTokenizedInstrument({
+        address: "NotOnTheVerifiedList11111111111111111111",
+        symbol: "AAPL",
+        name: "Apple - Securitize",
+        metadataUri: "https://metadata.securitize.io/aapl.json",
+      }),
+    ).toMatchObject({ kind: "equity", issuer: "Securitize" });
+
+    expect(
+      classifyTokenizedInstrument({
+        address: "CkZoZ5vu2uuayHzJgavBjARyEeGrTMWMmbbt867jAFrj",
+        symbol: "SPCX",
+        name: "SpaceX Class A - Securitize",
+      }).kind,
+    ).toBe("private");
+    expect(
+      classifyTokenizedEquity({
+        address: "CkZoZ5vu2uuayHzJgavBjARyEeGrTMWMmbbt867jAFrj",
+        symbol: "SPCX",
+        name: "SpaceX Class A - Securitize",
       }).kind,
     ).toBe("reject");
   });

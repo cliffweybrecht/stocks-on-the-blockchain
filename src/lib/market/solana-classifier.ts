@@ -1,4 +1,5 @@
 import { asNonEmptyString } from "./numbers";
+import { isSecuritizeMetadataUri, isSecuritizeOfficialMint } from "./solana-securitize";
 
 export type UnderlyingInstrumentType = "equity" | "etf" | "private";
 
@@ -9,6 +10,8 @@ export interface TokenIdentity {
   labels?: readonly string[] | null;
   /** Live issuer instrument class when a registry provides it. Not a mint allowlist. */
   underlyingInstrumentType?: UnderlyingInstrumentType | null;
+  /** On-chain metadata URI when a source recorded one. Not a mint allowlist by itself. */
+  metadataUri?: string | null;
 }
 
 export interface EquityClassification {
@@ -253,6 +256,7 @@ const ISSUER_NAME_PATTERNS: readonly { re: RegExp; issuer: string }[] = [
   { re: /\bdshares?\b/i, issuer: "dShares" },
   { re: /\bbacked(?:\s+finance)?\b/i, issuer: "Backed" },
   { re: /\bondo\b/i, issuer: "Ondo" },
+  { re: /\bsecuritize\b/i, issuer: "Securitize" },
 ];
 
 const ETF_NAME =
@@ -330,6 +334,7 @@ export function tokenIdentityFromFields(input: {
   name?: unknown;
   labels?: readonly string[] | null;
   underlyingInstrumentType?: unknown;
+  metadataUri?: unknown;
 }): TokenIdentity | null {
   const address = asNonEmptyString(input.address);
   if (!address) return null;
@@ -339,6 +344,7 @@ export function tokenIdentityFromFields(input: {
     name: asNonEmptyString(input.name),
     labels: input.labels ?? [],
     underlyingInstrumentType: parseUnderlyingInstrumentType(input.underlyingInstrumentType),
+    metadataUri: asNonEmptyString(input.metadataUri),
   };
 }
 
@@ -548,6 +554,9 @@ export function classifyTokenizedInstrument(token: TokenIdentity): TokenClassifi
   }
 
   const issuer = inferIssuer(name, symbol, address);
+  if (issuer === "Securitize" && !securitizeVerified(address, token.metadataUri)) {
+    return { kind: "reject", reason: "Securitize branding without official mint or metadata" };
+  }
   if (issuer === "Backpack Securities" && isPumpFunMint(address)) {
     return { kind: "reject", reason: "pump-fun copycat" };
   }
@@ -596,6 +605,11 @@ export function classifyTokenizedInstrument(token: TokenIdentity): TokenClassifi
   }
 
   return { kind: "reject", reason: "no verifiable tokenized-equity signal" };
+}
+
+/** Official mint, or an https metadata URI hosted on metadata.securitize.io. */
+function securitizeVerified(address: string, metadataUri: string | null | undefined): boolean {
+  return isSecuritizeOfficialMint(address) || isSecuritizeMetadataUri(metadataUri);
 }
 
 function verifiablePrivateMarketSignal(input: {
