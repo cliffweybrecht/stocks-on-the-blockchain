@@ -33,7 +33,7 @@ import { parsePinnedFilter } from "@/lib/desk/solana-chain-href";
 import { selectEquityPriceTicker } from "@/lib/desk/price-ticker";
 import { parseAssetSortKey, sortAssets } from "@/lib/market/aggregate";
 import { toJumpAsset } from "@/lib/market/asset-search";
-import { solanaDeskFallbackDetail, withDocumentBudget } from "@/lib/market/document-budget";
+import { readSolanaDeskForDocument, solanaDeskFallbackDetail, withDocumentBudget } from "@/lib/market/document-budget";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { findSnapshotDesk, loadClosedSnapshotDeskDays } from "@/lib/market/snapshot-desk-volume-file";
 import { BASE_CHAIN_ID, BNB_CHAIN_ID, ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type AssetSummary, type EquityVolumeHistoryResult } from "@/lib/market/types";
@@ -105,9 +105,10 @@ export default async function ChainPage({
   let listError: string | null = null;
   try {
     if (chainId === SOLANA_CHAIN_ID) {
-      // Warm the in-memory desk. The document reads the closed-day file and does not write it.
+      // Warm the in-memory desk in the background. Render that desk, or the last
+      // closed snapshot, without waiting on DexScreener.
       void source.getEquityVolumeHistory().catch(() => undefined);
-      const live = await withDocumentBudget(source.getChain(chainId), null);
+      const live = readSolanaDeskForDocument(source);
       if (live) {
         result = live;
       } else {

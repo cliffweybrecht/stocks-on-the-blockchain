@@ -1,10 +1,26 @@
+import { CompositeMarketDataSource } from "./composite-source";
 import { solanaChainMeta } from "./map-solana";
+import { SolanaMarketDataSource } from "./solana-source";
 import { SOLANA_SOURCE_LABEL } from "./trust";
-import type { ChainDetailResult, DataProvenance } from "./types";
+import type { ChainDetailResult, DataProvenance, MarketDataSource } from "./types";
 import { easternDayKey, type DeskVolumeSnapshot } from "./volume-snapshots";
 
 /** Page renders must not sit on desk-wide DexScreener discovery. */
 export const DOCUMENT_NETWORK_BUDGET_MS = 4_000;
+
+/**
+ * In-memory Solana desk for a page, or null when this process has none yet.
+ * Starts a background refresh when the desk is missing or not a fresh full snapshot.
+ * Never waits on DexScreener and never writes a snapshot file.
+ */
+export function readSolanaDeskForDocument(source: MarketDataSource): ChainDetailResult | null {
+  if (source instanceof SolanaMarketDataSource) return source.readDeskForDocument();
+  if (source instanceof CompositeMarketDataSource) {
+    const solana = source.adapters.find((adapter) => adapter instanceof SolanaMarketDataSource);
+    if (solana instanceof SolanaMarketDataSource) return solana.readDeskForDocument();
+  }
+  return null;
+}
 
 /**
  * Resolve with `fallback` when `work` is still pending after `budgetMs`.

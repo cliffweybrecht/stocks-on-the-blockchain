@@ -28,7 +28,7 @@ export class CompositeMarketDataSource implements MarketDataSource {
   readonly id = "composite" as const;
   readonly label: string;
 
-  constructor(private readonly adapters: readonly MarketDataSource[]) {
+  constructor(readonly adapters: readonly MarketDataSource[]) {
     if (adapters.length === 0) {
       throw new Error("CompositeMarketDataSource requires at least one adapter.");
     }

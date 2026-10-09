@@ -163,4 +163,40 @@ describe("home and chain page loads", () => {
       }
     }
   }, 30_000);
+
+  it("renders / and /chains/solana from the snapshot while DexScreener hangs", async () => {
+    const hangEnv: Record<string, string> = {
+      ...PAGE_ENV,
+      SOLANA_DEXSCREENER_BASE_URL: "https://desk-hang.invalid",
+      SOLANA_TIMEOUT_MS: "30000",
+    };
+    const previousEnv = new Map<string, string | undefined>();
+    for (const [key, value] of Object.entries(hangEnv)) {
+      previousEnv.set(key, process.env[key]);
+      process.env[key] = value;
+    }
+    const previousFetch = globalThis.fetch;
+    globalThis.fetch = ((_input: RequestInfo | URL, init?: RequestInit) =>
+      new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => reject(new Error("aborted")));
+      })) as typeof fetch;
+    try {
+      const before = snapshotBytes();
+      const started = Date.now();
+      const home = await HomePage();
+      await ChainPage({
+        params: Promise.resolve({ chainId: SOLANA_CHAIN_ID }),
+        searchParams: Promise.resolve({}),
+      });
+      expect(Date.now() - started).toBeLessThan(1_000);
+      expect(home).toBeTruthy();
+      expectUntouched(before);
+    } finally {
+      globalThis.fetch = previousFetch;
+      for (const [key, value] of previousEnv) {
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      }
+    }
+  }, 12_000);
 });

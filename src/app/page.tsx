@@ -8,7 +8,7 @@ import { DailyVolumeChart } from "@/components/daily-volume-chart";
 import { selectEquityPriceTicker } from "@/lib/desk/price-ticker";
 import { loadSolanaDeskLaneDays, overlayHistoryWithSolanaAssetBackfill } from "@/lib/market/asset-backfill-desk-file";
 import { toJumpAsset } from "@/lib/market/asset-search";
-import { solanaDeskFallbackDetail, withDocumentBudget } from "@/lib/market/document-budget";
+import { readSolanaDeskForDocument, solanaDeskFallbackDetail, withDocumentBudget } from "@/lib/market/document-budget";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { BASE_DESK } from "@/lib/market/base-desk-volume";
 import { BNB_DESK } from "@/lib/market/bnb-desk-volume";
@@ -22,7 +22,7 @@ import { closedRobinhoodDeskDays, type RobinhoodDeskDay } from "@/lib/market/rob
 import { loadClosedRobinhoodDeskDays } from "@/lib/market/robinhood-desk-volume-file";
 import { closedSnapshotDeskDays, type SnapshotDeskDay } from "@/lib/market/snapshot-desk-volume";
 import { loadClosedSnapshotDeskDays } from "@/lib/market/snapshot-desk-volume-file";
-import { SOLANA_CHAIN_ID, type AssetSummary } from "@/lib/market/types";
+import { SOLANA_CHAIN_ID, type AssetSummary, type ChainDetailResult } from "@/lib/market/types";
 import { emptyEquityVolumeHistory } from "@/lib/market/volume-history";
 import { emptyHourlyRollingVolumeHistory } from "@/lib/market/volume-hourly-snapshots";
 import { loadPerpsDeskModel } from "@/lib/market/perps-snapshot-file";
@@ -36,12 +36,14 @@ export default async function HomePage() {
   const source = createMarketDataSource();
 
   let loaded;
+  let liveDesk: ChainDetailResult | null = null;
   try {
-    // Closed snapshot days are a file read. Live discovery keeps running after
-    // the budget so a cold desk cannot hold the document for the full hydrate.
-    // The in-progress Eastern day stays in memory until the nightly writer.
+    // Closed snapshot days are a file read. A cold DexScreener desk refreshes
+    // in the background. The document renders the in-memory desk or the last
+    // closed snapshot and does not wait on that refresh.
     void source.getEquityVolumeHistory().catch(() => undefined);
-    const [historySettled, hourlySettled, chainsResult] = await Promise.all([
+    liveDesk = readSolanaDeskForDocument(source);
+    const [historySettled, hourlySettled, otherChains] = await Promise.all([
       source.getClosedDeskVolumeHistory().then(
         (value) => ({ status: "fulfilled" as const, value }),
         (reason: unknown) => ({ status: "rejected" as const, reason }),
@@ -50,7 +52,7 @@ export default async function HomePage() {
         (value) => ({ status: "fulfilled" as const, value }),
         (reason: unknown) => ({ status: "rejected" as const, reason }),
       ),
-      withDocumentBudget(source.listChains(), null),
+      source.id === "solana" ? Promise.resolve(null) : withDocumentBudget(source.listChains(), null),
     ]);
     const history = await overlayHistoryWithSolanaAssetBackfill(
       historySettled.status === "fulfilled"
@@ -69,7 +71,16 @@ export default async function HomePage() {
               ? hourlySettled.reason.message
               : "Hourly rolling volume series is unavailable.",
           );
-    let chains = chainsResult;
+    let chains = liveDesk
+      ? { chains: [liveDesk.chain], provenance: liveDesk.provenance }
+      : otherChains;
+    if (liveDesk && otherChains) {
+      const rest = otherChains.chains.filter((chain) => chain.id !== SOLANA_CHAIN_ID);
+      chains = {
+        chains: [liveDesk.chain, ...rest],
+        provenance: liveDesk.provenance,
+      };
+    }
     if (!chains) {
       const fallback = solanaDeskFallbackDetail(await new FileDeskVolumeSnapshotStore().load());
       if (!fallback) {
@@ -98,6 +109,9 @@ export default async function HomePage() {
   const chains = [...listedChains];
   const chainDetails = await Promise.all(
     listedChains.map(async (chain, index) => {
+      if (chain.id === SOLANA_CHAIN_ID) {
+        return { index, chainId: chain.id, detail: liveDesk };
+      }
       try {
         return { index, chainId: chain.id, detail: await withDocumentBudget(source.getChain(chain.id), null) };
       } catch {
