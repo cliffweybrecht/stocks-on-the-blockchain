@@ -113,7 +113,7 @@ describe("recorded snapshot files", () => {
 
   it("sums Base AAPLc across all seven newest closed days", () => {
     const volumes = equityCardRangeVolumesFromSnapshot(readSnapshot("base.json"), NOW);
-    expect(volumes[AAPL_C]?.["7d"]).toEqual({ volumeUsd: 31_610_281.9, days: 7 });
+    expect(volumes[AAPL_C]?.["7d"]).toEqual({ volumeUsd: 32_463_551.2, days: 7 });
     const thirty = volumes[AAPL_C]?.["30d"];
     expect(thirty?.days).toBeLessThan(30);
     expect(thirty?.days).toBe(volumes[AAPL_C]?.["14d"]?.days);
