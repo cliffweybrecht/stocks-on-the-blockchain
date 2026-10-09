@@ -338,13 +338,14 @@ export function tokenIdentityFromFields(input: {
 }): TokenIdentity | null {
   const address = asNonEmptyString(input.address);
   if (!address) return null;
+  const metadataUri = asNonEmptyString(input.metadataUri);
   return {
     address,
     symbol: asNonEmptyString(input.symbol),
     name: asNonEmptyString(input.name),
     labels: input.labels ?? [],
     underlyingInstrumentType: parseUnderlyingInstrumentType(input.underlyingInstrumentType),
-    metadataUri: asNonEmptyString(input.metadataUri),
+    ...(metadataUri ? { metadataUri } : {}),
   };
 }
 
