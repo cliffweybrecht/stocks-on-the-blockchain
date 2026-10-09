@@ -139,6 +139,16 @@ npm run snapshot:land -- --chain perps --push-main
 
 The writer runs at 11:59 PM America/New_York and stores one Eastern day in `data/perps-snapshots/perps.json` (`equity-perps-v1`): venue, tier (onchain / major CEX / Binance+Bybit / long-tail), market, underlying, category, 24h volume, open interest, funding when the feed has it, source, and capture time. Missing numbers stay null. The default headline leaves out long-tail CoinGecko venues and any venue whose volume is over 25× open interest, or whose open interest is under $5M with volume over $100M. Those rows are still stored. Ostium stores lifetime volume so a later day can show the difference. See `docs/volume-snapshots.md`.
 
+### Lending
+
+Lending is a separate desk at `/lending`, linked from the header after Perps. It is onchain borrowing against tokenized stocks. The numbers are not added to spot or perp totals.
+
+```bash
+npm run snapshot:lending
+```
+
+The writer stores one America/New_York day at `data/lending-snapshots/YYYY-MM-DD.json` (`equity-lending-v1`). Each row is one venue on one chain: stock collateral supplied, stablecoins borrowed, utilization of that venue's lend-side pool, and borrow APY. A stock-token borrow (shorting supply) is stored only when the source reports it. Missing amounts stay null. It does not print on success. Binance, Bybit, Kraken, and Bitget margin books are omitted because they do not publish usage.
+
 ### Supply, market cap, and FDV
 
 On the asset page, **circulating supply** and **total supply** are the Solana mint's `getTokenSupply` UI amount (`uiAmountString`). That figure already includes the Token-2022 scaled-UI multiplier, which is the unit DEX prices quote. Raw `amount / 10^decimals` is not used — it drops the multiplier (NVDAx raw was about 321,272 tokens vs UI supply about 321,819).

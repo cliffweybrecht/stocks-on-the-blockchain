@@ -1,9 +1,24 @@
-const compactUsd = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  notation: "compact",
-  maximumFractionDigits: 1,
-});
+/**
+ * Compact USD without Intl. Node and Chrome disagree on trailing zeros
+ * (`$9.0M` vs `$9M`), which breaks hydration in client components.
+ * One decimal at every scale, including a trailing zero, matches the
+ * previous Node compact output.
+ */
+function formatStableUsd(value: number): string {
+  if (value === 0) return "$0";
+  const sign = value < 0 ? "-" : "";
+  const abs = Math.abs(value);
+  const units: readonly [number, string][] = [
+    [1e12, "T"],
+    [1e9, "B"],
+    [1e6, "M"],
+    [1e3, "K"],
+  ];
+  for (const [unit, suffix] of units) {
+    if (abs >= unit) return `${sign}$${(abs / unit).toFixed(1)}${suffix}`;
+  }
+  return `${sign}$${abs.toFixed(1)}`;
+}
 
 const fullUsd = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -22,8 +37,7 @@ const integer = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 
 export function formatUsdCompact(value: number | null | undefined): string {
   if (value === null || value === undefined || !Number.isFinite(value)) return "—";
-  if (value === 0) return "$0";
-  return compactUsd.format(value);
+  return formatStableUsd(value);
 }
 
 export function formatUsdFull(value: number | null | undefined): string {
@@ -161,13 +175,23 @@ export function formatChartClock(unixSeconds: number): string {
 }
 
 /** Token units as reported. Never derived from USD / price. */
+/** Token count. Compact from 1,000 up, trailing zeros stripped. Missing stays a dash. */
 export function formatTokenAmount(value: number | null | undefined): string {
   if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  const sign = value < 0 ? "-" : "";
   const abs = Math.abs(value);
-  if (abs >= 1_000) {
-    return new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 }).format(value);
+  if (abs === 0) return "0";
+  const units: readonly [number, string][] = [
+    [1e12, "T"],
+    [1e9, "B"],
+    [1e6, "M"],
+    [1e3, "K"],
+  ];
+  for (const [unit, suffix] of units) {
+    if (abs >= unit) return `${sign}${(abs / unit).toFixed(2).replace(/\.?0+$/, "")}${suffix}`;
   }
-  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(value);
+  if (abs >= 100) return `${sign}${abs.toFixed(0)}`;
+  return `${sign}${abs.toFixed(2).replace(/\.?0+$/, "")}`;
 }
 
 export function volumeShare(value: number | null, max: number | null): number {

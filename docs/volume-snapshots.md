@@ -23,6 +23,7 @@ At 11:59 PM Eastern, UTC is already the next calendar day. The day key is still 
 | BNB | `BNB_SNAPSHOT_DATE=YYYY-MM-DD npm run snapshot:bnb-volume` | `data/volume-snapshots/bnb.json` |
 | Robinhood | `ROBINHOOD_SNAPSHOT_DATE=YYYY-MM-DD npm run snapshot:robinhood-volume` | `data/volume-snapshots/robinhood.json` |
 | Equity perps | `npm run snapshot:perps` | `data/perps-snapshots/perps.json` |
+| Lending | `npm run snapshot:lending` | `data/lending-snapshots/YYYY-MM-DD.json` |
 
 `scripts/snapshot-bnb-volume.py` and `scripts/snapshot-robinhood-volume.py` are on `main`, same as the Base and Solana writers. Nightly runs use those writers, then land only the JSON row. Closed-day rows keep the lane totals and add `assets[]` (address, symbol, issuer when known, instrumentKind, volume24hUsd, displayedLiquidityUsd, pools). Hourly files stay totals only.
 
@@ -64,5 +65,7 @@ npm run snapshot:land -- --check
 ```
 
 Equity perps are a separate file (`data/perps-snapshots/perps.json`, schema `equity-perps-v1`) and a separate desk. The writer is `npm run snapshot:perps`. It stores per-venue, per-market 24h volume, open interest, and funding when a feed reports it, for single stocks, equity ETFs, leveraged ETFs, equity indices, and pre-IPO (pre-IPO stays out of the headline). It does not add anything to Solana, Base, BNB, or Robinhood spot totals. Tiers are onchain, major CEX, Binance+Bybit, and long-tail. Long-tail is opt-in on the desk. A venue that fails the volume/OI screen (`credible: false`) is stored and left out of the headline. Older rows without `credible` stay in the headline. The schema id does not change, so `snapshot:land` still treats a new Eastern day as an append. Ostium keeps lifetime volume; a daily number is derived only when the previous Eastern date has a snapshot. Hyperliquid hourly candles are base size, not USD, so that venue stays on rolling `dayNtlVlm`. Land with `--chain perps`. The commit subject is still `chore: Perps volume snapshot YYYY-MM-DD`.
+
+Lending is a separate Eastern-day file (`data/lending-snapshots/YYYY-MM-DD.json`, schema `equity-lending-v1`) and a separate desk at `/lending`. The writer is `npm run snapshot:lending`. It does not add anything to spot or perp totals, and it does not use `snapshot:land`. A source that fails stays null on that row. The command prints nothing when the file is written.
 
 Solana hourly does not use this script (the row key is an hour, and the commit subject is `data: Solana hourly …`). The hourly routine opens a PR, tries `origin pr merge`, then runs the same `git merge --no-ff` / push `main` / comment-and-close fallback. Solana daily can use either that prompt or `snapshot:land --chain solana --push-main`.
