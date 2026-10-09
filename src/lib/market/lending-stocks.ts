@@ -85,6 +85,8 @@ export interface LendingBoardRow {
   collateralUsd: number | null;
   /** Token count, only when that source reported one. */
   collateralTokens: number | null;
+  /** Why the dollar amount is missing, when the source was checked. */
+  priceNote: string | null;
   maxLtv: number | null;
   borrowApy: number | null;
   borrowApyMin: number | null;
@@ -131,6 +133,7 @@ export function lendingBoardRows(rows: readonly BoardSource[]): LendingBoardRow[
           chainLabel: row.chainLabel,
           collateralUsd: asset.collateralUsd,
           collateralTokens: asset.collateralTokens,
+          priceNote: asset.collateralUsd === null ? asset.priceNote ?? null : null,
           maxLtv: asset.maxLtv,
           borrowApy: row.borrowApy,
           borrowApyMin: row.borrowApyMin,
@@ -147,6 +150,8 @@ export function lendingBoardRows(rows: readonly BoardSource[]): LendingBoardRow[
         continue;
       }
       current.collateralUsd = addCollateral(current.collateralUsd, asset.collateralUsd);
+      if (current.collateralUsd !== null) current.priceNote = null;
+      else if (asset.priceNote) current.priceNote = current.priceNote ?? asset.priceNote;
       if (asset.collateralTokens !== null) current.collateralTokens = (current.collateralTokens ?? 0) + asset.collateralTokens;
       if (asset.maxLtv !== null && (current.maxLtv === null || asset.maxLtv > current.maxLtv)) current.maxLtv = asset.maxLtv;
     }

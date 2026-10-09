@@ -10,7 +10,7 @@ import {
   type LendingRow,
   type LendingSourceNote,
 } from "./lending-snapshot";
-import { asNonEmptyString, asReportedNumber } from "./numbers";
+import { asNonEmptyString, asNonNegativeNumber, asReportedNumber, tokenCountFromBaseUnits, tokenCountFromRaw } from "./numbers";
 
 const STABLE_SYMBOLS = new Set([
   "USDC",
@@ -170,6 +170,7 @@ export function parseKaminoReserveMetrics(payload: unknown, options: {
     const row = item as {
       liquidityToken?: unknown;
       liquidityTokenMint?: unknown;
+      totalSupply?: unknown;
       totalSupplyUsd?: unknown;
       totalBorrowUsd?: unknown;
       borrowApy?: unknown;
@@ -189,7 +190,7 @@ export function parseKaminoReserveMetrics(payload: unknown, options: {
         symbol: asNonEmptyString(row.liquidityToken) ?? mint,
         address: mint,
         collateralUsd: supply,
-        collateralTokens: null,
+        collateralTokens: asNonNegativeNumber(row.totalSupply),
         maxLtv: unitFraction(row.maxLtv),
       });
       continue;
@@ -397,12 +398,24 @@ interface MorphoMarket {
   lltv: number | null;
 }
 
+function morphoTokenCount(value: unknown): number | null {
+  if (!value || typeof value !== "object") return null;
+  const row = value as {
+    collateralAsset?: { decimals?: unknown } | null;
+    state?: { collateralAssets?: unknown } | null;
+  };
+  const decimals = asReportedNumber(row.collateralAsset?.decimals);
+  if (decimals === null || !Number.isInteger(decimals)) return null;
+  return tokenCountFromRaw(row.state?.collateralAssets, decimals);
+}
+
 function parseMorphoMarket(value: unknown, chainId: number): MorphoMarket | null {
   if (!value || typeof value !== "object") return null;
   const row = value as {
     loanAsset?: { address?: unknown; symbol?: unknown } | null;
-    collateralAsset?: { address?: unknown; symbol?: unknown } | null;
+    collateralAsset?: { address?: unknown; symbol?: unknown; decimals?: unknown } | null;
     state?: {
+      collateralAssets?: unknown;
       collateralAssetsUsd?: unknown;
       borrowAssetsUsd?: unknown;
       supplyAssetsUsd?: unknown;
@@ -485,7 +498,7 @@ export function parseMorphoMarkets(payload: unknown, options: {
       symbol: market.collateralSymbol ?? market.collateral,
       address: market.collateral,
       collateralUsd: market.collateralUsd,
-      collateralTokens: null,
+      collateralTokens: morphoTokenCount(item),
       maxLtv: market.lltv,
     });
     const loanIsStable = market.loan !== null && !equities.has(market.loan) && isStableSymbol(market.loanSymbol);
@@ -533,6 +546,7 @@ interface AaveAsset {
   address: string | null;
   symbol: string | null;
   suppliedUsd: number | null;
+  suppliedTokens: number | null;
   borrowedUsd: number | null;
   borrowApy: number | null;
   utilization: number | null;
@@ -543,7 +557,7 @@ function parseAaveAsset(value: unknown): AaveAsset | null {
   const row = value as {
     underlying?: { address?: unknown; info?: { symbol?: unknown } };
     summary?: {
-      supplied?: { exchange?: { value?: unknown } };
+      supplied?: { amount?: { value?: unknown }; exchange?: { value?: unknown } };
       borrowed?: { exchange?: { value?: unknown } };
       borrowApy?: { normalized?: unknown; value?: unknown };
       utilizationRate?: { normalized?: unknown; value?: unknown };
@@ -553,6 +567,7 @@ function parseAaveAsset(value: unknown): AaveAsset | null {
     address: asNonEmptyString(row.underlying?.address)?.toLowerCase() ?? null,
     symbol: asNonEmptyString(row.underlying?.info?.symbol),
     suppliedUsd: usd(row.summary?.supplied?.exchange?.value),
+    suppliedTokens: asNonNegativeNumber(row.summary?.supplied?.amount?.value),
     borrowedUsd: usd(row.summary?.borrowed?.exchange?.value),
     borrowApy: aaveFraction(row.summary?.borrowApy),
     utilization: aaveFraction(row.summary?.utilizationRate),
@@ -608,7 +623,7 @@ export function parseAaveEquitiesHub(payload: unknown, options: {
           symbol: asset.symbol ?? asset.address,
           address: asset.address,
           collateralUsd: asset.suppliedUsd,
-          collateralTokens: null,
+          collateralTokens: asset.suppliedTokens,
           maxLtv: null,
         });
       }
@@ -687,6 +702,10 @@ export function parseVenusMarkets(
       totalSupplyUnderlyingCents?: unknown;
       totalBorrowCents?: unknown;
       collateralFactorMantissa?: unknown;
+      cashMantissa?: unknown;
+      totalBorrowsMantissa?: unknown;
+      totalReservesMantissa?: unknown;
+      underlyingDecimal?: unknown;
     };
     if (asNonEmptyString(row.category) !== "bstocks") continue;
     const address = asNonEmptyString(row.underlyingAddress)?.toLowerCase() ?? null;
@@ -708,7 +727,7 @@ export function parseVenusMarkets(
         symbol: asNonEmptyString(row.underlyingSymbol) ?? address,
         address,
         collateralUsd: supplyUsd,
-        collateralTokens: null,
+        collateralTokens: venusUnderlyingTokens(row),
         maxLtv: venusFraction(row.collateralFactorMantissa),
       });
     }
@@ -805,12 +824,19 @@ export function tokenAmountUsd(raw: unknown, price: unknown, decimals = 18): num
  * Collateral addresses that are positively not on the bStock beacon are left out,
  * and the headline totals stay blank rather than mixing them in.
  */
+export interface ListaCollateralQuote {
+  tokens: number | null;
+  usd: number | null;
+  note: string | null;
+}
+
 export function parseListaBook(input: {
   overall: unknown;
   markets: unknown;
   rejectedCollateral?: ReadonlySet<string> | null;
   symbols?: ReadonlyMap<string, string>;
   loanPrices?: ReadonlyMap<string, number>;
+  quotes?: ReadonlyMap<string, ListaCollateralQuote> | null;
   rates?: readonly ApyPoint[];
   source: string;
 }): LendingRow {
@@ -832,15 +858,18 @@ export function parseListaBook(input: {
   const assetMap = new Map<string, LendingAsset>();
   for (const market of kept) {
     const top = tops.get(market.collateralToken);
+    const quote = input.quotes?.get(market.collateralToken) ?? null;
     const current = assetMap.get(market.collateralToken);
     const symbol = input.symbols?.get(market.collateralToken) ?? top?.symbol ?? market.collateralToken;
+    const priced = listaAssetDollars(top?.usd ?? null, quote);
     if (!current) {
       assetMap.set(market.collateralToken, {
         symbol,
         address: market.collateralToken,
-        collateralUsd: top?.usd ?? null,
-        collateralTokens: null,
+        collateralUsd: priced.usd,
+        collateralTokens: quote?.tokens ?? null,
         maxLtv: market.lltv,
+        priceNote: priced.note,
       });
       continue;
     }
@@ -969,14 +998,30 @@ function isBsc(chain: string): boolean {
   return chain === "bsc" || chain === "bnb" || chain === "56";
 }
 
+/** Official top-collateral dollars win. A quote fills the rest. Zero is a real zero. */
+function listaAssetDollars(
+  officialUsd: number | null,
+  quote: ListaCollateralQuote | null,
+): { usd: number | null; note: string | null } {
+  if (officialUsd !== null) return { usd: officialUsd, note: null };
+  if (quote?.usd !== null && quote?.usd !== undefined) return { usd: quote.usd, note: null };
+  if (!quote) return { usd: null, note: null };
+  return { usd: null, note: quote.note ?? "Lista did not publish a price for this token." };
+}
+
 function rememberAsset(map: Map<string, LendingAsset>, asset: LendingAsset) {
   const key = asset.address.toLowerCase();
   const current = map.get(key);
   if (!current) {
-    map.set(key, { ...asset, address: key });
+    map.set(key, { ...asset, address: key, priceNote: asset.collateralUsd === null ? asset.priceNote ?? null : null });
     return;
   }
-  if (asset.collateralUsd !== null) current.collateralUsd = (current.collateralUsd ?? 0) + asset.collateralUsd;
+  if (asset.collateralUsd !== null) {
+    current.collateralUsd = (current.collateralUsd ?? 0) + asset.collateralUsd;
+    current.priceNote = null;
+  } else if (current.collateralUsd === null && asset.priceNote && !current.priceNote) {
+    current.priceNote = asset.priceNote;
+  }
   if (asset.collateralTokens !== null) current.collateralTokens = (current.collateralTokens ?? 0) + asset.collateralTokens;
   if (asset.maxLtv !== null && (current.maxLtv === null || asset.maxLtv > current.maxLtv)) current.maxLtv = asset.maxLtv;
   if (asset.symbol && asset.symbol !== key) current.symbol = asset.symbol;
@@ -1015,6 +1060,31 @@ function wadFraction(value: unknown): number | null {
 
 function venusFraction(value: unknown): number | null {
   return wadFraction(value);
+}
+
+/** cash + borrows − reserves, in underlying tokens. A missing piece stays missing. */
+function venusUnderlyingTokens(row: {
+  cashMantissa?: unknown;
+  totalBorrowsMantissa?: unknown;
+  totalReservesMantissa?: unknown;
+  underlyingDecimal?: unknown;
+}): number | null {
+  const decimals = asReportedNumber(row.underlyingDecimal);
+  if (decimals === null || !Number.isInteger(decimals)) return null;
+  const cash = mantissa(row.cashMantissa);
+  const borrows = mantissa(row.totalBorrowsMantissa);
+  const reserves = mantissa(row.totalReservesMantissa);
+  if (cash === null || borrows === null || reserves === null) return null;
+  const net = cash + borrows - reserves;
+  if (net < BigInt(0)) return null;
+  return tokenCountFromBaseUnits(net, decimals);
+}
+
+function mantissa(value: unknown): bigint | null {
+  if (typeof value === "bigint") return value;
+  if (typeof value === "number" && Number.isSafeInteger(value) && value >= 0) return BigInt(value);
+  if (typeof value === "string" && /^\d+$/.test(value.trim())) return BigInt(value.trim());
+  return null;
 }
 
 function venusNote(estimate: VenusBorrowEstimateInput | null): string {

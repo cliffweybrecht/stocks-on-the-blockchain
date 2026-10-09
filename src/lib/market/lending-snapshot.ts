@@ -68,6 +68,8 @@ export interface LendingAsset {
   collateralTokens: number | null;
   /** Max borrow as a fraction of collateral. 0.7 means $70 per $100 of stock. */
   maxLtv: number | null;
+  /** Why collateralUsd is missing, when the source was checked and still had no price. */
+  priceNote?: string | null;
 }
 
 export interface LendingBorrowEstimate {
@@ -276,6 +278,19 @@ export function groupLendingRows(rows: readonly LendingRow[]): LendingChainGroup
     });
 }
 
+export type LendingHistorySeries =
+  | { kind: "empty" }
+  | { kind: "single"; point: LendingHistoryPoint }
+  | { kind: "line"; points: LendingHistoryPoint[] };
+
+/** One stored day is a sentence. Two or more are a line. Nothing here is filled in. */
+export function lendingHistorySeries(history: readonly LendingHistoryPoint[]): LendingHistorySeries {
+  if (history.length === 0) return { kind: "empty" };
+  const [only] = history;
+  if (history.length === 1 && only) return { kind: "single", point: only };
+  return { kind: "line", points: [...history] };
+}
+
 export function lendingHistoryFromDays(days: readonly LendingDaySnapshot[]): LendingHistoryPoint[] {
   return [...days]
     .sort((a, b) => a.date.localeCompare(b.date) || a.capturedAt.localeCompare(b.capturedAt))
@@ -368,6 +383,7 @@ function parseAssets(value: unknown): LendingAsset[] {
       collateralUsd: nullableUsd(asset.collateralUsd),
       collateralTokens: nullableUsd(asset.collateralTokens),
       maxLtv: nullableFraction(asset.maxLtv),
+      priceNote: asNonEmptyString(asset.priceNote),
     });
   }
   return assets;

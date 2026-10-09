@@ -147,7 +147,9 @@ Lending is a separate desk at `/lending`, linked from the header after Perps. It
 npm run snapshot:lending
 ```
 
-The writer stores one America/New_York day at `data/lending-snapshots/YYYY-MM-DD.json` (`equity-lending-v1`). Each row is one venue on one chain: stock collateral supplied, stablecoins borrowed, utilization of that venue's lend-side pool, and borrow APY. A stock-token borrow (shorting supply) is stored only when the source reports it. Missing amounts stay null. It does not print on success. Binance, Bybit, Kraken, and Bitget margin books are omitted because they do not publish usage.
+The writer stores one America/New_York day at `data/lending-snapshots/YYYY-MM-DD.json` (`equity-lending-v1`). Each row is one venue on one chain: stock collateral supplied, stablecoins borrowed, utilization of that venue's lend-side pool, and borrow APY. A stock-token borrow (shorting supply) is stored only when the source reports it. Missing amounts stay null. It does not print on success. A capture with no amounts is not written and exits 1. Binance, Bybit, Kraken, and Bitget margin books are omitted because they do not publish usage.
+
+`BSC_RPC_URL` is optional and is tried first for BSC calls. `VENUS_SCAN_BUDGET_MS` caps the Venus pro-rata scan (default 60 minutes). Finished log ranges are kept in `data/lending-snapshots/venus-holder-cache.json`, so the next run only scans new blocks. See `data/lending-snapshots/README.md`. Commit a new day with `git add -f`.
 
 ### Supply, market cap, and FDV
 
