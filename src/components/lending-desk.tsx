@@ -1,19 +1,28 @@
 import { CircleHelp } from "lucide-react";
 import { LendingBoard } from "@/components/lending-board";
+import { LendingGlancePanel } from "@/components/lending-glance";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatUsdCompact } from "@/lib/market/format";
 import { LENDING_GLOSSARY, lendingGlossary } from "@/lib/market/lending-glossary";
+import {
+  buildLendingDepth,
+  lendingDropScopes,
+  lendingDropTable,
+  lendingFillingFlags,
+  lendingGlance,
+  lendingPreviousRows,
+} from "@/lib/market/lending-glance";
 import { lendingActionChips, lendingBoardRows, lendingChainShareParts } from "@/lib/market/lending-stocks";
 import { lendingChainLogo } from "@/lib/market/lending-logos";
 import {
   EXCLUDED_CEX_MARGIN_VENUES,
+  formatLendingApy,
   formatLendingCapturedAt,
   formatLendingFractionPct,
-  lendingBorrowEstimateUsd,
-  lendingHeadline,
   lendingHistorySeries,
   lendingLtvExplainer,
   lendingStockBorrows,
+  type LendingDaySnapshot,
   type LendingDeskModel,
   type LendingHistoryPoint,
 } from "@/lib/market/lending-snapshot";
@@ -175,73 +184,47 @@ function HistoryChart({ history }: { history: readonly LendingHistoryPoint[] }) 
   );
 }
 
-export function LendingDesk({ model }: { model: LendingDeskModel }) {
-  const captured = formatLendingCapturedAt(model.capturedAt);
-  const headline = lendingHeadline(model.rows, model.totals);
+export function LendingDesk({ model, days }: { model: LendingDeskModel; days: readonly LendingDaySnapshot[] }) {
+  const flags = lendingFillingFlags(model.rows, lendingPreviousRows(days));
+  const glance = lendingGlance(model.rows, model.totals, flags);
+  const scopes = lendingDropScopes(model.rows);
+  const answers = lendingDropTable(model.rows, scopes);
+  const depth = buildLendingDepth(days);
   const shorts = lendingStockBorrows(model.rows);
   const ltvLine = lendingLtvExplainer(model.rows);
   const action = lendingActionChips(model.rows);
   const boardRows = lendingBoardRows(model.rows);
   const collateralHint = lendingGlossary("collateral");
-  const borrowedHint = lendingGlossary("stablecoin");
-  const fullHint = lendingGlossary("utilization");
-  const costHint = lendingGlossary("apy");
   const ltvHint = lendingGlossary("ltv");
   const liquidationHint = lendingGlossary("liquidation");
-  const borrowedIncludesEstimate = (lendingBorrowEstimateUsd(model.rows) ?? 0) > 0;
+  const fullHint = lendingGlossary("utilization");
+  const costHint = lendingGlossary("apy");
   return (
     <div className="space-y-10" data-lending-page>
-      <header className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
-        <div className="max-w-xl space-y-2">
-          <h2 className="font-heading text-3xl font-semibold tracking-tight text-foreground">Lending</h2>
-          <p className="text-sm leading-6 text-muted-foreground">People lock stock tokens and borrow dollar coins against them.</p>
-          <p className="text-sm leading-6 text-muted-foreground" data-lending-captured>
-            {model.readError
-              ? model.readError
-              : model.capturedAt
-                ? `Snapshot at ${captured}. A dash means the source did not report that number.`
-                : "No lending snapshot yet."}
-          </p>
-        </div>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-6 sm:gap-x-14">
-          <div data-lending-stat="collateral">
-            <p className="inline-flex items-center gap-1 text-xs uppercase tracking-wide text-muted-foreground">
-              Stock in <Hint label={collateralHint.term} text={collateralHint.text} />
-            </p>
-            <p className="mt-1 text-3xl font-semibold tracking-tight text-foreground tabular-nums sm:text-4xl">{formatUsdCompact(model.totals.collateralUsd)}</p>
-            <p className="mt-1 max-w-[12rem] text-sm leading-6 text-muted-foreground">Locked so people can borrow against it.</p>
-          </div>
-          <div data-lending-stat="borrowed">
-            <p className="inline-flex items-center gap-1 text-xs uppercase tracking-wide text-muted-foreground">
-              Dollars borrowed <Hint label={borrowedHint.term} text={borrowedHint.text} />
-            </p>
-            <p className="mt-1 text-3xl font-semibold tracking-tight text-foreground tabular-nums sm:text-4xl">{formatUsdCompact(model.totals.stableBorrowedUsd)}</p>
-            <p className="mt-1 max-w-[12rem] text-sm leading-6 text-muted-foreground">
-              {borrowedIncludesEstimate ? "Includes a Venus estimate." : "Dollar coins borrowed against that stock."}
-            </p>
-          </div>
-        </div>
-      </header>
+      <LendingGlancePanel
+        glance={glance}
+        flags={flags}
+        scopes={scopes}
+        answers={answers}
+        depth={depth}
+        capturedLabel={model.capturedAt ? `Snapshot ${formatLendingCapturedAt(model.capturedAt)}` : null}
+        totals={model.totals}
+        readError={model.readError}
+      />
 
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm leading-6 text-muted-foreground">
-        <p data-lending-stat="full" className="inline-flex items-center gap-1">
+      <details data-lending-books>
+        <summary className="cursor-pointer text-base font-medium text-foreground">See every stock, chain, and note</summary>
+        <div className="mt-8 space-y-10">
+      <p className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm leading-6 text-muted-foreground">
+        <span className="inline-flex items-center gap-1">
           How full <Hint label={fullHint.term} text={fullHint.text} />
           <span className="num text-foreground">{formatLendingFractionPct(model.totals.utilization)}</span>
-        </p>
-        <p data-lending-stat="cost" className="inline-flex items-center gap-1">
+        </span>
+        <span className="inline-flex items-center gap-1">
           Yearly cost <Hint label={costHint.term} text={costHint.text} />
-          <span className="num text-foreground">{model.totals.borrowApy === null ? "—" : formatLendingFractionPct(model.totals.borrowApy)}</span>
-        </p>
-        <details>
-          <summary className="cursor-pointer text-sm text-muted-foreground">Learn more</summary>
-          <div className="mt-2 max-w-xl space-y-1">
-            <p>{headline.collateralSentence}</p>
-            <p>{headline.borrowedSentence}</p>
-            <p>{headline.fullSentence}</p>
-            <p>{headline.costSentence}</p>
-          </div>
-        </details>
-      </div>
+          <span className="num text-foreground">{formatLendingApy(model.totals)}</span>
+        </span>
+      </p>
 
       <ChainShare chains={model.chains} />
 
@@ -331,6 +314,8 @@ export function LendingDesk({ model }: { model: LendingDeskModel }) {
         <p>Issuer market cap and fund size are not used here. The numbers above are stock tokens in lending pools and the dollars borrowed against them.</p>
         {model.failures.length > 0 ? <p>Missing: {model.failures.map((failure) => `${failure.source} (${failure.message})`).join("; ")}.</p> : null}
       </footer>
+        </div>
+      </details>
     </div>
   );
 }

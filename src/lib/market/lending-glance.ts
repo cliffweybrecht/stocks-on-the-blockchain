@@ -1,0 +1,602 @@
+import { formatUsdCompact } from "./format";
+import { classifyLendingSymbol } from "./lending-stocks";
+import {
+  aggregateLendingTotals,
+  formatLendingCapturedAt,
+  formatLendingFractionPct,
+  formatLtvPerHundred,
+  groupLendingRows,
+  type LendingAsset,
+  type LendingDaySnapshot,
+  type LendingRow,
+  type LendingTotals,
+} from "./lending-snapshot";
+
+/** A dollar pool at or above this is "filling up", when the borrow book is material. */
+export const LENDING_FILLING_UTIL = 0.9;
+/** Day-over-day utilization increase, as a fraction, that counts as a jump. */
+export const LENDING_FILLING_UTIL_JUMP = 0.1;
+/** Day-over-day borrow-APY increase, as a fraction, that counts as a jump. */
+export const LENDING_FILLING_APY_JUMP = 0.01;
+/** Borrows under this do not set the glance or a badge. */
+export const LENDING_FILLING_MIN_BORROWED_USD = 25_000;
+export const LENDING_DROP_FRACTIONS = [0.1, 0.2, 0.3, 0.5] as const;
+
+/** Half a cent. Exact equality stays inside the limit; float dust does not count as a breach. */
+const PAST_LIMIT_USD = 0.005;
+
+export type LendingDropFraction = (typeof LENDING_DROP_FRACTIONS)[number];
+
+export interface LendingFillingFlag {
+  venueId: string;
+  venue: string;
+  chainId: string;
+  chainLabel: string;
+  kind: "full" | "utilization-jump" | "rate-jump";
+  /** Short badge. */
+  text: string;
+  /** Clause that can lead the glance sentence. */
+  clause: string;
+}
+
+export interface LendingGlanceCopy {
+  sentence: string;
+  tone: "calm" | "stretched" | "unknown";
+}
+
+export interface LendingDropScope {
+  id: string;
+  kind: "all" | "venue" | "stock";
+  label: string;
+}
+
+export interface LendingDropAnswer {
+  sentence: string;
+  method: string;
+  /** Pre-drop stock dollars past the line. 0 when measured and inside. Null when it cannot be figured. */
+  collateralAtRiskUsd: number | null;
+}
+
+export interface LendingDepthHistoryPoint {
+  date: string;
+  collateralUsd: number | null;
+  stableBorrowedUsd: number | null;
+  utilization: number | null;
+  borrowApy: number | null;
+}
+
+export interface LendingDepthAsset {
+  symbol: string;
+  ticker: string;
+  wrapper: string;
+  address: string;
+  collateralUsd: number | null;
+  collateralTokens: number | null;
+  maxLtv: number | null;
+  priceNote: string | null;
+}
+
+export interface LendingDepthVenue {
+  id: string;
+  label: string;
+  venue: string;
+  chainId: string;
+  chainLabel: string;
+  collateralUsd: number | null;
+  stableBorrowedUsd: number | null;
+  utilization: number | null;
+  borrowApy: number | null;
+  borrowApyMin: number | null;
+  borrowApyMax: number | null;
+  stockBorrowedUsd: number | null;
+  lendSupplyUsd: number | null;
+  source: string;
+  note: string | null;
+  estimateLabel: string | null;
+  ltvLabel: string | null;
+  positionsNote: string;
+  assets: LendingDepthAsset[];
+  history: LendingDepthHistoryPoint[];
+}
+
+export interface LendingDepthChain {
+  chainId: string;
+  chainLabel: string;
+  collateralUsd: number | null;
+  stableBorrowedUsd: number | null;
+  utilization: number | null;
+  borrowApy: number | null;
+  history: LendingDepthHistoryPoint[];
+}
+
+export interface LendingDepthStockPlace {
+  venueId: string;
+  venueLabel: string;
+  chainId: string;
+  chainLabel: string;
+  symbol: string;
+  wrapper: string;
+  address: string;
+  collateralUsd: number | null;
+  collateralTokens: number | null;
+  maxLtv: number | null;
+  borrowApy: number | null;
+  utilization: number | null;
+  source: string;
+  priceNote: string | null;
+}
+
+export interface LendingDepthStock {
+  ticker: string;
+  collateralUsd: number | null;
+  places: LendingDepthStockPlace[];
+}
+
+export interface LendingDepth {
+  chains: LendingDepthChain[];
+  venues: LendingDepthVenue[];
+  stocks: LendingDepthStock[];
+}
+
+const WEEKEND_ORACLE =
+  "Chainlink stock prices go quiet from Friday 8:00 PM Eastern to Sunday 8:00 PM Eastern, about 60 hours. A move over the weekend shows up on Monday.";
+
+const DROP_METHOD =
+  "This treats each pool as one loan. The limit is the collateral-weighted borrowing limit published for the tokens in scope. After the drop, the loan is past the line when the dollars borrowed are more than the remaining stock times that limit. A stock is given its share of the venue's borrows, in proportion to its share of that venue's stock. This snapshot stores pool totals and each token deposited, not each person's loan, so one loan can be tighter than the pool.";
+
+export function lendingDropKey(drop: LendingDropFraction): string {
+  return String(drop);
+}
+
+export function lendingDropPercentLabel(drop: number): string {
+  return `${Math.round(drop * 100)}%`;
+}
+
+function materialBorrow(row: Pick<LendingRow, "stableBorrowedUsd" | "borrowEstimate">): boolean {
+  return row.borrowEstimate == null && (row.stableBorrowedUsd ?? 0) >= LENDING_FILLING_MIN_BORROWED_USD;
+}
+
+function pointsLabel(delta: number): string {
+  const rounded = Math.round(delta * 1000) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
+export function lendingVenueLabel(row: Pick<LendingRow, "venue" | "chainLabel">, rows: readonly Pick<LendingRow, "venue">[]): string {
+  const twins = rows.filter((other) => other.venue === row.venue).length;
+  return twins > 1 ? `${row.venue} on ${row.chainLabel}` : row.venue;
+}
+
+export function lendingFillingFlags(rows: readonly LendingRow[], previous: readonly LendingRow[] | null): LendingFillingFlag[] {
+  const prior = new Map((previous ?? []).map((row) => [row.id, row]));
+  const flags: LendingFillingFlag[] = [];
+  for (const row of rows) {
+    if (!materialBorrow(row)) continue;
+    const label = lendingVenueLabel(row, rows);
+    if (row.utilization !== null && row.utilization >= LENDING_FILLING_UTIL) {
+      flags.push({
+        venueId: row.id,
+        venue: row.venue,
+        chainId: row.chainId,
+        chainLabel: row.chainLabel,
+        kind: "full",
+        text: `${label} · ${formatLendingFractionPct(row.utilization)} full`,
+        clause: `${label}'s dollar pool is ${formatLendingFractionPct(row.utilization)} full`,
+      });
+      continue;
+    }
+    const before = prior.get(row.id);
+    if (!before || before.borrowEstimate) continue;
+    if (
+      row.utilization !== null &&
+      before.utilization !== null &&
+      row.utilization - before.utilization >= LENDING_FILLING_UTIL_JUMP
+    ) {
+      const points = pointsLabel(row.utilization - before.utilization);
+      flags.push({
+        venueId: row.id,
+        venue: row.venue,
+        chainId: row.chainId,
+        chainLabel: row.chainLabel,
+        kind: "utilization-jump",
+        text: `${label} · ${points} points fuller`,
+        clause: `${label}'s dollar pool is ${points} points fuller than yesterday`,
+      });
+      continue;
+    }
+    if (row.borrowApy !== null && before.borrowApy !== null && row.borrowApy - before.borrowApy >= LENDING_FILLING_APY_JUMP) {
+      const points = pointsLabel(row.borrowApy - before.borrowApy);
+      flags.push({
+        venueId: row.id,
+        venue: row.venue,
+        chainId: row.chainId,
+        chainLabel: row.chainLabel,
+        kind: "rate-jump",
+        text: `${label} · rate up ${points} points`,
+        clause: `${label}'s yearly cost is up ${points} points since yesterday`,
+      });
+    }
+  }
+  const rank = { full: 0, "utilization-jump": 1, "rate-jump": 2 };
+  const score = (flag: LendingFillingFlag) => {
+    const row = rows.find((item) => item.id === flag.venueId);
+    if (flag.kind === "rate-jump") return row?.borrowApy ?? 0;
+    return row?.utilization ?? 0;
+  };
+  flags.sort(
+    (a, b) => rank[a.kind] - rank[b.kind] || score(b) - score(a) || a.venue.localeCompare(b.venue) || a.chainLabel.localeCompare(b.chainLabel),
+  );
+  return flags;
+}
+
+function moneyWith(collateral: number | null, borrowed: number | null): string | null {
+  if (collateral !== null && borrowed !== null) {
+    return `with ${formatUsdCompact(collateral)} of stock locked and ${formatUsdCompact(borrowed)} borrowed against it`;
+  }
+  if (collateral !== null) return `with ${formatUsdCompact(collateral)} of stock locked`;
+  if (borrowed !== null) return `with ${formatUsdCompact(borrowed)} borrowed`;
+  return null;
+}
+
+export function lendingGlance(rows: readonly LendingRow[], totals: LendingTotals, flags: readonly LendingFillingFlag[]): LendingGlanceCopy {
+  const money = moneyWith(totals.collateralUsd, totals.stableBorrowedUsd);
+  if (!money && flags.length === 0) return { sentence: "No lending snapshot yet.", tone: "unknown" };
+  const lead = flags.find((flag) => flag.kind === "full") ?? flags[0];
+  if (lead) {
+    return {
+      sentence: money ? `${lead.clause}, ${money}.` : `${lead.clause}.`,
+      tone: "stretched",
+    };
+  }
+  if (totals.collateralUsd !== null && totals.stableBorrowedUsd !== null) {
+    return {
+      sentence: `${formatUsdCompact(totals.collateralUsd)} of stock is locked and ${formatUsdCompact(totals.stableBorrowedUsd)} is borrowed against it, and the bigger pools still have room.`,
+      tone: "calm",
+    };
+  }
+  return {
+    sentence: money ? `${money.charAt(0).toUpperCase()}${money.slice(1)}.` : "No lending snapshot yet.",
+    tone: money ? "calm" : "unknown",
+  };
+}
+
+interface RatedBook {
+  collateralUsd: number;
+  maxLtv: number;
+}
+
+function ratedBook(assets: readonly LendingAsset[]): RatedBook | null {
+  let weight = 0;
+  let weighted = 0;
+  for (const asset of assets) {
+    if (asset.collateralUsd === null || !(asset.collateralUsd > 0)) continue;
+    if (asset.maxLtv === null || !(asset.maxLtv > 0) || asset.maxLtv > 1.05) continue;
+    weight += asset.collateralUsd;
+    weighted += asset.collateralUsd * asset.maxLtv;
+  }
+  if (!(weight > 0)) return null;
+  return { collateralUsd: weight, maxLtv: weighted / weight };
+}
+
+interface DropSlice {
+  collateralUsd: number;
+  borrowedUsd: number;
+  maxLtv: number;
+  estimate: boolean;
+}
+
+interface DropPieces {
+  slices: DropSlice[];
+  exclusions: string[];
+  notes: string[];
+  known: boolean;
+}
+
+function emptyPieces(known: boolean): DropPieces {
+  return { slices: [], exclusions: [], notes: [], known };
+}
+
+function pastLimit(slice: DropSlice, drop: number): boolean {
+  const limit = slice.collateralUsd * (1 - drop) * slice.maxLtv;
+  return slice.borrowedUsd - limit > PAST_LIMIT_USD;
+}
+
+function venuePieces(row: LendingRow, assets: readonly LendingAsset[], label: string): DropPieces {
+  const pieces = emptyPieces(true);
+  if (row.collateralUsd === null || row.stableBorrowedUsd === null) {
+    pieces.exclusions.push(`${label} is missing a dollar amount, so it is left out.`);
+    return pieces;
+  }
+  if (!(row.collateralUsd > 0) && !(row.stableBorrowedUsd > 0)) return pieces;
+  const rated = ratedBook(assets);
+  if (!rated) {
+    pieces.exclusions.push(`${label} did not publish a borrowing limit in this snapshot, so it is left out.`);
+    return pieces;
+  }
+  const borrowed = row.stableBorrowedUsd * (rated.collateralUsd / row.collateralUsd);
+  if (!Number.isFinite(borrowed)) {
+    pieces.exclusions.push(`${label} is missing a dollar amount, so it is left out.`);
+    return pieces;
+  }
+  pieces.slices.push({
+    collateralUsd: rated.collateralUsd,
+    borrowedUsd: borrowed,
+    maxLtv: rated.maxLtv,
+    estimate: row.borrowEstimate != null,
+  });
+  return pieces;
+}
+
+function stockPieces(rows: readonly LendingRow[], ticker: string): DropPieces {
+  const pieces = emptyPieces(false);
+  for (const row of rows) {
+    const assets = (row.assets ?? []).filter((asset) => classifyLendingSymbol(asset.symbol, row.chainId).ticker === ticker);
+    if (assets.length === 0) continue;
+    pieces.known = true;
+    const label = `${ticker} on ${lendingVenueLabel(row, rows)}`;
+    if (assets.some((asset) => asset.collateralUsd === null)) {
+      pieces.notes.push(`${label} has a token with no dollar amount, so only the priced part is figured.`);
+    }
+    const part = venuePieces(row, assets, label);
+    if (row.collateralUsd === null || row.stableBorrowedUsd === null || !(row.collateralUsd > 0)) {
+      pieces.exclusions.push(...part.exclusions);
+      continue;
+    }
+    const stockUsd = assets.reduce((sum, asset) => sum + (asset.collateralUsd ?? 0), 0);
+    if (!(stockUsd > 0)) {
+      pieces.exclusions.push(...part.exclusions);
+      continue;
+    }
+    for (const slice of part.slices) {
+      pieces.slices.push({ ...slice, borrowedUsd: row.stableBorrowedUsd * (slice.collateralUsd / row.collateralUsd) });
+    }
+    pieces.exclusions.push(...part.exclusions);
+  }
+  return pieces;
+}
+
+function piecesForScope(rows: readonly LendingRow[], scopeId: string): DropPieces {
+  if (scopeId === "all") {
+    const pieces = emptyPieces(true);
+    for (const row of rows) {
+      const part = venuePieces(row, row.assets ?? [], lendingVenueLabel(row, rows));
+      pieces.slices.push(...part.slices);
+      pieces.exclusions.push(...part.exclusions);
+    }
+    return pieces;
+  }
+  if (scopeId.startsWith("stock:")) return stockPieces(rows, scopeId.slice("stock:".length));
+  const row = rows.find((item) => item.id === scopeId);
+  if (!row) return emptyPieces(false);
+  return venuePieces(row, row.assets ?? [], lendingVenueLabel(row, rows));
+}
+
+function methodText(pieces: DropPieces): string {
+  const estimate = pieces.slices.some((slice) => slice.estimate)
+    ? "Venus borrowed dollars are an estimate, not a published pool total."
+    : "";
+  return [DROP_METHOD, estimate, ...pieces.notes, ...pieces.exclusions, WEEKEND_ORACLE].filter(Boolean).join(" ");
+}
+
+export function lendingDropAnswer(rows: readonly LendingRow[], scopeId: string, drop: number): LendingDropAnswer {
+  const pct = lendingDropPercentLabel(drop);
+  const pieces = piecesForScope(rows, scopeId);
+  if (!pieces.known) {
+    return {
+      sentence: "That choice is not in this snapshot.",
+      method: methodText(pieces),
+      collateralAtRiskUsd: null,
+    };
+  }
+  if (pieces.slices.length === 0) {
+    const missingDollars = pieces.exclusions.some((line) => line.includes("missing a dollar amount"));
+    const missingLimit = pieces.exclusions.some((line) => line.includes("borrowing limit"));
+    const sentence = missingDollars && !missingLimit
+      ? `A dollar amount is missing, so a ${pct} drop is not figured.`
+      : `No borrowing limit is published here, so a ${pct} drop is not figured.`;
+    return { sentence, method: methodText(pieces), collateralAtRiskUsd: null };
+  }
+  let atRisk = 0;
+  for (const slice of pieces.slices) {
+    if (pastLimit(slice, drop)) atRisk += slice.collateralUsd;
+  }
+  const where = pieces.exclusions.length > 0 ? " where a limit is published" : "";
+  const sentence =
+    atRisk > 0
+      ? `A ${pct} drop would push about ${formatUsdCompact(atRisk)} of stock past the borrowing limit.`
+      : `A ${pct} drop stays inside the borrowing limit${where}.`;
+  return { sentence, method: methodText(pieces), collateralAtRiskUsd: atRisk };
+}
+
+export function lendingDropScopes(rows: readonly LendingRow[]): LendingDropScope[] {
+  const scopes: LendingDropScope[] = [{ id: "all", kind: "all", label: "Everything" }];
+  const venues = [...rows].sort((a, b) => (b.collateralUsd ?? -1) - (a.collateralUsd ?? -1) || a.venue.localeCompare(b.venue));
+  for (const row of venues) {
+    if (row.collateralUsd === null && row.stableBorrowedUsd === null) continue;
+    scopes.push({ id: row.id, kind: "venue", label: lendingVenueLabel(row, rows) });
+  }
+  const stocks = new Map<string, number | null>();
+  for (const row of rows) {
+    for (const asset of row.assets ?? []) {
+      const ticker = classifyLendingSymbol(asset.symbol, row.chainId).ticker;
+      const current = stocks.get(ticker);
+      if (asset.collateralUsd === null) {
+        if (current === undefined) stocks.set(ticker, null);
+        continue;
+      }
+      stocks.set(ticker, (current ?? 0) + asset.collateralUsd);
+    }
+  }
+  const tickers = [...stocks.entries()]
+    .filter((entry): entry is [string, number] => entry[1] !== null && entry[1] > 0)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  for (const [ticker] of tickers) scopes.push({ id: `stock:${ticker}`, kind: "stock", label: ticker });
+  return scopes;
+}
+
+export function lendingDropTable(
+  rows: readonly LendingRow[],
+  scopes: readonly LendingDropScope[],
+): Record<string, Record<string, LendingDropAnswer>> {
+  const table: Record<string, Record<string, LendingDropAnswer>> = {};
+  for (const scope of scopes) {
+    const answers: Record<string, LendingDropAnswer> = {};
+    for (const drop of LENDING_DROP_FRACTIONS) answers[lendingDropKey(drop)] = lendingDropAnswer(rows, scope.id, drop);
+    table[scope.id] = answers;
+  }
+  return table;
+}
+
+export function lendingPreviousRows(days: readonly LendingDaySnapshot[]): LendingRow[] | null {
+  const sorted = sortedDays(days);
+  if (sorted.length < 2) return null;
+  return sorted[sorted.length - 2]?.rows ?? null;
+}
+
+function sortedDays(days: readonly LendingDaySnapshot[]): LendingDaySnapshot[] {
+  return [...days].sort((a, b) => a.date.localeCompare(b.date) || a.capturedAt.localeCompare(b.capturedAt));
+}
+
+function historyPoint(date: string, rows: readonly LendingRow[]): LendingDepthHistoryPoint {
+  const totals = aggregateLendingTotals(rows);
+  return {
+    date,
+    collateralUsd: totals.collateralUsd,
+    stableBorrowedUsd: totals.stableBorrowedUsd,
+    utilization: totals.utilization,
+    borrowApy: totals.borrowApy,
+  };
+}
+
+function ltvLabel(assets: readonly LendingAsset[]): string | null {
+  const values = assets
+    .map((asset) => asset.maxLtv)
+    .filter((value): value is number => value !== null && value > 0 && value <= 1.05);
+  if (values.length === 0) return null;
+  const low = formatLtvPerHundred(Math.min(...values));
+  const high = formatLtvPerHundred(Math.max(...values));
+  if (low === high) return `Up to ${low} for every $100 of stock.`;
+  return `Up to ${low}–${high} for every $100 of stock, depending on the token.`;
+}
+
+function listsEachLoan(row: Pick<LendingRow, "id" | "venue">): boolean {
+  return /morpho|kamino|aave/i.test(`${row.id} ${row.venue}`);
+}
+
+function positionsNote(row: LendingRow): string {
+  const who = listsEachLoan(row) ? `${row.venue} can list each loan. ` : "";
+  return `${who}This snapshot stores the pool total and each token deposited, not each person's loan.`;
+}
+
+function depthAsset(asset: LendingAsset, chainId: string): LendingDepthAsset {
+  const classified = classifyLendingSymbol(asset.symbol, chainId);
+  return {
+    symbol: asset.symbol,
+    ticker: classified.ticker,
+    wrapper: classified.wrapper,
+    address: asset.address,
+    collateralUsd: asset.collateralUsd,
+    collateralTokens: asset.collateralTokens,
+    maxLtv: asset.maxLtv,
+    priceNote: asset.collateralUsd === null ? asset.priceNote ?? null : null,
+  };
+}
+
+function compareAsset(a: LendingDepthAsset, b: LendingDepthAsset): number {
+  if (a.collateralUsd === null && b.collateralUsd === null) return a.symbol.localeCompare(b.symbol);
+  if (a.collateralUsd === null) return 1;
+  if (b.collateralUsd === null) return -1;
+  return b.collateralUsd - a.collateralUsd || a.symbol.localeCompare(b.symbol);
+}
+
+export function buildLendingDepth(days: readonly LendingDaySnapshot[]): LendingDepth {
+  const sorted = sortedDays(days);
+  const latest = sorted[sorted.length - 1];
+  if (!latest) return { chains: [], venues: [], stocks: [] };
+  const labels = new Map(latest.rows.map((row) => [row.id, lendingVenueLabel(row, latest.rows)]));
+  const venueHistory = new Map<string, LendingDepthHistoryPoint[]>();
+  const chainHistory = new Map<string, LendingDepthHistoryPoint[]>();
+  for (const day of sorted) {
+    for (const row of day.rows) {
+      const list = venueHistory.get(row.id) ?? [];
+      list.push(historyPoint(day.date, [row]));
+      venueHistory.set(row.id, list);
+    }
+    for (const chain of groupLendingRows(day.rows)) {
+      const list = chainHistory.get(chain.chainId) ?? [];
+      list.push(historyPoint(day.date, chain.rows));
+      chainHistory.set(chain.chainId, list);
+    }
+  }
+  const chains: LendingDepthChain[] = groupLendingRows(latest.rows).map((chain) => ({
+    chainId: chain.chainId,
+    chainLabel: chain.chainLabel,
+    collateralUsd: chain.totals.collateralUsd,
+    stableBorrowedUsd: chain.totals.stableBorrowedUsd,
+    utilization: chain.totals.utilization,
+    borrowApy: chain.totals.borrowApy,
+    history: chainHistory.get(chain.chainId) ?? [],
+  }));
+  const venues: LendingDepthVenue[] = [];
+  for (const chain of groupLendingRows(latest.rows)) {
+    for (const row of chain.rows) {
+      const assets = (row.assets ?? []).map((asset) => depthAsset(asset, row.chainId)).sort(compareAsset);
+      const estimate = row.borrowEstimate;
+      venues.push({
+        id: row.id,
+        label: labels.get(row.id) ?? row.venue,
+        venue: row.venue,
+        chainId: row.chainId,
+        chainLabel: row.chainLabel,
+        collateralUsd: row.collateralUsd,
+        stableBorrowedUsd: row.stableBorrowedUsd,
+        utilization: row.utilization,
+        borrowApy: row.borrowApy,
+        borrowApyMin: row.borrowApyMin,
+        borrowApyMax: row.borrowApyMax,
+        stockBorrowedUsd: row.stockBorrowedUsd,
+        lendSupplyUsd: row.lendSupplyUsd,
+        source: row.source,
+        note: row.note ?? null,
+        estimateLabel: estimate
+          ? `Borrowed dollars are an estimate, measured ${formatLendingCapturedAt(estimate.asOf)}. ${estimate.method}${
+              estimate.lowerBoundUsd === null ? "" : ` Lower bound ${formatUsdCompact(estimate.lowerBoundUsd)}.`
+            }`
+          : null,
+        ltvLabel: ltvLabel(row.assets ?? []),
+        positionsNote: positionsNote(row),
+        assets,
+        history: venueHistory.get(row.id) ?? [],
+      });
+    }
+  }
+  const stocks = new Map<string, LendingDepthStock>();
+  for (const venue of venues) {
+    for (const asset of venue.assets) {
+      const stock = stocks.get(asset.ticker) ?? { ticker: asset.ticker, collateralUsd: null, places: [] };
+      stock.places.push({
+        venueId: venue.id,
+        venueLabel: venue.label,
+        chainId: venue.chainId,
+        chainLabel: venue.chainLabel,
+        symbol: asset.symbol,
+        wrapper: asset.wrapper,
+        address: asset.address,
+        collateralUsd: asset.collateralUsd,
+        collateralTokens: asset.collateralTokens,
+        maxLtv: asset.maxLtv,
+        borrowApy: venue.borrowApy,
+        utilization: venue.utilization,
+        source: venue.source,
+        priceNote: asset.priceNote,
+      });
+      if (asset.collateralUsd !== null) stock.collateralUsd = (stock.collateralUsd ?? 0) + asset.collateralUsd;
+      stocks.set(asset.ticker, stock);
+    }
+  }
+  const stockList = [...stocks.values()];
+  for (const stock of stockList) {
+    stock.places.sort((a, b) => (b.collateralUsd ?? -1) - (a.collateralUsd ?? -1) || a.venueLabel.localeCompare(b.venueLabel));
+  }
+  stockList.sort((a, b) => (b.collateralUsd ?? -1) - (a.collateralUsd ?? -1) || a.ticker.localeCompare(b.ticker));
+  return { chains, venues, stocks: stockList };
+}
