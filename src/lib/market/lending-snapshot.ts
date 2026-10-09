@@ -52,6 +52,11 @@ export interface LendingRow {
   /** Plain note about a gap in the row. Not a place for invented numbers. */
   note?: string | null;
   /**
+   * How a price drop is figured for this venue.
+   * Positions store bucketed health, not wallets. Absent on snapshots taken before loan health was captured.
+   */
+  loanHealth?: LendingLoanHealth | null;
+  /**
    * Set when stableBorrowedUsd is an estimate, not a pool total.
    * The dollars still live on stableBorrowedUsd so the desk total can include them.
    */
@@ -77,6 +82,27 @@ export interface LendingBorrowEstimate {
   /** ISO time the estimate was measured. May be earlier than the snapshot. */
   asOf: string;
   lowerBoundUsd: number | null;
+}
+
+/** Collateral that first crosses the liquidation line at this whole-percent drop. 101 means a 100% drop stays inside. */
+export interface LendingHealthBand {
+  dropPct: number;
+  collateralUsd: number;
+}
+
+export interface LendingLoanHealth {
+  method: "positions" | "pool";
+  asOf: string;
+  source: string;
+  /** Loans with a collateral price. Null on a pool estimate. */
+  loanCount: number | null;
+  /** Stock dollars in those loans, before a drop. Null on a pool estimate. */
+  collateralCoveredUsd: number | null;
+  /** Loans skipped because collateral dollars or health were missing. */
+  unpricedLoanCount: number | null;
+  bands: LendingHealthBand[];
+  /** Why this venue uses the pool estimate. Null when each loan was counted. */
+  fallback: string | null;
 }
 
 export interface LendingSourceNote {
@@ -364,6 +390,7 @@ function parseRow(value: unknown): LendingRow | null {
     assets: parseAssets(row.assets),
     note: asNonEmptyString(row.note),
     borrowEstimate: parseBorrowEstimate(row.borrowEstimate),
+    loanHealth: parseLoanHealth(row.loanHealth),
     source: asNonEmptyString(row.source) ?? "",
     error: asNonEmptyString(row.error),
   };
@@ -387,6 +414,43 @@ function parseAssets(value: unknown): LendingAsset[] {
     });
   }
   return assets;
+}
+
+function parseLoanHealth(value: unknown): LendingLoanHealth | null {
+  if (!value || typeof value !== "object") return null;
+  const health = value as Partial<LendingLoanHealth>;
+  if (health.method !== "positions" && health.method !== "pool") return null;
+  const asOf = asNonEmptyString(health.asOf);
+  const source = asNonEmptyString(health.source);
+  if (!asOf || source === null) return null;
+  const bands: LendingHealthBand[] = [];
+  if (Array.isArray(health.bands)) {
+    for (const item of health.bands) {
+      if (!item || typeof item !== "object") continue;
+      const band = item as Partial<LendingHealthBand>;
+      const dropPct = asReportedNumber(band.dropPct);
+      const collateralUsd = nullableUsd(band.collateralUsd);
+      if (dropPct === null || !Number.isInteger(dropPct) || dropPct < 0 || dropPct > 101 || collateralUsd === null) continue;
+      bands.push({ dropPct, collateralUsd });
+    }
+  }
+  bands.sort((a, b) => a.dropPct - b.dropPct || a.collateralUsd - b.collateralUsd);
+  return {
+    method: health.method,
+    asOf,
+    source,
+    loanCount: nullableCount(health.loanCount),
+    collateralCoveredUsd: nullableUsd(health.collateralCoveredUsd),
+    unpricedLoanCount: nullableCount(health.unpricedLoanCount),
+    bands,
+    fallback: asNonEmptyString(health.fallback),
+  };
+}
+
+function nullableCount(value: unknown): number | null {
+  const parsed = asReportedNumber(value);
+  if (parsed === null || !Number.isInteger(parsed) || parsed < 0) return null;
+  return parsed;
 }
 
 function parseBorrowEstimate(value: unknown): LendingBorrowEstimate | null {

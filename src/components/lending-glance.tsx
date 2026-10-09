@@ -152,6 +152,7 @@ export function LendingGlancePanel({
   depth,
   capturedLabel,
   totals,
+  riskLine,
   readError,
 }: {
   glance: LendingGlanceCopy;
@@ -161,6 +162,7 @@ export function LendingGlancePanel({
   depth: LendingDepth;
   capturedLabel: string | null;
   totals: LendingTotals;
+  riskLine: string;
   readError: string | null;
 }) {
   const [scopeId, setScopeId] = useState("all");
@@ -267,6 +269,9 @@ export function LendingGlancePanel({
 
       <section className="max-w-3xl space-y-3" data-lending-whatif>
         <h3 className="text-base font-medium text-foreground">What if it drops?</h3>
+        <p className="text-lg leading-7 text-foreground" data-lending-risk>
+          {riskLine}
+        </p>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <label className="sr-only" htmlFor="lending-drop-scope">
             Stock or venue
@@ -320,6 +325,11 @@ export function LendingGlancePanel({
         <p className="text-lg leading-7 text-foreground" data-lending-drop-answer>
           {answer?.sentence ?? "No lending snapshot yet."}
         </p>
+        {answer?.methodLine ? (
+          <p className="text-sm leading-6 text-muted-foreground" data-lending-drop-method>
+            {answer.methodLine}
+          </p>
+        ) : null}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           {scope && scope.kind !== "all" ? (
             <button type="button" className="text-sm text-foreground underline-offset-2 hover:underline" onClick={openScope}>

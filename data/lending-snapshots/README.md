@@ -2,6 +2,8 @@
 
 One America/New_York day per file. The schema is `equity-lending-v1`.
 
+When Morpho or Aave publishes each loan, the row's `loanHealth` stores bucketed health (how much stock crosses the line at each whole-percent drop), not wallets. Kamino, Jupiter, Lista, and Venus do not publish a market-wide loan list, so those rows store `method: "pool"` and the desk says so. Aave's per-token borrowing limit is `maxLtv` on each c-token.
+
 ```bash
 npm run snapshot:lending
 ```

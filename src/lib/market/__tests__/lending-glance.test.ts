@@ -10,8 +10,10 @@ import {
   lendingFillingFlags,
   lendingGlance,
   lendingPreviousRows,
+  lendingRiskLine,
   type LendingDropFraction,
 } from "../lending-glance";
+import { poolLoanHealth, positionLoanHealth } from "../lending-health";
 import { aggregateLendingTotals, parseLendingSnapshot, type LendingAsset, type LendingRow } from "../lending-snapshot";
 
 function asset(partial: Partial<LendingAsset> & Pick<LendingAsset, "symbol">): LendingAsset {
@@ -182,6 +184,72 @@ describe("lending glance", () => {
     expect(lendingDropAnswer([book], "stock:NOPE", 0.2).sentence).toMatch(/not in this snapshot/);
   });
 
+  it("uses stored loan buckets when a venue published them and labels the pool estimate", () => {
+    const positions = row({
+      id: "morpho-base",
+      venue: "Morpho",
+      chainId: "base",
+      chainLabel: "Base",
+      collateralUsd: 1_000,
+      stableBorrowedUsd: 100,
+      assets: [asset({ symbol: "NVDAc", collateralUsd: 1_000, maxLtv: 0.86 })],
+      loanHealth: positionLoanHealth({
+        asOf: "2026-10-09T12:00:00.000Z",
+        source: "morpho",
+        unpricedLoanCount: 0,
+        loans: [
+          { collateralUsd: 800, cushion: 0.545, alreadyPast: false },
+          { collateralUsd: 200, cushion: 0.099, alreadyPast: false },
+        ],
+      }),
+    });
+    const pool = row({
+      id: "kamino",
+      venue: "Kamino xStocks",
+      collateralUsd: 100,
+      stableBorrowedUsd: 40,
+      assets: [asset({ symbol: "SPYx", collateralUsd: 100, maxLtv: 0.5 })],
+      loanHealth: poolLoanHealth({
+        asOf: "2026-10-09T12:00:00.000Z",
+        source: "kamino",
+        fallback: "Kamino publishes a loan only when the wallet is known, not a list of every loan, so this is the pool estimate.",
+      }),
+    });
+    const mild = lendingDropAnswer([positions, pool], "all", 0.1);
+    expect(mild.collateralAtRiskUsd).toBe(200);
+    expect(mild.sentence).toBe("A 10% drop means about $200.0 of stock could be sold off to repay loans.");
+    expect(mild.methodLine).toBe("Morpho uses each loan. Kamino xStocks uses a pool estimate.");
+    expect(mild.method).toMatch(/reaches its liquidation price/);
+    expect(mild.method).toMatch(/wallet is known/);
+    expect(lendingDropAnswer([positions, pool], "all", 0.5).collateralAtRiskUsd).toBe(300);
+    expect(lendingDropAnswer([positions], "morpho-base", 0.1).collateralAtRiskUsd).toBe(200);
+    expect(lendingDropAnswer([pool], "kamino", 0.2).sentence).toMatch(/stays inside/);
+    expect(lendingRiskLine([positions, pool])).toBe(
+      "Most of the stock in these loans is safe unless prices fall more than 54%.",
+    );
+    const depth = buildLendingDepth([
+      {
+        schema: "equity-lending-v1",
+        date: "2026-10-09",
+        capturedAt: "2026-10-09T12:00:00.000Z",
+        rows: [positions, pool],
+        failures: [],
+      },
+    ]);
+    expect(depth.venues.find((venue) => venue.id === "morpho-base")?.positionsNote).toMatch(/not each wallet/);
+    expect(depth.venues.find((venue) => venue.id === "kamino")?.positionsNote).toMatch(/pool estimate/);
+    const gap = row({
+      ...positions,
+      loanHealth: positionLoanHealth({
+        asOf: "2026-10-09T12:00:00.000Z",
+        source: "morpho",
+        unpricedLoanCount: 20,
+        loans: [{ collateralUsd: 200, cushion: 0.099, alreadyPast: false }],
+      }),
+    });
+    expect(lendingDropAnswer([gap], "morpho-base", 0.1).sentence).toMatch(/priced stock/);
+  });
+
   it("reads the stored snapshots without inventing a jump or a breach", () => {
     const latest = parseLendingSnapshot(JSON.parse(readFileSync("data/lending-snapshots/2026-10-09.json", "utf8")));
     const prior = parseLendingSnapshot(JSON.parse(readFileSync("data/lending-snapshots/2026-10-08.json", "utf8")));
@@ -226,5 +294,6 @@ describe("lending glance", () => {
     expect(nvda?.places.length).toBeGreaterThan(1);
     expect(depth.chains.map((chain) => chain.chainId)).toContain("solana");
     expect(depth.chains.find((chain) => chain.chainId === "hyperevm")?.collateralUsd).toBeGreaterThan(0);
+    expect(lendingRiskLine(latest.rows)).toMatch(/Most of the stock in these loans|not figured yet/);
   });
 });

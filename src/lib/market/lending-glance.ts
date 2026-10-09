@@ -1,4 +1,5 @@
 import { formatUsdCompact } from "./format";
+import { collateralAtRisk, LENDING_PAST_LIMIT_USD, majoritySafeUntilPct, poolBreachDropPct, riskSentence } from "./lending-health";
 import { classifyLendingSymbol } from "./lending-stocks";
 import {
   aggregateLendingTotals,
@@ -8,6 +9,7 @@ import {
   groupLendingRows,
   type LendingAsset,
   type LendingDaySnapshot,
+  type LendingHealthBand,
   type LendingRow,
   type LendingTotals,
 } from "./lending-snapshot";
@@ -23,7 +25,7 @@ export const LENDING_FILLING_MIN_BORROWED_USD = 25_000;
 export const LENDING_DROP_FRACTIONS = [0.1, 0.2, 0.3, 0.5] as const;
 
 /** Half a cent. Exact equality stays inside the limit; float dust does not count as a breach. */
-const PAST_LIMIT_USD = 0.005;
+const PAST_LIMIT_USD = LENDING_PAST_LIMIT_USD;
 
 export type LendingDropFraction = (typeof LENDING_DROP_FRACTIONS)[number];
 
@@ -55,6 +57,8 @@ export interface LendingDropScope {
 export interface LendingDropAnswer {
   sentence: string;
   method: string;
+  /** One line naming which venues use each loan and which use a pool estimate. Null on older snapshots. */
+  methodLine: string | null;
   /** Pre-drop stock dollars past the line. 0 when measured and inside. Null when it cannot be figured. */
   collateralAtRiskUsd: number | null;
 }
@@ -392,34 +396,200 @@ function methodText(pieces: DropPieces): string {
   return [DROP_METHOD, estimate, ...pieces.notes, ...pieces.exclusions, WEEKEND_ORACLE].filter(Boolean).join(" ");
 }
 
-export function lendingDropAnswer(rows: readonly LendingRow[], scopeId: string, drop: number): LendingDropAnswer {
+function usesPositions(row: LendingRow): boolean {
+  const health = row.loanHealth;
+  return health?.method === "positions" && health.collateralCoveredUsd !== null;
+}
+
+function positionGap(row: LendingRow): boolean {
+  const health = row.loanHealth;
+  if (!health || health.method !== "positions") return false;
+  const unpriced = health.unpricedLoanCount ?? 0;
+  const priced = health.loanCount ?? 0;
+  if (!(unpriced > 0)) return false;
+  return priced / (priced + unpriced) < 0.9;
+}
+
+function dropSentence(pct: string, atRisk: number, pieces: DropPieces, gap: boolean): string {
+  if (atRisk > 0) {
+    const noun = gap ? "priced stock" : "stock";
+    return `A ${pct} drop means about ${formatUsdCompact(atRisk)} of ${noun} could be sold off to repay loans.`;
+  }
+  if (gap) return `A ${pct} drop stays inside the borrowing limit for loans that had a price. Loans with no price are left out.`;
+  const where = pieces.exclusions.length > 0 ? " where a limit is published" : "";
+  return `A ${pct} drop stays inside the borrowing limit${where}. No stock would be sold off to repay loans.`;
+}
+
+function unfiguredSentence(pct: string, pieces: DropPieces): string {
+  const missingDollars = pieces.exclusions.some((line) => line.includes("missing a dollar amount"));
+  const missingLimit = pieces.exclusions.some((line) => line.includes("borrowing limit"));
+  if (missingDollars && !missingLimit) return `A dollar amount is missing, so a ${pct} drop is not figured.`;
+  return `No borrowing limit is published here, so a ${pct} drop is not figured.`;
+}
+
+function answerFromPieces(pieces: DropPieces, drop: number, method: string, methodLine: string | null, gap: boolean): LendingDropAnswer {
   const pct = lendingDropPercentLabel(drop);
-  const pieces = piecesForScope(rows, scopeId);
   if (!pieces.known) {
-    return {
-      sentence: "That choice is not in this snapshot.",
-      method: methodText(pieces),
-      collateralAtRiskUsd: null,
-    };
+    return { sentence: "That choice is not in this snapshot.", method, methodLine, collateralAtRiskUsd: null };
   }
   if (pieces.slices.length === 0) {
-    const missingDollars = pieces.exclusions.some((line) => line.includes("missing a dollar amount"));
-    const missingLimit = pieces.exclusions.some((line) => line.includes("borrowing limit"));
-    const sentence = missingDollars && !missingLimit
-      ? `A dollar amount is missing, so a ${pct} drop is not figured.`
-      : `No borrowing limit is published here, so a ${pct} drop is not figured.`;
-    return { sentence, method: methodText(pieces), collateralAtRiskUsd: null };
+    return { sentence: unfiguredSentence(pct, pieces), method, methodLine, collateralAtRiskUsd: null };
   }
   let atRisk = 0;
   for (const slice of pieces.slices) {
     if (pastLimit(slice, drop)) atRisk += slice.collateralUsd;
   }
-  const where = pieces.exclusions.length > 0 ? " where a limit is published" : "";
-  const sentence =
-    atRisk > 0
-      ? `A ${pct} drop means about ${formatUsdCompact(atRisk)} of stock could be sold off to repay loans.`
-      : `A ${pct} drop stays inside the borrowing limit${where}. No stock would be sold off to repay loans.`;
-  return { sentence, method: methodText(pieces), collateralAtRiskUsd: atRisk };
+  return { sentence: dropSentence(pct, atRisk, pieces, gap), method, methodLine, collateralAtRiskUsd: atRisk };
+}
+
+function joinNames(names: readonly string[]): string {
+  if (names.length <= 1) return names[0] ?? "";
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
+}
+
+function methodLineFor(rows: readonly LendingRow[], scopeId: string): string | null {
+  if (scopeId.startsWith("stock:")) return "This stock uses a pool estimate.";
+  const scoped = scopeId === "all" ? rows : rows.filter((row) => row.id === scopeId);
+  const labeled = scoped.some((row) => row.loanHealth);
+  if (!labeled) return null;
+  const positioned: string[] = [];
+  const pooled: string[] = [];
+  const seen = new Set<string>();
+  for (const row of scoped) {
+    if (seen.has(row.venue)) continue;
+    const same = scoped.filter((other) => other.venue === row.venue);
+    seen.add(row.venue);
+    const positions = same.filter((other) => other.loanHealth?.method === "positions").length;
+    const pools = same.filter((other) => other.loanHealth?.method === "pool").length;
+    if (positions > 0 && pools === 0) positioned.push(row.venue);
+    else if (pools > 0 && positions === 0) pooled.push(row.venue);
+    else {
+      for (const other of same) {
+        const label = lendingVenueLabel(other, rows);
+        if (other.loanHealth?.method === "positions") positioned.push(label);
+        else pooled.push(label);
+      }
+    }
+  }
+  const parts: string[] = [];
+  if (positioned.length > 0) parts.push(`${joinNames(positioned)} ${positioned.length > 1 ? "use" : "uses"} each loan`);
+  if (pooled.length > 0) parts.push(`${joinNames(pooled)} ${pooled.length > 1 ? "use" : "uses"} a pool estimate`);
+  if (parts.length === 0) return null;
+  return `${parts.join(". ")}.`;
+}
+
+function venueHealthLine(row: LendingRow, rows: readonly LendingRow[]): string {
+  const label = lendingVenueLabel(row, rows);
+  const health = row.loanHealth;
+  if (health?.method === "positions") {
+    const count = health.loanCount ?? 0;
+    const priced = health.collateralCoveredUsd === null ? "" : `, ${formatUsdCompact(health.collateralCoveredUsd)} of stock priced`;
+    const gap = (health.unpricedLoanCount ?? 0) > 0 ? ` ${health.unpricedLoanCount} loans had no collateral price and are left out.` : "";
+    return `${label} uses each loan (${count} loans${priced}).${gap}`;
+  }
+  const why = health?.fallback ?? "Each loan was not in this snapshot.";
+  return `${label} uses the pool estimate. ${why}`;
+}
+
+function healthMethod(rows: readonly LendingRow[], scoped: readonly LendingRow[], pieces: DropPieces, usedPositions: boolean, stock: boolean): string {
+  const estimate = scoped.some((row) => row.borrowEstimate) ? "Venus borrowed dollars are an estimate, not a published pool total." : "";
+  const how = stock
+    ? "This stock uses the pool estimate. Loan health is stored for the whole venue, not one ticker. A pool estimate treats the pool as one loan and uses the collateral-weighted borrowing limit."
+    : [
+        usedPositions
+          ? "Each counted loan is past the line when this drop reaches its liquidation price. The dollars are that loan's stock before the drop."
+          : "",
+        pieces.slices.length > 0 || !usedPositions
+          ? "A pool estimate treats the whole pool as one loan and uses the collateral-weighted borrowing limit."
+          : "",
+        ...scoped.map((row) => venueHealthLine(row, rows)),
+      ]
+        .filter(Boolean)
+        .join(" ");
+  return [how, estimate, ...pieces.notes, ...pieces.exclusions, WEEKEND_ORACLE].filter(Boolean).join(" ");
+}
+
+function poolBands(row: LendingRow, rows: readonly LendingRow[]): LendingHealthBand[] {
+  const pieces = venuePieces(row, row.assets ?? [], lendingVenueLabel(row, rows));
+  return pieces.slices.map((slice) => ({
+    dropPct: poolBreachDropPct(slice.collateralUsd, slice.borrowedUsd, slice.maxLtv),
+    collateralUsd: slice.collateralUsd,
+  }));
+}
+
+/** One plain line for the whole book. Position buckets where a venue published loans, otherwise the pool estimate. */
+export function lendingRiskLine(rows: readonly LendingRow[]): string {
+  const bands: LendingHealthBand[] = [];
+  for (const row of rows) {
+    if (usesPositions(row) && row.loanHealth) {
+      bands.push(...row.loanHealth.bands);
+      continue;
+    }
+    bands.push(...poolBands(row, rows));
+  }
+  return riskSentence(majoritySafeUntilPct(bands));
+}
+
+export function lendingDropAnswer(rows: readonly LendingRow[], scopeId: string, drop: number): LendingDropAnswer {
+  const scoped = scopeId === "all" ? rows : scopeId.startsWith("stock:") ? rows : rows.filter((row) => row.id === scopeId);
+  const labeled = scoped.some((row) => row.loanHealth);
+  if (!labeled) return legacyDropAnswer(rows, scopeId, drop);
+  return healthDropAnswer(rows, scopeId, drop);
+}
+
+function legacyDropAnswer(rows: readonly LendingRow[], scopeId: string, drop: number): LendingDropAnswer {
+  const pieces = piecesForScope(rows, scopeId);
+  return answerFromPieces(pieces, drop, methodText(pieces), null, false);
+}
+
+function healthDropAnswer(rows: readonly LendingRow[], scopeId: string, drop: number): LendingDropAnswer {
+  const methodLine = methodLineFor(rows, scopeId);
+  if (scopeId.startsWith("stock:")) {
+    const pieces = stockPieces(rows, scopeId.slice("stock:".length));
+    const scoped = rows.filter((row) => (row.assets ?? []).some((asset) => classifyLendingSymbol(asset.symbol, row.chainId).ticker === scopeId.slice("stock:".length)));
+    return answerFromPieces(pieces, drop, healthMethod(rows, scoped, pieces, false, true), methodLine, false);
+  }
+  const selected = scopeId === "all" ? [...rows] : rows.filter((row) => row.id === scopeId);
+  if (scopeId !== "all" && selected.length === 0) {
+    return {
+      sentence: "That choice is not in this snapshot.",
+      method: WEEKEND_ORACLE,
+      methodLine,
+      collateralAtRiskUsd: null,
+    };
+  }
+  const positionRows = selected.filter(usesPositions);
+  const pieces = emptyPieces(true);
+  for (const row of selected) {
+    if (usesPositions(row)) continue;
+    const part = venuePieces(row, row.assets ?? [], lendingVenueLabel(row, selected));
+    pieces.slices.push(...part.slices);
+    pieces.exclusions.push(...part.exclusions);
+  }
+  const gap = positionRows.some(positionGap);
+  if (positionRows.length === 0 && pieces.slices.length === 0) {
+    return {
+      sentence: unfiguredSentence(lendingDropPercentLabel(drop), pieces),
+      method: healthMethod(rows, selected, pieces, false, false),
+      methodLine,
+      collateralAtRiskUsd: null,
+    };
+  }
+  let atRisk = 0;
+  for (const row of positionRows) {
+    if (!row.loanHealth) continue;
+    atRisk += collateralAtRisk(row.loanHealth.bands, drop);
+  }
+  for (const slice of pieces.slices) {
+    if (pastLimit(slice, drop)) atRisk += slice.collateralUsd;
+  }
+  return {
+    sentence: dropSentence(lendingDropPercentLabel(drop), atRisk, pieces, gap),
+    method: healthMethod(rows, selected, pieces, positionRows.length > 0, false),
+    methodLine,
+    collateralAtRiskUsd: atRisk,
+  };
 }
 
 export function lendingDropScopes(rows: readonly LendingRow[]): LendingDropScope[] {
@@ -498,6 +668,17 @@ function listsEachLoan(row: Pick<LendingRow, "id" | "venue">): boolean {
 }
 
 function positionsNote(row: LendingRow): string {
+  const health = row.loanHealth;
+  if (health?.method === "positions") {
+    const count = health.loanCount ?? 0;
+    const priced = health.collateralCoveredUsd === null ? "" : `, ${formatUsdCompact(health.collateralCoveredUsd)} of stock priced`;
+    const gap = (health.unpricedLoanCount ?? 0) > 0 ? ` ${health.unpricedLoanCount} loans had no collateral price and are left out.` : "";
+    return `${row.venue} publishes each loan. This snapshot keeps ${count} loans${priced}, not each wallet.${gap}`;
+  }
+  if (health?.method === "pool") {
+    const why = health.fallback ?? "Each loan was not available.";
+    return `${row.venue} uses the pool estimate. ${why}`;
+  }
   const who = listsEachLoan(row) ? `${row.venue} can list each loan. ` : "";
   return `${who}This snapshot stores the pool total and each token deposited, not each person's loan.`;
 }

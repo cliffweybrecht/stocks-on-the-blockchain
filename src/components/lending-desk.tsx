@@ -11,6 +11,7 @@ import {
   lendingFillingFlags,
   lendingGlance,
   lendingPreviousRows,
+  lendingRiskLine,
 } from "@/lib/market/lending-glance";
 import { lendingActionChips, lendingBoardRows, lendingChainShareParts } from "@/lib/market/lending-stocks";
 import { lendingChainLogo } from "@/lib/market/lending-logos";
@@ -209,6 +210,7 @@ export function LendingDesk({ model, days }: { model: LendingDeskModel; days: re
         depth={depth}
         capturedLabel={model.capturedAt ? `Snapshot ${formatLendingCapturedAt(model.capturedAt)}` : null}
         totals={model.totals}
+        riskLine={lendingRiskLine(model.rows)}
         readError={model.readError}
       />
 
