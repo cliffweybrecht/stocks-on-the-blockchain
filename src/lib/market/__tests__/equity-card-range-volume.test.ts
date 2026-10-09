@@ -113,15 +113,21 @@ describe("recorded snapshot files", () => {
 
   it("sums Base AAPLc across all seven newest closed days", () => {
     const volumes = equityCardRangeVolumesFromSnapshot(readSnapshot("base.json"), NOW);
-    expect(volumes[AAPL_C]?.["7d"]).toEqual({ volumeUsd: 31_610_281.9, days: 7 });
+    expect(volumes[AAPL_C]?.["7d"]).toEqual({ volumeUsd: 32_463_551.2, days: 7 });
     const thirty = volumes[AAPL_C]?.["30d"];
     expect(thirty?.days).toBeLessThan(30);
     expect(thirty?.days).toBe(volumes[AAPL_C]?.["14d"]?.days);
   });
 
-  it("finds no per-asset rows in the Robinhood or BNB snapshot files", () => {
+  it("finds no per-asset rows in Robinhood and sums backfilled BNB SPCXB", () => {
     expect(equityCardRangeVolumesFromSnapshot(readSnapshot("robinhood.json"), NOW)).toEqual({});
-    expect(equityCardRangeVolumesFromSnapshot(readSnapshot("bnb.json"), NOW)).toEqual({});
+    const bnb = equityCardRangeVolumesFromSnapshot(readSnapshot("bnb.json"), NOW);
+    const spcxb = "0xbe9d156892e55e7154bcd3cb0fea677f9d3103e1";
+    expect(bnb[spcxb]?.["7d"]?.days).toBe(7);
+    expect(bnb[spcxb]?.["7d"]?.volumeUsd).toBeCloseTo(40_273_797.76, 2);
+    expect(bnb[spcxb]?.["14d"]?.days).toBe(14);
+    expect(bnb[spcxb]?.["14d"]?.volumeUsd).toBeCloseTo(68_536_705.34, 2);
+    expect(bnb[spcxb]?.["30d"]).toEqual(bnb[spcxb]?.["14d"]);
   });
 
   it("keeps a DexScreener row and fills a day only the backfill has", () => {

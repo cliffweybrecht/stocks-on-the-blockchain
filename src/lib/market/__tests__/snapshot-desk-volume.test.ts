@@ -33,7 +33,7 @@ describe("Base snapshot file", () => {
   const nowT = Date.parse("2026-10-09T03:00:00Z") / 1000;
   const closed = closedSnapshotDeskDays(days, nowT);
 
-  it("reads the authoritative series from 2026-09-25 through 2026-10-07", () => {
+  it("reads the authoritative series from 2026-09-25 through 2026-10-08", () => {
     expect(days.map((day) => day.date)).toEqual([
       "2026-09-25",
       "2026-09-26",
@@ -48,8 +48,9 @@ describe("Base snapshot file", () => {
       "2026-10-05",
       "2026-10-06",
       "2026-10-07",
+      "2026-10-08",
     ]);
-    expect(closed).toEqual(days);
+    expect(closed.map((day) => day.date)).toEqual(days.map((day) => day.date).filter((date) => date <= "2026-10-07"));
   });
 
   it("keys every bar to America/New_York midnight of the Eastern day", () => {
@@ -63,21 +64,21 @@ describe("Base snapshot file", () => {
 
   it("keeps the 2026-10-05 lanes and confirmed issuers", () => {
     const day = days.find((row) => row.date === "2026-10-05");
-    expect(day?.combined24hUsd).toBeCloseTo(30_645_324.57, 2);
-    expect(day?.publicEquity24hUsd).toBeCloseTo(30_314_511.26, 2);
-    expect(day?.etfIndex24hUsd).toBeCloseTo(320_689.04, 2);
-    expect(day?.private24hUsd).toBeCloseTo(10_124.27, 2);
+    expect(day?.combined24hUsd).toBeCloseTo(75_226_104.87, 2);
+    expect(day?.publicEquity24hUsd).toBeCloseTo(69_556_685.96, 2);
+    expect(day?.etfIndex24hUsd).toBeCloseTo(401_780.95, 2);
+    expect(day?.private24hUsd).toBeCloseTo(5_267_637.96, 2);
     const issuers = snapshotDeskIssuerRows(day ? [day] : []);
     const coinbase = issuers.find((row) => row.slug === "coinbase");
     const st0x = issuers.find((row) => row.slug === "st0x");
     const centrifuge = issuers.find((row) => row.slug === "centrifuge");
     const backed = issuers.find((row) => row.slug === "backed");
     const anchored = issuers.find((row) => row.slug === "anchored");
-    expect(coinbase).toMatchObject({ official: true, equityUsd: 30_092_732.61, privateUsd: 9_698.36, etfUsd: null });
-    expect(st0x?.equityUsd).toBeCloseTo(221_770.85, 2);
-    expect(st0x?.etfUsd).toBeCloseTo(4_581.33, 2);
-    expect(st0x?.privateUsd).toBeCloseTo(425.91, 2);
-    expect(centrifuge?.etfUsd).toBeCloseTo(316_107.71, 2);
+    expect(coinbase).toMatchObject({ official: true, equityUsd: 69_278_427.44, privateUsd: 5_267_192.35, etfUsd: null });
+    expect(st0x?.equityUsd).toBeCloseTo(278_250.72, 2);
+    expect(st0x?.etfUsd).toBeCloseTo(85_273.87, 2);
+    expect(st0x?.privateUsd).toBeCloseTo(445.61, 2);
+    expect(centrifuge?.etfUsd).toBeCloseTo(316_507.08, 2);
     expect(centrifuge?.equityUsd).toBeNull();
     expect(backed?.equityUsd).toBeCloseTo(7.8, 2);
     expect(anchored?.equityUsd).toBeNull();
@@ -93,40 +94,40 @@ describe("Base snapshot file", () => {
 
   it("keeps the 2026-10-06 lanes", () => {
     const day = days.find((row) => row.date === "2026-10-06");
-    expect(day?.combined24hUsd).toBeCloseTo(28_614_559.48, 2);
-    expect(day?.publicEquity24hUsd).toBeCloseTo(28_332_450.44, 2);
-    expect(day?.etfIndex24hUsd).toBeCloseTo(277_577.3, 2);
-    expect(day?.private24hUsd).toBeCloseTo(4_531.74, 2);
+    expect(day?.combined24hUsd).toBeCloseTo(70_736_485, 2);
+    expect(day?.publicEquity24hUsd).toBeCloseTo(63_682_295.44, 2);
+    expect(day?.etfIndex24hUsd).toBeCloseTo(512_645.79, 2);
+    expect(day?.private24hUsd).toBeCloseTo(6_541_543.77, 2);
     const issuers = snapshotDeskIssuerRows(day ? [day] : []);
     expect(issuers.find((row) => row.slug === "coinbase")).toMatchObject({
       official: true,
-      equityUsd: 28_294_904.51,
-      privateUsd: 4_493.84,
+      equityUsd: 63_403_975.55,
+      privateUsd: 6_541_493.84,
       etfUsd: null,
     });
-    expect(issuers.find((row) => row.slug === "backed")?.equityUsd).toBeCloseTo(316.34, 2);
+    expect(issuers.find((row) => row.slug === "backed")?.equityUsd).toBeCloseTo(317.02, 2);
     expect(issuers.find((row) => row.slug === "dinari")?.equityUsd).toBeNull();
-    expect(issuers.find((row) => row.slug === "st0x")?.privateUsd).toBeCloseTo(37.9, 2);
+    expect(issuers.find((row) => row.slug === "st0x")?.privateUsd).toBeCloseTo(49.93, 2);
   });
 
   it("uses the 2026-10-07 snapshot as the last closed Base day", () => {
-    const day = days.at(-1);
+    const day = closed.at(-1);
     expect(day?.date).toBe("2026-10-07");
-    expect(day?.combined24hUsd).toBeCloseTo(37_535_102.57, 2);
-    expect(day?.publicEquity24hUsd).toBeCloseTo(31_092_555.43, 2);
-    expect(day?.etfIndex24hUsd).toBeCloseTo(285_474.59, 2);
-    expect(day?.private24hUsd).toBeCloseTo(6_157_072.55, 2);
+    expect(day?.combined24hUsd).toBeCloseTo(72_988_809.54, 2);
+    expect(day?.publicEquity24hUsd).toBeCloseTo(66_506_738.71, 2);
+    expect(day?.etfIndex24hUsd).toBeCloseTo(332_293.24, 2);
+    expect(day?.private24hUsd).toBeCloseTo(6_149_777.59, 2);
     const issuers = snapshotDeskIssuerRows(snapshotDeskDaysForRange(closed, "24h"));
     expect(issuers.find((row) => row.slug === "coinbase")).toMatchObject({
       official: true,
-      equityUsd: 31_072_521.61,
-      privateUsd: 6_157_071,
+      equityUsd: 66_143_003.29,
+      privateUsd: 6_149_774.57,
       etfUsd: null,
     });
     expect(issuers.find((row) => row.slug === "backed")?.equityUsd).toBeCloseTo(0.43, 2);
     expect(issuers.find((row) => row.slug === "dinari")?.equityUsd).toBeNull();
-    expect(issuers.find((row) => row.slug === "st0x")?.privateUsd).toBeCloseTo(1.55, 2);
-    expect(issuers.find((row) => row.slug === "centrifuge")?.etfUsd).toBeCloseTo(280_400.63, 2);
+    expect(issuers.find((row) => row.slug === "st0x")?.privateUsd).toBeCloseTo(3.02, 2);
+    expect(issuers.find((row) => row.slug === "centrifuge")?.etfUsd).toBeCloseTo(280_276.36, 2);
     expect(snapshotDeskHeadline(snapshotDeskDaysForRange(closed, "24h"), "24h", "Base").caption).toBe(
       "24H · 2026-10-07 America/New_York · last closed snapshot",
     );
@@ -139,12 +140,12 @@ describe("Base snapshot file", () => {
     const backed = rows.find((row) => row.slug === "backed")?.equityUsd;
     const dinari = rows.find((row) => row.slug === "dinari")?.equityUsd;
     const st0xPrivate = rows.find((row) => row.slug === "st0x")?.privateUsd;
-    expect(backed).toBeCloseTo(9.57, 2);
-    expect(dinari).toBeCloseTo(0.52, 2);
-    expect(st0xPrivate).toBeCloseTo(743.94, 2);
+    expect(backed).toBeCloseTo(9.59, 2);
+    expect(dinari).toBeCloseTo(0.3, 2);
+    expect(st0xPrivate).toBeCloseTo(779.77, 2);
     expect(formatUsdCompact(backed)).toBe("$9.6");
-    expect(formatUsdCompact(dinari)).toBe("$0.5");
-    expect(formatUsdCompact(st0xPrivate)).toBe("$743.9");
+    expect(formatUsdCompact(dinari)).toBe("$0.3");
+    expect(formatUsdCompact(st0xPrivate)).toBe("$779.8");
   });
 
   it("rejects a row from another chain and keeps a reported zero", () => {
@@ -212,27 +213,27 @@ describe("BNB snapshot file", () => {
   it("keeps the 2026-10-05 lanes and drops the in-progress Eastern day", () => {
     const day = closed[closed.length - 1];
     expect(day?.date).toBe("2026-10-05");
-    expect(day?.combined24hUsd).toBeCloseTo(27_166_818.630000003, 2);
-    expect(day?.publicEquity24hUsd).toBeCloseTo(17_388_261.13, 2);
-    expect(day?.etfIndex24hUsd).toBeCloseTo(9_756_028.220000003, 2);
-    expect(day?.private24hUsd).toBeCloseTo(22_529.28, 2);
+    expect(day?.combined24hUsd).toBeCloseTo(53_682_083.96, 2);
+    expect(day?.publicEquity24hUsd).toBeCloseTo(31_468_194.28, 2);
+    expect(day?.etfIndex24hUsd).toBeCloseTo(22_165_547.65, 2);
+    expect(day?.private24hUsd).toBeCloseTo(48_342.03, 2);
     const duringOct5 = Date.parse("2026-10-05T12:00:00-04:00") / 1000;
     expect(closedSnapshotDeskDays(days, duringOct5).at(-1)?.date).toBe("2026-10-04");
   });
 
-  it("reads issuersByLane and leaves earlier days without a split", () => {
+  it("reads issuersByLane, including the September days that originally had no split", () => {
     const early = snapshotDeskIssuerRows(days.filter((day) => day.date <= "2026-09-26"));
-    expect(early).toEqual([]);
+    expect(early.find((row) => row.slug === "bstocks")?.equityUsd).toBeCloseTo(65_782_800.53, 2);
     const rows = snapshotDeskIssuerRows(snapshotDeskDaysForRange(closed, "24h"));
-    expect(rows.find((row) => row.slug === "bstocks")?.equityUsd).toBeCloseTo(16_634_238.970000003, 2);
+    expect(rows.find((row) => row.slug === "bstocks")?.equityUsd).toBeCloseTo(30_560_828.07, 2);
     expect(rows.find((row) => row.slug === "ondo")).toMatchObject({
       official: true,
-      equityUsd: expect.closeTo(753_952.5000000002, 2),
-      etfUsd: expect.closeTo(3_092_100.2800000003, 2),
-      privateUsd: expect.closeTo(4_886.71, 2),
+      equityUsd: expect.closeTo(617_350, 2),
+      etfUsd: expect.closeTo(8_475_948.56, 2),
+      privateUsd: null,
     });
-    expect(rows.find((row) => row.slug === "xstocks")?.equityUsd).toBeCloseTo(69.66, 2);
-    expect(rows.find((row) => row.slug === "paimon")?.privateUsd).toBeCloseTo(17_573.15, 2);
+    expect(rows.find((row) => row.slug === "xstocks")?.equityUsd).toBeNull();
+    expect(rows.find((row) => row.slug === "paimon")?.privateUsd).toBeCloseTo(48_342.03, 2);
     expect(rows.find((row) => row.slug === "colb")?.privateUsd).toBeNull();
     expect(bnbIssuerPresentation("ondo").official).toBe(true);
     expect(bnbIssuerPresentation("fourmeme")).toEqual({ label: "Four.meme 4Stock", official: true });
@@ -292,7 +293,7 @@ describe("home snapshot desks", () => {
     const bnbClosed = closedSnapshotDeskDays(parseSnapshotDeskDays(readDesk("bnb.json"), BNB_DESK), nowT);
     const bnb = snapshotHomeChainVolume(BNB_DESK, bnbClosed);
     const lastBnb = bnbClosed.at(-1);
-    expect(chainCombinedVolume24h(base)).toBeCloseTo(37_535_102.57, 1);
+    expect(chainCombinedVolume24h(base)).toBeCloseTo(72_988_809.54, 1);
     expect(chainCombinedVolume24h(bnb)).toBeCloseTo(
       (lastBnb?.publicEquity24hUsd ?? 0) + (lastBnb?.private24hUsd ?? 0) + (lastBnb?.etfIndex24hUsd ?? 0),
       1,
@@ -312,9 +313,9 @@ describe("home snapshot desks", () => {
         bnb,
       ],
     );
-    expect(ranked.map((row) => row.id)).toEqual(["solana", "robinhood-chain", "base", "bnb"]);
+    expect(ranked.map((row) => row.id)).toEqual(["solana", "base", "robinhood-chain", "bnb"]);
     expect(ranked.filter((row) => row.id === "base")).toHaveLength(1);
-    expect(ranked[2]?.name).toBe("Base");
+    expect(ranked[1]?.name).toBe("Base");
   });
 
   it("does not invent a 7D bar before Base snapshots begin", () => {

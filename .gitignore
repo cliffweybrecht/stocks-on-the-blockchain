@@ -51,6 +51,7 @@ next-env.d.ts
 !/data/volume-snapshots/base.json
 !/data/volume-snapshots/base-pools.json
 !/data/volume-snapshots/bnb.json
+!/data/volume-snapshots/bnb-pools.json
 !/data/volume-snapshots/solana-asset-daily.json
 !/data/volume-snapshots/robinhood-asset-daily.json
 !/data/volume-snapshots/base-asset-daily.json
