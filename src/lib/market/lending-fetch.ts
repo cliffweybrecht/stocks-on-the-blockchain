@@ -293,7 +293,7 @@ async function aaveBorrowedHolders(reserveIds: readonly string[]): Promise<strin
 
 async function aaveUserPositions(holders: readonly string[]): Promise<unknown[]> {
   const positions: unknown[] = [];
-  const batchSize = 15;
+  const batchSize = 10;
   for (let index = 0; index < holders.length; index += batchSize) {
     const batch = holders.slice(index, index + batchSize);
     const variables: Record<string, string> = {};

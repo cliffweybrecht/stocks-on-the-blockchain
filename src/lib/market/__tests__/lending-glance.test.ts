@@ -14,7 +14,7 @@ import {
   type LendingDropFraction,
 } from "../lending-glance";
 import { poolLoanHealth, positionLoanHealth } from "../lending-health";
-import { aggregateLendingTotals, parseLendingSnapshot, type LendingAsset, type LendingRow } from "../lending-snapshot";
+import { aggregateLendingTotals, formatLendingFractionPct, parseLendingSnapshot, type LendingAsset, type LendingRow } from "../lending-snapshot";
 
 function asset(partial: Partial<LendingAsset> & Pick<LendingAsset, "symbol">): LendingAsset {
   return {
@@ -259,33 +259,47 @@ describe("lending glance", () => {
     const days = [prior, latest];
     expect(lendingPreviousRows(days)?.[0]?.id).toBe(prior.rows[0]?.id);
     const flags = lendingFillingFlags(latest.rows, prior.rows);
-    expect(flags.map((flag) => flag.venueId)).toEqual(["kamino-xstocks"]);
+    expect(flags[0]?.venueId).toBe("kamino-xstocks");
+    expect(flags[0]?.kind).toBe("full");
     expect(flags.some((flag) => flag.venueId === "morpho-hyperevm")).toBe(false);
     const totals = aggregateLendingTotals(latest.rows);
     const glance = lendingGlance(latest.rows, totals, flags);
+    const kaminoRow = latest.rows.find((row) => row.id === "kamino-xstocks");
     expect(glance.tone).toBe("stretched");
     expect(glance.sentence).toBe(
-      `${formatUsdCompact(totals.collateralUsd)} of stock tokens are locked and ${formatUsdCompact(totals.stableBorrowedUsd)} is borrowed against them. The busiest pool, Kamino xStocks, is 90.2% full.`,
+      `${formatUsdCompact(totals.collateralUsd)} of stock tokens are locked and ${formatUsdCompact(totals.stableBorrowedUsd)} is borrowed against them. The busiest pool, Kamino xStocks, is ${formatLendingFractionPct(kaminoRow?.utilization)} full.`,
     );
     expect(glance.toneLine).toBe("A bigger pool is at least 90% full.");
+    expect(lendingRiskLine(latest.rows)).toBe("Most of the stock in these loans is safe unless prices fall more than 55%.");
     const scopes = lendingDropScopes(latest.rows);
     const table = lendingDropTable(latest.rows, scopes);
     const mild = table.all?.[lendingDropKey(0.1 as LendingDropFraction)];
     const mid = table.all?.[lendingDropKey(0.2 as LendingDropFraction)];
-    expect(mild?.collateralAtRiskUsd).toBe(0);
-    expect(mild?.sentence).toMatch(/stays inside the borrowing limit where a limit is published/);
-    expect(mild?.sentence).toMatch(/No stock would be sold off/);
-    expect(mid?.sentence).toMatch(/^A 20% drop means about \$3\.0M of stock could be sold off to repay loans\.$/);
-    expect(mid?.method).toMatch(/Aave/);
-    expect(mid?.method).toMatch(/estimate/);
+    expect(mild?.sentence).toBe("A 10% drop means about $9.3K of stock could be sold off to repay loans.");
+    expect(mid?.sentence).toBe("A 20% drop means about $3.4M of stock could be sold off to repay loans.");
+    expect(mid?.methodLine).toBe(
+      "Aave V4 Coinbase stocks and Morpho use each loan. Kamino xStocks, Kamino Sentora / Kraken, Jupiter Lend, Venus, and Lista use a pool estimate.",
+    );
+    expect(mid?.method).toMatch(/each loan/);
+    expect(mid?.method).toMatch(/pool estimate/);
+    expect(mid?.method).toMatch(/wallet is known/);
     expect(mid?.method).toMatch(/Sunday 8:00 PM Eastern/);
     expect(table["kamino-xstocks"]?.[lendingDropKey(0.5 as LendingDropFraction)]?.sentence).toMatch(/stays inside/);
-    expect(table["aave-v4-base-coinbase"]?.[lendingDropKey(0.2 as LendingDropFraction)]?.collateralAtRiskUsd).toBeNull();
+    const aaveDrop = table["aave-v4-base-coinbase"]?.[lendingDropKey(0.2 as LendingDropFraction)];
+    expect(aaveDrop?.collateralAtRiskUsd).toBeGreaterThan(0);
+    expect(aaveDrop?.methodLine).toBe("Aave V4 Coinbase stocks uses each loan.");
+    const aaveRow = latest.rows.find((row) => row.id === "aave-v4-base-coinbase");
+    expect(aaveRow?.assets?.find((asset) => asset.symbol === "NVDAc")?.maxLtv).toBeCloseTo(0.7, 6);
+    expect(aaveRow?.loanHealth?.method).toBe("positions");
+    expect(aaveRow?.loanHealth?.loanCount).toBe(166);
     const depth = buildLendingDepth(days);
     const kamino = depth.venues.find((venue) => venue.id === "kamino-xstocks");
     expect(kamino?.history.map((point) => point.date)).toEqual(["2026-10-08", "2026-10-09"]);
-    expect(kamino?.positionsNote).toMatch(/can list each loan/);
-    expect(kamino?.positionsNote).toMatch(/not each person's loan/);
+    expect(kamino?.positionsNote).toMatch(/pool estimate/);
+    expect(kamino?.positionsNote).toMatch(/wallet is known/);
+    const morpho = depth.venues.find((venue) => venue.id === "morpho-base");
+    expect(morpho?.positionsNote).toMatch(/publishes each loan/);
+    expect(morpho?.positionsNote).toMatch(/not each wallet/);
     expect(kamino?.assets[0]?.collateralUsd).not.toBeNull();
     const venus = depth.venues.find((venue) => venue.id === "venus-bnb");
     expect(venus?.estimateLabel).toMatch(/Lower bound/);
