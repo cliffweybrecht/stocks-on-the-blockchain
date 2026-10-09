@@ -8,6 +8,7 @@ registry with the other public BNB listings the desk has to cover:
 - bStocks BEP-20s from the Jumper RWA catalog (bstocks.finance 403s)
 - Colb Finance pre-IPO tokens in the BNB section of the Colb docs
 - Paimon pre-IPO SPV tokens (not the Paimon Prime vault)
+- Four.meme 4Stock public equities from FOURMEME_4STOCKS (no contract registry)
 
 Leveraged/inverse products, perps, synthetics, fan tokens, tokenized
 treasuries, Paimon Prime, and meme tickers stay out. Crypto, commodities,
@@ -40,6 +41,7 @@ COLB_CONTRACTS = "https://docs.colb.finance/getting-started/smart-contracts.md"
 COLB_CONTRACTS_HTML = "https://docs.colb.finance/getting-started/smart-contracts"
 PAIMON_TRADE = "https://app.paimon.finance/trade"
 PAIMON_DOCS = "https://paimon-finance.gitbook.io/paimon.finance"
+FOURMEME_DOCS = "https://four-meme.gitbook.io/four.meme/stock-meme/4stock"
 
 CHAIN_ID = 56
 CHAIN_SLUG = "bsc"
@@ -65,6 +67,15 @@ COLB_BNB_FALLBACK = (
     ("CANP", "Colb Anthropic", "0xdc22f0a9a60eee3697e925414bdb4580d1c35f91"),
     ("CREV", "Colb Revolut", "0xe626cd87f9ec3c9cc48ebb2689e427f544554608"),
 )
+# Four.meme 4Stock. The docs describe the product and do not publish contracts,
+# and the four.meme token search is a meme-token index (and 403s from here).
+# Extend this tuple when another 4Stock mint is published.
+# (symbol, name, address, underlying ticker)
+# BNC4 verified on DexScreener as "Cea Industries" / BNC4, the 1:1
+# CEA Industries (Nasdaq: BNC) wrapper.
+FOURMEME_4STOCKS = (
+    ("BNC4", "Cea Industries", "0x7C8D5502b544dDAf8852Fc46D1174E34876D545C", "BNC"),
+)
 
 ISSUER_SLUGS = {
     "ondo": "ondo",
@@ -77,6 +88,10 @@ ISSUER_SLUGS = {
     "colb finance": "colb",
     "paimon": "paimon",
     "paimon finance": "paimon",
+    "fourmeme": "fourmeme",
+    "four.meme": "fourmeme",
+    "four.meme 4stock": "fourmeme",
+    "4stock": "fourmeme",
 }
 
 # Plain ETFs stay in. These tickers are leveraged or inverse products.
@@ -684,6 +699,25 @@ def add_paimon(text: str, book: Book) -> None:
     )
 
 
+def add_fourmeme(book: Book) -> int:
+    """Public-equity 4Stock mints. The seed list is the whole registry."""
+    added = 0
+    for symbol, name, address, ticker in FOURMEME_4STOCKS:
+        if book.add(
+            symbol=symbol,
+            name=name,
+            address=address,
+            issuer="fourmeme",
+            source="fourmeme",
+            ticker=ticker,
+            underlying=ticker,
+            kind="equity",
+            kind_raw="equity",
+        ):
+            added += 1
+    return added
+
+
 def rows_from_stocksonchain(data: Any) -> tuple[list[dict], list[str]]:
     book = Book()
     stocks = _stocks(data)
@@ -832,6 +866,15 @@ def load_universe(fetch: Fetch | None = None) -> tuple[list[dict], list[str], di
     elif book.added_by_source.get("paimon"):
         statuses["paimon"]["added"] = book.added_by_source.get("paimon", 0)
         warnings.append("paimon trade page failed; documented pSPCX was still included")
+
+    before = len(book.rows)
+    add_fourmeme(book)
+    statuses["fourmeme"] = {
+        "url": FOURMEME_DOCS,
+        "status": "ok",
+        "added": len(book.rows) - before,
+        "note": "static 4Stock seed; docs do not publish contracts",
+    }
 
     if book.rows:
         info = ", ".join(f"{slug}={count}" for slug, count in sorted(count_issuers(book.rows).items()))
