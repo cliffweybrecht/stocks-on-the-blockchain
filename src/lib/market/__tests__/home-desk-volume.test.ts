@@ -201,13 +201,25 @@ describe("recorded Solana and Robinhood snapshots", () => {
     nowT,
   );
 
-  it("sums both desks on the same closed Eastern days through 2026-10-05", () => {
+  it("sums both desks on the last 7 closed Eastern days as of noon ET 2026-10-07", () => {
     const merged = mergeHomeDeskSnapshotPoints(solana, robinhood, nowT);
     const seven = filterVolumeRange(merged, "7d");
     expect(seven).toHaveLength(7);
-    expect(sumVolumePoints(seven)).toBeCloseTo(1_257_253_746.26, 1);
+    // Sep 29 is still recorded. It sits outside this window because the
+    // 2026-10-06 Solana snapshot is closed at this clock. Robinhood has no
+    // 2026-10-06 row, so that day keeps the Solana total alone.
+    expect(seven.map((point) => new Date(point.t * 1000).toISOString().slice(0, 10))).toEqual([
+      "2026-09-30",
+      "2026-10-01",
+      "2026-10-02",
+      "2026-10-03",
+      "2026-10-04",
+      "2026-10-05",
+      "2026-10-06",
+    ]);
+    expect(sumVolumePoints(seven)).toBeCloseTo(995_384_139.84, 1);
     const solanaSeven = sumVolumePoints(filterVolumeRange(solana, "7d"));
-    expect(solanaSeven).toBeCloseTo(890_317_854.41, 1);
+    expect(solanaSeven).toBeCloseTo(700_511_148.9, 1);
     expect(sumVolumePoints(seven)).toBeGreaterThan(solanaSeven ?? 0);
 
     const fourteen = filterVolumeRange(merged, "14d");
