@@ -32,11 +32,12 @@ captureEquityPerpsSnapshot()
     }).format(new Date(capturedMs));
     console.log(`Equity perp snapshot ${day.date} captured ${et}`);
     console.log(
-      `Headline ${billions(view.headlineUsd)}  onchain ${billions(view.onchainUsd)}  CEX ${billions(view.cexDirectUsd)}  Binance+Bybit ${billions(view.cexCoingeckoUsd)}`,
+      `Headline ${billions(view.headlineUsd)}  onchain ${billions(view.onchainUsd)}  major CEX ${billions(view.cexDirectUsd)}  Binance+Bybit ${billions(view.cexCoingeckoUsd)}  long-tail ${billions(view.longTailUsd)}  excluded ${billions(view.excludedUsd)}`,
     );
+    console.log(`Venues ${view.venueCount}  markets ${view.marketCount}  pre-IPO ${billions(view.preipoUsd)}`);
     for (const venue of view.venues) {
       const vol = venue.volumeUsd === null ? "—".padStart(10) : `${(venue.volumeUsd / 1e6).toFixed(1)}M`.padStart(10);
-      const flag = venue.error ? `  ERROR ${venue.error}` : "";
+      const flag = venue.error ? `  ERROR ${venue.error}` : venue.credible ? "" : "  EXCLUDED";
       console.log(`  ${venue.tier.padEnd(14)} ${venue.venue.padEnd(32)} ${String(venue.marketCount).padStart(4)} ${vol}${flag}`);
     }
   })

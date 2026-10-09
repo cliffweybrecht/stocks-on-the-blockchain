@@ -34,9 +34,15 @@ export function PerpsHomeCard({ summary }: { summary: PerpsHomeSummary }) {
         </p>
         <div className="mt-3 grid grid-cols-3 gap-3">
           <Tier label="Onchain" value={summary.onchainUsd} />
-          <Tier label="CEX" value={summary.cexDirectUsd} />
+          <Tier label="Major CEX" value={summary.cexDirectUsd} />
           <Tier label="Binance+Bybit" value={summary.cexCoingeckoUsd} />
         </div>
+        {summary.longTailUsd !== null || summary.excludedUsd !== null ? (
+          <p className="mt-2 text-[11px] text-muted-foreground" data-perps-home-coverage>
+            {summary.longTailUsd !== null ? `Long-tail ${formatUsdCompact(summary.longTailUsd)} is not in this total. ` : ""}
+            {summary.excludedUsd !== null ? `Volume/OI screen holds out ${formatUsdCompact(summary.excludedUsd)}.` : ""}
+          </p>
+        ) : null}
       </Link>
     </section>
   );
