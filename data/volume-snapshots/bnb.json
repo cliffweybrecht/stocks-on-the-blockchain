@@ -1929,6 +1929,2101 @@
         }
       },
       "method": "BNB chainId 56 only; classify ETF/index before private; private admits Colb, Paimon, or registry kind preipo|private with a private-company signal; crypto, commodities, generic baskets, copycats, leveraged/inverse, perps, fan tokens, treasuries, and Paimon Prime stay out; public equity, pre-IPO, and ETF for every issuer; sumNullable of DexScreener volume.h24 across unique BNB pools; issuersByLane is that sum partitioned by issuer inside equity, etf, and private; null means no reported volume (not zero)"
+    },
+    {
+      "date": "2026-10-08",
+      "t": 1791432000,
+      "publicEquity24hUsd": 11303089.799999997,
+      "private24hUsd": 28216.89,
+      "etfIndex24hUsd": 9310488.49,
+      "combined24hUsd": 20641795.18,
+      "issuersByLane": {
+        "equity": {
+          "bstocks": {
+            "usd": 10717203.629999997,
+            "mints": 54,
+            "pools": 50
+          },
+          "fourmeme": {
+            "usd": 504997.31999999995,
+            "mints": 1,
+            "pools": 11
+          },
+          "ondo": {
+            "usd": 80877.71999999997,
+            "mints": 332,
+            "pools": 43
+          },
+          "xstocks": {
+            "usd": 11.129999999999999,
+            "mints": 1200,
+            "pools": 2
+          }
+        },
+        "etf": {
+          "bstocks": {
+            "usd": 7400114.37,
+            "mints": 5,
+            "pools": 5
+          },
+          "ondo": {
+            "usd": 1910374.12,
+            "mints": 111,
+            "pools": 11
+          },
+          "xstocks": {
+            "usd": null,
+            "mints": 52,
+            "pools": 0
+          }
+        },
+        "private": {
+          "colb": {
+            "usd": null,
+            "mints": 3,
+            "pools": 0
+          },
+          "ondo": {
+            "usd": 312.5,
+            "mints": 1,
+            "pools": 1
+          },
+          "paimon": {
+            "usd": 27860.71,
+            "mints": 5,
+            "pools": 3
+          },
+          "xstocks": {
+            "usd": 43.68,
+            "mints": 1,
+            "pools": 1
+          }
+        }
+      },
+      "assets": [
+        {
+          "address": "0x10343ef7da3301493d7ecb647d68a288c6c1db2f",
+          "symbol": "AAOIB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.2,
+          "displayedLiquidityUsd": 4.58,
+          "pools": [
+            {
+              "pairAddress": "0xa87e051Aa7819aBABff7b64A4CcB9cB7B75c17ba",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.2,
+              "liquidityUsd": 4.58
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x431a3bee82e2ca41e49895cbece5bb0f76a89b7a",
+          "symbol": "AAPLB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 322691.43,
+          "displayedLiquidityUsd": 494156.97,
+          "pools": [
+            {
+              "pairAddress": "0xe9b9998B2EC5430D2246c7f1F8D9f298c97D7365",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 322691.43,
+              "liquidityUsd": 494156.97
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x390a684EF9cADE28A7AD0DFa61AB1Eb3842618c4",
+          "symbol": "AAPLon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 103.78,
+          "displayedLiquidityUsd": 8055.42,
+          "pools": [
+            {
+              "pairAddress": "0x061306dF92c6a0538154A40F060573Be638B1066",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 103.78,
+              "liquidityUsd": 8055.42
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x1282493ede6a22753d45cb2c0fdbd8d35e97555a",
+          "symbol": "ALABB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1.43,
+          "displayedLiquidityUsd": 203.56,
+          "pools": [
+            {
+              "pairAddress": "0x0274f6c78C10d65028a5Ad336Bb522f16ce2b236",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 1.43,
+              "liquidityUsd": 203.56
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x75fd4cf6f8392e41e70391d60c90c0d5211603a1",
+          "symbol": "AMDB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0xEf5aE7a2140e1cA81e2838b7b0d68139071FFFfF:4meme",
+              "dexId": "fourmeme",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x1a4b499833a79a09ad7cf1d42d7dacf71e92eb00",
+          "symbol": "AMZNB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 72331.39,
+          "displayedLiquidityUsd": 217664.55,
+          "pools": [
+            {
+              "pairAddress": "0x7530beb7Bde5843f668cf31b996fa1F748C9b6B1",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 72331.39,
+              "liquidityUsd": 217664.55
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x4553cFe1C09f37f38b12dC509F676964e392F8Fc",
+          "symbol": "AMZNon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 336.62,
+          "displayedLiquidityUsd": 6370.01,
+          "pools": [
+            {
+              "pairAddress": "0x8617Ba6DEEE616694601ADc41Ab7ffE0e610907E",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 336.62,
+              "liquidityUsd": 6370.01
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0xd42a79ebb7f527f40faecd196ffb47ad5e8d6f8c",
+          "symbol": "ARMB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0x58e71097509ee24e3B836E812C7317D283DEfffF:4meme",
+              "dexId": "fourmeme",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0xfbfb4f79cfb4c34dcd7c82bdee5a0fa199b2e7f9",
+          "symbol": "ASMLB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0x9C8C296c01c147B3D043C54217f2c15109aCFfff:4meme",
+              "dexId": "fourmeme",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x58b6f5feeb8436489f5bf4a56619092b1fa8e777",
+          "symbol": "ASTSB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.78,
+          "displayedLiquidityUsd": 46.45,
+          "pools": [
+            {
+              "pairAddress": "0xB59Fa44E6f3329Aa1fE4cd2D6740eDb5e2b0ED79",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.78,
+              "liquidityUsd": 46.45
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x45Abf29515bc23F8c0Ed2a06584444cE473A75FB",
+          "symbol": "ASTSon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.73,
+          "displayedLiquidityUsd": 376.43,
+          "pools": [
+            {
+              "pairAddress": "0xc1c91132F6Dc1F096DccF1e7C599343ce9461f0b",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.73,
+              "liquidityUsd": 376.43
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x76682c454467b3a1150ad8b6a92fc5ee2c21d7ed",
+          "symbol": "AVGOB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0xf6e6b044C4A33105fE279Cbe7EED730D900D3434",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x9bdc8b470dbf89dbcb123587c6f5e49cca3463be",
+          "symbol": "AXTIB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0xC8EE047c3275879433FD1d6Bd8d8e46F70c88048",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x4ef9d3062c7f6eba4aae4990c5036598c6eff4ec",
+          "symbol": "BABAB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 2034922.66,
+          "displayedLiquidityUsd": 2508612.36,
+          "pools": [
+            {
+              "pairAddress": "0xfD95CB1391999006Eb91797a7c62acFe88b20292",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 2034922.66,
+              "liquidityUsd": 2508612.36
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0xd5964f3fcee8D649995AB88F04b8982539c282D2",
+          "symbol": "BABAon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 688.18,
+          "displayedLiquidityUsd": 16.59,
+          "pools": [
+            {
+              "pairAddress": "0x07B3CF00a464176d0B985186A53fEB3a3Ab4c8C0",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 688.18,
+              "liquidityUsd": 16.59
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x5519de00f5388c17d886b97cb5d2d43a812a82bc",
+          "symbol": "BEB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 384.84,
+          "displayedLiquidityUsd": 759.33,
+          "pools": [
+            {
+              "pairAddress": "0x0db4DD00432cccEA80fBB8A477B5c6d409E99813",
+              "dexId": "uniswap",
+              "volume24hUsd": 384.84,
+              "liquidityUsd": 759.33
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x17D03aE104a9D12E9E5794Efb109B817Dd7f3404",
+          "symbol": "BEon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 7.89,
+          "displayedLiquidityUsd": 207.73,
+          "pools": [
+            {
+              "pairAddress": "0x70E4880C101e3eDDEB3A604C1784F422ceB8AFaf",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 7.89,
+              "liquidityUsd": 207.73
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x467e59ce5D5fe01686D4A80dd1E1DAE13549AA6c",
+          "symbol": "BIDUon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.36,
+          "displayedLiquidityUsd": 6.56,
+          "pools": [
+            {
+              "pairAddress": "0xB6bA333Db176F14E6C495204D835Fc39993A7Ff3",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.36,
+              "liquidityUsd": 6.56
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x91fc7371d6dE682A1e8CFcB4EB7dA693312A03a4",
+          "symbol": "BILIon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 4288.42,
+          "displayedLiquidityUsd": 32086.27,
+          "pools": [
+            {
+              "pairAddress": "0x33E1e31133a986FfB1A51e3Be1e0fC86Eb495C2F",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 4288.42,
+              "liquidityUsd": 32086.27
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x3548da95a9effe481e8604664d75e95821e557f5",
+          "symbol": "BMNRB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 11085.78,
+          "displayedLiquidityUsd": 105394.39,
+          "pools": [
+            {
+              "pairAddress": "0x8fB62e3F2615e4E46127d20A2D36e7e5c95f8D7C",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 11085.78,
+              "liquidityUsd": 105394.39
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x52AD57A7eA642E99A892AFc79E937B383f1b59e9",
+          "symbol": "BMNRon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 18.06,
+          "displayedLiquidityUsd": 225.68,
+          "pools": [
+            {
+              "pairAddress": "0x8A0822Ac5BC0Cfd4b09c7B58c6A54b282A7636E2",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 18.06,
+              "liquidityUsd": 225.68
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x7C8D5502b544dDAf8852Fc46D1174E34876D545C",
+          "symbol": "BNC4",
+          "instrumentKind": "equity",
+          "volume24hUsd": 504997.32,
+          "displayedLiquidityUsd": 939138.15,
+          "pools": [
+            {
+              "pairAddress": "0xbec6906a984f4695aca0f15BaFa7de5Eb45b54aB",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 370374.02,
+              "liquidityUsd": 842454.62
+            },
+            {
+              "pairAddress": "0x8e5d9A6b24C33702182B65A7C2DcAD53DD4f3c2F",
+              "dexId": "uniswap",
+              "volume24hUsd": 132723.84,
+              "liquidityUsd": 84390.17
+            },
+            {
+              "pairAddress": "0xB4eb915dcd3fDf15A49e7c3169a7db4a1e746f49",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 979.73,
+              "liquidityUsd": 10752.21
+            },
+            {
+              "pairAddress": "0xFF02B30Ee2d7E13d73bDEB27cc8A267d588b8Bce",
+              "dexId": "uniswap",
+              "volume24hUsd": 916.99,
+              "liquidityUsd": 1534.48
+            },
+            {
+              "pairAddress": "0x719192E607bfD5B33d66172021CDdC925BA7a6b5",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 2.3,
+              "liquidityUsd": 0.82
+            },
+            {
+              "pairAddress": "0x3df59dE8500cBf99f4C1e145B00aBdb4D245C037",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.02,
+              "liquidityUsd": 1.23
+            },
+            {
+              "pairAddress": "0xb1694665416B6a0888648500a1AB799f50b4Bf52",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.41,
+              "liquidityUsd": 3.52
+            },
+            {
+              "pairAddress": "0xD337eea15C8C47b987b1818a1269c8546a31AB29",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 0.15
+            },
+            {
+              "pairAddress": "0x1A5497a33B5aBcC0cD94520dea7Fe95E386482b5",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.01,
+              "liquidityUsd": 0.81
+            },
+            {
+              "pairAddress": "0x26570624ab14d2C7eEE3D436e824263aC42a43de",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 0.09
+            },
+            {
+              "pairAddress": "0x478df419CD3D72Cd1a5444b0CA0E0799032F014d",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 0.05
+            }
+          ],
+          "issuer": "fourmeme"
+        },
+        {
+          "address": "0x5f2d37192576a6804F44722eB828E280D5FB43Dc",
+          "symbol": "BNOon",
+          "instrumentKind": "etf",
+          "volume24hUsd": 100.11,
+          "displayedLiquidityUsd": 1717.0,
+          "pools": [
+            {
+              "pairAddress": "0xb91ae766e0e2669C4B8Ab3a4ac050A4c9cb411eB",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 100.11,
+              "liquidityUsd": 1717.0
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0xC2C7fcdDC37f6737ca2481ebda6B81Ee279fE20C",
+          "symbol": "BZon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0x7fe777629AB9D197e218B079136A73e0cc147882",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0xe81c6bb0266cd68b4f17278531dd03ea1f12da4e",
+          "symbol": "CBRSB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0xfb798497250096bFab8884Bb4Fd0f150197E705A",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x585bde7c54abb5ccd7791f923d6c2187635f3952",
+          "symbol": "COINB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 12519.6,
+          "displayedLiquidityUsd": 2822.09,
+          "pools": [
+            {
+              "pairAddress": "0x9e9df2c9053864ABfa5Bf773f9770F08710c8A10",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 12519.6,
+              "liquidityUsd": 2822.09
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0xf8589b526FdD65F7F301c605a6e04F0F1b4B3620",
+          "symbol": "COINon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 478.36,
+          "displayedLiquidityUsd": 4331.08,
+          "pools": [
+            {
+              "pairAddress": "0x7De5f4a237315A7C8fd31974BB6603C1d965E9ac",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 478.36,
+              "liquidityUsd": 4331.08
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x34375f826fD3dD4E15F883d4F4786bB45eb705ac",
+          "symbol": "COSTon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.5,
+          "displayedLiquidityUsd": 293.86,
+          "pools": [
+            {
+              "pairAddress": "0x441b4767F69Dfd8703A33a6AbB2F51e57CBf8e1A",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.5,
+              "liquidityUsd": 293.86
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x0888EDfeC4C0A66FCE074796CF4F6509c00f6c49",
+          "symbol": "CPERon",
+          "instrumentKind": "etf",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0xA144f2e75980932056914F0f17C83a8Df5ec0E87",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x80f3d493ebce97e343c53d29a137942416b4ffc0",
+          "symbol": "CRCLB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 497503.06,
+          "displayedLiquidityUsd": 944665.43,
+          "pools": [
+            {
+              "pairAddress": "0x29967c54c5Bf12E8158c8894376064b30ebaB297",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 497503.06,
+              "liquidityUsd": 944665.43
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x992879Cd8ce0c312d98648875B5A8D6D042cbF34",
+          "symbol": "CRCLon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 330.55,
+          "displayedLiquidityUsd": 6540.58,
+          "pools": [
+            {
+              "pairAddress": "0xc1d141d6A9F8e8eb7B9Ce1AEcD4A8932F047c075",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 330.55,
+              "liquidityUsd": 6540.58
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x6e7d451f9d30327d32020f116fa79c23b24e9c8d",
+          "symbol": "CRDOB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 4.01,
+          "displayedLiquidityUsd": 120.91,
+          "pools": [
+            {
+              "pairAddress": "0x57E010D26AcF9E981EAA55DbC20e04863202dd8d",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 4.01,
+              "liquidityUsd": 120.91
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x33e7317e17838fee56b10fe8d0b9ca6ca3090c95",
+          "symbol": "CRWVB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.2,
+          "displayedLiquidityUsd": 16.23,
+          "pools": [
+            {
+              "pairAddress": "0x75EE177CE590B7807a886CB8933eD9A42A526F74",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.2,
+              "liquidityUsd": 16.23
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0xeEe9eeE593cB8f7946260B4066CBa7907f40ACFa",
+          "symbol": "DISon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 54626.32,
+          "displayedLiquidityUsd": 76104.26,
+          "pools": [
+            {
+              "pairAddress": "0x167c88898537eA7dC756d9B0bF7489A068f0b497",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 54626.32,
+              "liquidityUsd": 76104.26
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0xf2ec508422174ee564de98187db9359d318afb6b",
+          "symbol": "DJTB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 33834.3,
+          "displayedLiquidityUsd": 79564.25,
+          "pools": [
+            {
+              "pairAddress": "0x9aaDBd51515432DBB77c0A7F69C2B2c211f0C837",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 33834.3,
+              "liquidityUsd": 79564.25
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x93862d63fd9fd488b1328e9b47717d75e994a84b",
+          "symbol": "DRAMB",
+          "instrumentKind": "etf",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0xaf96234d9172c47A5cD29b0E406C6f06e477fFFF:4meme",
+              "dexId": "fourmeme",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0xbe82f76637dba2c114c41df856c2c51e522e2cb8",
+          "symbol": "EWYB",
+          "instrumentKind": "etf",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0x48F28DCD8675484Ed94b7DB8242e5e72F679ffFF:4meme",
+              "dexId": "fourmeme",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x4af1d41cd9dd950dca43984b43aaa2a8702714ac",
+          "symbol": "FLNCB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 47579.07,
+          "displayedLiquidityUsd": 66587.39,
+          "pools": [
+            {
+              "pairAddress": "0x1f7083a138f980b60Eb1582F01cA3B1D6C46aD10",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 47579.07,
+              "liquidityUsd": 66587.39
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x5acf40056ED51C8bBCD1b125Ef803581Ac89A627",
+          "symbol": "FUTUon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 4.27,
+          "displayedLiquidityUsd": 213.57,
+          "pools": [
+            {
+              "pairAddress": "0x1Ed8faFD4307a23216F355c0FD8b5eD2722DEf0d",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 4.27,
+              "liquidityUsd": 213.57
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x9b8E987e6fEc8Cf1380C4dcA7071e2C7853AEEA1",
+          "symbol": "FXIon",
+          "instrumentKind": "etf",
+          "volume24hUsd": 1905808.08,
+          "displayedLiquidityUsd": 235608.92,
+          "pools": [
+            {
+              "pairAddress": "0x02EDa8DBC97A0C9ADFbBfaB589430D76A7C7F5B6",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 1905808.08,
+              "liquidityUsd": 235608.92
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0xfA9a1E901085e269f6D428F79Cd5252d8b919344",
+          "symbol": "GLDon",
+          "instrumentKind": "etf",
+          "volume24hUsd": 27.16,
+          "displayedLiquidityUsd": 5444.5,
+          "pools": [
+            {
+              "pairAddress": "0xf95AcBfeCc913F59Aa35A6827d15037468332e78",
+              "dexId": "uniswap",
+              "volume24hUsd": 27.16,
+              "liquidityUsd": 5444.5
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x740e075cbbea22a082b9d6679e65e82767875b6a",
+          "symbol": "GLWB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0x48FbCcCF2e84b187Ba2762f6276E98d5d438fFfF:4meme",
+              "dexId": "fourmeme",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x25a4DbAE9a0Cd8C75656D6b50FFDf4900CC20d8f",
+          "symbol": "GLWon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.5,
+          "displayedLiquidityUsd": 349.25,
+          "pools": [
+            {
+              "pairAddress": "0x5684EeE7ABa977bE6039C55b5B65094Aa7AC0687",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.5,
+              "liquidityUsd": 349.25
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x46ceefda28dd7207059ed19b0acdc026955bb15c",
+          "symbol": "GMEB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 300481.9,
+          "displayedLiquidityUsd": 148838.98,
+          "pools": [
+            {
+              "pairAddress": "0x908d49048EB3a7bEdfd238972403842805EAF2bE",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 300481.9,
+              "liquidityUsd": 148838.98
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0xdABb9afF4cf02f26D2014e4cA9f94aC6fe6572a3",
+          "symbol": "GMEon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 12383.59,
+          "displayedLiquidityUsd": 47993.06,
+          "pools": [
+            {
+              "pairAddress": "0x2a73552F84F04964a84BE7cC615f3561d132A089",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 12383.59,
+              "liquidityUsd": 47993.06
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x3f53de71c126bdabae20f9cd64848d317f6c3238",
+          "symbol": "GOOGLB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1304818.15,
+          "displayedLiquidityUsd": 1691509.08,
+          "pools": [
+            {
+              "pairAddress": "0x89001D846f7CA36EE089F73eEFC25657E1798144",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 1304818.15,
+              "liquidityUsd": 1691509.08
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x091FC7778e6932d4009B087B191D1EE3bac5729A",
+          "symbol": "GOOGLon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 568.59,
+          "displayedLiquidityUsd": 2669.48,
+          "pools": [
+            {
+              "pairAddress": "0x6731932C92E882Cc22a10749324C70A7d6aDde60",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 568.59,
+              "liquidityUsd": 2669.48
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x20cce6656e5f7f79f280e2d0f5db55b401bdbfce",
+          "symbol": "GSB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0x51356A355629e329E52FeA96D24b9c47e3BcFFfF:4meme",
+              "dexId": "fourmeme",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x4693f6F5EF257381a28afd0673e64d8b32d5C6aD",
+          "symbol": "HIMSon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 11.2,
+          "displayedLiquidityUsd": 461.2,
+          "pools": [
+            {
+              "pairAddress": "0x714F339039FEeb862065C03C7b8EFBA88F1b8D4A",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 11.2,
+              "liquidityUsd": 461.2
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x6cF3b84f0Ba4d86d9f6987812A11Db2c447D9483",
+          "symbol": "HIMXon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0xaeC30104ea15809e699c676f01edC3FBc95C3226",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0xa394dcea3fd3847fd793afbfd163e2e3858b7c65",
+          "symbol": "HOODB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 84034.75,
+          "displayedLiquidityUsd": 252097.39,
+          "pools": [
+            {
+              "pairAddress": "0xFEeF70FF6F58f0A900e28A77e5A8945aFB343923",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 84034.75,
+              "liquidityUsd": 252097.39
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x847ef23A3F99aF79A185ce033e1664165b846eEa",
+          "symbol": "HSAIon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0x442A38d07b1255F8e72D727681b11291d2aF9De8",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0xfa273b076feb8c0fb34e554ae341082323d016a3",
+          "symbol": "IBMB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 36479.36,
+          "displayedLiquidityUsd": 4987.99,
+          "pools": [
+            {
+              "pairAddress": "0x16588be41c6004D36C338D6AFe3ec517D45B778F",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 36479.36,
+              "liquidityUsd": 4987.99
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0xe614e2fc6c787035ff51f452e8e826bfd32d5283",
+          "symbol": "INTCB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 110800.58,
+          "displayedLiquidityUsd": 522074.61,
+          "pools": [
+            {
+              "pairAddress": "0x4dD8e7C67033Ef4A745bB9f82a7C57c676eB2481",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 110800.58,
+              "liquidityUsd": 522074.61
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0xA528CaaA2f96090e379d43F90834C75dF54D6E74",
+          "symbol": "INTCon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 67.76,
+          "displayedLiquidityUsd": 484.55,
+          "pools": [
+            {
+              "pairAddress": "0x95474285f7C60842528CA62EB15a9e2AD50855AB",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 67.76,
+              "liquidityUsd": 484.55
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0xfdc2f2cab77b28f7ef6c819a404706cfa9bca33b",
+          "symbol": "IRENB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1.34,
+          "displayedLiquidityUsd": 99.61,
+          "pools": [
+            {
+              "pairAddress": "0x517339a63025e3eDFDB93A516bE7C4922F49452c",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 1.34,
+              "liquidityUsd": 99.61
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x8FD70eE385f470c8D6FDA2D93a4E49C849BAC6a6",
+          "symbol": "IRENon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 97.36,
+          "displayedLiquidityUsd": 239.05,
+          "pools": [
+            {
+              "pairAddress": "0xB51F871445AB480f0a8e13541D502d5b687552E3",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 97.36,
+              "liquidityUsd": 239.05
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0xE92bE960aE64F6a914Ca77014CaC9E56DE7f36C1",
+          "symbol": "JDon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 4.0,
+          "displayedLiquidityUsd": 214.37,
+          "pools": [
+            {
+              "pairAddress": "0x3B65FA501805addB68eADf1f1D42Fd2664201eAE",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 4.0,
+              "liquidityUsd": 214.37
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x405F38B90beBF1259062CF29Da299f3398662bcb",
+          "symbol": "KOon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 25.24,
+          "displayedLiquidityUsd": 531.51,
+          "pools": [
+            {
+              "pairAddress": "0x3c7d9D294dBD00EE4b82a614D847c8277B92ffa5",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 25.24,
+              "liquidityUsd": 531.51
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x7437203800140BA7d9081ddE8cEF09EE40E3Bf03",
+          "symbol": "KWEBon",
+          "instrumentKind": "etf",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0x63a6176A6D59F61e6dD0e874EA9D9E16934F6Bdb",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x9810beac9af3C30d14cFB61cDd557E160f60FD50",
+          "symbol": "LIon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0x288af29455085B19D6BB30419FEca1Cb5Ab7022c",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x64748bea17b6d19e242adf20425de2440c656142",
+          "symbol": "LITEB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0x5AA5678d56d760b711bddAA33997Ed013400FfFF:4meme",
+              "dexId": "fourmeme",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x341D31b2be1Fee9C00e395A62bA41837F4322EEd",
+          "symbol": "LLYon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0x41e0faE3521067a3e4abB785fbA1C400255AaFE1",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x995ADd4bA29a628A57930a8a185c62cA044eC090",
+          "symbol": "MCDon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 765.01,
+          "displayedLiquidityUsd": 1579.35,
+          "pools": [
+            {
+              "pairAddress": "0x22E660655F106C12ae737999F43323C5962BC8Fe",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 765.01,
+              "liquidityUsd": 1579.35
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x7425889fe94f9d693e8daefe88bcced6acfef4c0",
+          "symbol": "METAB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 87691.52,
+          "displayedLiquidityUsd": 210864.61,
+          "pools": [
+            {
+              "pairAddress": "0xC2151a561E928D16576d75Ea88544543ac63D80B",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 87691.52,
+              "liquidityUsd": 210864.61
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x16cd4fe7e8880ecc3ba222795229e20489fc2c76",
+          "symbol": "MRVLB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 275749.04,
+          "displayedLiquidityUsd": 26448.03,
+          "pools": [
+            {
+              "pairAddress": "0xd5AEFc40828b76d43859b0428534D99fb2480c1F",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 275749.04,
+              "liquidityUsd": 26448.03
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x80106cb3ead06659a5ad19df39d9b4733863b9b0",
+          "symbol": "MSFTB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 88263.85,
+          "displayedLiquidityUsd": 239486.17,
+          "pools": [
+            {
+              "pairAddress": "0x5018b018cEB7645c927c5Cf246786F89ebCbe7Ea",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 88263.85,
+              "liquidityUsd": 239486.17
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x6Bfe75D1ad432050eA973C3A3DcD88F02e2444C3",
+          "symbol": "MSFTon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.51,
+          "displayedLiquidityUsd": 1.6,
+          "pools": [
+            {
+              "pairAddress": "0x08c2ce6e530CA82E26Ad2Fe73226D2171B9e6f8E",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.51,
+              "liquidityUsd": 1.6
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0xe87afb3076aeb0f9b14e368de8145ae6a2826a14",
+          "symbol": "MSTRB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 329094.38,
+          "displayedLiquidityUsd": 400352.54,
+          "pools": [
+            {
+              "pairAddress": "0x692081209619735f25700557078aB084d3E5D007",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 329094.38,
+              "liquidityUsd": 400352.54
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x7313EA16493b2f55054Df0131A3A14B043ec8992",
+          "symbol": "MSTRon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 3.26,
+          "displayedLiquidityUsd": 191.18,
+          "pools": [
+            {
+              "pairAddress": "0x0eCB5431496594890523023f6386a008a82dfea4",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 3.26,
+              "liquidityUsd": 191.18
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0xcdf2f3e0fa43c47a6662a91c9e4a7c5f69762699",
+          "symbol": "MUB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 8512.63,
+          "displayedLiquidityUsd": 13568.74,
+          "pools": [
+            {
+              "pairAddress": "0x9E75Ced0a01590890917C5180c3e3ed6a86A071e",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 8512.63,
+              "liquidityUsd": 13568.74
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0xe256bc2a4f5297f8ba6f043f180a46300ecbcbb1",
+          "symbol": "NBISB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0x84cE6d043F2878704e50E3EdAcE89d9D11f3FFfF:4meme",
+              "dexId": "fourmeme",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0xee268780473E7a0e47baC41547C6E01512555A16",
+          "symbol": "NBISon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 16.95,
+          "displayedLiquidityUsd": 331.46,
+          "pools": [
+            {
+              "pairAddress": "0x69A36aB562b2A54b41Ead6c2fd77ee2DA8B77058",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 16.95,
+              "liquidityUsd": 331.46
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0xd6829ea836b6fa224d099d40e54b31262f874631",
+          "symbol": "NFLXB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 128261.0,
+          "displayedLiquidityUsd": 178542.21,
+          "pools": [
+            {
+              "pairAddress": "0xAFab4441D8B354bBa790229c0E235E7e6187B3D0",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 128261.0,
+              "liquidityUsd": 178542.21
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0xC6f9eDbeE6042a237D72493bBdA3eE2c3c62F708",
+          "symbol": "NIOon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0x37d05c52d352bd778b629381F796f307E20466dD",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x04b5E199F2eC84f78B111035F57b16BeE448dB6F",
+          "symbol": "NKEon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 9.77,
+          "displayedLiquidityUsd": 1120.58,
+          "pools": [
+            {
+              "pairAddress": "0x07E9A5dcA4B3F46Ab9b87Bf8E18e0a358B5d97dF",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 9.77,
+              "liquidityUsd": 1120.58
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x7c4d7a180d737dd5a70d8065a90e6746a69c37ea",
+          "symbol": "NOKB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 15571.95,
+          "displayedLiquidityUsd": 47787.25,
+          "pools": [
+            {
+              "pairAddress": "0xD76cB6E9F642CDC7C33C9D4Fc6bDd858116DcC84",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 15571.95,
+              "liquidityUsd": 47787.25
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x282973969118F9fe39bf2FF3D8DD1EFEE82CCb11",
+          "symbol": "NTESon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.05,
+          "displayedLiquidityUsd": 2.35,
+          "pools": [
+            {
+              "pairAddress": "0xe788B4D1451D84716Ee77Ab94Ead9c8101e292C8",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.05,
+              "liquidityUsd": 2.35
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+          "symbol": "NVDAB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 3674180.55,
+          "displayedLiquidityUsd": 6100345.42,
+          "pools": [
+            {
+              "pairAddress": "0x8FB4243b553aC29BA088aCf00B9B7dA24bD6690C",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 3674180.55,
+              "liquidityUsd": 6100345.42
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0xA9eE28C80f960B889dFbd1902055218cBa016F75",
+          "symbol": "NVDAon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 831.72,
+          "displayedLiquidityUsd": 9651.25,
+          "pools": [
+            {
+              "pairAddress": "0xB90BDBFBdfFd4Af5a636b5805539eDeafb969308",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 831.72,
+              "liquidityUsd": 9651.25
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x4684d9887fc1c71cba7bab8e88835cec217eb598",
+          "symbol": "ORCLB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 13830.15,
+          "displayedLiquidityUsd": 10245.33,
+          "pools": [
+            {
+              "pairAddress": "0x5A3A37AbD365f750A5D2E78eC7294b8C70C1A436",
+              "dexId": "uniswap",
+              "volume24hUsd": 13830.15,
+              "liquidityUsd": 10245.33
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0xF3e82EA164CB344B2b11Bad4c24b0Ea4F7BA4714",
+          "symbol": "PDDon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 5163.51,
+          "displayedLiquidityUsd": 53482.18,
+          "pools": [
+            {
+              "pairAddress": "0xe93e583fECE88ca22CB51F39416344AA63BF53e4",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 5163.51,
+              "liquidityUsd": 53482.18
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x0ca5d51d0277bd006fd9607d3e560785ebad8222",
+          "symbol": "PLTRB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0x4e5C8ED74eA251dea2b661e82D52B1465fB0FFFF:4meme",
+              "dexId": "fourmeme",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x3a0a47a9c2713a7049d1052cc8ebd39c41570580",
+          "symbol": "POPMTx",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.01,
+          "displayedLiquidityUsd": 0.91,
+          "pools": [
+            {
+              "pairAddress": "0x2c0BD4346aDd71A6eeB0DB2eE799EaF39E3acdFb",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.01,
+              "liquidityUsd": 0.91
+            }
+          ],
+          "issuer": "xstocks"
+        },
+        {
+          "address": "0x1D80392D12CAAaF9E333Bb0bb7f021eaCf297Fe6",
+          "symbol": "pPOLY",
+          "instrumentKind": "private",
+          "volume24hUsd": 21767.85,
+          "displayedLiquidityUsd": 278370.92,
+          "pools": [
+            {
+              "pairAddress": "0xB2c8244FBeee2dA006b5D9Cf09908081f807C649",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 21767.85,
+              "liquidityUsd": 278370.92
+            }
+          ],
+          "issuer": "paimon"
+        },
+        {
+          "address": "0x5f7a56e877b9130608bf8be962621011182fefe1",
+          "symbol": "QCOMB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0x6a258c1900702A75c17F8ACeA315Ac99feafffFf:4meme",
+              "dexId": "fourmeme",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0xd721c192d612db77621df57a9fab38418033c02e",
+          "symbol": "QNTB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.21,
+          "displayedLiquidityUsd": 4.61,
+          "pools": [
+            {
+              "pairAddress": "0xa11Bc9F2D86890AE1a04543F8E8ea70b61CFEc3E",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.21,
+              "liquidityUsd": 4.61
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x205812cdbed920aff76c6580abd681a46d11efc7",
+          "symbol": "QQQB",
+          "instrumentKind": "etf",
+          "volume24hUsd": 6884674.43,
+          "displayedLiquidityUsd": 914308.7,
+          "pools": [
+            {
+              "pairAddress": "0x47BC06722295AC316A569EEF87aC32FAA455F441",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 6884674.43,
+              "liquidityUsd": 914308.7
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x0cdE6936d305d5B34667fC46425E852efd73559a",
+          "symbol": "QQQon",
+          "instrumentKind": "etf",
+          "volume24hUsd": 89.56,
+          "displayedLiquidityUsd": 1812.49,
+          "pools": [
+            {
+              "pairAddress": "0x9e1d24dEe1dddB38658dd3ECe97fA7A6D3E0634a",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 89.56,
+              "liquidityUsd": 1812.49
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0xEd2a500eB2b66679e0BbD76e51a60049aE5f3271",
+          "symbol": "RGTIon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.5,
+          "displayedLiquidityUsd": 288.55,
+          "pools": [
+            {
+              "pairAddress": "0x70bcA8947D9Ce4DE0AC5AfD4C8238c5cA25E5A89",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.5,
+              "liquidityUsd": 288.55
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0xc8da12cbcce7c45180692a6420b0076e03a5179a",
+          "symbol": "RKLBB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 864.8,
+          "displayedLiquidityUsd": 945.41,
+          "pools": [
+            {
+              "pairAddress": "0x0a78997C758Ee07f381922aa1Bc794bCAAa73B14",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 864.8,
+              "liquidityUsd": 945.41
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0xc008c5F579ec1450F20099c39F587547e27c7523",
+          "symbol": "SGOVon",
+          "instrumentKind": "etf",
+          "volume24hUsd": 1673.3,
+          "displayedLiquidityUsd": 66300.89,
+          "pools": [
+            {
+              "pairAddress": "0xE0F4C53D777383cc77aDFa89087A9c877586F0dF",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 1673.3,
+              "liquidityUsd": 66300.89
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0xca750ef65f295bbecd685abf54e82caf297bdb61",
+          "symbol": "SKHYB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 441279.44,
+          "displayedLiquidityUsd": 760259.86,
+          "pools": [
+            {
+              "pairAddress": "0xD7d30F434b12F7Ed9b0Ae11fF1C754745a10aD52",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 441279.44,
+              "liquidityUsd": 760259.86
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x8b872732b07be325a8803CDB480D9d20B6f8d11B",
+          "symbol": "SLVon",
+          "instrumentKind": "etf",
+          "volume24hUsd": 260.72,
+          "displayedLiquidityUsd": 35102.73,
+          "pools": [
+            {
+              "pairAddress": "0x7Fb06E60482B58059dA3139B3b155AfAeB5bb0a9",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 260.72,
+              "liquidityUsd": 35102.73
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x387dea1d2772d716d081a29116f3effa0ffe1f36",
+          "symbol": "SMCIB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0x2F3453F79F69257928FF75294f5f900DCe86FffF:4meme",
+              "dexId": "fourmeme",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0xbe1fced7047fdce935f45700727845df2c76877a",
+          "symbol": "SMHB",
+          "instrumentKind": "etf",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0xcb947b1b1DA3c0F7b144dad5F0eBCf244043ffFF:4meme",
+              "dexId": "fourmeme",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x3ee4df61bd4f867e349beae8bfe07bc31b4850fb",
+          "symbol": "SNDKB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 206433.76,
+          "displayedLiquidityUsd": 235276.31,
+          "pools": [
+            {
+              "pairAddress": "0xE4B5403f5103b02d1E8193B0D7D76D49F3F8ad77",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 206433.76,
+              "liquidityUsd": 235276.31
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0xd0a58BC9D88D3FF48C0294Cb7e45937d0E41A928",
+          "symbol": "SPCXon",
+          "instrumentKind": "private",
+          "volume24hUsd": 312.5,
+          "displayedLiquidityUsd": 2014.6,
+          "pools": [
+            {
+              "pairAddress": "0x3ce968657b6F152293AFC8Af4712e4BaA3836f74",
+              "dexId": "uniswap",
+              "volume24hUsd": 312.5,
+              "liquidityUsd": 2014.6
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x68fa48B1C2FE52b3D776E1953e0E782b5044Ce28",
+          "symbol": "SPCXx",
+          "instrumentKind": "private",
+          "volume24hUsd": 43.68,
+          "displayedLiquidityUsd": 764.28,
+          "pools": [
+            {
+              "pairAddress": "0xB6d44183F8DB46C9A73d9Ac5a38041e71059f392",
+              "dexId": "uniswap",
+              "volume24hUsd": 43.68,
+              "liquidityUsd": 764.28
+            }
+          ],
+          "issuer": "xstocks"
+        },
+        {
+          "address": "0x7138b48df7d98d7e3cc221bfe7192d0a178182d8",
+          "symbol": "SPYB",
+          "instrumentKind": "etf",
+          "volume24hUsd": 515439.94,
+          "displayedLiquidityUsd": 242927.13,
+          "pools": [
+            {
+              "pairAddress": "0x7aA6d92Fc369A8C1EDc631A3aAc44eFB0808ddbF",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 515439.94,
+              "liquidityUsd": 242927.13
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x6a708EAD771238919D85930b5a0f10454E1C331a",
+          "symbol": "SPYon",
+          "instrumentKind": "etf",
+          "volume24hUsd": 109.63,
+          "displayedLiquidityUsd": 894.07,
+          "pools": [
+            {
+              "pairAddress": "0x3b31Ad84092cEFefc71F71A8F84AAce37ACA3ee1",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 109.63,
+              "liquidityUsd": 894.07
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0xfa15e42c18cf57aeef4b1bac1cee7754af7cfe42",
+          "symbol": "TCENTx",
+          "instrumentKind": "equity",
+          "volume24hUsd": 11.12,
+          "displayedLiquidityUsd": 74.2,
+          "pools": [
+            {
+              "pairAddress": "0x57d6a220bCC167389c92Ead65519238BF4213931",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 11.12,
+              "liquidityUsd": 74.2
+            }
+          ],
+          "issuer": "xstocks"
+        },
+        {
+          "address": "0x6459303F58244Ff1E7A42b90aA3782Dfb6Ca6969",
+          "symbol": "TCOMon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0x21AA84E969f08AD1179638bf1cA2B176c4767f3f",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0xf69e40069aC227C11459E3f4e8a446b3401616b6",
+          "symbol": "TLTon",
+          "instrumentKind": "etf",
+          "volume24hUsd": 2305.56,
+          "displayedLiquidityUsd": 55997.62,
+          "pools": [
+            {
+              "pairAddress": "0x77e6b624d664150d96e13d99c68144b2a047e554",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 2305.56,
+              "liquidityUsd": 55997.62
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x5b1910eaad6450e50f816082aa078c41f10c292f",
+          "symbol": "TSLAB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 541768.87,
+          "displayedLiquidityUsd": 1902433.64,
+          "pools": [
+            {
+              "pairAddress": "0xB0f5E5400E8F0F7C242F2b7740C004f020579c41",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 541768.87,
+              "liquidityUsd": 1902433.64
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x2494b603319d4D9F9715c9f4496d9E0364B59d93",
+          "symbol": "TSLAon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 26.1,
+          "displayedLiquidityUsd": 3486.26,
+          "pools": [
+            {
+              "pairAddress": "0x85Faa585f5F7F9922589Be0A0bf1cFb2404EBDC0",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 26.1,
+              "liquidityUsd": 3486.26
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0xab78b89b5bb00236be0b4b20704cbfa04efc711c",
+          "symbol": "TSMB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 36225.54,
+          "displayedLiquidityUsd": 129972.53,
+          "pools": [
+            {
+              "pairAddress": "0x03f59988F5c366046321cCcD2BF0E3878e2ed69C",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 36225.54,
+              "liquidityUsd": 129972.53
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0xC37042A7a4fa510D8884a433762aB87257B91965",
+          "symbol": "TSMon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0x7151c1969fa08a0060969fD51B4517F884d38040",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0xDE9D6036FCA870f7efc5A82722Ae694c371Ac909",
+          "symbol": "UBERon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 14.88,
+          "displayedLiquidityUsd": 410.75,
+          "pools": [
+            {
+              "pairAddress": "0xbeBe2550A750F276b2b1c7b7A41d191A26A0028d",
+              "dexId": "uniswap",
+              "volume24hUsd": 14.88,
+              "liquidityUsd": 410.75
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0x318ddd4d03d84A40cf44772385A0CFB3D4394049",
+          "symbol": "UMCon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0x61d89984E497aA3E17b129fD9E4b3fF3f40ADa1D",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0xcd345d4450e04cdef422a60b97d9265d24e0bcee",
+          "symbol": "USARB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1.11,
+          "displayedLiquidityUsd": 122.02,
+          "pools": [
+            {
+              "pairAddress": "0x1EC4642787F2dEc015cB7430e1773b044588D6Ea",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 1.11,
+              "liquidityUsd": 122.02
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x94174e3D1335db402dD03A092f7aA7ac2cb32be4",
+          "symbol": "USOon",
+          "instrumentKind": "etf",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0x1c963B7Ba1bFb0Fe052043E857142b4aB8B16719",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0xA3B089C886E6d721f49DEF8E050F3b9D4362560B",
+          "symbol": "VZon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.59,
+          "displayedLiquidityUsd": 464.98,
+          "pools": [
+            {
+              "pairAddress": "0xa1D6fde851B82b82eda4fC627E4baFe5135Eb431",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.59,
+              "liquidityUsd": 464.98
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0xebe29695f8047c13d36e7a790ca8c1b239ffad1c",
+          "symbol": "WDCB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0x2857876f6F69Df4069d9d0756a5FD90709d962E8",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ],
+          "issuer": "bstocks"
+        },
+        {
+          "address": "0x55b56CC2cdcbC2C58668F72663bE7599a46Ed79F",
+          "symbol": "WOLFon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 2.59,
+          "displayedLiquidityUsd": 141.59,
+          "pools": [
+            {
+              "pairAddress": "0x29E7727c19844d0456A463e384f8cCB1f5226b9a",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 2.59,
+              "liquidityUsd": 141.59
+            }
+          ],
+          "issuer": "ondo"
+        },
+        {
+          "address": "0xE0cbb7FFc0883810569d84d78f02bbcB747cFe43",
+          "symbol": "xKLSH",
+          "instrumentKind": "private",
+          "volume24hUsd": 268.28,
+          "displayedLiquidityUsd": 64074.5,
+          "pools": [
+            {
+              "pairAddress": "0xfd5CE712A4E5cE76c3eB524599BFb546c98b88d5",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 268.28,
+              "liquidityUsd": 64074.5
+            }
+          ],
+          "issuer": "paimon"
+        },
+        {
+          "address": "0x7DdEF360f3C2DB4CC41C3967984fefa2598cC9A6",
+          "symbol": "xOPAI",
+          "instrumentKind": "private",
+          "volume24hUsd": 5824.58,
+          "displayedLiquidityUsd": 25374.12,
+          "pools": [
+            {
+              "pairAddress": "0x67EDF2c71Bbc306861c4d3f388ddED6d8B865248",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 5824.58,
+              "liquidityUsd": 25374.12
+            }
+          ],
+          "issuer": "paimon"
+        }
+      ],
+      "publicMintCount": 1587,
+      "publicPoolCount": 106,
+      "etfMintCount": 168,
+      "etfPoolCount": 16,
+      "preipoMintCount": 10,
+      "preipoPoolCount": 5,
+      "withVolumeEquityCount": 96,
+      "generatedAt": "2026-10-09T04:11:17.172862Z",
+      "sources": {
+        "universe": "BNB chainId 56 equity/pre-IPO/ETF union by contract address",
+        "volume": "DexScreener tokens/v1/bsc volume.h24 unique-pool sumNullable; Four.meme also reads token-pairs/v1 and keeps base-vs-cash-quote pools",
+        "chainId": 56,
+        "chainSlug": "bsc",
+        "issuers": {
+          "xstocks": 1253,
+          "ondo": 444,
+          "bstocks": 59,
+          "colb": 3,
+          "paimon": 5,
+          "fourmeme": 1
+        },
+        "kindCounts": {
+          "equity": 1587,
+          "etf": 168,
+          "preipo": 10
+        },
+        "registries": {
+          "stocksonchain": {
+            "url": "https://stocksonchain.io/api/tokens.json",
+            "status": "ok",
+            "added": 1057
+          },
+          "ondo-gm": {
+            "url": "https://api.gm.ondo.finance/v1/assets/all/metadata",
+            "status": 403
+          },
+          "xstocks-tokenlist": {
+            "url": "https://raw.githubusercontent.com/backed-fi/cowswap-xstocks-tokenlist/main/tokenlist.json",
+            "status": "ok",
+            "added": 485
+          },
+          "jumper-bstocks": {
+            "url": "https://rwa.jumper.xyz/providers/bstocks",
+            "status": "ok",
+            "added": 59
+          },
+          "colb": {
+            "url": "https://docs.colb.finance/getting-started/smart-contracts.md",
+            "status": "ok",
+            "added": 3
+          },
+          "bstocks-finance": {
+            "url": "https://www.bstocks.finance/en/",
+            "status": 403
+          },
+          "xstocks": {
+            "url": "https://api.xstocks.fi/api/v2/public/assets",
+            "status": "ok",
+            "added": 155
+          },
+          "paimon": {
+            "url": "https://app.paimon.finance/trade",
+            "docs": "https://paimon-finance.gitbook.io/paimon.finance",
+            "status": "ok",
+            "added": 5
+          },
+          "fourmeme": {
+            "url": "https://four-meme.gitbook.io/four.meme/stock-meme/4stock",
+            "status": "ok",
+            "added": 1,
+            "note": "static 4Stock seed; docs do not publish contracts"
+          }
+        },
+        "addedBySource": {
+          "stocksonchain": 1057,
+          "xstocks-tokenlist": 485,
+          "jumper-bstocks": 59,
+          "colb": 3,
+          "xstocks": 155,
+          "paimon": 5,
+          "fourmeme": 1
+        },
+        "skipped": {
+          "leveraged": 41,
+          "generic": 1,
+          "private": 4,
+          "duplicate": 1667
+        }
+      },
+      "method": "BNB chainId 56 only; classify ETF/index before private; private admits Colb, Paimon, or registry kind preipo|private with a private-company signal; crypto, commodities, generic baskets, copycats, leveraged/inverse, perps, fan tokens, treasuries, and Paimon Prime stay out; public equity, pre-IPO, and ETF for every issuer; sumNullable of DexScreener volume.h24 across unique BNB pools; Four.meme counts only base-token pools against cash or wrapped-native quotes; issuersByLane is that sum partitioned by issuer inside equity, etf, and private; assets[] is that same per-mint DexScreener sample; null means no reported volume (not zero)"
     }
   ]
 }
