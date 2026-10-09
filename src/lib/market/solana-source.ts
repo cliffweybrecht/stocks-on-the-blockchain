@@ -292,6 +292,8 @@ export class SolanaMarketDataSource implements MarketDataSource {
   readonly id = "solana" as const;
   readonly label = SOLANA_SOURCE_LABEL;
   private cache: CachedSnapshot | null = null;
+  /** Last in-memory desk that had asset rows. A later totals-only commit must not blank the page. */
+  private lastGoodDocument: ChainDetailResult | null = null;
   private inflight: Promise<CachedSnapshot> | null = null;
   private inflightMode: SnapshotMode | null = null;
   /**
@@ -908,6 +910,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
   private commitCache(next: CachedSnapshot, enrichDesk = true): CachedSnapshot {
     const merged = this.preferRicherCache(next);
     this.cache = merged;
+    this.rememberDocumentAssets(merged);
     // Live totals stay on this in-memory snapshot. Closed days are written only
     // by the nightly snapshot job, at the 11:59 PM ET close.
     if (enrichDesk) this.scheduleEnrichment();
@@ -1289,6 +1292,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
             refreshDurationMs: snapshot.mapped.provenance.refreshDurationMs ?? 0,
           });
           this.cache = this.preferRicherCache(next);
+          this.rememberDocumentAssets(this.cache);
         }
         return;
       }
@@ -1336,6 +1340,7 @@ export class SolanaMarketDataSource implements MarketDataSource {
         refreshDurationMs: snapshot.mapped.provenance.refreshDurationMs ?? 0,
       });
       this.cache = this.preferRicherCache(next);
+      this.rememberDocumentAssets(this.cache);
       const remaining = this.cache.pendingPreviewMints.length + this.cache.pendingFullMints.length;
       if (remaining === 0 || remaining >= startedPending) break;
       passes += 1;
@@ -1401,11 +1406,44 @@ export class SolanaMarketDataSource implements MarketDataSource {
     };
   }
 
+  private detailHasAssetRows(detail: ChainDetailResult): boolean {
+    return detail.assets.length > 0 || (detail.etfAssets?.length ?? 0) > 0 || (detail.privateAssets?.length ?? 0) > 0;
+  }
+
+  private rememberDocumentAssets(snapshot: CachedSnapshot): void {
+    const detail = this.detailFromCache(snapshot);
+    if (this.detailHasAssetRows(detail)) this.lastGoodDocument = detail;
+  }
+
+  /**
+   * Current desk when it has rows. Otherwise the last in-memory desk that did,
+   * with this commit's chain totals. An empty asset list does not replace rows
+   * the process already showed.
+   */
+  private documentDetail(snapshot: CachedSnapshot): ChainDetailResult {
+    const detail = this.detailFromCache(snapshot);
+    if (this.detailHasAssetRows(detail)) {
+      this.lastGoodDocument = detail;
+      return detail;
+    }
+    const prior = this.lastGoodDocument;
+    if (!prior) return detail;
+    return {
+      chain: detail.chain,
+      assets: prior.assets,
+      etfAssets: prior.etfAssets,
+      privateAssets: prior.privateAssets,
+      provenance: detail.provenance,
+    };
+  }
+
   /**
    * Desk for a page render. Returns the in-memory snapshot immediately, including
-   * a stale one, and refreshes DexScreener in the background. Null when this
-   * process has not committed a desk yet — the page then shows the closed snapshot
-   * file. Does not wait on the network and does not write a snapshot file.
+   * a stale one, and refreshes DexScreener in the background. Asset rows stay
+   * with the last good in-memory list when the current desk has totals only.
+   * Null when this process has not committed a desk yet — the page then shows
+   * the closed snapshot file, including its per-asset rows. Does not wait on
+   * the network and does not write a snapshot file.
    */
   readDeskForDocument(): ChainDetailResult | null {
     const now = Date.now();
@@ -1415,8 +1453,8 @@ export class SolanaMarketDataSource implements MarketDataSource {
       void this.loadCached(light ? "full" : "light").catch(() => undefined);
     }
     const cached = full ?? this.cacheSatisfies("light", now) ?? this.cache;
-    if (!cached) return null;
-    return this.detailFromCache(cached);
+    if (!cached) return this.lastGoodDocument;
+    return this.documentDetail(cached);
   }
 
   async listChains(): Promise<ChainListResult> {

@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { isValidElement, type ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import HomePage from "@/app/page";
 import ChainPage from "@/app/chains/[chainId]/page";
@@ -40,6 +41,23 @@ const PAGE_ENV: Record<string, string> = {
   SOLANA_PAIR_HOLDERS_ENABLED: "false",
   SOLANA_MINT_SUPPLY_ENABLED: "false",
 };
+
+const SOLANA_EMPTY_TITLE = "No stocks on this chain snapshot";
+
+/** Walk a server element for a string without rendering client hooks. */
+function elementContains(node: unknown, needle: string, seen = new Set<object>(), depth = 0): boolean {
+  if (depth > 24 || node == null || typeof node === "boolean" || typeof node === "function" || typeof node === "symbol") {
+    return false;
+  }
+  if (typeof node === "string" || typeof node === "number") return String(node).includes(needle);
+  if (typeof node !== "object") return false;
+  if (seen.has(node)) return false;
+  seen.add(node);
+  if (Array.isArray(node)) return node.some((child) => elementContains(child, needle, seen, depth + 1));
+  const record = node as Record<string, unknown>;
+  const values = isValidElement(node) ? [record.props] : Object.values(record);
+  return values.some((value) => elementContains(value, needle, seen, depth + 1));
+}
 
 const TSLA_PAIR = {
   chainId: "solana",
@@ -147,14 +165,29 @@ describe("home and chain page loads", () => {
     try {
       const before = snapshotBytes();
       await HomePage();
+      const rendered = new Map<string, ReactNode>();
       for (const chainId of [SOLANA_CHAIN_ID, BASE_CHAIN_ID, BNB_CHAIN_ID, ROBINHOOD_CHAIN_ID]) {
-        await ChainPage({
-          params: Promise.resolve({ chainId }),
-          searchParams: Promise.resolve({}),
-        });
+        rendered.set(
+          chainId,
+          await ChainPage({
+            params: Promise.resolve({ chainId }),
+            searchParams: Promise.resolve({}),
+          }),
+        );
       }
       await settleLiveDesk();
       expectUntouched(before);
+      const solana = rendered.get(SOLANA_CHAIN_ID);
+      expect(elementContains(solana, SOLANA_EMPTY_TITLE)).toBe(false);
+      expect(
+        elementContains(solana, "AAPLx") || elementContains(solana, "TSLAx"),
+      ).toBe(true);
+      for (const chainId of [BASE_CHAIN_ID, BNB_CHAIN_ID, ROBINHOOD_CHAIN_ID]) {
+        expect(elementContains(rendered.get(chainId), SOLANA_EMPTY_TITLE)).toBe(false);
+        expect(elementContains(rendered.get(chainId), "The source listed the chain but returned no asset rows")).toBe(
+          false,
+        );
+      }
     } finally {
       globalThis.fetch = previousFetch;
       for (const [key, value] of previousEnv) {
@@ -184,12 +217,14 @@ describe("home and chain page loads", () => {
       const before = snapshotBytes();
       const started = Date.now();
       const home = await HomePage();
-      await ChainPage({
+      const solana = await ChainPage({
         params: Promise.resolve({ chainId: SOLANA_CHAIN_ID }),
         searchParams: Promise.resolve({}),
       });
       expect(Date.now() - started).toBeLessThan(1_000);
       expect(home).toBeTruthy();
+      expect(elementContains(solana, SOLANA_EMPTY_TITLE)).toBe(false);
+      expect(elementContains(solana, "AAPLx")).toBe(true);
       expectUntouched(before);
     } finally {
       globalThis.fetch = previousFetch;

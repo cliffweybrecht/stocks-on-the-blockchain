@@ -8,7 +8,13 @@ import { DailyVolumeChart } from "@/components/daily-volume-chart";
 import { selectEquityPriceTicker } from "@/lib/desk/price-ticker";
 import { loadSolanaDeskLaneDays, overlayHistoryWithSolanaAssetBackfill } from "@/lib/market/asset-backfill-desk-file";
 import { toJumpAsset } from "@/lib/market/asset-search";
-import { readSolanaDeskForDocument, solanaDeskFallbackDetail, withDocumentBudget } from "@/lib/market/document-budget";
+import {
+  chainDetailHasAssetRows,
+  readSolanaDeskForDocument,
+  resolveSolanaDeskForDocument,
+  solanaDeskFallbackDetail,
+  withDocumentBudget,
+} from "@/lib/market/document-budget";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { BASE_DESK } from "@/lib/market/base-desk-volume";
 import { BNB_DESK } from "@/lib/market/bnb-desk-volume";
@@ -43,7 +49,8 @@ export default async function HomePage() {
     // closed snapshot and does not wait on that refresh.
     void source.getEquityVolumeHistory().catch(() => undefined);
     liveDesk = readSolanaDeskForDocument(source);
-    const [historySettled, hourlySettled, otherChains] = await Promise.all([
+    const needsSnapshotAssets = !chainDetailHasAssetRows(liveDesk);
+    const [historySettled, hourlySettled, otherChains, snapshotRecords] = await Promise.all([
       source.getClosedDeskVolumeHistory().then(
         (value) => ({ status: "fulfilled" as const, value }),
         (reason: unknown) => ({ status: "rejected" as const, reason }),
@@ -53,7 +60,11 @@ export default async function HomePage() {
         (reason: unknown) => ({ status: "rejected" as const, reason }),
       ),
       source.id === "solana" ? Promise.resolve(null) : withDocumentBudget(source.listChains(), null),
+      needsSnapshotAssets ? new FileDeskVolumeSnapshotStore().load() : Promise.resolve(null),
     ]);
+    if (needsSnapshotAssets && snapshotRecords) {
+      liveDesk = resolveSolanaDeskForDocument(liveDesk, snapshotRecords);
+    }
     const history = await overlayHistoryWithSolanaAssetBackfill(
       historySettled.status === "fulfilled"
         ? historySettled.value
