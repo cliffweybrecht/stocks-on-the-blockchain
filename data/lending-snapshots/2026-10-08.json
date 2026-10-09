@@ -1,21 +1,85 @@
 {
   "schema": "equity-lending-v1",
   "date": "2026-10-08",
-  "capturedAt": "2026-10-09T01:40:55.106Z",
+  "capturedAt": "2026-10-09T02:40:33.762Z",
   "rows": [
     {
       "id": "kamino-xstocks",
       "venue": "Kamino xStocks",
       "chainId": "solana",
       "chainLabel": "Solana",
-      "collateralUsd": 22148902.65663398,
-      "stableBorrowedUsd": 5151291.902762392,
-      "lendSupplyUsd": 5706298.383488537,
-      "utilization": 0.9027379145941467,
-      "borrowApy": 0.05539366771900376,
-      "borrowApyMin": 0.05537512459203042,
-      "borrowApyMax": 0.05537512459203042,
-      "stockBorrowedUsd": 221759.57188670544,
+      "collateralUsd": 22148903.841679998,
+      "stableBorrowedUsd": 5148837.059834935,
+      "lendSupplyUsd": 5706234.523230903,
+      "utilization": 0.9023178137655011,
+      "borrowApy": 0.05500065913603531,
+      "borrowApyMin": 0.05498192324409357,
+      "borrowApyMax": 0.05498192324409357,
+      "stockBorrowedUsd": 221760.87961127708,
+      "assets": [
+        {
+          "symbol": "SPYx",
+          "address": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+          "collateralUsd": 4369760.636946525,
+          "maxLtv": 0.73
+        },
+        {
+          "symbol": "MSTRx",
+          "address": "XsP7xzNPvEHS1m6qfanPUGjNmdnmsLKEoNAnHjdxxyZ",
+          "collateralUsd": 3974356.8588513867,
+          "maxLtv": 0.3
+        },
+        {
+          "symbol": "GOOGLx",
+          "address": "XsCPL9dNWBMvFtTmwcCA5v3xWPSMEBCszbQdiLLq6aN",
+          "collateralUsd": 3496284.1794017293,
+          "maxLtv": 0.6
+        },
+        {
+          "symbol": "QQQx",
+          "address": "Xs8S1uUs1zvS2p7iwtsG3b6fkhpvmwz4GYU3gWAmWHZ",
+          "collateralUsd": 2992498.278604263,
+          "maxLtv": 0.7
+        },
+        {
+          "symbol": "TSLAx",
+          "address": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+          "collateralUsd": 2858679.7361150635,
+          "maxLtv": 0.55
+        },
+        {
+          "symbol": "NVDAx",
+          "address": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+          "collateralUsd": 2451321.757652735,
+          "maxLtv": 0.55
+        },
+        {
+          "symbol": "CRCLx",
+          "address": "XsueG8BtpquVJX9LVLLEGuViXUungE6WmK5YZ3p3bd1",
+          "collateralUsd": 955582.906652088,
+          "maxLtv": 0.3
+        },
+        {
+          "symbol": "HOODx",
+          "address": "XsvNBAYkrDRNhA7wPHQfX3ZUXZyZLdnCQDfHZ56bzpg",
+          "collateralUsd": 586579.1704143111,
+          "maxLtv": 0.3
+        },
+        {
+          "symbol": "AAPLx",
+          "address": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+          "collateralUsd": 463839.59422661626,
+          "maxLtv": 0.4
+        },
+        {
+          "symbol": "METAx",
+          "address": "Xsa62P5mvPszXL1krVUnU5ar38bBSVcWAB6fmPCo5Zu",
+          "collateralUsd": 0.7228152783685774,
+          "maxLtv": 0.35
+        }
+      ],
+      "note": null,
+      "borrowEstimate": null,
       "source": "https://api.kamino.finance/kamino-market/5wJeMrUYECGq41fxRESKALVcHnNX26TAWy4W98yULsua/reserves/metrics",
       "error": null
     },
@@ -25,13 +89,35 @@
       "chainId": "solana",
       "chainLabel": "Solana",
       "collateralUsd": 2989254.9387019747,
-      "stableBorrowedUsd": 1826955.426042824,
-      "lendSupplyUsd": 6446966.570939089,
-      "utilization": 0.28338217763966206,
-      "borrowApy": 0.009706870032477832,
-      "borrowApyMin": 0.009706870032477832,
-      "borrowApyMax": 0.009706870032477832,
+      "stableBorrowedUsd": 1827199.5770867444,
+      "lendSupplyUsd": 6446659.667594825,
+      "utilization": 0.28343354098114687,
+      "borrowApy": 0.009707732617990406,
+      "borrowApyMin": 0.009707732617990406,
+      "borrowApyMax": 0.009707732617990406,
       "stockBorrowedUsd": 0,
+      "assets": [
+        {
+          "symbol": "SPYx",
+          "address": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+          "collateralUsd": 1980601.8844725436,
+          "maxLtv": 0.72
+        },
+        {
+          "symbol": "QQQx",
+          "address": "Xs8S1uUs1zvS2p7iwtsG3b6fkhpvmwz4GYU3gWAmWHZ",
+          "collateralUsd": 536889.3097369457,
+          "maxLtv": 0.7
+        },
+        {
+          "symbol": "NVDAx",
+          "address": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+          "collateralUsd": 471763.7444924854,
+          "maxLtv": 0.62
+        }
+      ],
+      "note": null,
+      "borrowEstimate": null,
       "source": "https://api.kamino.finance/kamino-market/8BNUWRSibVasaAmhYpBCFpGgMisGKfVAf9ho3Cmf6vjr/reserves/metrics",
       "error": null
     },
@@ -40,14 +126,42 @@
       "venue": "Jupiter Lend",
       "chainId": "solana",
       "chainLabel": "Solana",
-      "collateralUsd": 13917627.625882257,
-      "stableBorrowedUsd": 4514068.046077,
+      "collateralUsd": 13937783.270832045,
+      "stableBorrowedUsd": 4513982.030260388,
       "lendSupplyUsd": null,
-      "utilization": 0.8001396210481375,
-      "borrowApy": 0.04895912505028164,
+      "utilization": 0.8000379771312185,
+      "borrowApy": 0.04895900554972989,
       "borrowApyMin": 0.0477,
       "borrowApyMax": 0.0534,
       "stockBorrowedUsd": null,
+      "assets": [
+        {
+          "symbol": "SPYx",
+          "address": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+          "collateralUsd": 8957568.946637226,
+          "maxLtv": 0.75
+        },
+        {
+          "symbol": "NVDAx",
+          "address": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+          "collateralUsd": 1881802.6133536806,
+          "maxLtv": 0.65
+        },
+        {
+          "symbol": "QQQx",
+          "address": "Xs8S1uUs1zvS2p7iwtsG3b6fkhpvmwz4GYU3gWAmWHZ",
+          "collateralUsd": 1560889.5542344404,
+          "maxLtv": 0.75
+        },
+        {
+          "symbol": "TSLAx",
+          "address": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+          "collateralUsd": 1537522.1566066975,
+          "maxLtv": 0.65
+        }
+      ],
+      "note": null,
+      "borrowEstimate": null,
       "source": "https://lite-api.jup.ag/lend/v1/borrow/vaults",
       "error": null
     },
@@ -56,14 +170,60 @@
       "venue": "Aave V4 Coinbase stocks",
       "chainId": "base",
       "chainLabel": "Base",
-      "collateralUsd": 4674731.126,
-      "stableBorrowedUsd": 1504098.2012,
-      "lendSupplyUsd": 5276922.4166,
-      "utilization": 0.2850332224837054,
-      "borrowApy": 0.012748641466144546,
-      "borrowApyMin": 0.012748641466144545,
-      "borrowApyMax": 0.012748641466144545,
+      "collateralUsd": 4674611.7753,
+      "stableBorrowedUsd": 1503779.9971,
+      "lendSupplyUsd": 5276924.362,
+      "utilization": 0.2849728163490398,
+      "borrowApy": 0.012745922018303072,
+      "borrowApyMin": 0.012745922018303074,
+      "borrowApyMax": 0.012745922018303074,
       "stockBorrowedUsd": 0,
+      "assets": [
+        {
+          "symbol": "METAc",
+          "address": "0xb2000000000000000000008bc8786b856e61707c",
+          "collateralUsd": 1226373.395,
+          "maxLtv": null
+        },
+        {
+          "symbol": "NVDAc",
+          "address": "0xb20000000000000000000078ee7ce2fe4908108c",
+          "collateralUsd": 1159730.4539,
+          "maxLtv": null
+        },
+        {
+          "symbol": "GOOGLc",
+          "address": "0xb2000000000000000000002d0ba3164cc74f58b7",
+          "collateralUsd": 635789.7218,
+          "maxLtv": null
+        },
+        {
+          "symbol": "TSLAc",
+          "address": "0xb2000000000000000000001e800a7f5189430cd0",
+          "collateralUsd": 602358.5725,
+          "maxLtv": null
+        },
+        {
+          "symbol": "AAPLc",
+          "address": "0xb200000000000000000000c2e324d24d7eecd1fb",
+          "collateralUsd": 512178.9252,
+          "maxLtv": null
+        },
+        {
+          "symbol": "AMZNc",
+          "address": "0xb200000000000000000000d9192b6b456483c2e8",
+          "collateralUsd": 302800.9122,
+          "maxLtv": null
+        },
+        {
+          "symbol": "MSFTc",
+          "address": "0xb200000000000000000000ab99cfa739e253872b",
+          "collateralUsd": 235379.7947,
+          "maxLtv": null
+        }
+      ],
+      "note": null,
+      "borrowEstimate": null,
       "source": "https://api.v4.aave.com/graphql",
       "error": null
     },
@@ -72,14 +232,78 @@
       "venue": "Morpho",
       "chainId": "ethereum",
       "chainLabel": "Ethereum",
-      "collateralUsd": 566194.5771583484,
-      "stableBorrowedUsd": 477.62558550719024,
-      "lendSupplyUsd": 5528.600916202115,
-      "utilization": 0.08639176398272137,
-      "borrowApy": 0.04804153363207155,
-      "borrowApyMin": 0.04678157244105046,
-      "borrowApyMax": 0.050639728115130817,
+      "collateralUsd": 567215.3411806315,
+      "stableBorrowedUsd": 477.6345652685934,
+      "lendSupplyUsd": 5528.5658903736185,
+      "utilization": 0.08639393555935625,
+      "borrowApy": 0.04828303370899832,
+      "borrowApyMin": 0.046786545803830376,
+      "borrowApyMax": 0.05286028619096245,
       "stockBorrowedUsd": 0,
+      "assets": [
+        {
+          "symbol": "wSPYx",
+          "address": "0xc88fcd8b874fdb3256e8b55b3decb8c24eab4c02",
+          "collateralUsd": 532663.5903435947,
+          "maxLtv": 0.86
+        },
+        {
+          "symbol": "SPYx",
+          "address": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48",
+          "collateralUsd": 33161.164273098024,
+          "maxLtv": 0.86
+        },
+        {
+          "symbol": "SPYon",
+          "address": "0xfedc5f4a6c38211c1338aa411018dfaf26612c08",
+          "collateralUsd": 914.381513289731,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "TSLAon",
+          "address": "0xf6b1117ec07684d3958cad8beb1b302bfd21103f",
+          "collateralUsd": 250.4830351408812,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "QQQon",
+          "address": "0x0e397938c1aa0680954093495b70a9f5e2249aba",
+          "collateralUsd": 127.45735460753944,
+          "maxLtv": 0.915
+        },
+        {
+          "symbol": "FLHYon",
+          "address": "0x54c1ff361b402f66c13107421e6a431c3375ef24",
+          "collateralUsd": 98.26466090061489,
+          "maxLtv": 0.86
+        },
+        {
+          "symbol": "wNVDAx",
+          "address": "0x93e62845c1dd5822ebc807ab71a5fb750decd15a",
+          "collateralUsd": 0,
+          "maxLtv": 0.86
+        },
+        {
+          "symbol": "wQQQx",
+          "address": "0x4c1ae29c159838fc1b224636e28e086eb69101f7",
+          "collateralUsd": 0,
+          "maxLtv": 0.86
+        },
+        {
+          "symbol": "wSPYx",
+          "address": "0xe7e553cd128f0011777323a0b44a7b96ea1cb540",
+          "collateralUsd": 0,
+          "maxLtv": 0.86
+        },
+        {
+          "symbol": "wSTRCx",
+          "address": "0x34d78e7b06542dab48f9bf9f0835c7582141314e",
+          "collateralUsd": 0,
+          "maxLtv": 0.915
+        }
+      ],
+      "note": null,
+      "borrowEstimate": null,
       "source": "https://api.morpho.org/graphql",
       "error": null
     },
@@ -88,14 +312,78 @@
       "venue": "Morpho",
       "chainId": "base",
       "chainLabel": "Base",
-      "collateralUsd": 96017.57302643394,
-      "stableBorrowedUsd": 41317.831509067924,
-      "lendSupplyUsd": 48032.26609299843,
-      "utilization": 0.8602099144993441,
-      "borrowApy": 0.04913553866300029,
+      "collateralUsd": 96134.86440244963,
+      "stableBorrowedUsd": 41318.72505373133,
+      "lendSupplyUsd": 48005.318179991504,
+      "utilization": 0.8607114090736904,
+      "borrowApy": 0.049989462193456784,
       "borrowApyMin": 0.0007147857266102558,
-      "borrowApyMax": 0.05832443388611865,
+      "borrowApyMax": 0.06021039562955038,
       "stockBorrowedUsd": null,
+      "assets": [
+        {
+          "symbol": "deSPXA",
+          "address": "0x9c5c365e764829876243d0b289733b9d2b729685",
+          "collateralUsd": 49246.55128101774,
+          "maxLtv": 0.77
+        },
+        {
+          "symbol": "SPCXc",
+          "address": "0xb2000000000000000000007b9fcbd005511acbd5",
+          "collateralUsd": 15229.015122478197,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "GOOGLc",
+          "address": "0xb2000000000000000000002d0ba3164cc74f58b7",
+          "collateralUsd": 12694.924861323729,
+          "maxLtv": 0.77
+        },
+        {
+          "symbol": "AAPLc",
+          "address": "0xb200000000000000000000c2e324d24d7eecd1fb",
+          "collateralUsd": 12681.796996686517,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "wbCOIN",
+          "address": "0xdec933e2392ad908263e70a386fbf34e703ffe8f",
+          "collateralUsd": 3653.979282678775,
+          "maxLtv": 0.86
+        },
+        {
+          "symbol": "NVDAc",
+          "address": "0xb20000000000000000000078ee7ce2fe4908108c",
+          "collateralUsd": 2536.6240862181317,
+          "maxLtv": 0.77
+        },
+        {
+          "symbol": "METAc",
+          "address": "0xb2000000000000000000008bc8786b856e61707c",
+          "collateralUsd": 90.73356161776465,
+          "maxLtv": 0.86
+        },
+        {
+          "symbol": "MSFTc",
+          "address": "0xb200000000000000000000ab99cfa739e253872b",
+          "collateralUsd": 0.4227200012007015,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "TSLAc",
+          "address": "0xb2000000000000000000001e800a7f5189430cd0",
+          "collateralUsd": 0.4130509667721574,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "AMZNc",
+          "address": "0xb200000000000000000000d9192b6b456483c2e8",
+          "collateralUsd": 0.403439460816393,
+          "maxLtv": 0.625
+        }
+      ],
+      "note": null,
+      "borrowEstimate": null,
       "source": "https://api.morpho.org/graphql",
       "error": null
     },
@@ -104,14 +392,318 @@
       "venue": "Morpho",
       "chainId": "robinhood-chain",
       "chainLabel": "Robinhood Chain",
-      "collateralUsd": 4155064.5152745587,
-      "stableBorrowedUsd": 1666349.4786824991,
-      "lendSupplyUsd": 2189522.4159699385,
-      "utilization": 0.7610561401557159,
-      "borrowApy": 0.23417707014525926,
-      "borrowApyMin": 0.18660113113886723,
-      "borrowApyMax": 0.2905042344020259,
-      "stockBorrowedUsd": 10506.42543157634,
+      "collateralUsd": 4165891.6140718237,
+      "stableBorrowedUsd": 1666435.400996479,
+      "lendSupplyUsd": 2189622.3923457447,
+      "utilization": 0.7610606316512981,
+      "borrowApy": 0.2349316379514084,
+      "borrowApyMin": 0.18718428341187648,
+      "borrowApyMax": 0.29144978884807554,
+      "stockBorrowedUsd": 10553.401328715001,
+      "assets": [
+        {
+          "symbol": "NVDA",
+          "address": "0xd0601ce157db5bdc3162bbac2a2c8af5320d9eec",
+          "collateralUsd": 1656304.0202141881,
+          "maxLtv": 0.86
+        },
+        {
+          "symbol": "SPCX",
+          "address": "0x4a0e65a3eccec6dbe60ae065f2e7bb85fae35eea",
+          "collateralUsd": 1344929.3123548059,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "GOOGL",
+          "address": "0x2e0847e8910a9732eb3fb1bb4b70a580adad4fe3",
+          "collateralUsd": 659870.3473532994,
+          "maxLtv": 0.86
+        },
+        {
+          "symbol": "AAPL",
+          "address": "0xaf3d76f1834a1d425780943c99ea8a608f8a93f9",
+          "collateralUsd": 492342.25459150225,
+          "maxLtv": 0.86
+        },
+        {
+          "symbol": "SPY",
+          "address": "0x117cc2133c37b721f49de2a7a74833232b3b4c0c",
+          "collateralUsd": 11016.593310938959,
+          "maxLtv": 0.86
+        },
+        {
+          "symbol": "COIN",
+          "address": "0x6330d8c3178a418788df01a47479c0ce7ccf450b",
+          "collateralUsd": 386.9874053391051,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "MSFT",
+          "address": "0xe93237c50d904957cf27e7b1133b510c669c2e74",
+          "collateralUsd": 295.72168303963196,
+          "maxLtv": 0.86
+        },
+        {
+          "symbol": "MSTR",
+          "address": "0xec262a75e413fafd0df80480274532c79d42da09",
+          "collateralUsd": 221.16487878182323,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "PLTR",
+          "address": "0x894e1ec2d74ffe5aef8dc8a9e84686accb964f2a",
+          "collateralUsd": 196.02225328782228,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "TTWO",
+          "address": "0x5e81213613b6b86eab4c6c50d718d34359459786",
+          "collateralUsd": 119.1781224926703,
+          "maxLtv": 0.385
+        },
+        {
+          "symbol": "CRCL",
+          "address": "0xdf0992e440dd0be65bd8439b609d6d4366bf1cb5",
+          "collateralUsd": 82.26639891997903,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "TSLA",
+          "address": "0x322f0929c4625ed5bad873c95208d54e1c003b2d",
+          "collateralUsd": 53.6303695852632,
+          "maxLtv": 0.86
+        },
+        {
+          "symbol": "SLV",
+          "address": "0x411efb0e7f985935daec3d4c3ebaea0d0ad7d89f",
+          "collateralUsd": 28.331550000000004,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "INTC",
+          "address": "0xc72b96e0e48ecd4dc75e1e45396e26300bc39681",
+          "collateralUsd": 18.896618989699007,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "RDDT",
+          "address": "0x05b37fb53a299a1b874a619e1c4c404d52c36f4c",
+          "collateralUsd": 14.65531265331085,
+          "maxLtv": 0.385
+        },
+        {
+          "symbol": "SNDK",
+          "address": "0xb90a19ff0af67f7779aff50a882a9cff42446400",
+          "collateralUsd": 11.646108575036706,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "SGOV",
+          "address": "0x92fd66527192e3e61d4ddd13322aa222de86f9b5",
+          "collateralUsd": 0.5837082212094857,
+          "maxLtv": 0.915
+        },
+        {
+          "symbol": "USO",
+          "address": "0xa30fa36db767ad9ed3f7a60fc79526fb4d56d344",
+          "collateralUsd": 0.0009459193919064622,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "AMZN",
+          "address": "0x12f190a9f9d7d37a250758b26824b97ce941bf54",
+          "collateralUsd": 0.0008912840212547101,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "MU",
+          "address": "0xff080c8ce2e5feadaca0da81314ae59d232d4afd",
+          "collateralUsd": 1.046725e-14,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "USAR",
+          "address": "0xd917b029c761d264c6a312bbbcda868658ef86a6",
+          "collateralUsd": 2.75292e-15,
+          "maxLtv": 0.385
+        },
+        {
+          "symbol": "CRWV",
+          "address": "0x5f10a1c971b69e47e059e1dc91901b59b3fb49c3",
+          "collateralUsd": 1.2420000000000003e-15,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "AMC",
+          "address": "0x05a3d1cd21d0c88145e82600e62e7e496e0f222b",
+          "collateralUsd": 0,
+          "maxLtv": 0.385
+        },
+        {
+          "symbol": "AMD",
+          "address": "0x86923f96303d656e4aa86d9d42d1e57ad2023fdc",
+          "collateralUsd": 0,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "ASML",
+          "address": "0x47f93d52cbec7c6d2cfc080e154002370a60daea",
+          "collateralUsd": 0,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "BABA",
+          "address": "0xad25ac6c84d497db898fa1e8387bf6af3532a1c4",
+          "collateralUsd": 0,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "CLSK",
+          "address": "0xcbb95bbf36099d34da091dc6fa6f49efa257cee3",
+          "collateralUsd": 0,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "COST",
+          "address": "0x4ea005168d7f09a7a0ba9d1def21a479950e44c2",
+          "collateralUsd": 0,
+          "maxLtv": 0.385
+        },
+        {
+          "symbol": "DELL",
+          "address": "0x941ae714ec6d8130c7b75d67160ca08f1e7d11dd",
+          "collateralUsd": 0,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "DJT",
+          "address": "0x1d11f0496982706c5e14a514d4e79f2e6bde4516",
+          "collateralUsd": 0,
+          "maxLtv": 0.385
+        },
+        {
+          "symbol": "EWY",
+          "address": "0x7f0abef0c07280f82c6a08ead09ded6bae2c13fc",
+          "collateralUsd": 0,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "F",
+          "address": "0x25c288e6d899b9bc30160965ad9644c67e73be0c",
+          "collateralUsd": 0,
+          "maxLtv": 0.385
+        },
+        {
+          "symbol": "GLD",
+          "address": "0xc9a981fee1f9dec688bb123ccdecc63d0debfc4e",
+          "collateralUsd": 0,
+          "maxLtv": 0.385
+        },
+        {
+          "symbol": "GME",
+          "address": "0x1b0e319c6a659f002271b69db8a7df2f911c153e",
+          "collateralUsd": 0,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "HIMS",
+          "address": "0xccee82fe024c36fa15e1005ede3e9e4787e23d09",
+          "collateralUsd": 0,
+          "maxLtv": 0.385
+        },
+        {
+          "symbol": "IBM",
+          "address": "0x980dcf6766fa79f5cf0c4aadb3ab477ff15a9619",
+          "collateralUsd": 0,
+          "maxLtv": 0.385
+        },
+        {
+          "symbol": "IONQ",
+          "address": "0x558378e000d634a36593e338ebacdd6207640efe",
+          "collateralUsd": 0,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "LLY",
+          "address": "0x8005d266423c7ea827372c9c864491e5786600ea",
+          "collateralUsd": 0,
+          "maxLtv": 0.385
+        },
+        {
+          "symbol": "LULU",
+          "address": "0x4e62068525ab11fe768e29dfd00ef909b9803016",
+          "collateralUsd": 0,
+          "maxLtv": 0.385
+        },
+        {
+          "symbol": "META",
+          "address": "0xc0d6457c16cc70d6790dd43521c899c87ce02f35",
+          "collateralUsd": 0,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "MRNA",
+          "address": "0x43b07d15ce533bec5476d70c22a78a1b2b662155",
+          "collateralUsd": 0,
+          "maxLtv": 0.385
+        },
+        {
+          "symbol": "NBIS",
+          "address": "0x9d9c6684f596f66a64c030b93a886d51fd4d7931",
+          "collateralUsd": 0,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "NFLX",
+          "address": "0xe0444ef8bf4ed74f74fd73686e2ddf4c1c5591e8",
+          "collateralUsd": 0,
+          "maxLtv": 0.385
+        },
+        {
+          "symbol": "ORCL",
+          "address": "0xb0992820e760d836549ba69bc7598b4af75dee03",
+          "collateralUsd": 0,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "QQQ",
+          "address": "0xd5f3879160bc7c32ebb4dc785f8a4f505888de68",
+          "collateralUsd": 0,
+          "maxLtv": 0.77
+        },
+        {
+          "symbol": "RBLX",
+          "address": "0xf0c4bf4c582cb3836e98394b1d4e7b7281101be8",
+          "collateralUsd": 0,
+          "maxLtv": 0.385
+        },
+        {
+          "symbol": "RGTI",
+          "address": "0x284358abc07f9359f19f4b5b4ac91901be2597ba",
+          "collateralUsd": 0,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "RIVN",
+          "address": "0xb1bf26c1d20ff267a4f93550d1e0d06ac40a114b",
+          "collateralUsd": 0,
+          "maxLtv": 0.385
+        },
+        {
+          "symbol": "RKLB",
+          "address": "0x3b14c39e89d60d627b42a1a4ca45b5bb45fc12e2",
+          "collateralUsd": 0,
+          "maxLtv": 0.625
+        },
+        {
+          "symbol": "TSM",
+          "address": "0x58ffe4a942d3885baa22d7520691f611ef09e7aa",
+          "collateralUsd": 0,
+          "maxLtv": 0.625
+        }
+      ],
+      "note": null,
+      "borrowEstimate": null,
       "source": "https://api.morpho.org/graphql",
       "error": null
     },
@@ -121,13 +713,23 @@
       "chainId": "hyperevm",
       "chainLabel": "HyperEVM",
       "collateralUsd": 27.753125565335235,
-      "stableBorrowedUsd": 11.068842889164195,
-      "lendSupplyUsd": 12.069455519312907,
-      "utilization": 0.9170954622975672,
-      "borrowApy": 0.0861391907310573,
-      "borrowApyMin": 0.0861391907310573,
-      "borrowApyMax": 0.0861391907310573,
+      "stableBorrowedUsd": 11.069141984192747,
+      "lendSupplyUsd": 12.069768639636319,
+      "utilization": 0.91709645103241,
+      "borrowApy": 0.08618787313282539,
+      "borrowApyMin": 0.08618787313282539,
+      "borrowApyMax": 0.08618787313282539,
       "stockBorrowedUsd": null,
+      "assets": [
+        {
+          "symbol": "wNVDAx",
+          "address": "0xa8ddb5cd96b5222afe198316e9a57caa642850d5",
+          "collateralUsd": 27.753125565335235,
+          "maxLtv": 0.625
+        }
+      ],
+      "note": null,
+      "borrowEstimate": null,
       "source": "https://api.morpho.org/graphql",
       "error": null
     },
@@ -136,15 +738,47 @@
       "venue": "Venus",
       "chainId": "bnb",
       "chainLabel": "BNB",
-      "collateralUsd": 653503.77,
-      "stableBorrowedUsd": null,
+      "collateralUsd": 655768.6699999999,
+      "stableBorrowedUsd": 255389.46046163054,
       "lendSupplyUsd": null,
       "utilization": null,
       "borrowApy": null,
       "borrowApyMin": null,
       "borrowApyMax": null,
       "stockBorrowedUsd": 0,
-      "source": "https://api.venus.io/markets?chainId=56&limit=100",
+      "assets": [
+        {
+          "symbol": "NVDAB",
+          "address": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+          "collateralUsd": 345135.19,
+          "maxLtv": 0.6
+        },
+        {
+          "symbol": "SPCXB",
+          "address": "0xbe9d156892e55e7154bcd3cb0fea677f9d3103e1",
+          "collateralUsd": 220333.02,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "SKHYB",
+          "address": "0xca750ef65f295bbecd685abf54e82caf297bdb61",
+          "collateralUsd": 59011.01,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "TSLAB",
+          "address": "0x5b1910eaad6450e50f816082aa078c41f10c292f",
+          "collateralUsd": 31289.45,
+          "maxLtv": 0.6
+        }
+      ],
+      "note": "These stocks sit in Venus's shared pool with other coins. Dollars borrowed are an estimate: each account's borrow times the share of its borrowing power that comes from these stocks. Accounts that use only these stocks as collateral have borrowed $195.6K. How full and the yearly cost are not available. Borrowing the stock tokens themselves is turned off.",
+      "borrowEstimate": {
+        "method": "Pro-rata from onchain balances at BSC block about 126.55 million, checked Oct 8, 2026 at 8:20 PM Mountain Time. Each account's borrow is multiplied by the share of its borrowing power that comes from bStock collateral. The live scan did not refresh this figure.",
+        "asOf": "2026-10-09T02:20:00.000Z",
+        "lowerBoundUsd": 195590.93156447148
+      },
+      "source": "https://api.venus.io/markets/core-pool?chainId=56&limit=100",
       "error": null
     },
     {
@@ -152,14 +786,486 @@
       "venue": "Lista",
       "chainId": "bnb",
       "chainLabel": "BNB",
-      "collateralUsd": 7801097.002860623,
-      "stableBorrowedUsd": 3899635.9708398897,
-      "lendSupplyUsd": 5334689.689550484,
-      "utilization": 0.7309958400164198,
-      "borrowApy": 0.01516361947209263,
-      "borrowApyMin": 0.00738746368225718,
-      "borrowApyMax": 0.01790507748314902,
-      "stockBorrowedUsd": null,
+      "collateralUsd": 7818346.237076798,
+      "stableBorrowedUsd": 3899640.450259898,
+      "lendSupplyUsd": 5334327.711455846,
+      "utilization": 0.7310462838428813,
+      "borrowApy": 0.013517781737481659,
+      "borrowApyMin": 0.00574681996457488,
+      "borrowApyMax": 0.01950104888911544,
+      "stockBorrowedUsd": 78683.81071669431,
+      "assets": [
+        {
+          "symbol": "SPYB",
+          "address": "0x7138b48df7d98d7e3cc221bfe7192d0a178182d8",
+          "collateralUsd": 1796083.29972456,
+          "maxLtv": 0.85
+        },
+        {
+          "symbol": "CRCLB",
+          "address": "0x80f3d493ebce97e343c53d29a137942416b4ffc0",
+          "collateralUsd": 1515911.3914702765,
+          "maxLtv": 0.6
+        },
+        {
+          "symbol": "QQQB",
+          "address": "0x205812cdbed920aff76c6580abd681a46d11efc7",
+          "collateralUsd": 1258225.810686065,
+          "maxLtv": 0.75
+        },
+        {
+          "symbol": "NVDAB",
+          "address": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+          "collateralUsd": 710195.4242019333,
+          "maxLtv": 0.75
+        },
+        {
+          "symbol": "DRAMB",
+          "address": "0x93862d63fd9fd488b1328e9b47717d75e994a84b",
+          "collateralUsd": 319655.81657249917,
+          "maxLtv": 0.55
+        },
+        {
+          "symbol": "GOOGLB",
+          "address": "0x3f53de71c126bdabae20f9cd64848d317f6c3238",
+          "collateralUsd": 307068.28090048285,
+          "maxLtv": 0.7
+        },
+        {
+          "symbol": "MSTRB",
+          "address": "0xe87afb3076aeb0f9b14e368de8145ae6a2826a14",
+          "collateralUsd": 228023.2755455047,
+          "maxLtv": 0.6
+        },
+        {
+          "symbol": "TSLAB",
+          "address": "0x5b1910eaad6450e50f816082aa078c41f10c292f",
+          "collateralUsd": 223989.51351697158,
+          "maxLtv": 0.75
+        },
+        {
+          "symbol": "SPCXB",
+          "address": "0xbe9d156892e55e7154bcd3cb0fea677f9d3103e1",
+          "collateralUsd": 205852.9101724668,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "METAB",
+          "address": "0x7425889fe94f9d693e8daefe88bcced6acfef4c0",
+          "collateralUsd": 200272.1267166432,
+          "maxLtv": 0.7
+        },
+        {
+          "symbol": "AAOIB",
+          "address": "0x10343ef7da3301493d7ecb647d68a288c6c1db2f",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "AAPLB",
+          "address": "0x431a3bee82e2ca41e49895cbece5bb0f76a89b7a",
+          "collateralUsd": null,
+          "maxLtv": 0.7
+        },
+        {
+          "symbol": "AGPUB",
+          "address": "0xa455ae0f04a2b86eee47adca98985e61d14cbefb",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "ALABB",
+          "address": "0x1282493ede6a22753d45cb2c0fdbd8d35e97555a",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "AMATB",
+          "address": "0xa304bd78e739c0f777202b3eb73ac3736d1df801",
+          "collateralUsd": null,
+          "maxLtv": 0.55
+        },
+        {
+          "symbol": "AMCB",
+          "address": "0x96e7d606e229448ef817a7f35fd7394c3e15d00c",
+          "collateralUsd": null,
+          "maxLtv": 0.55
+        },
+        {
+          "symbol": "AMDB",
+          "address": "0x75fd4cf6f8392e41e70391d60c90c0d5211603a1",
+          "collateralUsd": null,
+          "maxLtv": 0.65
+        },
+        {
+          "symbol": "AMZNB",
+          "address": "0x1a4b499833a79a09ad7cf1d42d7dacf71e92eb00",
+          "collateralUsd": null,
+          "maxLtv": 0.7
+        },
+        {
+          "symbol": "ARMB",
+          "address": "0xd42a79ebb7f527f40faecd196ffb47ad5e8d6f8c",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "ASMLB",
+          "address": "0xfbfb4f79cfb4c34dcd7c82bdee5a0fa199b2e7f9",
+          "collateralUsd": null,
+          "maxLtv": 0.65
+        },
+        {
+          "symbol": "ASTSB",
+          "address": "0x58b6f5feeb8436489f5bf4a56619092b1fa8e777",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "AVGOB",
+          "address": "0x76682c454467b3a1150ad8b6a92fc5ee2c21d7ed",
+          "collateralUsd": null,
+          "maxLtv": 0.65
+        },
+        {
+          "symbol": "AXTIB",
+          "address": "0x9bdc8b470dbf89dbcb123587c6f5e49cca3463be",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "BABAB",
+          "address": "0x4ef9d3062c7f6eba4aae4990c5036598c6eff4ec",
+          "collateralUsd": null,
+          "maxLtv": 0.65
+        },
+        {
+          "symbol": "BEB",
+          "address": "0x5519de00f5388c17d886b97cb5d2d43a812a82bc",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "BMNRB",
+          "address": "0x3548da95a9effe481e8604664d75e95821e557f5",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "BNCB",
+          "address": "0x4902c5ebc598265ed2212b559b042de8a5eeec3f",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "CBRSB",
+          "address": "0xe81c6bb0266cd68b4f17278531dd03ea1f12da4e",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "COHRB",
+          "address": "0x5131859a059b2446abeefe0f5d313b3c54ff3d36",
+          "collateralUsd": null,
+          "maxLtv": 0.55
+        },
+        {
+          "symbol": "COINB",
+          "address": "0x585bde7c54abb5ccd7791f923d6c2187635f3952",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "CRDOB",
+          "address": "0x6e7d451f9d30327d32020f116fa79c23b24e9c8d",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "CRWDB",
+          "address": "0x814981cf5df4a14d4d7328f9abf0d02e9ed54cd1",
+          "collateralUsd": null,
+          "maxLtv": 0.6
+        },
+        {
+          "symbol": "CRWVB",
+          "address": "0x33e7317e17838fee56b10fe8d0b9ca6ca3090c95",
+          "collateralUsd": null,
+          "maxLtv": 0.55
+        },
+        {
+          "symbol": "CYPHB",
+          "address": "0x0393c28065c54e48b45bdb05eff5c401cf891da1",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "DELLB",
+          "address": "0x0e7a51966c66648999d506e1372efdea1b78cb0b",
+          "collateralUsd": null,
+          "maxLtv": 0.55
+        },
+        {
+          "symbol": "DJTB",
+          "address": "0xf2ec508422174ee564de98187db9359d318afb6b",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "EWYB",
+          "address": "0xbe82f76637dba2c114c41df856c2c51e522e2cb8",
+          "collateralUsd": null,
+          "maxLtv": 0.65
+        },
+        {
+          "symbol": "FLNCB",
+          "address": "0x4af1d41cd9dd950dca43984b43aaa2a8702714ac",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "GLWB",
+          "address": "0x740e075cbbea22a082b9d6679e65e82767875b6a",
+          "collateralUsd": null,
+          "maxLtv": 0.55
+        },
+        {
+          "symbol": "GMEB",
+          "address": "0x46ceefda28dd7207059ed19b0acdc026955bb15c",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "GPROB",
+          "address": "0x1ecfda023c46ca216b5c620ef357a6d0c03951e6",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "GSB",
+          "address": "0x20cce6656e5f7f79f280e2d0f5db55b401bdbfce",
+          "collateralUsd": null,
+          "maxLtv": 0.7
+        },
+        {
+          "symbol": "HOODB",
+          "address": "0xa394dcea3fd3847fd793afbfd163e2e3858b7c65",
+          "collateralUsd": null,
+          "maxLtv": 0.6
+        },
+        {
+          "symbol": "IBMB",
+          "address": "0xfa273b076feb8c0fb34e554ae341082323d016a3",
+          "collateralUsd": null,
+          "maxLtv": 0.6
+        },
+        {
+          "symbol": "INTCB",
+          "address": "0xe614e2fc6c787035ff51f452e8e826bfd32d5283",
+          "collateralUsd": null,
+          "maxLtv": 0.65
+        },
+        {
+          "symbol": "INTWB",
+          "address": "0x0735d9904b7e34e6fe39b0f66e00c111b3f2b681",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "IRENB",
+          "address": "0xfdc2f2cab77b28f7ef6c819a404706cfa9bca33b",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "KORUB",
+          "address": "0x1ffad32d69c5fead99f88c25ca0191edc3757636",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "LITEB",
+          "address": "0x64748bea17b6d19e242adf20425de2440c656142",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "MRNAB",
+          "address": "0x5fd86da9b05abe396fe9d02a4a213a7c00556503",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "MRVLB",
+          "address": "0x16cd4fe7e8880ecc3ba222795229e20489fc2c76",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "MSFTB",
+          "address": "0x80106cb3ead06659a5ad19df39d9b4733863b9b0",
+          "collateralUsd": null,
+          "maxLtv": 0.75
+        },
+        {
+          "symbol": "MUB",
+          "address": "0xcdf2f3e0fa43c47a6662a91c9e4a7c5f69762699",
+          "collateralUsd": null,
+          "maxLtv": 0.65
+        },
+        {
+          "symbol": "MUUB",
+          "address": "0x0bb3fa77e0809f42948e435f04883c25415e8263",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "MVLLB",
+          "address": "0x7c26a12f20507e2cee22ceebed9e88fda47f866c",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "NBISB",
+          "address": "0xe256bc2a4f5297f8ba6f043f180a46300ecbcbb1",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "NFLXB",
+          "address": "0xd6829ea836b6fa224d099d40e54b31262f874631",
+          "collateralUsd": null,
+          "maxLtv": 0.7
+        },
+        {
+          "symbol": "NOKB",
+          "address": "0x7c4d7a180d737dd5a70d8065a90e6746a69c37ea",
+          "collateralUsd": null,
+          "maxLtv": 0.6
+        },
+        {
+          "symbol": "ORCLB",
+          "address": "0x4684d9887fc1c71cba7bab8e88835cec217eb598",
+          "collateralUsd": null,
+          "maxLtv": 0.6
+        },
+        {
+          "symbol": "PLTRB",
+          "address": "0x0ca5d51d0277bd006fd9607d3e560785ebad8222",
+          "collateralUsd": null,
+          "maxLtv": 0.65
+        },
+        {
+          "symbol": "PYPLB",
+          "address": "0x2806a561fc1f9259b2d54a281796bde0d92762ae",
+          "collateralUsd": null,
+          "maxLtv": 0.65
+        },
+        {
+          "symbol": "QCOMB",
+          "address": "0x5f7a56e877b9130608bf8be962621011182fefe1",
+          "collateralUsd": null,
+          "maxLtv": 0.6
+        },
+        {
+          "symbol": "QNTB",
+          "address": "0xd721c192d612db77621df57a9fab38418033c02e",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "RDDTB",
+          "address": "0x41622a9125a22767df8c1dc79fc17299bac4bd0b",
+          "collateralUsd": null,
+          "maxLtv": 0.55
+        },
+        {
+          "symbol": "RKLBB",
+          "address": "0xc8da12cbcce7c45180692a6420b0076e03a5179a",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "SKHYB",
+          "address": "0xca750ef65f295bbecd685abf54e82caf297bdb61",
+          "collateralUsd": null,
+          "maxLtv": 0.55
+        },
+        {
+          "symbol": "SMCIB",
+          "address": "0x387dea1d2772d716d081a29116f3effa0ffe1f36",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "SMHB",
+          "address": "0xbe1fced7047fdce935f45700727845df2c76877a",
+          "collateralUsd": null,
+          "maxLtv": 0.65
+        },
+        {
+          "symbol": "SNDKB",
+          "address": "0x3ee4df61bd4f867e349beae8bfe07bc31b4850fb",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "SNXXB",
+          "address": "0x9e82e3da8f1115b73d24bb24113ab836ffdab6b6",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "SOXLB",
+          "address": "0xd97d097a89113fa59b76c572e5b2eb647e8eefaf",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "SOXSB",
+          "address": "0xe28cd11c99af2df76bb8ada4cd0ef3904378280f",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "SQQQB",
+          "address": "0x25e572b466d152604d9e6c3e53b432b978825342",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "STXB",
+          "address": "0x2e065f65f1699964f4092de1d39a8efe6c8d6f32",
+          "collateralUsd": null,
+          "maxLtv": 0.55
+        },
+        {
+          "symbol": "TQQQB",
+          "address": "0x462b5f13b7c7748279358962925c5de83bb9e598",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "TSMB",
+          "address": "0xab78b89b5bb00236be0b4b20704cbfa04efc711c",
+          "collateralUsd": null,
+          "maxLtv": 0.65
+        },
+        {
+          "symbol": "USARB",
+          "address": "0xcd345d4450e04cdef422a60b97d9265d24e0bcee",
+          "collateralUsd": null,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "WDCB",
+          "address": "0xebe29695f8047c13d36e7a790ca8c1b239ffad1c",
+          "collateralUsd": null,
+          "maxLtv": 0.55
+        }
+      ],
+      "note": null,
+      "borrowEstimate": null,
       "source": "https://api.lista.org/api/moolah/overall",
       "error": null
     }

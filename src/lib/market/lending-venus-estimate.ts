@@ -182,7 +182,7 @@ async function transferAddresses(vTokens: readonly string[], endBlock: number): 
       const to = Math.min(start + LOG_SPAN, endBlock);
       let lastError = "log request failed";
       let logs: { topics?: string[] }[] | null = null;
-      for (let attempt = 0; attempt < 4; attempt += 1) {
+      for (let attempt = 0; attempt < 8; attempt += 1) {
         try {
           const response = await fetch(BSC_LOG_RPC, {
             method: "POST",
@@ -209,7 +209,7 @@ async function transferAddresses(vTokens: readonly string[], endBlock: number): 
           break;
         } catch (error) {
           lastError = error instanceof Error ? error.message : "eth_getLogs failed";
-          await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+          await new Promise((resolve) => setTimeout(resolve, Math.min(8_000, 500 * 2 ** attempt)));
         }
       }
       if (!logs) {
