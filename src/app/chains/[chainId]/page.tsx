@@ -33,7 +33,12 @@ import { parsePinnedFilter } from "@/lib/desk/solana-chain-href";
 import { selectEquityPriceTicker } from "@/lib/desk/price-ticker";
 import { parseAssetSortKey, sortAssets } from "@/lib/market/aggregate";
 import { toJumpAsset } from "@/lib/market/asset-search";
-import { readSolanaDeskForDocument, solanaDeskFallbackDetail, withDocumentBudget } from "@/lib/market/document-budget";
+import {
+  chainDetailHasAssetRows,
+  readSolanaDeskForDocument,
+  resolveSolanaDeskForDocument,
+  withDocumentBudget,
+} from "@/lib/market/document-budget";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { findSnapshotDesk, loadClosedSnapshotDeskDays } from "@/lib/market/snapshot-desk-volume-file";
 import { BASE_CHAIN_ID, BNB_CHAIN_ID, ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type AssetSummary, type EquityVolumeHistoryResult } from "@/lib/market/types";
@@ -105,14 +110,15 @@ export default async function ChainPage({
   let listError: string | null = null;
   try {
     if (chainId === SOLANA_CHAIN_ID) {
-      // Warm the in-memory desk in the background. Render that desk, or the last
-      // closed snapshot, without waiting on DexScreener.
+      // Warm the in-memory desk in the background. Render that desk when it has
+      // asset rows. Otherwise render the last closed snapshot, including the
+      // newest nightly per-asset rows. Do not wait on DexScreener.
       void source.getEquityVolumeHistory().catch(() => undefined);
       const live = readSolanaDeskForDocument(source);
-      if (live) {
+      if (chainDetailHasAssetRows(live)) {
         result = live;
       } else {
-        result = solanaDeskFallbackDetail(await new FileDeskVolumeSnapshotStore().load());
+        result = resolveSolanaDeskForDocument(live, await new FileDeskVolumeSnapshotStore().load());
         if (!result) {
           throw new Error(
             "Solana discovery did not finish inside the page budget, and there is no closed desk snapshot to show.",

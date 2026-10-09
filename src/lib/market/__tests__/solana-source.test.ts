@@ -1218,6 +1218,25 @@ describe("SolanaMarketDataSource", () => {
     expect(await snapshots.load()).toEqual([]);
   }, 3_000);
 
+  it("returns in-memory asset rows from the document desk without writing the snapshot", async () => {
+    const snapshots = new MemoryDeskVolumeSnapshotStore();
+    const source = testSource({
+      volumeSnapshotStore: snapshots,
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("/latest/dex/search")) return jsonResponse({ pairs: [tslaPair()] });
+        if (url.includes("/token-pairs/") || url.includes("/tokens/")) return jsonResponse([tslaPair()]);
+        return jsonResponse({ unexpected: true }, 404);
+      },
+    });
+
+    expect(source.readDeskForDocument()).toBeNull();
+    await source.getChain("solana");
+    const desk = source.readDeskForDocument();
+    expect(desk?.assets.some((asset) => asset.symbol === "TSLAx" && asset.volume24hUsd !== null)).toBe(true);
+    expect(await snapshots.load()).toEqual([]);
+  });
+
   it("picks up a new DexScreener total after the desk cache expires without writing solana.json", async () => {
     const snapshots = new MemoryDeskVolumeSnapshotStore();
     let hydrates = 0;
