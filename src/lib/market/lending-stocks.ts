@@ -76,12 +76,15 @@ export interface LendingBoardRow {
   key: string;
   ticker: string;
   symbol: string;
+  address: string;
   wrapper: string;
   venueId: string;
   venue: string;
   chainId: string;
   chainLabel: string;
   collateralUsd: number | null;
+  /** Token count, only when that source reported one. */
+  collateralTokens: number | null;
   maxLtv: number | null;
   borrowApy: number | null;
   borrowApyMin: number | null;
@@ -120,12 +123,14 @@ export function lendingBoardRows(rows: readonly BoardSource[]): LendingBoardRow[
           key,
           ticker: classified.ticker,
           symbol: asset.symbol,
+          address: asset.address,
           wrapper: classified.wrapper,
           venueId: row.id,
           venue: row.venue,
           chainId: row.chainId,
           chainLabel: row.chainLabel,
           collateralUsd: asset.collateralUsd,
+          collateralTokens: asset.collateralTokens,
           maxLtv: asset.maxLtv,
           borrowApy: row.borrowApy,
           borrowApyMin: row.borrowApyMin,
@@ -142,6 +147,7 @@ export function lendingBoardRows(rows: readonly BoardSource[]): LendingBoardRow[
         continue;
       }
       current.collateralUsd = addCollateral(current.collateralUsd, asset.collateralUsd);
+      if (asset.collateralTokens !== null) current.collateralTokens = (current.collateralTokens ?? 0) + asset.collateralTokens;
       if (asset.maxLtv !== null && (current.maxLtv === null || asset.maxLtv > current.maxLtv)) current.maxLtv = asset.maxLtv;
     }
     out.push(...merged.values());
@@ -154,6 +160,31 @@ export function lendingBoardRows(rows: readonly BoardSource[]): LendingBoardRow[
       a.ticker.localeCompare(b.ticker),
   );
   return out;
+}
+
+export interface LendingChainSharePart {
+  chainId: string;
+  chainLabel: string;
+  collateralUsd: number;
+}
+
+/** Big chains stay named. Books under {@link SMALL_LENDING_BOOK_USD} fold into one smaller-pools total. */
+export function lendingChainShareParts(
+  chains: readonly { chainId: string; chainLabel: string; collateralUsd: number | null }[],
+): { main: LendingChainSharePart[]; smallerUsd: number | null } {
+  const main: LendingChainSharePart[] = [];
+  let smaller = 0;
+  let smallerSeen = false;
+  for (const chain of chains) {
+    if (chain.collateralUsd === null || !(chain.collateralUsd > 0)) continue;
+    if (chain.collateralUsd < SMALL_LENDING_BOOK_USD) {
+      smaller += chain.collateralUsd;
+      smallerSeen = true;
+      continue;
+    }
+    main.push({ chainId: chain.chainId, chainLabel: chain.chainLabel, collateralUsd: chain.collateralUsd });
+  }
+  return { main, smallerUsd: smallerSeen ? smaller : null };
 }
 
 export function isSmallLendingBook(collateralUsd: number | null, borrowedUsd: number | null): boolean {
@@ -244,6 +275,89 @@ type ActionRow = Pick<
   | "borrowEstimate"
   | "assets"
 >;
+
+export interface LendingActionChip {
+  label: string;
+  text: string;
+}
+
+/** Short labeled facts from the same rows as {@link lendingActionLines}. */
+export function lendingActionChips(rows: readonly ActionRow[]): LendingActionChip[] {
+  const chips: LendingActionChip[] = [];
+  const full = rows
+    .filter((row) => !row.borrowEstimate && row.utilization !== null && row.utilization >= 0.85 && (row.stableBorrowedUsd ?? 0) >= 25_000)
+    .sort((a, b) => (b.utilization ?? 0) - (a.utilization ?? 0))
+    .slice(0, 2);
+  if (full.length > 0) {
+    chips.push({
+      label: "Nearly full",
+      text: full
+        .map((row) => {
+          const cost = row.borrowApy === null ? "" : ` · ${formatLendingFractionPct(row.borrowApy)}`;
+          return `${row.venue} ${formatLendingFractionPct(row.utilization)}${cost}`;
+        })
+        .join(" · "),
+    });
+  }
+
+  const room = rows
+    .filter(
+      (row) =>
+        !row.borrowEstimate &&
+        row.utilization !== null &&
+        row.utilization <= 0.4 &&
+        row.borrowApy !== null &&
+        row.borrowApy <= 0.02 &&
+        (row.stableBorrowedUsd ?? 0) >= 100_000,
+    )
+    .sort((a, b) => (a.borrowApy ?? 0) - (b.borrowApy ?? 0))
+    .slice(0, 2);
+  if (room.length > 0) {
+    chips.push({
+      label: "Room",
+      text: room.map((row) => `${row.venue} ${formatLendingFractionPct(row.utilization)} · ${formatLendingApy(row)}`).join(" · "),
+    });
+  }
+
+  const costly = rows
+    .filter((row) => !row.borrowEstimate && row.borrowApy !== null && (row.stableBorrowedUsd ?? 0) >= 100_000)
+    .sort((a, b) => (b.borrowApyMax ?? b.borrowApy ?? 0) - (a.borrowApyMax ?? a.borrowApy ?? 0));
+  const highest = costly[0];
+  if (highest && (highest.borrowApyMax ?? highest.borrowApy ?? 0) >= 0.1) {
+    chips.push({
+      label: "Highest cost",
+      text: `${highest.venue} · ${highest.chainLabel} ${formatLendingApy(highest)}`,
+    });
+  }
+
+  const shorts = rows
+    .filter((row) => (row.stockBorrowedUsd ?? 0) >= 1_000)
+    .sort((a, b) => (b.stockBorrowedUsd ?? 0) - (a.stockBorrowedUsd ?? 0));
+  if (shorts.length > 0) {
+    chips.push({
+      label: "Shorting",
+      text: shorts.map((row) => `${row.venue} ${formatUsdCompact(row.stockBorrowedUsd)}`).join(" · "),
+    });
+  }
+
+  const tokens: { symbol: string; venue: string; usd: number }[] = [];
+  for (const row of rows) {
+    for (const asset of row.assets ?? []) {
+      if (asset.collateralUsd !== null && asset.collateralUsd >= 1_000) {
+        tokens.push({ symbol: asset.symbol, venue: row.venue, usd: asset.collateralUsd });
+      }
+    }
+  }
+  tokens.sort((a, b) => b.usd - a.usd || a.symbol.localeCompare(b.symbol));
+  const top = tokens.slice(0, 3);
+  if (top.length > 0) {
+    chips.push({
+      label: "Biggest",
+      text: top.map((token) => `${token.symbol} ${formatUsdCompact(token.usd)}`).join(" · "),
+    });
+  }
+  return chips;
+}
 
 /** Short, snapshot-driven notes. A category with no matching rows is omitted. */
 export function lendingActionLines(rows: readonly ActionRow[]): string[] {

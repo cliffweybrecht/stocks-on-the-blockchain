@@ -64,6 +64,8 @@ export interface LendingAsset {
   symbol: string;
   address: string;
   collateralUsd: number | null;
+  /** Token count deposited, when the source reports one. Null when it only reports dollars. */
+  collateralTokens: number | null;
   /** Max borrow as a fraction of collateral. 0.7 means $70 per $100 of stock. */
   maxLtv: number | null;
 }
@@ -364,6 +366,7 @@ function parseAssets(value: unknown): LendingAsset[] {
       symbol: asNonEmptyString(asset.symbol) ?? address,
       address,
       collateralUsd: nullableUsd(asset.collateralUsd),
+      collateralTokens: nullableUsd(asset.collateralTokens),
       maxLtv: nullableFraction(asset.maxLtv),
     });
   }

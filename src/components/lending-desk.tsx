@@ -3,7 +3,8 @@ import { LendingBoard } from "@/components/lending-board";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatUsdCompact } from "@/lib/market/format";
 import { LENDING_GLOSSARY, lendingGlossary } from "@/lib/market/lending-glossary";
-import { lendingActionLines, lendingBoardRows } from "@/lib/market/lending-stocks";
+import { lendingActionChips, lendingBoardRows, lendingChainShareParts } from "@/lib/market/lending-stocks";
+import { lendingChainLogo } from "@/lib/market/lending-logos";
 import {
   EXCLUDED_CEX_MARGIN_VENUES,
   formatLendingCapturedAt,
@@ -30,26 +31,50 @@ function Hint({ label, text }: { label: string; text: string }) {
 }
 
 function ChainShare({ chains }: { chains: LendingDeskModel["chains"] }) {
-  const parts = chains.filter((chain) => (chain.totals.collateralUsd ?? 0) > 0);
-  const total = parts.reduce((sum, chain) => sum + (chain.totals.collateralUsd ?? 0), 0);
+  const share = lendingChainShareParts(chains.map((chain) => ({ chainId: chain.chainId, chainLabel: chain.chainLabel, collateralUsd: chain.totals.collateralUsd })));
+  const total = share.main.reduce((sum, chain) => sum + chain.collateralUsd, 0) + (share.smallerUsd ?? 0);
   if (!(total > 0)) return null;
   return (
     <div className="space-y-2" data-lending-chain-share>
       <div className="flex h-1.5 overflow-hidden rounded-full bg-muted" role="img" aria-label="Stock deposited by chain">
-        {parts.map((chain, index) => (
+        {share.main.map((chain, index) => (
           <div
             key={chain.chainId}
             className="h-full bg-foreground"
             style={{
-              width: `${((chain.totals.collateralUsd ?? 0) / total) * 100}%`,
-              opacity: Math.max(0.4, 1 - index * 0.1),
+              width: `${(chain.collateralUsd / total) * 100}%`,
+              opacity: Math.max(0.45, 1 - index * 0.1),
             }}
-            title={`${chain.chainLabel} ${formatUsdCompact(chain.totals.collateralUsd)}`}
+            title={`${chain.chainLabel} ${formatUsdCompact(chain.collateralUsd)}`}
           />
         ))}
+        {share.smallerUsd !== null ? (
+          <div
+            className="h-full bg-foreground/40"
+            style={{ width: `${(share.smallerUsd / total) * 100}%` }}
+            title={`Smaller pools ${formatUsdCompact(share.smallerUsd)}`}
+          />
+        ) : null}
       </div>
-      <p className="text-sm leading-6 text-muted-foreground">
-        {parts.map((chain) => `${chain.chainLabel} ${formatUsdCompact(chain.totals.collateralUsd)}`).join(" · ")}
+      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm leading-6 text-muted-foreground">
+        {share.main.map((chain) => {
+          const logo = lendingChainLogo(chain.chainId);
+          return (
+            <span key={chain.chainId} className="inline-flex items-center gap-1.5">
+              {logo ? (
+                // Local chain mark. The letter circle covers chains without a file.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logo} alt="" className="size-3.5 rounded-full" />
+              ) : null}
+              {chain.chainLabel} <span className="num text-foreground">{formatUsdCompact(chain.collateralUsd)}</span>
+            </span>
+          );
+        })}
+        {share.smallerUsd !== null ? (
+          <span>
+            Smaller pools <span className="num text-foreground">{formatUsdCompact(share.smallerUsd)}</span>
+          </span>
+        ) : null}
       </p>
     </div>
   );
@@ -60,7 +85,7 @@ export function LendingDesk({ model }: { model: LendingDeskModel }) {
   const headline = lendingHeadline(model.rows, model.totals);
   const shorts = lendingStockBorrows(model.rows);
   const ltvLine = lendingLtvExplainer(model.rows);
-  const action = lendingActionLines(model.rows);
+  const action = lendingActionChips(model.rows);
   const boardRows = lendingBoardRows(model.rows);
   const collateralHint = lendingGlossary("collateral");
   const borrowedHint = lendingGlossary("stablecoin");
@@ -127,10 +152,13 @@ export function LendingDesk({ model }: { model: LendingDeskModel }) {
 
       {action.length > 0 ? (
         <section className="space-y-2" data-lending-action>
-          <h3 className="text-base font-medium text-foreground">Where the action is</h3>
-          <ul className="max-w-3xl space-y-2 text-sm leading-6 text-muted-foreground">
-            {action.map((line) => (
-              <li key={line}>{line}</li>
+          <h3 className="text-sm font-medium text-muted-foreground">Where the action is</h3>
+          <ul className="flex flex-wrap gap-2">
+            {action.map((chip) => (
+              <li key={chip.label} className="max-w-full rounded-full border border-border/80 px-3 py-1.5 text-sm leading-6">
+                <span className="font-medium text-foreground">{chip.label}</span>
+                <span className="text-muted-foreground"> {chip.text}</span>
+              </li>
             ))}
           </ul>
         </section>

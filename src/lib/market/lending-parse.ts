@@ -189,6 +189,7 @@ export function parseKaminoReserveMetrics(payload: unknown, options: {
         symbol: asNonEmptyString(row.liquidityToken) ?? mint,
         address: mint,
         collateralUsd: supply,
+        collateralTokens: null,
         maxLtv: unitFraction(row.maxLtv),
       });
       continue;
@@ -238,9 +239,16 @@ function jupiterToken(value: unknown): JupiterToken | null {
 }
 
 function baseUnitsUsd(amount: unknown, token: JupiterToken): number | null {
+  const tokens = tokenCount(amount, token.decimals);
+  if (tokens === null || token.price === null) return null;
+  return tokens * token.price;
+}
+
+function tokenCount(amount: unknown, decimals: number): number | null {
   const raw = asReportedNumber(amount);
-  if (raw === null || raw < 0 || token.price === null) return null;
-  return (raw / 10 ** token.decimals) * token.price;
+  if (raw === null || raw < 0 || decimals < 0 || decimals > 18) return null;
+  const tokens = raw / 10 ** decimals;
+  return Number.isFinite(tokens) ? tokens : null;
 }
 
 export function parseJupiterLend(input: {
@@ -290,6 +298,7 @@ export function parseJupiterLend(input: {
     if (borrowUsd !== null) allBorrowByToken.set(borrowToken.address, (allBorrowByToken.get(borrowToken.address) ?? 0) + borrowUsd);
     if (!supplyToken || !input.equityMints.has(supplyToken.address)) continue;
     const supplyUsd = baseUnitsUsd(vault.totalSupply, supplyToken);
+    const supplyTokens = tokenCount(vault.totalSupply, supplyToken.decimals);
     if (supplyUsd === null || borrowUsd === null) {
       unpriced += 1;
       continue;
@@ -304,12 +313,14 @@ export function parseJupiterLend(input: {
     const maxLtv = jupiterLtv(vault.collateralFactor);
     if (existing) {
       existing.collateralUsd = (existing.collateralUsd ?? 0) + supplyUsd;
+      existing.collateralTokens = supplyTokens === null ? existing.collateralTokens : (existing.collateralTokens ?? 0) + supplyTokens;
       if (maxLtv !== null && (existing.maxLtv === null || maxLtv > existing.maxLtv)) existing.maxLtv = maxLtv;
     } else {
       assets.push({
         symbol: supplyToken.symbol || supplyToken.address,
         address: supplyToken.address,
         collateralUsd: supplyUsd,
+        collateralTokens: supplyTokens,
         maxLtv,
       });
     }
@@ -474,6 +485,7 @@ export function parseMorphoMarkets(payload: unknown, options: {
       symbol: market.collateralSymbol ?? market.collateral,
       address: market.collateral,
       collateralUsd: market.collateralUsd,
+      collateralTokens: null,
       maxLtv: market.lltv,
     });
     const loanIsStable = market.loan !== null && !equities.has(market.loan) && isStableSymbol(market.loanSymbol);
@@ -596,6 +608,7 @@ export function parseAaveEquitiesHub(payload: unknown, options: {
           symbol: asset.symbol ?? asset.address,
           address: asset.address,
           collateralUsd: asset.suppliedUsd,
+          collateralTokens: null,
           maxLtv: null,
         });
       }
@@ -695,6 +708,7 @@ export function parseVenusMarkets(
         symbol: asNonEmptyString(row.underlyingSymbol) ?? address,
         address,
         collateralUsd: supplyUsd,
+        collateralTokens: null,
         maxLtv: venusFraction(row.collateralFactorMantissa),
       });
     }
@@ -825,6 +839,7 @@ export function parseListaBook(input: {
         symbol,
         address: market.collateralToken,
         collateralUsd: top?.usd ?? null,
+        collateralTokens: null,
         maxLtv: market.lltv,
       });
       continue;
@@ -962,6 +977,7 @@ function rememberAsset(map: Map<string, LendingAsset>, asset: LendingAsset) {
     return;
   }
   if (asset.collateralUsd !== null) current.collateralUsd = (current.collateralUsd ?? 0) + asset.collateralUsd;
+  if (asset.collateralTokens !== null) current.collateralTokens = (current.collateralTokens ?? 0) + asset.collateralTokens;
   if (asset.maxLtv !== null && (current.maxLtv === null || asset.maxLtv > current.maxLtv)) current.maxLtv = asset.maxLtv;
   if (asset.symbol && asset.symbol !== key) current.symbol = asset.symbol;
 }

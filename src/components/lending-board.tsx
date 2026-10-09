@@ -1,11 +1,12 @@
 "use client";
 
-import { CircleHelp, Layers, Search } from "lucide-react";
+import { CircleHelp, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { LendingBoardRow } from "@/lib/market/lending-stocks";
 import { lendingGlossary } from "@/lib/market/lending-glossary";
-import { formatUsdCompact } from "@/lib/market/format";
+import { formatTokenAmount, formatUsdCompact } from "@/lib/market/format";
+import { lendingChainLogo, lendingStockLogo, lendingVenueLogo } from "@/lib/market/lending-logos";
 import {
   LENDING_CHAIN_ORDER,
   formatLendingApy,
@@ -95,6 +96,7 @@ interface SectionModel {
   totalUsd: number | null;
   countLabel: string;
   usesVenueTotal: boolean;
+  icon: string | null;
 }
 
 function buildSections(rows: readonly LendingBoardRow[], universe: readonly LendingBoardRow[], groupBy: GroupBy): SectionModel[] {
@@ -119,13 +121,15 @@ function buildSections(rows: readonly LendingBoardRow[], universe: readonly Lend
           : "Each row is a wrapper of this stock that a pool accepts.";
     const venueIds = [...new Set(sorted.map((row) => row.venueId))];
     const usesVenueTotal = groupBy !== "stock" && venueIds.every((venueId) => venueIsComplete(sorted, venueId, universe));
+    const icon =
+      groupBy === "chain" ? lendingChainLogo(id) : groupBy === "venue" ? lendingVenueLogo(id) : lendingStockLogo(first.address, first.ticker);
     const totalUsd = usesVenueTotal ? sumVenueCollateral(sorted) : sumTokens(sorted);
     const tickers = new Set(sorted.map((row) => row.ticker));
     const countLabel =
       groupBy === "stock"
         ? `${sorted.length} ${sorted.length === 1 ? "place" : "places"}`
         : `${tickers.size} ${tickers.size === 1 ? "stock" : "stocks"}`;
-    sections.push({ id, title, description, rows: sorted, totalUsd, countLabel, usesVenueTotal });
+    sections.push({ id, title, description, rows: sorted, totalUsd, countLabel, usesVenueTotal, icon });
   }
   sections.sort((a, b) => {
     if (groupBy === "chain") return chainRank(a.id) - chainRank(b.id);
@@ -150,12 +154,21 @@ function Pill({ pressed, onClick, children }: { pressed: boolean; onClick: () =>
   );
 }
 
-function Mark({ label }: { label: string }) {
+function Mark({ label, src, size = "md" }: { label: string; src: string | null; size?: "sm" | "preview" | "md" }) {
+  const [failed, setFailed] = useState(false);
   const letter = (label.replace(/[^A-Za-z0-9]/g, "")[0] ?? "?").toUpperCase();
+  const box = size === "sm" ? "size-4 text-[9px]" : size === "preview" ? "size-6 text-[10px]" : "size-8 text-xs";
+  if (!src || failed) {
+    return (
+      <span className={`flex ${box} shrink-0 items-center justify-center rounded-full bg-muted font-medium text-foreground`} aria-hidden>
+        {letter}
+      </span>
+    );
+  }
   return (
-    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-foreground" aria-hidden>
-      {letter}
-    </span>
+    // Local file, with the letter circle if it fails to load.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt="" className={`${box} shrink-0 rounded-full bg-muted object-cover`} onError={() => setFailed(true)} />
   );
 }
 
@@ -191,7 +204,7 @@ function Fullness({ value, unavailable }: { value: number | null; unavailable: b
 function StockCell({ row }: { row: LendingBoardRow }) {
   return (
     <div className="flex items-center gap-3">
-      <Mark label={row.ticker} />
+      <Mark label={row.ticker} src={lendingStockLogo(row.address, row.ticker)} />
       <span className="min-w-0">
         <span className="block text-sm font-medium text-foreground">{row.ticker}</span>
         <span className="block text-sm text-muted-foreground">
@@ -205,8 +218,12 @@ function StockCell({ row }: { row: LendingBoardRow }) {
 function VenueCell({ row }: { row: LendingBoardRow }) {
   return (
     <span className="min-w-0">
-      <span className="block text-sm font-medium text-foreground">{row.venue}</span>
-      <a href={row.source} className="block text-sm text-muted-foreground hover:text-foreground">
+      <span className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+        <Mark label={row.venue} src={lendingVenueLogo(row.venueId)} size="sm" />
+        {row.venue}
+      </span>
+      <a href={row.source} className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+        <Mark label={row.chainLabel} src={lendingChainLogo(row.chainId)} size="sm" />
         {row.chainLabel} · {sourceHost(row.source)}
       </a>
     </span>
@@ -224,10 +241,20 @@ function Cost({ row }: { row: LendingBoardRow }) {
   return <span className="num text-sm text-foreground">{formatLendingApy(row)}</span>;
 }
 
-function Deposited({ value }: { value: number | null }) {
+function Deposited({ usd, tokens }: { usd: number | null; tokens: number | null }) {
+  if (tokens !== null) {
+    return (
+      <span className="inline-flex flex-col items-end">
+        <span className="num text-sm font-medium text-foreground">{formatTokenAmount(tokens)}</span>
+        <span className="num text-sm text-muted-foreground" data-missing={usd === null ? "true" : undefined}>
+          {formatUsdCompact(usd)}
+        </span>
+      </span>
+    );
+  }
   return (
-    <span className="num text-sm font-medium text-foreground" data-missing={value === null ? "true" : undefined}>
-      {formatUsdCompact(value)}
+    <span className="num text-sm font-medium text-foreground" data-missing={usd === null ? "true" : undefined}>
+      {formatUsdCompact(usd)}
     </span>
   );
 }
@@ -246,9 +273,7 @@ function SectionTable({ section }: { section: SectionModel }) {
     <section className="space-y-3" data-lending-section={section.id}>
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
-          <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
-            <Layers className="size-4" aria-hidden />
-          </span>
+          <Mark label={section.title} src={section.icon} />
           <div className="min-w-0">
             <h3 className="text-base font-medium text-foreground">{section.title}</h3>
             <p className="text-sm leading-6 text-muted-foreground">{section.description}</p>
@@ -257,8 +282,8 @@ function SectionTable({ section }: { section: SectionModel }) {
         <div className="flex items-center gap-3">
           <div className="flex items-center" aria-hidden>
             {preview.map((row) => (
-              <span key={row.key} className="-ml-1.5 flex size-6 items-center justify-center rounded-full bg-muted text-[10px] font-medium text-foreground ring-2 ring-background first:ml-0">
-                {row.ticker.slice(0, 1)}
+              <span key={row.key} className="-ml-1.5 rounded-full ring-2 ring-background first:ml-0">
+                <Mark label={row.ticker} src={lendingStockLogo(row.address, row.ticker)} size="preview" />
               </span>
             ))}
             {extra > 0 ? <span className="ml-2 text-sm text-muted-foreground">+{extra}</span> : null}
@@ -289,7 +314,7 @@ function SectionTable({ section }: { section: SectionModel }) {
                 <div>
                   <dt className="text-xs uppercase tracking-wide text-muted-foreground">Deposited</dt>
                   <dd className="mt-1">
-                    <Deposited value={row.collateralUsd} />
+                    <Deposited usd={row.collateralUsd} tokens={row.collateralTokens} />
                   </dd>
                 </div>
                 <div>
@@ -326,7 +351,7 @@ function SectionTable({ section }: { section: SectionModel }) {
                   <Cost row={row} />
                 </td>
                 <td className="px-4 py-4 text-right">
-                  <Deposited value={row.collateralUsd} />
+                  <Deposited usd={row.collateralUsd} tokens={row.collateralTokens} />
                 </td>
                 <td className="px-4 py-4 text-right">
                   <Fullness value={row.utilization} unavailable={row.howFullUnavailable} />
@@ -476,7 +501,7 @@ export function LendingBoard({ rows }: { rows: LendingBoardRow[] }) {
             Borrow cost <Hint label={costHint.term} text={`${costHint.text} The figure is for the whole pool.`} />
           </span>
           <span className="inline-flex items-center gap-1">
-            Deposited <Hint label="Deposited" text="Dollar value of this token in the pool. This snapshot does not list a token count. A dash means the source did not report dollars." />
+            Deposited <Hint label="Deposited" text="Token count on top when the source reports one, with dollars underneath. This snapshot often has dollars only. A dash means that figure was not reported." />
           </span>
           <span className="inline-flex items-center gap-1">
             How full <Hint label={fullHint.term} text={`${fullHint.text} The ring is the whole pool, not one stock.`} />

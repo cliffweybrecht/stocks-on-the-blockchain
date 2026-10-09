@@ -30,7 +30,9 @@ import {
   parseLendingSnapshot,
   serializeLendingSnapshot,
 } from "../lending-snapshot";
-import { classifyLendingSymbol, isSmallLendingBook, lendingActionLines, lendingBoardRows, lendingStockGroups } from "../lending-stocks";
+import { existsSync } from "node:fs";
+import { lendingChainLogo, lendingStockLogo, lendingVenueLogo } from "../lending-logos";
+import { classifyLendingSymbol, isSmallLendingBook, lendingActionChips, lendingActionLines, lendingBoardRows, lendingChainShareParts, lendingStockGroups } from "../lending-stocks";
 import { lendingGlossary } from "../lending-glossary";
 import { attributeVenusBorrow, chooseVenusEstimate, collectHolderAddresses, VENUS_CHECKED_ESTIMATE } from "../lending-venus-estimate";
 import { saveLendingDay, loadLatestLendingSnapshot } from "../lending-snapshot-file";
@@ -191,6 +193,8 @@ describe("lending parsers", () => {
       ],
     });
     expect(row.collateralUsd).toBe(400);
+    expect(row.assets?.find((asset) => asset.symbol === "SPYx")?.collateralTokens).toBe(2);
+    expect(row.assets?.find((asset) => asset.symbol === "NVDAx")?.collateralTokens).toBe(1);
     expect(row.stableBorrowedUsd).toBe(90);
     expect(row.lendSupplyUsd).toBeNull();
     // Shared USDC pool includes the SOL vault and the fake mint. JupUSD is 40/50.
@@ -595,7 +599,7 @@ describe("lending board rows", () => {
         stockBorrowedUsd: null,
         source: "https://kamino.com",
         borrowEstimate: null,
-        assets: [{ symbol: "NVDAx", address: "nvda", collateralUsd: 250_000, maxLtv: 0.55 }],
+        assets: [{ symbol: "NVDAx", address: "nvda", collateralUsd: 250_000, collateralTokens: null, maxLtv: 0.55 }],
       },
       {
         id: "hyper",
@@ -611,7 +615,7 @@ describe("lending board rows", () => {
         stockBorrowedUsd: null,
         source: "https://morpho.org",
         borrowEstimate: null,
-        assets: [{ symbol: "NVDAon", address: "nvda-on", collateralUsd: 28, maxLtv: null }],
+        assets: [{ symbol: "NVDAon", address: "nvda-on", collateralUsd: 28, collateralTokens: null, maxLtv: null }],
       },
     ]);
 
@@ -621,6 +625,18 @@ describe("lending board rows", () => {
     ]);
     expect(isSmallLendingBook(null, null)).toBe(false);
     expect(isSmallLendingBook(28, 0)).toBe(true);
+    const share = lendingChainShareParts([
+      { chainId: "solana", chainLabel: "Solana", collateralUsd: 39_000_000 },
+      { chainId: "hyperevm", chainLabel: "HyperEVM", collateralUsd: 27.9 },
+    ]);
+    expect(share.main.map((chain) => chain.chainLabel)).toEqual(["Solana"]);
+    expect(share.smallerUsd).toBe(27.9);
+    expect(lendingChainLogo("solana")).toBe("/lending-logos/chains/solana.png");
+    expect(lendingVenueLogo("kamino-xstocks")).toBe("/lending-logos/venues/kamino.png");
+    expect(lendingStockLogo("not-a-mint", "NVDA")).toBe("/lending-logos/tickers/NVDA.png");
+    expect(lendingStockLogo("not-a-mint", "SPCX")).toBeNull();
+    expect(existsSync("public/lending-logos/chains/solana.png")).toBe(true);
+    expect(existsSync("public/lending-logos/tickers/NVDA.png")).toBe(true);
   });
 });
 
@@ -647,7 +663,7 @@ describe("lending stock view", () => {
         borrowApyMin: 0.055,
         borrowApyMax: 0.055,
         borrowEstimate: null,
-        assets: [{ symbol: "NVDAx", address: "a", collateralUsd: 100, maxLtv: 0.55 }],
+        assets: [{ symbol: "NVDAx", address: "a", collateralUsd: 100, collateralTokens: null, maxLtv: 0.55 }],
       },
       {
         id: "lista-bnb",
@@ -658,7 +674,7 @@ describe("lending stock view", () => {
         borrowApyMin: 0.006,
         borrowApyMax: 0.02,
         borrowEstimate: null,
-        assets: [{ symbol: "NVDAB", address: "b", collateralUsd: null, maxLtv: 0.75 }],
+        assets: [{ symbol: "NVDAB", address: "b", collateralUsd: null, collateralTokens: null, maxLtv: 0.75 }],
       },
       {
         id: "aave",
@@ -669,7 +685,7 @@ describe("lending stock view", () => {
         borrowApyMin: 0.013,
         borrowApyMax: 0.013,
         borrowEstimate: null,
-        assets: [{ symbol: "NVDAc", address: "c", collateralUsd: 40, maxLtv: null }],
+        assets: [{ symbol: "NVDAc", address: "c", collateralUsd: 40, collateralTokens: null, maxLtv: null }],
       },
     ]);
     const nvda = groups.find((group) => group.ticker === "NVDA");
@@ -694,7 +710,7 @@ describe("lending stock view", () => {
         borrowApyMax: 0.055,
         stockBorrowedUsd: 222_000,
         borrowEstimate: null,
-        assets: [{ symbol: "SPYx", address: "a", collateralUsd: 4_000_000, maxLtv: 0.7 }],
+        assets: [{ symbol: "SPYx", address: "a", collateralUsd: 4_000_000, collateralTokens: null, maxLtv: 0.7 }],
       },
       {
         venue: "Aave",
@@ -740,6 +756,35 @@ describe("lending stock view", () => {
     expect(text).toMatch(/Stocks lent for shorting: Kamino xStocks/);
     expect(text).toMatch(/SPYx on Kamino xStocks/);
     expect(text).not.toMatch(/Tiny/);
+    const chips = lendingActionChips([
+      {
+        venue: "Kamino xStocks",
+        chainLabel: "Solana",
+        utilization: 0.9,
+        stableBorrowedUsd: 5_000_000,
+        borrowApy: 0.055,
+        borrowApyMin: 0.055,
+        borrowApyMax: 0.055,
+        stockBorrowedUsd: 222_000,
+        borrowEstimate: null,
+        assets: [{ symbol: "SPYx", address: "a", collateralUsd: 4_000_000, collateralTokens: null, maxLtv: 0.7 }],
+      },
+      {
+        venue: "Tiny",
+        chainLabel: "HyperEVM",
+        utilization: 0.99,
+        stableBorrowedUsd: 11,
+        borrowApy: 0.08,
+        borrowApyMin: 0.08,
+        borrowApyMax: 0.08,
+        stockBorrowedUsd: 0,
+        borrowEstimate: null,
+        assets: [],
+      },
+    ]);
+    expect(chips.map((chip) => chip.label)).toContain("Nearly full");
+    expect(chips.map((chip) => chip.label)).not.toContain("Tiny");
+    expect(chips.some((chip) => chip.text.includes("Tiny"))).toBe(false);
   });
 });
 
