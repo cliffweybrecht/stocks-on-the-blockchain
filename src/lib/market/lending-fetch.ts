@@ -499,16 +499,18 @@ async function captureLista(
     rates.push({ apy: detail.borrowRate, weight });
   }
   const quoteTokens = collateral.filter((address) => !rejected.has(address));
-  const marketByCollateral = new Map<string, string>();
+  const marketsByCollateral = new Map<string, string[]>();
   for (const item of zone5) {
     const row = item as { collateralToken?: unknown; id?: unknown };
     const token = typeof row.collateralToken === "string" ? row.collateralToken.toLowerCase() : "";
     const id = typeof row.id === "string" ? row.id : "";
-    if (!token || !id || rejected.has(token) || marketByCollateral.has(token)) continue;
-    marketByCollateral.set(token, id);
+    if (!token || !id || rejected.has(token)) continue;
+    const ids = marketsByCollateral.get(token) ?? [];
+    ids.push(id);
+    marketsByCollateral.set(token, ids);
   }
   const quotes = await fetchListaCollateralQuotes(
-    quoteTokens.map((address) => ({ address, marketId: marketByCollateral.get(address) ?? "" })),
+    quoteTokens.map((address) => ({ address, marketIds: marketsByCollateral.get(address) ?? [] })),
   );
   return parseListaBook({
     overall: overall.data,
@@ -543,22 +545,24 @@ function listaVaultPrice(payload: unknown): number | null {
  * Dollars are that count times the vault collateral price. The headline total is not touched.
  */
 async function fetchListaCollateralQuotes(
-  tokens: readonly { address: string; marketId: string }[],
+  tokens: readonly { address: string; marketIds: readonly string[] }[],
 ): Promise<Map<string, ListaCollateralQuote>> {
   const quotes = new Map<string, ListaCollateralQuote>();
   if (tokens.length === 0) return quotes;
   const prices = new Map<string, number | null>();
   await mapPool(tokens, 8, async (token) => {
-    if (!token.marketId) {
-      prices.set(token.address, null);
-      return;
+    // The first listed market often has no vault. A later market publishes collateralPrice.
+    let price: number | null = null;
+    for (const marketId of token.marketIds) {
+      try {
+        const payload = await getJsonRetry(`https://api.lista.org/api/moolah/market/vault/${marketId}`);
+        price = listaVaultPrice(payload);
+        if (price !== null) break;
+      } catch {
+        price = null;
+      }
     }
-    try {
-      const payload = await getJsonRetry(`https://api.lista.org/api/moolah/market/vault/${token.marketId}`);
-      prices.set(token.address, listaVaultPrice(payload));
-    } catch {
-      prices.set(token.address, null);
-    }
+    prices.set(token.address, price);
   });
   let balances = new Map<string, number | null>();
   let balanceNote: string | null = null;

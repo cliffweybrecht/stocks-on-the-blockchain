@@ -1,0 +1,1600 @@
+{
+  "schema": "equity-lending-v1",
+  "date": "2026-10-09",
+  "capturedAt": "2026-10-09T06:47:11.270Z",
+  "rows": [
+    {
+      "id": "kamino-xstocks",
+      "venue": "Kamino xStocks",
+      "chainId": "solana",
+      "chainLabel": "Solana",
+      "collateralUsd": 22146899.416824825,
+      "stableBorrowedUsd": 5148867.9336230215,
+      "lendSupplyUsd": 5706450.468186458,
+      "utilization": 0.9022890783558069,
+      "borrowApy": 0.054971321327657814,
+      "borrowApyMin": 0.05495185693825544,
+      "borrowApyMax": 0.05495185693825544,
+      "stockBorrowedUsd": 221766.11922633648,
+      "assets": [
+        {
+          "symbol": "SPYx",
+          "address": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+          "collateralUsd": 4368796.524418207,
+          "collateralTokens": 5612.222721553553,
+          "maxLtv": 0.73
+        },
+        {
+          "symbol": "MSTRx",
+          "address": "XsP7xzNPvEHS1m6qfanPUGjNmdnmsLKEoNAnHjdxxyZ",
+          "collateralUsd": 3974356.8588513867,
+          "collateralTokens": 26208.29475981,
+          "maxLtv": 0.3
+        },
+        {
+          "symbol": "GOOGLx",
+          "address": "XsCPL9dNWBMvFtTmwcCA5v3xWPSMEBCszbQdiLLq6aN",
+          "collateralUsd": 3496260.892719765,
+          "collateralTokens": 10014.55430223,
+          "maxLtv": 0.6
+        },
+        {
+          "symbol": "QQQx",
+          "address": "Xs8S1uUs1zvS2p7iwtsG3b6fkhpvmwz4GYU3gWAmWHZ",
+          "collateralUsd": 2992486.445447775,
+          "collateralTokens": 3989.2980431964033,
+          "maxLtv": 0.7
+        },
+        {
+          "symbol": "TSLAx",
+          "address": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+          "collateralUsd": 2858679.85719154,
+          "collateralTokens": 7624.7729040636395,
+          "maxLtv": 0.55
+        },
+        {
+          "symbol": "NVDAx",
+          "address": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+          "collateralUsd": 2450257.399775326,
+          "collateralTokens": 10610.74961566714,
+          "maxLtv": 0.55
+        },
+        {
+          "symbol": "CRCLx",
+          "address": "XsueG8BtpquVJX9LVLLEGuViXUungE6WmK5YZ3p3bd1",
+          "collateralUsd": 955634.4999669468,
+          "collateralTokens": 11827.89157704,
+          "maxLtv": 0.3
+        },
+        {
+          "symbol": "HOODx",
+          "address": "XsvNBAYkrDRNhA7wPHQfX3ZUXZyZLdnCQDfHZ56bzpg",
+          "collateralUsd": 586581.629122944,
+          "collateralTokens": 5479.2548608,
+          "maxLtv": 0.3
+        },
+        {
+          "symbol": "AAPLx",
+          "address": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+          "collateralUsd": 463844.58651565254,
+          "collateralTokens": 1358.36529981,
+          "maxLtv": 0.4
+        },
+        {
+          "symbol": "METAx",
+          "address": "Xsa62P5mvPszXL1krVUnU5ar38bBSVcWAB6fmPCo5Zu",
+          "collateralUsd": 0.7228152783685774,
+          "collateralTokens": 0.001,
+          "maxLtv": 0.35
+        }
+      ],
+      "note": null,
+      "borrowEstimate": null,
+      "source": "https://api.kamino.finance/kamino-market/5wJeMrUYECGq41fxRESKALVcHnNX26TAWy4W98yULsua/reserves/metrics",
+      "error": null
+    },
+    {
+      "id": "kamino-sentora",
+      "venue": "Kamino Sentora / Kraken",
+      "chainId": "solana",
+      "chainLabel": "Solana",
+      "collateralUsd": 2989267.83628286,
+      "stableBorrowedUsd": 1827239.7681773615,
+      "lendSupplyUsd": 6450991.440546175,
+      "utilization": 0.28324944855649314,
+      "borrowApy": 0.009704664079437153,
+      "borrowApyMin": 0.009704664079437153,
+      "borrowApyMax": 0.009704664079437153,
+      "stockBorrowedUsd": 0,
+      "assets": [
+        {
+          "symbol": "SPYx",
+          "address": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+          "collateralUsd": 1980601.8844725436,
+          "collateralTokens": 2544.31142221,
+          "maxLtv": 0.72
+        },
+        {
+          "symbol": "QQQx",
+          "address": "Xs8S1uUs1zvS2p7iwtsG3b6fkhpvmwz4GYU3gWAmWHZ",
+          "collateralUsd": 536889.3097369457,
+          "collateralTokens": 715.72971567,
+          "maxLtv": 0.7
+        },
+        {
+          "symbol": "NVDAx",
+          "address": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+          "collateralUsd": 471776.6420733707,
+          "collateralTokens": 2043.01140934,
+          "maxLtv": 0.62
+        }
+      ],
+      "note": null,
+      "borrowEstimate": null,
+      "source": "https://api.kamino.finance/kamino-market/8BNUWRSibVasaAmhYpBCFpGgMisGKfVAf9ho3Cmf6vjr/reserves/metrics",
+      "error": null
+    },
+    {
+      "id": "jupiter-lend",
+      "venue": "Jupiter Lend",
+      "chainId": "solana",
+      "chainLabel": "Solana",
+      "collateralUsd": 13969035.710678266,
+      "stableBorrowedUsd": 4516361.335508527,
+      "lendSupplyUsd": null,
+      "utilization": 0.8324175045146782,
+      "borrowApy": 0.051563607065512336,
+      "borrowApyMin": 0.0511,
+      "borrowApyMax": 0.0532,
+      "stockBorrowedUsd": null,
+      "assets": [
+        {
+          "symbol": "SPYx",
+          "address": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+          "collateralUsd": 8966757.115565095,
+          "collateralTokens": 11488.863221250002,
+          "maxLtv": 0.75
+        },
+        {
+          "symbol": "NVDAx",
+          "address": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+          "collateralUsd": 1892170.3322677775,
+          "collateralTokens": 8102.24999001,
+          "maxLtv": 0.65
+        },
+        {
+          "symbol": "QQQx",
+          "address": "Xs8S1uUs1zvS2p7iwtsG3b6fkhpvmwz4GYU3gWAmWHZ",
+          "collateralUsd": 1566538.3268645979,
+          "collateralTokens": 2075.15609645,
+          "maxLtv": 0.75
+        },
+        {
+          "symbol": "TSLAx",
+          "address": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+          "collateralUsd": 1543569.9359807954,
+          "collateralTokens": 4083.34547252,
+          "maxLtv": 0.65
+        }
+      ],
+      "note": null,
+      "borrowEstimate": null,
+      "source": "https://lite-api.jup.ag/lend/v1/borrow/vaults",
+      "error": null
+    },
+    {
+      "id": "aave-v4-base-coinbase",
+      "venue": "Aave V4 Coinbase stocks",
+      "chainId": "base",
+      "chainLabel": "Base",
+      "collateralUsd": 4686400.608399999,
+      "stableBorrowedUsd": 1505965.7515,
+      "lendSupplyUsd": 5276002.5968,
+      "utilization": 0.28543688595100347,
+      "borrowApy": 0.01276680810736151,
+      "borrowApyMin": 0.01276680810736151,
+      "borrowApyMax": 0.01276680810736151,
+      "stockBorrowedUsd": 0,
+      "assets": [
+        {
+          "symbol": "METAc",
+          "address": "0xb2000000000000000000008bc8786b856e61707c",
+          "collateralUsd": 1226865.4212,
+          "collateralTokens": 1701.44401826,
+          "maxLtv": null
+        },
+        {
+          "symbol": "NVDAc",
+          "address": "0xb20000000000000000000078ee7ce2fe4908108c",
+          "collateralUsd": 1169117.592,
+          "collateralTokens": 5029.4366443,
+          "maxLtv": null
+        },
+        {
+          "symbol": "GOOGLc",
+          "address": "0xb2000000000000000000002d0ba3164cc74f58b7",
+          "collateralUsd": 639268.3834,
+          "collateralTokens": 1827.85542037,
+          "maxLtv": null
+        },
+        {
+          "symbol": "TSLAc",
+          "address": "0xb2000000000000000000001e800a7f5189430cd0",
+          "collateralUsd": 605555.0192,
+          "collateralTokens": 1603.31229112,
+          "maxLtv": null
+        },
+        {
+          "symbol": "AAPLc",
+          "address": "0xb200000000000000000000c2e324d24d7eecd1fb",
+          "collateralUsd": 505898.2085,
+          "collateralTokens": 1502.56380785,
+          "maxLtv": null
+        },
+        {
+          "symbol": "AMZNc",
+          "address": "0xb200000000000000000000d9192b6b456483c2e8",
+          "collateralUsd": 304316.1894,
+          "collateralTokens": 1189.38556004,
+          "maxLtv": null
+        },
+        {
+          "symbol": "MSFTc",
+          "address": "0xb200000000000000000000ab99cfa739e253872b",
+          "collateralUsd": 235379.7947,
+          "collateralTokens": 450.73004753,
+          "maxLtv": null
+        }
+      ],
+      "note": null,
+      "borrowEstimate": null,
+      "source": "https://api.v4.aave.com/graphql",
+      "error": null
+    },
+    {
+      "id": "morpho-ethereum",
+      "venue": "Morpho",
+      "chainId": "ethereum",
+      "chainLabel": "Ethereum",
+      "collateralUsd": 567228.9601821746,
+      "stableBorrowedUsd": 477.64080247648127,
+      "lendSupplyUsd": 5528.804739210559,
+      "utilization": 0.08639133140098598,
+      "borrowApy": 0.04815858605631929,
+      "borrowApyMin": 0.046806447249081215,
+      "borrowApyMax": 0.05225104918258406,
+      "stockBorrowedUsd": 0,
+      "assets": [
+        {
+          "symbol": "wSPYx",
+          "address": "0xc88fcd8b874fdb3256e8b55b3decb8c24eab4c02",
+          "collateralUsd": 532679.5114982687,
+          "collateralTokens": 679.72587542,
+          "maxLtv": 0.86,
+          "priceNote": null
+        },
+        {
+          "symbol": "SPYx",
+          "address": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48",
+          "collateralUsd": 33156.38888044472,
+          "collateralTokens": 42.50851622,
+          "maxLtv": 0.86,
+          "priceNote": null
+        },
+        {
+          "symbol": "SPYon",
+          "address": "0xfedc5f4a6c38211c1338aa411018dfaf26612c08",
+          "collateralUsd": 915.2701582020221,
+          "collateralTokens": 1.16745381,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "TSLAon",
+          "address": "0xf6b1117ec07684d3958cad8beb1b302bfd21103f",
+          "collateralUsd": 251.50566225343135,
+          "collateralTokens": 0.6648759399999999,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "QQQon",
+          "address": "0x0e397938c1aa0680954093495b70a9f5e2249aba",
+          "collateralUsd": 128.01932210513465,
+          "collateralTokens": 0.16923642,
+          "maxLtv": 0.915,
+          "priceNote": null
+        },
+        {
+          "symbol": "FLHYon",
+          "address": "0x54c1ff361b402f66c13107421e6a431c3375ef24",
+          "collateralUsd": 98.26466090061489,
+          "collateralTokens": 4.069487779999999,
+          "maxLtv": 0.86,
+          "priceNote": null
+        },
+        {
+          "symbol": "wNVDAx",
+          "address": "0x93e62845c1dd5822ebc807ab71a5fb750decd15a",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.86,
+          "priceNote": null
+        },
+        {
+          "symbol": "wQQQx",
+          "address": "0x4c1ae29c159838fc1b224636e28e086eb69101f7",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.86,
+          "priceNote": null
+        },
+        {
+          "symbol": "wSPYx",
+          "address": "0xe7e553cd128f0011777323a0b44a7b96ea1cb540",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.86,
+          "priceNote": null
+        },
+        {
+          "symbol": "wSTRCx",
+          "address": "0x34d78e7b06542dab48f9bf9f0835c7582141314e",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.915,
+          "priceNote": null
+        }
+      ],
+      "note": null,
+      "borrowEstimate": null,
+      "source": "https://api.morpho.org/graphql",
+      "error": null
+    },
+    {
+      "id": "morpho-base",
+      "venue": "Morpho",
+      "chainId": "base",
+      "chainLabel": "Base",
+      "collateralUsd": 96132.77219052827,
+      "stableBorrowedUsd": 41323.99210727628,
+      "lendSupplyUsd": 48019.91433235118,
+      "utilization": 0.8605594716656161,
+      "borrowApy": 0.04979776132948673,
+      "borrowApyMin": 0.0007147857266102558,
+      "borrowApyMax": 0.059884246717500124,
+      "stockBorrowedUsd": null,
+      "assets": [
+        {
+          "symbol": "deSPXA",
+          "address": "0x9c5c365e764829876243d0b289733b9d2b729685",
+          "collateralUsd": 49303.16267649024,
+          "collateralTokens": 63.21308824,
+          "maxLtv": 0.77,
+          "priceNote": null
+        },
+        {
+          "symbol": "SPCXc",
+          "address": "0xb2000000000000000000007b9fcbd005511acbd5",
+          "collateralUsd": 15245.299461359255,
+          "collateralTokens": 91.97129049,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "GOOGLc",
+          "address": "0xb2000000000000000000002d0ba3164cc74f58b7",
+          "collateralUsd": 12700.472067373354,
+          "collateralTokens": 36.35015716,
+          "maxLtv": 0.77,
+          "priceNote": null
+        },
+        {
+          "symbol": "AAPLc",
+          "address": "0xb200000000000000000000c2e324d24d7eecd1fb",
+          "collateralUsd": 12579.969187151639,
+          "collateralTokens": 37.29047809,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "wbCOIN",
+          "address": "0xdec933e2392ad908263e70a386fbf34e703ffe8f",
+          "collateralUsd": 3653.979282678775,
+          "collateralTokens": 20.79491951,
+          "maxLtv": 0.86,
+          "priceNote": null
+        },
+        {
+          "symbol": "NVDAc",
+          "address": "0xb20000000000000000000078ee7ce2fe4908108c",
+          "collateralUsd": 2557.832382817063,
+          "collateralTokens": 10.96966949,
+          "maxLtv": 0.77,
+          "priceNote": null
+        },
+        {
+          "symbol": "METAc",
+          "address": "0xb2000000000000000000008bc8786b856e61707c",
+          "collateralUsd": 90.81545513649044,
+          "collateralTokens": 0.12598616999999998,
+          "maxLtv": 0.86,
+          "priceNote": null
+        },
+        {
+          "symbol": "MSFTc",
+          "address": "0xb200000000000000000000ab99cfa739e253872b",
+          "collateralUsd": 0.42354038856794884,
+          "collateralTokens": 0.00080898,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "TSLAc",
+          "address": "0xb2000000000000000000001e800a7f5189430cd0",
+          "collateralUsd": 0.4143099668925316,
+          "collateralTokens": 0.00109748,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "AMZNc",
+          "address": "0xb200000000000000000000d9192b6b456483c2e8",
+          "collateralUsd": 0.40382716599988017,
+          "collateralTokens": 0.00157918,
+          "maxLtv": 0.625,
+          "priceNote": null
+        }
+      ],
+      "note": null,
+      "borrowEstimate": null,
+      "source": "https://api.morpho.org/graphql",
+      "error": null
+    },
+    {
+      "id": "morpho-robinhood-chain",
+      "venue": "Morpho",
+      "chainId": "robinhood-chain",
+      "chainLabel": "Robinhood Chain",
+      "collateralUsd": 4177362.5891991677,
+      "stableBorrowedUsd": 1666512.108350987,
+      "lendSupplyUsd": 2228662.4297923218,
+      "utilization": 0.747763360692665,
+      "borrowApy": 0.19566805529620956,
+      "borrowApyMin": 0.1895444047336335,
+      "borrowApyMax": 0.20250280090620038,
+      "stockBorrowedUsd": 10608.058040663787,
+      "assets": [
+        {
+          "symbol": "NVDA",
+          "address": "0xd0601ce157db5bdc3162bbac2a2c8af5320d9eec",
+          "collateralUsd": 1663976.059259906,
+          "collateralTokens": 7136.780507619999,
+          "maxLtv": 0.86,
+          "priceNote": null
+        },
+        {
+          "symbol": "SPCX",
+          "address": "0x4a0e65a3eccec6dbe60ae065f2e7bb85fae35eea",
+          "collateralUsd": 1351514.7301756153,
+          "collateralTokens": 8130.14545777,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "GOOGL",
+          "address": "0x2e0847e8910a9732eb3fb1bb4b70a580adad4fe3",
+          "collateralUsd": 660493.543548785,
+          "collateralTokens": 1888.47331964,
+          "maxLtv": 0.86,
+          "priceNote": null
+        },
+        {
+          "symbol": "AAPL",
+          "address": "0xaf3d76f1834a1d425780943c99ea8a608f8a93f9",
+          "collateralUsd": 488920.096084202,
+          "collateralTokens": 1447.0014829899999,
+          "maxLtv": 0.86,
+          "priceNote": null
+        },
+        {
+          "symbol": "SPY",
+          "address": "0x117cc2133c37b721f49de2a7a74833232b3b4c0c",
+          "collateralUsd": 11023.550292525393,
+          "collateralTokens": 14.19792159,
+          "maxLtv": 0.86,
+          "priceNote": null
+        },
+        {
+          "symbol": "COIN",
+          "address": "0x6330d8c3178a418788df01a47479c0ce7ccf450b",
+          "collateralUsd": 387.96369373053454,
+          "collateralTokens": 2.21883725,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "MSFT",
+          "address": "0xe93237c50d904957cf27e7b1133b510c669c2e74",
+          "collateralUsd": 296.1032922314416,
+          "collateralTokens": 0.56534694,
+          "maxLtv": 0.86,
+          "priceNote": null
+        },
+        {
+          "symbol": "MSTR",
+          "address": "0xec262a75e413fafd0df80480274532c79d42da09",
+          "collateralUsd": 224.2988821812114,
+          "collateralTokens": 1.45092749,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "PLTR",
+          "address": "0x894e1ec2d74ffe5aef8dc8a9e84686accb964f2a",
+          "collateralUsd": 195.74689969869578,
+          "collateralTokens": 0.98340567,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "TTWO",
+          "address": "0x5e81213613b6b86eab4c6c50d718d34359459786",
+          "collateralUsd": 119.19802057160578,
+          "collateralTokens": 0.56851654,
+          "maxLtv": 0.385,
+          "priceNote": null
+        },
+        {
+          "symbol": "CRCL",
+          "address": "0xdf0992e440dd0be65bd8439b609d6d4366bf1cb5",
+          "collateralUsd": 82.86125369493813,
+          "collateralTokens": 1.00822843,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "TSLA",
+          "address": "0x322f0929c4625ed5bad873c95208d54e1c003b2d",
+          "collateralUsd": 53.873888304287085,
+          "collateralTokens": 0.14240859,
+          "maxLtv": 0.86,
+          "priceNote": null
+        },
+        {
+          "symbol": "SLV",
+          "address": "0x411efb0e7f985935daec3d4c3ebaea0d0ad7d89f",
+          "collateralUsd": 28.3968,
+          "collateralTokens": 0.522,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "INTC",
+          "address": "0xc72b96e0e48ecd4dc75e1e45396e26300bc39681",
+          "collateralUsd": 19.133954288684432,
+          "collateralTokens": 0.1751552,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "RDDT",
+          "address": "0x05b37fb53a299a1b874a619e1c4c404d52c36f4c",
+          "collateralUsd": 14.679153071330015,
+          "collateralTokens": 0.09349183,
+          "maxLtv": 0.385,
+          "priceNote": null
+        },
+        {
+          "symbol": "SNDK",
+          "address": "0xb90a19ff0af67f7779aff50a882a9cff42446400",
+          "collateralUsd": 11.76845352960877,
+          "collateralTokens": 0.00715886,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "SGOV",
+          "address": "0x92fd66527192e3e61d4ddd13322aa222de86f9b5",
+          "collateralUsd": 0.5837082212094857,
+          "collateralTokens": 0.00580775,
+          "maxLtv": 0.915,
+          "priceNote": null
+        },
+        {
+          "symbol": "USO",
+          "address": "0xa30fa36db767ad9ed3f7a60fc79526fb4d56d344",
+          "collateralUsd": 0.0009466278975111857,
+          "collateralTokens": 0.00000644,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "AMZN",
+          "address": "0x12f190a9f9d7d37a250758b26824b97ce941bf54",
+          "collateralUsd": 0.0008919814265921551,
+          "collateralTokens": 0.00000348,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "MU",
+          "address": "0xff080c8ce2e5feadaca0da81314ae59d232d4afd",
+          "collateralUsd": 1.057955e-14,
+          "collateralTokens": 0,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "USAR",
+          "address": "0xd917b029c761d264c6a312bbbcda868658ef86a6",
+          "collateralUsd": 2.7766800000000004e-15,
+          "collateralTokens": 0,
+          "maxLtv": 0.385,
+          "priceNote": null
+        },
+        {
+          "symbol": "CRWV",
+          "address": "0x5f10a1c971b69e47e059e1dc91901b59b3fb49c3",
+          "collateralUsd": 1.2576000000000002e-15,
+          "collateralTokens": 0,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "AMC",
+          "address": "0x05a3d1cd21d0c88145e82600e62e7e496e0f222b",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.385,
+          "priceNote": null
+        },
+        {
+          "symbol": "AMD",
+          "address": "0x86923f96303d656e4aa86d9d42d1e57ad2023fdc",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "ASML",
+          "address": "0x47f93d52cbec7c6d2cfc080e154002370a60daea",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "BABA",
+          "address": "0xad25ac6c84d497db898fa1e8387bf6af3532a1c4",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "CLSK",
+          "address": "0xcbb95bbf36099d34da091dc6fa6f49efa257cee3",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "COST",
+          "address": "0x4ea005168d7f09a7a0ba9d1def21a479950e44c2",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.385,
+          "priceNote": null
+        },
+        {
+          "symbol": "DELL",
+          "address": "0x941ae714ec6d8130c7b75d67160ca08f1e7d11dd",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "DJT",
+          "address": "0x1d11f0496982706c5e14a514d4e79f2e6bde4516",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.385,
+          "priceNote": null
+        },
+        {
+          "symbol": "EWY",
+          "address": "0x7f0abef0c07280f82c6a08ead09ded6bae2c13fc",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "F",
+          "address": "0x25c288e6d899b9bc30160965ad9644c67e73be0c",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.385,
+          "priceNote": null
+        },
+        {
+          "symbol": "GLD",
+          "address": "0xc9a981fee1f9dec688bb123ccdecc63d0debfc4e",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.385,
+          "priceNote": null
+        },
+        {
+          "symbol": "GME",
+          "address": "0x1b0e319c6a659f002271b69db8a7df2f911c153e",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "HIMS",
+          "address": "0xccee82fe024c36fa15e1005ede3e9e4787e23d09",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.385,
+          "priceNote": null
+        },
+        {
+          "symbol": "IBM",
+          "address": "0x980dcf6766fa79f5cf0c4aadb3ab477ff15a9619",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.385,
+          "priceNote": null
+        },
+        {
+          "symbol": "IONQ",
+          "address": "0x558378e000d634a36593e338ebacdd6207640efe",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "LLY",
+          "address": "0x8005d266423c7ea827372c9c864491e5786600ea",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.385,
+          "priceNote": null
+        },
+        {
+          "symbol": "LULU",
+          "address": "0x4e62068525ab11fe768e29dfd00ef909b9803016",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.385,
+          "priceNote": null
+        },
+        {
+          "symbol": "META",
+          "address": "0xc0d6457c16cc70d6790dd43521c899c87ce02f35",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "MRNA",
+          "address": "0x43b07d15ce533bec5476d70c22a78a1b2b662155",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.385,
+          "priceNote": null
+        },
+        {
+          "symbol": "NBIS",
+          "address": "0x9d9c6684f596f66a64c030b93a886d51fd4d7931",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "NFLX",
+          "address": "0xe0444ef8bf4ed74f74fd73686e2ddf4c1c5591e8",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.385,
+          "priceNote": null
+        },
+        {
+          "symbol": "ORCL",
+          "address": "0xb0992820e760d836549ba69bc7598b4af75dee03",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "QQQ",
+          "address": "0xd5f3879160bc7c32ebb4dc785f8a4f505888de68",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.77,
+          "priceNote": null
+        },
+        {
+          "symbol": "RBLX",
+          "address": "0xf0c4bf4c582cb3836e98394b1d4e7b7281101be8",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.385,
+          "priceNote": null
+        },
+        {
+          "symbol": "RGTI",
+          "address": "0x284358abc07f9359f19f4b5b4ac91901be2597ba",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "RIVN",
+          "address": "0xb1bf26c1d20ff267a4f93550d1e0d06ac40a114b",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.385,
+          "priceNote": null
+        },
+        {
+          "symbol": "RKLB",
+          "address": "0x3b14c39e89d60d627b42a1a4ca45b5bb45fc12e2",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.625,
+          "priceNote": null
+        },
+        {
+          "symbol": "TSM",
+          "address": "0x58ffe4a942d3885baa22d7520691f611ef09e7aa",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.625,
+          "priceNote": null
+        }
+      ],
+      "note": null,
+      "borrowEstimate": null,
+      "source": "https://api.morpho.org/graphql",
+      "error": null
+    },
+    {
+      "id": "morpho-hyperevm",
+      "venue": "Morpho",
+      "chainId": "hyperevm",
+      "chainLabel": "HyperEVM",
+      "collateralUsd": 28.008380566855887,
+      "stableBorrowedUsd": 11.069625815723986,
+      "lendSupplyUsd": 12.07024388811269,
+      "utilization": 0.9171004263323828,
+      "borrowApy": 0.08638303047554531,
+      "borrowApyMin": 0.08638303047554531,
+      "borrowApyMax": 0.08638303047554531,
+      "stockBorrowedUsd": null,
+      "assets": [
+        {
+          "symbol": "wNVDAx",
+          "address": "0xa8ddb5cd96b5222afe198316e9a57caa642850d5",
+          "collateralUsd": 28.008380566855887,
+          "collateralTokens": 0.119916,
+          "maxLtv": 0.625,
+          "priceNote": null
+        }
+      ],
+      "note": null,
+      "borrowEstimate": null,
+      "source": "https://api.morpho.org/graphql",
+      "error": null
+    },
+    {
+      "id": "venus-bnb",
+      "venue": "Venus",
+      "chainId": "bnb",
+      "chainLabel": "BNB",
+      "collateralUsd": 654314.0900000001,
+      "stableBorrowedUsd": 253029.98925053017,
+      "lendSupplyUsd": null,
+      "utilization": null,
+      "borrowApy": null,
+      "borrowApyMin": null,
+      "borrowApyMax": null,
+      "stockBorrowedUsd": 0,
+      "assets": [
+        {
+          "symbol": "NVDAB",
+          "address": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+          "collateralUsd": 346477.81,
+          "collateralTokens": 1485.38733311,
+          "maxLtv": 0.6
+        },
+        {
+          "symbol": "SPCXB",
+          "address": "0xbe9d156892e55e7154bcd3cb0fea677f9d3103e1",
+          "collateralUsd": 217166.7,
+          "collateralTokens": 1305.69762884,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "SKHYB",
+          "address": "0xca750ef65f295bbecd685abf54e82caf297bdb61",
+          "collateralUsd": 59282.87,
+          "collateralTokens": 341.56736594,
+          "maxLtv": 0.5
+        },
+        {
+          "symbol": "TSLAB",
+          "address": "0x5b1910eaad6450e50f816082aa078c41f10c292f",
+          "collateralUsd": 31386.71,
+          "collateralTokens": 83.0302981,
+          "maxLtv": 0.6
+        }
+      ],
+      "note": "These stocks sit in Venus's shared pool with other coins. Dollars borrowed are an estimate: each account's borrow times the share of its borrowing power that comes from these stocks. Accounts that use only these stocks as collateral have borrowed $192.0K. How full and the yearly cost are not available. Borrowing the stock tokens themselves is turned off.",
+      "borrowEstimate": {
+        "method": "Pro-rata from onchain balances at BSC block 126,590,360. Each account's borrow is multiplied by the share of its borrowing power that comes from bStock collateral.",
+        "asOf": "2026-10-09T06:47:11.270Z",
+        "lowerBoundUsd": 192023.70371200002
+      },
+      "source": "https://api.venus.io/markets/core-pool?chainId=56&limit=100",
+      "error": null
+    },
+    {
+      "id": "lista-bnb",
+      "venue": "Lista",
+      "chainId": "bnb",
+      "chainLabel": "BNB",
+      "collateralUsd": 7865137.24264509,
+      "stableBorrowedUsd": 3904231.8829422453,
+      "lendSupplyUsd": 5178534.552892108,
+      "utilization": 0.7539260080367349,
+      "borrowApy": 0.017502156459272757,
+      "borrowApyMin": 0.0073784951454012,
+      "borrowApyMax": 0.02944096921426964,
+      "stockBorrowedUsd": 79032.20195054454,
+      "assets": [
+        {
+          "symbol": "SPYB",
+          "address": "0x7138b48df7d98d7e3cc221bfe7192d0a178182d8",
+          "collateralUsd": 1797774.5102779926,
+          "collateralTokens": 2311.58978157,
+          "maxLtv": 0.85,
+          "priceNote": null
+        },
+        {
+          "symbol": "CRCLB",
+          "address": "0x80f3d493ebce97e343c53d29a137942416b4ffc0",
+          "collateralUsd": 1532971.8660899056,
+          "collateralTokens": 18646.56546282,
+          "maxLtv": 0.6,
+          "priceNote": null
+        },
+        {
+          "symbol": "QQQB",
+          "address": "0x205812cdbed920aff76c6580abd681a46d11efc7",
+          "collateralUsd": 1262755.5602030444,
+          "collateralTokens": 1678.00159393,
+          "maxLtv": 0.75,
+          "priceNote": null
+        },
+        {
+          "symbol": "NVDAB",
+          "address": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+          "collateralUsd": 712828.6384962763,
+          "collateralTokens": 3055.9803601,
+          "maxLtv": 0.75,
+          "priceNote": null
+        },
+        {
+          "symbol": "DRAMB",
+          "address": "0x93862d63fd9fd488b1328e9b47717d75e994a84b",
+          "collateralUsd": 321683.65254850383,
+          "collateralTokens": 5545.11653795,
+          "maxLtv": 0.55,
+          "priceNote": null
+        },
+        {
+          "symbol": "GOOGLB",
+          "address": "0x3f53de71c126bdabae20f9cd64848d317f6c3238",
+          "collateralUsd": 307180.432959321,
+          "collateralTokens": 878.45939487,
+          "maxLtv": 0.7,
+          "priceNote": null
+        },
+        {
+          "symbol": "MSTRB",
+          "address": "0xe87afb3076aeb0f9b14e368de8145ae6a2826a14",
+          "collateralUsd": 231603.66206106736,
+          "collateralTokens": 1499.80588849,
+          "maxLtv": 0.6,
+          "priceNote": null
+        },
+        {
+          "symbol": "TSLAB",
+          "address": "0x5b1910eaad6450e50f816082aa078c41f10c292f",
+          "collateralUsd": 228717.23310301025,
+          "collateralTokens": 605.04778404,
+          "maxLtv": 0.75,
+          "priceNote": null
+        },
+        {
+          "symbol": "SPCXB",
+          "address": "0xbe9d156892e55e7154bcd3cb0fea677f9d3103e1",
+          "collateralUsd": 207556.42486456924,
+          "collateralTokens": 1247.9165556,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "METAB",
+          "address": "0x7425889fe94f9d693e8daefe88bcced6acfef4c0",
+          "collateralUsd": 199019.48850048322,
+          "collateralTokens": 275.77238916,
+          "maxLtv": 0.7,
+          "priceNote": null
+        },
+        {
+          "symbol": "TSMB",
+          "address": "0xab78b89b5bb00236be0b4b20704cbfa04efc711c",
+          "collateralUsd": 156575.3024027928,
+          "collateralTokens": 337.77221458,
+          "maxLtv": 0.65,
+          "priceNote": null
+        },
+        {
+          "symbol": "MSFTB",
+          "address": "0x80106cb3ead06659a5ad19df39d9b4733863b9b0",
+          "collateralUsd": 146255.325559988,
+          "collateralTokens": 278.90878035,
+          "maxLtv": 0.75,
+          "priceNote": null
+        },
+        {
+          "symbol": "MUB",
+          "address": "0xcdf2f3e0fa43c47a6662a91c9e4a7c5f69762699",
+          "collateralUsd": 140121.276117826,
+          "collateralTokens": 132.6798566,
+          "maxLtv": 0.65,
+          "priceNote": null
+        },
+        {
+          "symbol": "AVGOB",
+          "address": "0x76682c454467b3a1150ad8b6a92fc5ee2c21d7ed",
+          "collateralUsd": 117813.4244802368,
+          "collateralTokens": 322.19064025,
+          "maxLtv": 0.65,
+          "priceNote": null
+        },
+        {
+          "symbol": "AMATB",
+          "address": "0xa304bd78e739c0f777202b3eb73ac3736d1df801",
+          "collateralUsd": 111092.78604988799,
+          "collateralTokens": 215.56476536,
+          "maxLtv": 0.55,
+          "priceNote": null
+        },
+        {
+          "symbol": "MRVLB",
+          "address": "0x16cd4fe7e8880ecc3ba222795229e20489fc2c76",
+          "collateralUsd": 110258.26022441853,
+          "collateralTokens": 395.3242995,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "NBISB",
+          "address": "0xe256bc2a4f5297f8ba6f043f180a46300ecbcbb1",
+          "collateralUsd": 71645.3154170326,
+          "collateralTokens": 315.77076884,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "SNDKB",
+          "address": "0x3ee4df61bd4f867e349beae8bfe07bc31b4850fb",
+          "collateralUsd": 26374.562888484725,
+          "collateralTokens": 16.08672823,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "AAOIB",
+          "address": "0x10343ef7da3301493d7ecb647d68a288c6c1db2f",
+          "collateralUsd": 23764.03710708148,
+          "collateralTokens": 213.88467294,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "GLWB",
+          "address": "0x740e075cbbea22a082b9d6679e65e82767875b6a",
+          "collateralUsd": 21801.78855646717,
+          "collateralTokens": 140.02269152,
+          "maxLtv": 0.55,
+          "priceNote": null
+        },
+        {
+          "symbol": "TQQQB",
+          "address": "0x462b5f13b7c7748279358962925c5de83bb9e598",
+          "collateralUsd": 21074.682043305766,
+          "collateralTokens": 258.00778795,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "COINB",
+          "address": "0x585bde7c54abb5ccd7791f923d6c2187635f3952",
+          "collateralUsd": 20838.407034665528,
+          "collateralTokens": 118.98726835,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "SKHYB",
+          "address": "0xca750ef65f295bbecd685abf54e82caf297bdb61",
+          "collateralUsd": 20393.607999111875,
+          "collateralTokens": 117.50090007,
+          "maxLtv": 0.55,
+          "priceNote": null
+        },
+        {
+          "symbol": "QCOMB",
+          "address": "0x5f7a56e877b9130608bf8be962621011182fefe1",
+          "collateralUsd": 17199.01896762019,
+          "collateralTokens": 96.3391822,
+          "maxLtv": 0.6,
+          "priceNote": null
+        },
+        {
+          "symbol": "BABAB",
+          "address": "0x4ef9d3062c7f6eba4aae4990c5036598c6eff4ec",
+          "collateralUsd": 15737.769860654289,
+          "collateralTokens": 145.0062516,
+          "maxLtv": 0.65,
+          "priceNote": null
+        },
+        {
+          "symbol": "SOXLB",
+          "address": "0xd97d097a89113fa59b76c572e5b2eb647e8eefaf",
+          "collateralUsd": 12933.25047204634,
+          "collateralTokens": 87.20820574,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "LITEB",
+          "address": "0x64748bea17b6d19e242adf20425de2440c656142",
+          "collateralUsd": 7717.844988885097,
+          "collateralTokens": 7.11379008,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "RKLBB",
+          "address": "0xc8da12cbcce7c45180692a6420b0076e03a5179a",
+          "collateralUsd": 6666.167528541677,
+          "collateralTokens": 95.88659293,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "NOKB",
+          "address": "0x7c4d7a180d737dd5a70d8065a90e6746a69c37ea",
+          "collateralUsd": 6660.50727016425,
+          "collateralTokens": 645.1897963,
+          "maxLtv": 0.6,
+          "priceNote": null
+        },
+        {
+          "symbol": "HOODB",
+          "address": "0xa394dcea3fd3847fd793afbfd163e2e3858b7c65",
+          "collateralUsd": 1977.5644936847668,
+          "collateralTokens": 18.23360101,
+          "maxLtv": 0.6,
+          "priceNote": null
+        },
+        {
+          "symbol": "IBMB",
+          "address": "0xfa273b076feb8c0fb34e554ae341082323d016a3",
+          "collateralUsd": 1661.0272821735928,
+          "collateralTokens": 7.32614216,
+          "maxLtv": 0.6,
+          "priceNote": null
+        },
+        {
+          "symbol": "NFLXB",
+          "address": "0xd6829ea836b6fa224d099d40e54b31262f874631",
+          "collateralUsd": 1477.7973957801714,
+          "collateralTokens": 20.6339736,
+          "maxLtv": 0.7,
+          "priceNote": null
+        },
+        {
+          "symbol": "EWYB",
+          "address": "0xbe82f76637dba2c114c41df856c2c51e522e2cb8",
+          "collateralUsd": 510.0788849538091,
+          "collateralTokens": 2.8655060199999998,
+          "maxLtv": 0.65,
+          "priceNote": null
+        },
+        {
+          "symbol": "CBRSB",
+          "address": "0xe81c6bb0266cd68b4f17278531dd03ea1f12da4e",
+          "collateralUsd": 445.75953709067335,
+          "collateralTokens": 2.61635033,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "AAPLB",
+          "address": "0x431a3bee82e2ca41e49895cbece5bb0f76a89b7a",
+          "collateralUsd": 394.16644264070345,
+          "collateralTokens": 1.16672018,
+          "maxLtv": 0.7,
+          "priceNote": null
+        },
+        {
+          "symbol": "ASMLB",
+          "address": "0xfbfb4f79cfb4c34dcd7c82bdee5a0fa199b2e7f9",
+          "collateralUsd": 117.52080324871238,
+          "collateralTokens": 0.06538098,
+          "maxLtv": 0.65,
+          "priceNote": null
+        },
+        {
+          "symbol": "KORUB",
+          "address": "0x1ffad32d69c5fead99f88c25ca0191edc3757636",
+          "collateralUsd": 108.37010740189669,
+          "collateralTokens": 6.00730042,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "SMHB",
+          "address": "0xbe1fced7047fdce935f45700727845df2c76877a",
+          "collateralUsd": 93.15418248806704,
+          "collateralTokens": 0.1516602,
+          "maxLtv": 0.65,
+          "priceNote": null
+        },
+        {
+          "symbol": "SMCIB",
+          "address": "0x387dea1d2772d716d081a29116f3effa0ffe1f36",
+          "collateralUsd": 89.99985898200329,
+          "collateralTokens": 2.07774263,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "STXB",
+          "address": "0x2e065f65f1699964f4092de1d39a8efe6c8d6f32",
+          "collateralUsd": 89.32140200661262,
+          "collateralTokens": 0.11393628,
+          "maxLtv": 0.55,
+          "priceNote": null
+        },
+        {
+          "symbol": "DELLB",
+          "address": "0x0e7a51966c66648999d506e1372efdea1b78cb0b",
+          "collateralUsd": 88.26783190380101,
+          "collateralTokens": 0.1520063,
+          "maxLtv": 0.55,
+          "priceNote": null
+        },
+        {
+          "symbol": "RDDTB",
+          "address": "0x41622a9125a22767df8c1dc79fc17299bac4bd0b",
+          "collateralUsd": 77.50996214445,
+          "collateralTokens": 0.495,
+          "maxLtv": 0.55,
+          "priceNote": null
+        },
+        {
+          "symbol": "CRWVB",
+          "address": "0x33e7317e17838fee56b10fe8d0b9ca6ca3090c95",
+          "collateralUsd": 73.15509324443626,
+          "collateralTokens": 0.87536626,
+          "maxLtv": 0.55,
+          "priceNote": null
+        },
+        {
+          "symbol": "ORCLB",
+          "address": "0x4684d9887fc1c71cba7bab8e88835cec217eb598",
+          "collateralUsd": 69.79695000598154,
+          "collateralTokens": 0.5066726,
+          "maxLtv": 0.6,
+          "priceNote": null
+        },
+        {
+          "symbol": "AMZNB",
+          "address": "0x1a4b499833a79a09ad7cf1d42d7dacf71e92eb00",
+          "collateralUsd": 61.65200649552486,
+          "collateralTokens": 0.24089256,
+          "maxLtv": 0.7,
+          "priceNote": null
+        },
+        {
+          "symbol": "BEB",
+          "address": "0x5519de00f5388c17d886b97cb5d2d43a812a82bc",
+          "collateralUsd": 57.823317257764295,
+          "collateralTokens": 0.20609471,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "PYPLB",
+          "address": "0x2806a561fc1f9259b2d54a281796bde0d92762ae",
+          "collateralUsd": 57.407657955966975,
+          "collateralTokens": 1.04238747,
+          "maxLtv": 0.65,
+          "priceNote": null
+        },
+        {
+          "symbol": "WDCB",
+          "address": "0xebe29695f8047c13d36e7a790ca8c1b239ffad1c",
+          "collateralUsd": 57.39576846801784,
+          "collateralTokens": 0.14398994,
+          "maxLtv": 0.55,
+          "priceNote": null
+        },
+        {
+          "symbol": "GSB",
+          "address": "0x20cce6656e5f7f79f280e2d0f5db55b401bdbfce",
+          "collateralUsd": 47.32195896502527,
+          "collateralTokens": 0.05322814,
+          "maxLtv": 0.7,
+          "priceNote": null
+        },
+        {
+          "symbol": "SNXXB",
+          "address": "0x9e82e3da8f1115b73d24bb24113ab836ffdab6b6",
+          "collateralUsd": 41.1967125173333,
+          "collateralTokens": 2.79206138,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "CRDOB",
+          "address": "0x6e7d451f9d30327d32020f116fa79c23b24e9c8d",
+          "collateralUsd": 40.33841435290576,
+          "collateralTokens": 0.18686221,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "AXTIB",
+          "address": "0x9bdc8b470dbf89dbcb123587c6f5e49cca3463be",
+          "collateralUsd": 39.914289895904616,
+          "collateralTokens": 0.53469897,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "MRNAB",
+          "address": "0x5fd86da9b05abe396fe9d02a4a213a7c00556503",
+          "collateralUsd": 35.960204606624046,
+          "collateralTokens": 0.18301308,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "AMCB",
+          "address": "0x96e7d606e229448ef817a7f35fd7394c3e15d00c",
+          "collateralUsd": 34.34692251930077,
+          "collateralTokens": 11.97673336,
+          "maxLtv": 0.55,
+          "priceNote": null
+        },
+        {
+          "symbol": "INTWB",
+          "address": "0x0735d9904b7e34e6fe39b0f66e00c111b3f2b681",
+          "collateralUsd": 33.98337799981493,
+          "collateralTokens": 1.34087187,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "MVLLB",
+          "address": "0x7c26a12f20507e2cee22ceebed9e88fda47f866c",
+          "collateralUsd": 33.868267126194965,
+          "collateralTokens": 0.8598513,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "GMEB",
+          "address": "0x46ceefda28dd7207059ed19b0acdc026955bb15c",
+          "collateralUsd": 33.74714506462233,
+          "collateralTokens": 1.3353625199999999,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "USARB",
+          "address": "0xcd345d4450e04cdef422a60b97d9265d24e0bcee",
+          "collateralUsd": 33.65374669101543,
+          "collateralTokens": 2.62114211,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "AGPUB",
+          "address": "0xa455ae0f04a2b86eee47adca98985e61d14cbefb",
+          "collateralUsd": 33.31493895308663,
+          "collateralTokens": 2.8408671500000002,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "BMNRB",
+          "address": "0x3548da95a9effe481e8604664d75e95821e557f5",
+          "collateralUsd": 32.796421390063045,
+          "collateralTokens": 1.34094921,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "COHRB",
+          "address": "0x5131859a059b2446abeefe0f5d313b3c54ff3d36",
+          "collateralUsd": 31.472268896334075,
+          "collateralTokens": 0.1010089,
+          "maxLtv": 0.55,
+          "priceNote": null
+        },
+        {
+          "symbol": "CRWDB",
+          "address": "0x814981cf5df4a14d4d7328f9abf0d02e9ed54cd1",
+          "collateralUsd": 27.8198752524,
+          "collateralTokens": 0.105,
+          "maxLtv": 0.6,
+          "priceNote": null
+        },
+        {
+          "symbol": "MUUB",
+          "address": "0x0bb3fa77e0809f42948e435f04883c25415e8263",
+          "collateralUsd": 22.37469544511399,
+          "collateralTokens": 0.62692181,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "ALABB",
+          "address": "0x1282493ede6a22753d45cb2c0fdbd8d35e97555a",
+          "collateralUsd": 18.702508244191183,
+          "collateralTokens": 0.05234582,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "ARMB",
+          "address": "0xd42a79ebb7f527f40faecd196ffb47ad5e8d6f8c",
+          "collateralUsd": 15.592062371544996,
+          "collateralTokens": 0.05574049,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "SOXSB",
+          "address": "0xe28cd11c99af2df76bb8ada4cd0ef3904378280f",
+          "collateralUsd": 13.176868973324785,
+          "collateralTokens": 0.4037852,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "QNTB",
+          "address": "0xd721c192d612db77621df57a9fab38418033c02e",
+          "collateralUsd": 12.922965115670486,
+          "collateralTokens": 0.30749953,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "PLTRB",
+          "address": "0x0ca5d51d0277bd006fd9607d3e560785ebad8222",
+          "collateralUsd": 10.453805431839397,
+          "collateralTokens": 0.05251394,
+          "maxLtv": 0.65,
+          "priceNote": null
+        },
+        {
+          "symbol": "AMDB",
+          "address": "0x75fd4cf6f8392e41e70391d60c90c0d5211603a1",
+          "collateralUsd": 9.802584256256115,
+          "collateralTokens": 0.01557009,
+          "maxLtv": 0.65,
+          "priceNote": null
+        },
+        {
+          "symbol": "FLNCB",
+          "address": "0x4af1d41cd9dd950dca43984b43aaa2a8702714ac",
+          "collateralUsd": 6.566827141761177,
+          "collateralTokens": 0.8734346,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "INTCB",
+          "address": "0xe614e2fc6c787035ff51f452e8e826bfd32d5283",
+          "collateralUsd": 5.455976917608886,
+          "collateralTokens": 0.05013333,
+          "maxLtv": 0.65,
+          "priceNote": null
+        },
+        {
+          "symbol": "ASTSB",
+          "address": "0x58b6f5feeb8436489f5bf4a56619092b1fa8e777",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "BNCB",
+          "address": "0x4902c5ebc598265ed2212b559b042de8a5eeec3f",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "CYPHB",
+          "address": "0x0393c28065c54e48b45bdb05eff5c401cf891da1",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "DJTB",
+          "address": "0xf2ec508422174ee564de98187db9359d318afb6b",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "GPROB",
+          "address": "0x1ecfda023c46ca216b5c620ef357a6d0c03951e6",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "IRENB",
+          "address": "0xfdc2f2cab77b28f7ef6c819a404706cfa9bca33b",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.5,
+          "priceNote": null
+        },
+        {
+          "symbol": "SQQQB",
+          "address": "0x25e572b466d152604d9e6c3e53b432b978825342",
+          "collateralUsd": 0,
+          "collateralTokens": 0,
+          "maxLtv": 0.5,
+          "priceNote": null
+        }
+      ],
+      "note": null,
+      "borrowEstimate": null,
+      "source": "https://api.lista.org/api/moolah/overall",
+      "error": null
+    }
+  ],
+  "failures": []
+}
