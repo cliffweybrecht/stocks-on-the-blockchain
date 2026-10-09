@@ -119,16 +119,20 @@ describe("recorded snapshot files", () => {
     expect(thirty?.days).toBe(volumes[AAPL_C]?.["14d"]?.days);
   });
 
-  it("sums Robinhood and BNB per-asset rows from the Gecko correction", () => {
+  it("sums Robinhood per-asset rows and the corrected BNB SPCXB backfill", () => {
     const robinhood = equityCardRangeVolumesFromSnapshot(readSnapshot("robinhood.json"), NOW);
-    const bnb = equityCardRangeVolumesFromSnapshot(readSnapshot("bnb.json"), NOW);
     expect(robinhood["0xaf3d76f1834a1d425780943c99ea8a608f8a93f9"]?.["7d"]?.days).toBe(7);
     expect(robinhood["0xaf3d76f1834a1d425780943c99ea8a608f8a93f9"]?.["7d"]?.volumeUsd).toBeCloseTo(
       18_365_542.18,
       2,
     );
-    expect(bnb["0x205812cdbed920aff76c6580abd681a46d11efc7"]?.["7d"]?.days).toBe(7);
-    expect(bnb["0x205812cdbed920aff76c6580abd681a46d11efc7"]?.["7d"]?.volumeUsd).toBeCloseTo(127_053_728.29, 2);
+    const bnb = equityCardRangeVolumesFromSnapshot(readSnapshot("bnb.json"), NOW);
+    const spcxb = "0xbe9d156892e55e7154bcd3cb0fea677f9d3103e1";
+    expect(bnb[spcxb]?.["7d"]?.days).toBe(7);
+    expect(bnb[spcxb]?.["7d"]?.volumeUsd).toBeCloseTo(40_273_797.76, 2);
+    expect(bnb[spcxb]?.["14d"]?.days).toBe(14);
+    expect(bnb[spcxb]?.["14d"]?.volumeUsd).toBeCloseTo(68_536_705.34, 2);
+    expect(bnb[spcxb]?.["30d"]).toEqual(bnb[spcxb]?.["14d"]);
   });
 
   it("keeps a DexScreener row and fills a day only the backfill has", () => {

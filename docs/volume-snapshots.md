@@ -27,6 +27,8 @@ At 11:59 PM Eastern, UTC is already the next calendar day. The day key is still 
 
 `scripts/snapshot-bnb-volume.py` and `scripts/snapshot-robinhood-volume.py` are on `main`, same as the Base and Solana writers. Nightly runs use those writers, then land only the JSON row. Closed-day rows keep the lane totals and add `assets[]` (address, symbol, issuer when known, instrumentKind, volume24hUsd, displayedLiquidityUsd, pools). Hourly files stay totals only.
 
+BNB counts DexScreener `token-pairs/v1/bsc` for every mint, cash and wrapped-native quotes only, and keeps a known-pool list in `data/volume-snapshots/bnb-pools.json`. A stock-versus-stock pool counts once. Uniswap v4 pools DexScreener does not list are filled from GeckoTerminal when liquidity is at least about $1,000. Each asset row includes `poolCount`. Days 2026-09-23 through 2026-10-08 were rebuilt once from GeckoTerminal hourly bars on the America/New_York day (`backfillSource: geckoterminal-hourly`). The pre-correction lane totals stay on `originalCombined24hUsd` and the original lane fields.
+
 Solana hourly is a rolling h24 total for one Eastern hour, not a closed day. Its job prompt already lands the row. Do not append hourly rows to `solana.json`.
 
 ## Landing on main

@@ -5,7 +5,9 @@ registry with the other public BNB listings the desk has to cover:
 
 - Ondo Global Markets metadata, filtered to networkChainId bsc-56
 - xStocks public assets on BinanceSmartChain, plus the Backed CowSwap list
-- bStocks BEP-20s from the Jumper RWA catalog (bstocks.finance 403s)
+- bStocks BEP-20s from the Jumper RWA catalog (bstocks.finance 403s),
+  a seed of listings Jumper missed, and DexScreener search hits whose
+  EIP-1967 beacon matches NVDAB
 - Colb Finance pre-IPO tokens in the BNB section of the Colb docs
 - Paimon pre-IPO SPV tokens (not the Paimon Prime vault)
 - Four.meme 4Stock public equities from FOURMEME_4STOCKS (no contract registry)
@@ -28,6 +30,7 @@ import os
 import re
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from typing import Any, Callable
 
@@ -67,6 +70,39 @@ COLB_BNB_FALLBACK = (
     ("CANP", "Colb Anthropic", "0xdc22f0a9a60eee3697e925414bdb4580d1c35f91"),
     ("CREV", "Colb Revolut", "0xe626cd87f9ec3c9cc48ebb2689e427f544554608"),
 )
+# bStocks beacon proxy. NVDAB and every genuine bStock store this address in the
+# EIP-1967 beacon slot. The token's own implementation slot is empty.
+BSTOCK_BEACON = "0x156d6dce9a4f6139a3406f1f021f1a4880de93a3"
+BSTOCK_BEACON_SLOT = "0xa3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6cb3582b35133d50"
+BSTOCK_REFERENCE = "0x02fca66c1d1afb4e2a7884261eb00f63598a7436"  # NVDAB
+DEX_SEARCH = "https://api.dexscreener.com/latest/dex/search?q={q}"
+BSTOCK_SEARCH_QUERIES = ("bStocks", "bStock")
+# Jumper's catalog is stale. These BEP-20s are the same beacon as NVDAB.
+# Near-zero names stay in so a later print is not dropped. Leveraged products
+# are not in this list (SOXLB and the rest still fail the leveraged screen).
+# (symbol, name, address, underlying ticker)
+BSTOCKS_SEED = (
+    ("SPCXB", "SpaceX", "0xbe9D156892E55e7154BcD3cB0FEA677F9D3103E1", "SPCX"),
+    ("LLYB", "Eli Lilly", "0x5407912F1Aa4B9E05cBE6aBeb9721547a643eC6b", "LLY"),
+    ("PDDB", "PDD Holdings Inc", "0x95b0409679B55C31772daA2fB4bEE7B125B77521", "PDD"),
+    ("WENB", "Wendy's", "0xDed1c5FB38C262beb9CfF1E1116EfF3c5bf278Cd", "WEN"),
+    ("RDDTB", "Reddit", "0x41622a9125A22767Df8C1dC79FC17299BAc4Bd0b", "RDDT"),
+    ("ADBEB", "Adobe", "0x65c0249d49E3231540Fd0db0a1ae9259e6eAaf57", "ADBE"),
+    ("JPMB", "JPMorgan Chase", "0xbd49D695ba2cc46c8C603eb62aFcd7Fff4698281", "JPM"),
+    ("CRMB", "Salesforce", "0x8C433eCa1be0e2a357015602F63751C768F6f643", "CRM"),
+    ("CRWDB", "CrowdStrike", "0x814981CF5df4a14D4D7328f9ABf0d02e9ED54CD1", "CRWD"),
+    ("AMATB", "Applied Materials", "0xa304bd78e739c0f777202b3eb73ac3736d1df801", "AMAT"),
+    ("COHRB", "Coherent", "0x5131859a059b2446abeefe0f5d313b3c54ff3d36", "COHR"),
+    ("DELLB", "Dell Technologies", "0x0e7a51966c66648999d506e1372efdea1b78cb0b", "DELL"),
+    ("PYPLB", "PayPal", "0x2806a561fc1f9259b2d54a281796bde0d92762ae", "PYPL"),
+)
+# Not bStocks. A second PDDB, copycat tickers, and Ondo generic baskets.
+FAKE_BSTOCK_SYMBOLS = {
+    "FWDIB", "HPEB", "SHAZB", "USDEB", "SECZB", "MAG7XON", "BRAINON", "YLD5ON",
+}
+# The other PDDB (not 0x95b0…). Prefix is enough; the genuine mint is seeded above.
+FAKE_PDDB_PREFIX = "0x1d55"
+
 # Four.meme 4Stock. The docs describe the product and do not publish contracts,
 # and the four.meme token search is a meme-token index (and 403s from here).
 # Extend this tuple when another 4Stock mint is published.
@@ -106,7 +142,9 @@ LEVERAGED_TICKERS = {
 }
 TREASURY_TICKERS = {"BUIDL", "VBILL", "USDY", "USYC", "OUSG", "USTB", "BENJI", "WTGXX"}
 FAN_TICKERS = {"ALPINE"}
-PRIVATE_TICKERS = {"SPCX", "SHEIN", "OPENAI", "ANTHROPIC"}
+# SpaceX listed on Nasdaq on 2026-06-12. SPCX / SPCXB / SPCXx are public equity.
+# Colb and Paimon wrappers stay private because of the issuer, not this set.
+PRIVATE_TICKERS = {"SHEIN", "OPENAI", "ANTHROPIC"}
 # Validated BNB private wrappers. Not a mint-prefix convention.
 PRIVATE_ISSUERS = {"colb", "paimon"}
 # Registry strings that mean the private lane. Any one of these, not a single spelling.
@@ -130,7 +168,10 @@ LEVERAGED_NAME = re.compile(
     r"\b(?:[23]x|ultra-?pro|leveraged|inverse|daily bull|daily bear)\b",
     re.I,
 )
-PRIVATE_NAME = re.compile(r"\b(?:spacex|openai|anthropic|shein|revolut|anduril)\b", re.I)
+PRIVATE_NAME = re.compile(r"\b(?:openai|anthropic|shein|revolut|anduril)\b", re.I)
+# Public SpaceX wrappers. A stale preipo/private registry kind does not keep them out.
+SPACEX_NAME = re.compile(r"\bspacex\b", re.I)
+PUBLIC_EQUITY_TICKERS = {"SPCX"}
 PERP_NAME = re.compile(r"\b(?:perp|synthetics?)\b", re.I)
 PERPETUAL_FUTURE = re.compile(r"\bperpetual\b(?!\s+preferred\b)", re.I)
 FAN_NAME = re.compile(r"\bfan token\b", re.I)
@@ -263,6 +304,13 @@ def is_private(symbol: str = "", name: str = "", underlying: str = "") -> bool:
     return bool(PRIVATE_NAME.search(name or ""))
 
 
+def _listed_spacex(symbol: str = "", name: str = "", underlying: str = "") -> bool:
+    """SpaceX common stock. Public since the 2026-06-12 Nasdaq listing."""
+    if ticker_candidates(symbol, underlying) & PUBLIC_EQUITY_TICKERS:
+        return True
+    return bool(SPACEX_NAME.search(name or ""))
+
+
 def _kind_is_private(kind_raw: str) -> bool:
     """True for registry kind preipo|private in any of the usual spellings."""
     compact = re.sub(r"[\s_\-]+", "", (kind_raw or "").lower().strip())
@@ -349,11 +397,18 @@ def classify_lane(
             return "equity", ""
         return None, "kind"
 
-    if _verifiable_private(kind_raw, ticker, name, underlying, issuer):
-        return "preipo", ""
+    # A Colb/Paimon label on someone else's mint is a copycat, including
+    # "Colb SpaceX". That check is before the Nasdaq SpaceX equity lane.
     brand = WRAPPER_BRAND.match(name or "")
     if brand and issuer_slug(issuer) != brand.group(1).lower():
         return None, "copycat"
+    # SPCXB and SPCXx are public equity. Colb and Paimon SpaceX wrappers stay
+    # on the private path below because their issuer is the wrapper.
+    if _listed_spacex(ticker, name, underlying) and issuer_slug(issuer) not in PRIVATE_ISSUERS:
+        return "equity", ""
+
+    if _verifiable_private(kind_raw, ticker, name, underlying, issuer):
+        return "preipo", ""
     if _private_candidate(kind_raw, ticker, name, underlying, issuer):
         return None, "private"
 
@@ -402,6 +457,13 @@ class Book:
         key = address.lower()
         if key in {PAIMON_PRIME, BSC_USDT}:
             self._skip("denied-address")
+            return False
+        symbol_key = (symbol or ticker or "").upper().strip()
+        if symbol_key in FAKE_BSTOCK_SYMBOLS:
+            self._skip("fake")
+            return False
+        if symbol_key == "PDDB" and key.startswith(FAKE_PDDB_PREFIX):
+            self._skip("fake")
             return False
         if key in self._seen:
             self._skip("duplicate")
@@ -699,6 +761,121 @@ def add_paimon(text: str, book: Book) -> None:
     )
 
 
+def add_bstocks_seed(book: Book) -> int:
+    """Listings missing from the stale Jumper catalog. Duplicates are ignored."""
+    added = 0
+    for symbol, name, address, ticker in BSTOCKS_SEED:
+        if book.add(
+            symbol=symbol,
+            name=name,
+            address=address,
+            issuer="bstocks",
+            source="bstocks-seed",
+            ticker=ticker,
+            underlying=ticker,
+            kind="equity",
+            kind_raw="equity",
+        ):
+            added += 1
+    return added
+
+
+def _gt_side(token: Any) -> tuple[str, str, str]:
+    if not isinstance(token, dict):
+        return "", "", ""
+    return (
+        str(token.get("address") or ""),
+        str(token.get("symbol") or ""),
+        str(token.get("name") or ""),
+    )
+
+
+def pairs_from_search(data: Any) -> list[dict]:
+    if isinstance(data, list):
+        return [row for row in data if isinstance(row, dict)]
+    if isinstance(data, dict):
+        pairs = data.get("pairs")
+        if isinstance(pairs, list):
+            return [row for row in pairs if isinstance(row, dict)]
+    return []
+
+
+def discover_bstocks_from_pairs(
+    pairs: list[dict],
+    book: Book,
+    beacon_of: Callable[[str], str | None],
+) -> int:
+    """Admit a DexScreener hit only when its beacon matches NVDAB.
+
+    Search is full of meme tickers that end in B. The beacon is the check.
+    Fakes and leveraged products still fail Book.add.
+    """
+    added = 0
+    seen: set[str] = set()
+    for pair in pairs:
+        chain = str(pair.get("chainId") or "").strip().lower()
+        if chain and chain not in BNB_CHAINS and chain not in {"bsc", "56"}:
+            continue
+        for side in (pair.get("baseToken"), pair.get("quoteToken")):
+            address, symbol, name = _gt_side(side)
+            key = address.lower()
+            if not is_bep20(address) or key in seen or key in book._seen:
+                continue
+            seen.add(key)
+            if symbol.upper() in FAKE_BSTOCK_SYMBOLS:
+                continue
+            if not symbol.upper().endswith("B"):
+                continue
+            beacon = beacon_of(address)
+            if not beacon or beacon.lower() != BSTOCK_BEACON:
+                continue
+            if book.add(
+                symbol=symbol,
+                name=name or symbol,
+                address=address,
+                issuer="bstocks",
+                source="bstocks-beacon",
+                ticker=symbol,
+                kind_raw="stock",
+            ):
+                added += 1
+    return added
+
+
+def live_beacon(address: str) -> str | None:
+    """EIP-1967 beacon of a BEP-20, or None when the slot is empty or the RPC fails."""
+    if not is_bep20(address):
+        return None
+    payload = json.dumps(
+        {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "eth_getStorageAt",
+            "params": [address, BSTOCK_BEACON_SLOT, "latest"],
+        }
+    ).encode()
+    req = urllib.request.Request(
+        "https://bsc-dataseed.binance.org/",
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (compatible; BnbVolumeSnapshot/1.0)",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            body = json.loads(resp.read().decode())
+    except Exception:
+        return None
+    word = str(body.get("result") or "")
+    if not word.startswith("0x") or len(word) < 42:
+        return None
+    beacon = "0x" + word[-40:]
+    if int(beacon, 16) == 0:
+        return None
+    return beacon.lower()
+
+
 def add_fourmeme(book: Book) -> int:
     """Public-equity 4Stock mints. The seed list is the whole registry."""
     added = 0
@@ -773,9 +950,19 @@ def _record_failure(name: str, url: str, exc: Exception, statuses: dict[str, Any
     warnings.append(f"{name} failed: {exc}")
 
 
-def load_universe(fetch: Fetch | None = None) -> tuple[list[dict], list[str], dict[str, Any]]:
-    """Union every BNB registry. A 403 on one source does not blank the day."""
+def load_universe(
+    fetch: Fetch | None = None,
+    beacon_of: Callable[[str], str | None] | None = None,
+) -> tuple[list[dict], list[str], dict[str, Any]]:
+    """Union every BNB registry. A 403 on one source does not blank the day.
+
+    Beacon discovery runs on the live path. A caller that injects `fetch` and
+    does not pass `beacon_of` skips the RPC so tests stay offline. The seed
+    still lands.
+    """
     getter = fetch or live_fetch
+    if beacon_of is None and fetch is None:
+        beacon_of = live_beacon
     book = Book()
     warnings: list[str] = []
     statuses: dict[str, Any] = {}
@@ -794,6 +981,35 @@ def load_universe(fetch: Fetch | None = None) -> tuple[list[dict], list[str], di
     ingest("ondo-gm", ONDO_GM_METADATA, add_ondo_metadata)
     ingest("xstocks-tokenlist", XSTOCKS_TOKENLIST, add_cowswap_tokenlist)
     ingest("jumper-bstocks", JUMPER_BSTOCKS, add_jumper_bstocks)
+    before = len(book.rows)
+    add_bstocks_seed(book)
+    statuses["bstocks-seed"] = {
+        "status": "ok",
+        "added": len(book.rows) - before,
+        "note": "Jumper misses listings; seed is the NVDAB beacon set through 2026-10-08",
+    }
+
+    if beacon_of is not None:
+        discovered = 0
+        search_errors = 0
+        for query in BSTOCK_SEARCH_QUERIES:
+            url = DEX_SEARCH.format(q=urllib.parse.quote(query))
+            try:
+                payload = getter(url)
+            except Exception as exc:  # noqa: BLE001
+                search_errors += 1
+                _record_failure("bstocks-beacon", url, exc, statuses, warnings)
+                continue
+            before = len(book.rows)
+            discover_bstocks_from_pairs(pairs_from_search(payload), book, beacon_of)
+            discovered += len(book.rows) - before
+        statuses["bstocks-beacon"] = {
+            "url": DEX_SEARCH.format(q="bStocks"),
+            "beacon": BSTOCK_BEACON,
+            "reference": BSTOCK_REFERENCE,
+            "status": "ok" if search_errors == 0 else "partial",
+            "added": discovered,
+        }
 
     colb_text = ""
     colb_error: Exception | None = None
