@@ -320,13 +320,6 @@ export default async function ChainPage({
             </div>
           </>
         ) : null}
-        {holderChain ? (
-          <HolderSupplyPanel
-            kicker={`${chain.name} holders`}
-            points={holderPanelPoints(holderDeskPoints(holderFile))}
-            footnote={`Sum of per-token holders on ${chain.name}, not unique wallets. Supply is on-chain total supply times the desk DexScreener price. Separate from volume.`}
-          />
-        ) : null}
         {assets.length === 0 && etfAssets.length === 0 && privateAssets.length === 0 ? (
           <EmptyState
             title={
@@ -378,6 +371,13 @@ export default async function ChainPage({
             holderSeries={holderChain ? holderSeries : undefined}
           />
         )}
+        {holderChain ? (
+          <HolderSupplyPanel
+            kicker={`${chain.name} holders`}
+            points={holderPanelPoints(holderDeskPoints(holderFile))}
+            footnote={`Sum of per-token holders on ${chain.name}, not unique wallets. Supply is on-chain total supply times the desk DexScreener price. Separate from volume.`}
+          />
+        ) : null}
       </div>
     </PageShell>
   );
