@@ -423,11 +423,11 @@ describe("equity perp snapshot", () => {
 
   it("renders the migrated 2026-10-08 row from the compact file", () => {
     const text = readFileSync(join(process.cwd(), "data", "perps-snapshots", "perps.json"), "utf8");
-    expect(Buffer.byteLength(text)).toBeLessThan(150_000);
     const parsed = parsePerpsSnapshotFile(JSON.parse(text));
     expect(parsed.schema).toBe("equity-perps-v2");
     expect(parsed.readError).toBeUndefined();
-    expect(parsed.records.map((row) => row.date)).toEqual(["2026-10-08"]);
+    expect(Buffer.byteLength(text)).toBeLessThan(80_000 * parsed.records.length);
+    expect(parsed.records.map((row) => row.date)).toEqual(["2026-10-08", "2026-10-09", "2026-10-10"]);
     expect(parsed.records[0]?.venues).toHaveLength(60);
     expect(serializePerpsSnapshot(parsed)).toBe(text);
     const model = buildPerpsDeskModel(parsed, Date.parse("2026-10-09T16:00:00.000Z") / 1000);

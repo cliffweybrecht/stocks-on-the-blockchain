@@ -49,7 +49,7 @@ import {
   type VenusHolderCache,
 } from "../lending-venus-estimate";
 import { saveLendingDay, loadLatestLendingSnapshot } from "../lending-snapshot-file";
-import { runLendingSnapshotCli } from "../lending-snapshot-job";
+import { lendingSnapshotDateOverride, parseLendingSnapshotDate, runLendingSnapshotCli } from "../lending-snapshot-job";
 import { easternDayKey } from "../volume-snapshots";
 
 const SPY = "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W";
@@ -709,6 +709,82 @@ describe("lending aggregation", () => {
     });
     expect(failed).toBe(1);
     expect(errors[0]).toMatch(/no amounts/);
+    await rm(dir, { recursive: true, force: true });
+  });
+});
+
+describe("LENDING_SNAPSHOT_DATE", () => {
+  const row = {
+    id: "kamino-xstocks",
+    venue: "Kamino xStocks",
+    chainId: "solana",
+    chainLabel: "Solana",
+    collateralUsd: 10,
+    stableBorrowedUsd: 4,
+    lendSupplyUsd: 5,
+    utilization: 0.8,
+    borrowApy: 0.05,
+    borrowApyMin: 0.05,
+    borrowApyMax: 0.05,
+    stockBorrowedUsd: null,
+    source: "test",
+    error: null,
+  };
+
+  it("accepts a real YYYY-MM-DD, and the lending key wins over SNAPSHOT_DATE", () => {
+    expect(parseLendingSnapshotDate(" 2026-10-10 ")).toBe("2026-10-10");
+    expect(parseLendingSnapshotDate("2024-02-29")).toBe("2024-02-29");
+    expect(lendingSnapshotDateOverride({ LENDING_SNAPSHOT_DATE: "2026-10-10", SNAPSHOT_DATE: "2026-10-09" })).toBe("2026-10-10");
+    expect(lendingSnapshotDateOverride({ LENDING_SNAPSHOT_DATE: "  ", SNAPSHOT_DATE: " 2026-10-09 " })).toBe("2026-10-09");
+    expect(lendingSnapshotDateOverride({ LENDING_SNAPSHOT_DATE: "", SNAPSHOT_DATE: "" })).toBeNull();
+    expect(lendingSnapshotDateOverride({})).toBeNull();
+  });
+
+  it("refuses a non-date and an impossible calendar day", () => {
+    expect(() => parseLendingSnapshotDate("2026-10-10T00")).toThrow(/YYYY-MM-DD/);
+    expect(() => parseLendingSnapshotDate("20261010")).toThrow(/YYYY-MM-DD/);
+    expect(() => lendingSnapshotDateOverride({ LENDING_SNAPSHOT_DATE: "nope", SNAPSHOT_DATE: "2026-10-10" })).toThrow(/YYYY-MM-DD/);
+    expect(() => lendingSnapshotDateOverride({ LENDING_SNAPSHOT_DATE: "2026-02-31" })).toThrow(/real YYYY-MM-DD/);
+    expect(() => lendingSnapshotDateOverride({ SNAPSHOT_DATE: "2026-02-29" })).toThrow(/real YYYY-MM-DD/);
+  });
+
+  it("pins the file key and leaves capturedAt on the real instant", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "lending-pin-"));
+    const capturedAt = "2026-10-11T04:12:00.000Z";
+    const day = lendingDayFromCapture(Date.parse(capturedAt), [row], []);
+    expect(day.date).toBe("2026-10-11");
+    const errors: string[] = [];
+    const code = await runLendingSnapshotCli({
+      env: { LENDING_SNAPSHOT_DATE: "2026-10-10" },
+      capture: async () => day,
+      save: async (next) => {
+        await saveLendingDay(next, dir);
+      },
+      error: (message) => errors.push(message),
+    });
+    expect(code).toBe(0);
+    expect(errors).toEqual([]);
+    const saved = await loadLatestLendingSnapshot(dir);
+    expect(saved.day?.date).toBe("2026-10-10");
+    expect(saved.day?.capturedAt).toBe(capturedAt);
+    expect(await readFile(join(dir, "2026-10-10.json"), "utf8")).toContain(capturedAt);
+    await expect(readFile(join(dir, "2026-10-11.json"), "utf8")).rejects.toThrow();
+
+    let captured = false;
+    const refused = await runLendingSnapshotCli({
+      env: { LENDING_SNAPSHOT_DATE: "2026-02-31" },
+      capture: async () => {
+        captured = true;
+        return day;
+      },
+      save: async () => {
+        throw new Error("should not write");
+      },
+      error: (message) => errors.push(message),
+    });
+    expect(refused).toBe(1);
+    expect(captured).toBe(false);
+    expect(errors[0]).toMatch(/real YYYY-MM-DD/);
     await rm(dir, { recursive: true, force: true });
   });
 });
