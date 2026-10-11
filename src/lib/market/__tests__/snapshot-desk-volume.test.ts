@@ -33,7 +33,7 @@ describe("Base snapshot file", () => {
   const nowT = Date.parse("2026-10-09T03:00:00Z") / 1000;
   const closed = closedSnapshotDeskDays(days, nowT);
 
-  it("reads the authoritative series from 2026-09-25 through 2026-10-08", () => {
+  it("reads the authoritative series from 2026-09-25 through 2026-10-09", () => {
     expect(days.map((day) => day.date)).toEqual([
       "2026-09-25",
       "2026-09-26",
@@ -49,6 +49,7 @@ describe("Base snapshot file", () => {
       "2026-10-06",
       "2026-10-07",
       "2026-10-08",
+      "2026-10-09",
     ]);
     expect(closed.map((day) => day.date)).toEqual(days.map((day) => day.date).filter((date) => date <= "2026-10-07"));
   });
