@@ -14,6 +14,7 @@ The command needs network access to the venue APIs. No API key is required.
 
 Optional environment:
 
+- `LENDING_SNAPSHOT_DATE` — `YYYY-MM-DD` pin for the file key only. `capturedAt` stays the real capture instant. A blank value is ignored. `SNAPSHOT_DATE` is the fallback when this variable is unset. With neither set, the file is the America/New_York date of the capture. An impossible calendar day is refused and nothing is written.
 - `BSC_RPC_URL` — tried first for Lista collateral balances and the Venus log scan. When it is unset, public BSC endpoints are used in order.
 - `VENUS_SCAN_BUDGET_MS` — milliseconds the Venus pro-rata scan may run before the previous estimate is kept. The default is 60 minutes, which covers a cold scan from BSC block 104,000,000. A later run reads the cache and only scans blocks after the last finished range.
 
