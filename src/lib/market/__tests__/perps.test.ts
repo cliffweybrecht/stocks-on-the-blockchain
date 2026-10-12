@@ -19,6 +19,7 @@ import {
   type PerpsSnapshotFile,
 } from "../perps-snapshot";
 import { assertAppendOnlySnapshot, volumeSnapshotChain } from "../snapshot-land";
+import { easternDayKey, utcInstantForDayKey } from "../volume-snapshots";
 
 function emptyFeeds(overrides: Partial<PerpsFeeds> = {}): PerpsFeeds {
   const skipped = { data: null, error: "skipped" };
@@ -427,7 +428,14 @@ describe("equity perp snapshot", () => {
     expect(parsed.schema).toBe("equity-perps-v2");
     expect(parsed.readError).toBeUndefined();
     expect(Buffer.byteLength(text)).toBeLessThan(80_000 * parsed.records.length);
-    expect(parsed.records.map((row) => row.date)).toEqual(["2026-10-08", "2026-10-09", "2026-10-10"]);
+    const dates = parsed.records.map((row) => row.date);
+    expect(dates[0]).toBe("2026-10-08");
+    expect(dates.at(-1)! >= "2026-10-10").toBe(true);
+    expect(new Set(dates).size).toBe(dates.length);
+    for (let index = 1; index < dates.length; index += 1) {
+      expect(dates[index]! > dates[index - 1]!).toBe(true);
+      expect(easternDayKey(utcInstantForDayKey(dates[index - 1]!) + 26 * 3600)).toBe(dates[index]);
+    }
     expect(parsed.records[0]?.venues).toHaveLength(60);
     expect(serializePerpsSnapshot(parsed)).toBe(text);
     const model = buildPerpsDeskModel(parsed, Date.parse("2026-10-09T16:00:00.000Z") / 1000);

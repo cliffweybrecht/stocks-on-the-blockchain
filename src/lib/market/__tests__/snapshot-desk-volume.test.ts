@@ -22,7 +22,7 @@ import {
   snapshotDeskVolumePoints,
 } from "../snapshot-desk-volume";
 import type { ChainVolume } from "../types";
-import { utcInstantForDayKey } from "../volume-snapshots";
+import { easternDayKey, utcInstantForDayKey } from "../volume-snapshots";
 
 function readDesk(file: string) {
   return JSON.parse(readFileSync(join(process.cwd(), "data/volume-snapshots", file), "utf8"));
@@ -33,25 +33,16 @@ describe("Base snapshot file", () => {
   const nowT = Date.parse("2026-10-09T03:00:00Z") / 1000;
   const closed = closedSnapshotDeskDays(days, nowT);
 
-  it("reads the authoritative series from 2026-09-25 through 2026-10-09", () => {
-    expect(days.map((day) => day.date)).toEqual([
-      "2026-09-25",
-      "2026-09-26",
-      "2026-09-27",
-      "2026-09-28",
-      "2026-09-29",
-      "2026-09-30",
-      "2026-10-01",
-      "2026-10-02",
-      "2026-10-03",
-      "2026-10-04",
-      "2026-10-05",
-      "2026-10-06",
-      "2026-10-07",
-      "2026-10-08",
-      "2026-10-09",
-    ]);
-    expect(closed.map((day) => day.date)).toEqual(days.map((day) => day.date).filter((date) => date <= "2026-10-07"));
+  it("reads the authoritative series from 2026-09-25 across consecutive Eastern days", () => {
+    const dates = days.map((day) => day.date);
+    expect(dates[0]).toBe("2026-09-25");
+    expect(dates.at(-1)! >= "2026-10-09").toBe(true);
+    expect(new Set(dates).size).toBe(dates.length);
+    for (let index = 1; index < dates.length; index += 1) {
+      expect(dates[index]! > dates[index - 1]!).toBe(true);
+      expect(easternDayKey(utcInstantForDayKey(dates[index - 1]!) + 26 * 3600)).toBe(dates[index]);
+    }
+    expect(closed.map((day) => day.date)).toEqual(dates.filter((date) => date <= "2026-10-07"));
   });
 
   it("keys every bar to America/New_York midnight of the Eastern day", () => {

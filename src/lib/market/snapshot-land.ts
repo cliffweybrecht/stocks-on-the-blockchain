@@ -255,16 +255,18 @@ export function parseOriginPrListNumber(text: string): number | null {
 }
 
 /**
- * stdout cap for `execFileSync` in the land script. Undefined keeps Node's
- * default 1 MiB and is the result for every command that does not name the
- * equity-perps snapshot. Callers must omit `maxBuffer` when this is undefined
- * so other chains keep the default.
+ * stdout cap for `execFileSync` when git prints a snapshot file. Node's
+ * default is 1 MiB. Volume snapshots and perps both use this cap. Callers
+ * omit `maxBuffer` when this returns undefined (status, log, and other
+ * small commands).
  */
-export const PERPS_SNAPSHOT_GIT_MAX_BUFFER = 32 * 1024 * 1024;
+export const SNAPSHOT_GIT_MAX_BUFFER = 64 * 1024 * 1024;
 
 export function snapshotGitMaxBuffer(args: readonly string[]): number | undefined {
   for (const arg of args) {
-    if (arg.includes("data/perps-snapshots/")) return PERPS_SNAPSHOT_GIT_MAX_BUFFER;
+    if (arg.includes("data/volume-snapshots/") || arg.includes("data/perps-snapshots/")) {
+      return SNAPSHOT_GIT_MAX_BUFFER;
+    }
   }
   return undefined;
 }
