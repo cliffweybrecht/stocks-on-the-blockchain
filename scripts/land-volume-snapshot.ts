@@ -9,8 +9,11 @@ import {
   assertSnapshotWorktree,
   manualMergeComment,
   newestSnapshotDate,
+  chainSnapshotFiles,
+  isDailySnapshotPath,
   parseOriginPrListNumber,
   parseOriginPrView,
+  porcelainPath,
   snapshotCommitSubject,
   snapshotGitMaxBuffer,
   volumeSnapshotChain,
@@ -30,8 +33,9 @@ Usage:
   npm run snapshot:land -- --pr 371
   npm run snapshot:land -- --check
 
---chain solana|base|bnb|robinhood|perps
+  --chain solana|base|bnb|robinhood|perps
   Commit that chain's snapshot JSON when it has uncommitted edits.
+  BNB also commits data/volume-snapshots/bnb-pools.json when that registry is dirty.
   Perps writes data/perps-snapshots/perps.json (not a spot total).
   Subject: chore: <Chain> volume snapshot YYYY-MM-DD
   Refuses if any non-snapshot file is dirty.
@@ -171,7 +175,7 @@ function verifyAppendOnly(
 ): { ok: true; added: string[] } | { ok: false; reason: string } {
   const added: string[] = [];
   for (const file of files) {
-    if (!file.startsWith("data/volume-snapshots/") && !file.startsWith("data/perps-snapshots/")) continue;
+    if (!isDailySnapshotPath(file) && !file.startsWith("data/perps-snapshots/")) continue;
     let beforeText = "";
     try {
       beforeText = git(["show", `origin/main:${file}`], cwd);
@@ -312,8 +316,10 @@ function commitChain(cwd: string, chain: VolumeSnapshotChain): string | null {
     branch = `cursor/${chain.id}-volume-${day}-${suffix}`;
     git(["checkout", "-b", branch], cwd);
   }
-  git(["add", "-f", "--", chain.file], cwd);
-  git(["commit", "-m", subject, "--", chain.file], cwd);
+  const dirty = chainSnapshotFiles(chain).filter((file) => existsSync(file) && fileDirty(cwd, file));
+  const files = dirty.length > 0 ? dirty : [chain.file];
+  git(["add", "-f", "--", ...files], cwd);
+  git(["commit", "-m", subject, "--", ...files], cwd);
   console.log(subject);
   return branch;
 }
@@ -390,9 +396,10 @@ function main(): number {
     return 1;
   }
 
+  const allowed = new Set(chainSnapshotFiles(chain));
   const otherDirty = status.filter((line) => {
-    const path = line.startsWith("?? ") ? line.slice(3) : line.slice(3);
-    return path !== chain.file;
+    const path = porcelainPath(line);
+    return !path || !allowed.has(path);
   });
   if (otherDirty.length > 0) {
     console.error(`Refusing to land ${chain.id}: another snapshot file is also dirty (${otherDirty.join("; ")}).`);
@@ -404,8 +411,10 @@ function main(): number {
     return 1;
   }
 
+  const chainFiles = chainSnapshotFiles(chain);
   let branch = currentBranch(cwd);
-  if (fileDirty(cwd, chain.file)) {
+  const dirtyFiles = chainFiles.filter((file) => existsSync(file) && fileDirty(cwd, file));
+  if (dirtyFiles.length > 0) {
     try {
       const committed = commitChain(cwd, chain);
       if (!committed) return 1;
@@ -415,7 +424,7 @@ function main(): number {
       return 1;
     }
   } else if (!pushMain) {
-    console.log(`No uncommitted changes in ${chain.file}.`);
+    console.log(`No uncommitted changes in ${chainFiles.join(", ")}.`);
     return 0;
   }
 
