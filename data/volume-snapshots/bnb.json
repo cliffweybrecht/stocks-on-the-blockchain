@@ -29194,16 +29194,16 @@
     {
       "date": "2026-10-11",
       "t": 1791691200,
-      "publicEquity24hUsd": 10518444.88,
+      "publicEquity24hUsd": 19150076.22,
       "private24hUsd": 49841.98,
       "etfIndex24hUsd": 15499683.45,
-      "combined24hUsd": 26067970.31,
+      "combined24hUsd": 34699601.65,
       "issuersByLane": {
         "equity": {
           "bstocks": {
-            "usd": 10265670.13,
-            "mints": 63,
-            "pools": 165
+            "usd": 18897301.47,
+            "mints": 64,
+            "pools": 178
           },
           "fourmeme": {
             "usd": 176761.36,
@@ -29746,6 +29746,108 @@
           ],
           "issuer": "fourmeme",
           "poolCount": 5
+        },
+        {
+          "address": "0x4902C5ebc598265Ed2212b559B042De8a5Eeec3f",
+          "symbol": "BNCB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 8631631.34,
+          "displayedLiquidityUsd": 8622113.98,
+          "pools": [
+            {
+              "pairAddress": "0x320e8096e5e7a46E43446141A5B15d801FC596f5",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 3170821.84,
+              "liquidityUsd": 3585859.05,
+              "source": "geckoterminal-hourly"
+            },
+            {
+              "pairAddress": "0xb754F10CebF50B8862444cF4D6c1cC31A3B71c18",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 2873075.68,
+              "liquidityUsd": 237768.69,
+              "source": "geckoterminal-hourly"
+            },
+            {
+              "pairAddress": "0x939862Cb12c02d91DAF456396D6b6d06aFdF5c89",
+              "dexId": "topaz",
+              "volume24hUsd": 1270862.95,
+              "liquidityUsd": 13283.87,
+              "source": "geckoterminal-hourly"
+            },
+            {
+              "pairAddress": "0x9bbad47b24f1c6a1b9951d4cc85714cf88ce9caf4a84ba4fbfdff2c5ac30cb73",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 619223.52,
+              "liquidityUsd": 52929.63,
+              "source": "geckoterminal-hourly"
+            },
+            {
+              "pairAddress": "0x32c51041f3D7a66ac14ABA7485444EFb6E15efe1",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 495189.95,
+              "liquidityUsd": 616954.49,
+              "source": "geckoterminal-hourly"
+            },
+            {
+              "pairAddress": "0x783A3D7c3236Cf05f103adC890377f5984d694e5",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 55516.4,
+              "liquidityUsd": 71897.06,
+              "source": "geckoterminal-hourly"
+            },
+            {
+              "pairAddress": "0xd02643e9323895f4b562c92f3e6ced7e77db73cd8ab057ec685d1dc710551a6b",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 51111.15,
+              "liquidityUsd": 410011.38,
+              "source": "geckoterminal-hourly"
+            },
+            {
+              "pairAddress": "0xCf936261a1582b45Eae2246105B3388D1e31c94d",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 36646.48,
+              "liquidityUsd": 3551541.59,
+              "source": "geckoterminal-hourly"
+            },
+            {
+              "pairAddress": "0xd631e5c0a6add136d10fdfe4848ad5d5e910350b527b33d9745411742a77a190",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 29936.34,
+              "liquidityUsd": 7365.09,
+              "source": "geckoterminal-hourly"
+            },
+            {
+              "pairAddress": "0xC53E634836e95CDa2857E2fbd3eAf2F7F63CF832",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 20854.42,
+              "liquidityUsd": 16391.82,
+              "source": "geckoterminal-hourly"
+            },
+            {
+              "pairAddress": "0xFC58462502b7C47f166292DF6e6b11e1ae41F314",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 5541.98,
+              "liquidityUsd": 7130.36,
+              "source": "geckoterminal-hourly"
+            },
+            {
+              "pairAddress": "0x369c3753168D6eFde184f72A8399720EADB73d3E",
+              "dexId": "uniswap",
+              "volume24hUsd": 1788.33,
+              "liquidityUsd": 6332.49,
+              "source": "geckoterminal-hourly"
+            },
+            {
+              "pairAddress": "0x8dc59be615834a1908fb09c7ab7804337b178ea85c62f978095fedb74497c52b",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 1062.3,
+              "liquidityUsd": 44648.46,
+              "source": "geckoterminal-hourly"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 13
         },
         {
           "address": "0x5131859a059b2446abeefe0f5d313b3c54ff3d36",
@@ -31988,13 +32090,13 @@
           "poolCount": 1
         }
       ],
-      "publicMintCount": 1645,
-      "publicPoolCount": 209,
+      "publicMintCount": 1646,
+      "publicPoolCount": 222,
       "etfMintCount": 168,
       "etfPoolCount": 40,
       "preipoMintCount": 8,
       "preipoPoolCount": 27,
-      "withVolumeEquityCount": 59,
+      "withVolumeEquityCount": 60,
       "generatedAt": "2026-10-12T04:05:59.335568Z",
       "sources": {
         "universe": "BNB chainId 56 equity/pre-IPO/ETF union by contract address",
@@ -32004,13 +32106,13 @@
         "issuers": {
           "xstocks": 1300,
           "ondo": 444,
-          "bstocks": 68,
+          "bstocks": 69,
           "colb": 3,
           "paimon": 5,
           "fourmeme": 1
         },
         "kindCounts": {
-          "equity": 1645,
+          "equity": 1646,
           "etf": 168,
           "preipo": 8
         },
@@ -32100,7 +32202,14 @@
           "mainPool": "0x77e6b624d664150d96e13d99c68144b2a047e554",
           "mainPool24hUsd": 240.14
         }
-      ]
+      ],
+      "originalPublicEquity24hUsd": 10518444.88,
+      "originalEtfIndex24hUsd": 15499683.45,
+      "originalPrivate24hUsd": 49841.98,
+      "originalCombined24hUsd": 26067970.31,
+      "backfillSource": "geckoterminal-hourly",
+      "backfilledAt": "2026-10-12T04:46:55.058563Z",
+      "backfillNote": "missing-mint:BNCB"
     }
   ]
 }

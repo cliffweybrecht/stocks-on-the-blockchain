@@ -2,13 +2,15 @@
 """Daily BNB Chain tokenized-stock volume snapshot (DexScreener truth).
 
 Writes data/volume-snapshots/bnb.json.
-- Universe: union of public BNB (chainId 56 / DexScreener slug bsc) listings
-  for every issuer, deduped by contract address. Stocksonchain alone only
-  indexes Ondo and xStocks, so the writer also reads the Ondo GM API
-  (bsc-56), the xStocks public asset list and CowSwap token list, the
-  Jumper bStocks catalog, Colb Finance's BNB pre-IPO contracts, Paimon
-  pre-IPO SPV tokens, and the Four.meme 4Stock seed (no public contract
-  list). A 403 on one source does not blank the day.
+- Universe: union of the bStocks seed (including BNCB and every bStocks
+  mint stored in bnb.json assets[] on 2026-10-08 through 2026-10-10), every
+  mint ever stored in bnb.json assets[] (issuer and lane kept), and live
+  discovery. Stocksonchain alone only indexes Ondo and xStocks, so discovery
+  also reads the Ondo GM API (bsc-56), the xStocks public asset list and
+  CowSwap token list, the Jumper bStocks catalog, Colb Finance's BNB pre-IPO
+  contracts, Paimon pre-IPO SPV tokens, and the Four.meme 4Stock seed.
+  A 403 on one source does not blank the day. A mint with more than $100k
+  of prior-day volume that live sources miss is warned and kept.
 - Lanes are public equity, ETF/index, and private (pre-IPO). ETF/index is
   classified before private. Private is fail-closed: Colb/Paimon wrappers, or
   registry kind preipo|private plus a private-company name/symbol. Crypto,

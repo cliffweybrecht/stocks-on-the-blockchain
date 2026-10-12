@@ -370,7 +370,11 @@ class BnbUniverseTest(unittest.TestCase):
         rows, warnings, meta = load_universe(fetch)
         issuers = count_issuers(rows)
         self.assertEqual(issuers["ondo"], 1)
-        self.assertGreaterEqual(issuers["bstocks"], 14)
+        self.assertGreaterEqual(issuers["bstocks"], 69)
+        bncb = next(row for row in rows if row["symbol"] == "BNCB")
+        self.assertEqual(bncb["address"].lower(), "0x4902c5ebc598265ed2212b559b042de8a5eeec3f")
+        self.assertEqual(bncb["issuer"], "bstocks")
+        self.assertEqual(bncb["kind"], "equity")
         spcxb = next(row for row in rows if row["symbol"] == "SPCXB")
         self.assertEqual(spcxb["kind"], "equity")
         self.assertEqual(spcxb["issuer"], "bstocks")
@@ -800,10 +804,15 @@ class BnbUniverseTest(unittest.TestCase):
         )
 
         book = Book()
-        self.assertGreaterEqual(add_bstocks_seed(book), 13)
+        self.assertGreaterEqual(add_bstocks_seed(book), 69)
         by_symbol = {row["symbol"]: row for row in book.rows}
         self.assertEqual(by_symbol["SPCXB"]["kind"], "equity")
-        self.assertEqual(by_symbol["QQQB"]["kind"] if "QQQB" in by_symbol else "absent", "absent")
+        self.assertEqual(by_symbol["BNCB"]["kind"], "equity")
+        self.assertEqual(by_symbol["BNCB"]["issuer"], "bstocks")
+        self.assertEqual(by_symbol["BNCB"]["address"].lower(), "0x4902c5ebc598265ed2212b559b042de8a5eeec3f")
+        self.assertEqual(by_symbol["QQQB"]["kind"], "etf")
+        self.assertEqual(by_symbol["DRAMB"]["kind"], "etf")
+        self.assertEqual(by_symbol["SPYB"]["kind"], "etf")
         self.assertIn("LLYB", by_symbol)
         self.assertFalse(
             book.add(
@@ -847,6 +856,71 @@ class BnbUniverseTest(unittest.TestCase):
         self.assertEqual(added, 1)
         self.assertEqual(next(row for row in book.rows if row["symbol"] == "NEWB")["source"], "bstocks-beacon")
         self.assertTrue(any(sym == "SPCXB" for sym, _name, _addr, _tick in BSTOCKS_SEED))
+        self.assertTrue(any(sym == "BNCB" for sym, _name, _addr, _tick in BSTOCKS_SEED))
+
+    def test_snapshot_history_keeps_a_high_volume_mint_and_warns(self) -> None:
+        from bnb_volume_universe import load_universe as load
+
+        gone = "0x" + "12" * 20
+        quiet = "0x" + "13" * 20
+        etf = "0x" + "14" * 20
+
+        def fetch(url: str):
+            if "stocksonchain" in url:
+                return {"stocks": []}
+            if "xstocks.fi" in url:
+                return {"nodes": [], "page": {"hasNextPage": False}}
+            if "tokenlist" in url or "dexscreener" in url:
+                return {"tokens": [], "pairs": []}
+            if "colb" in url:
+                return "### BNB Chain\n### Moonbeam\n"
+            if "jumper" in url or "paimon" in url or "ondo" in url or "bstocks.finance" in url:
+                return ""
+            raise HttpStatus(url, 404)
+
+        records = [
+            {
+                "date": "2026-10-10",
+                "assets": [
+                    {
+                        "address": gone,
+                        "symbol": "GONEB",
+                        "issuer": "bstocks",
+                        "instrumentKind": "equity",
+                        "volume24hUsd": 150_000.5,
+                    },
+                    {
+                        "address": quiet,
+                        "symbol": "QUIETB",
+                        "issuer": "bstocks",
+                        "instrumentKind": "equity",
+                        "volume24hUsd": 100_000,
+                    },
+                    {
+                        "address": etf,
+                        "symbol": "HISTB",
+                        "issuer": "ondo",
+                        "instrumentKind": "etf",
+                        "volume24hUsd": 250_000,
+                    },
+                ],
+            }
+        ]
+        rows, warnings, meta = load(fetch, snapshot_records=records)
+        by_addr = {row["address"].lower(): row for row in rows}
+        self.assertEqual(by_addr[gone]["source"], "snapshot-seen")
+        self.assertEqual(by_addr[gone]["issuer"], "bstocks")
+        self.assertEqual(by_addr[gone]["kind"], "equity")
+        self.assertEqual(by_addr[quiet]["source"], "snapshot-seen")
+        self.assertEqual(by_addr[etf]["kind"], "etf")
+        self.assertEqual(by_addr[etf]["issuer"], "ondo")
+        self.assertEqual(by_addr["0x4902c5ebc598265ed2212b559b042de8a5eeec3f"]["source"], "bstocks-seed")
+        self.assertTrue(any("GONEB" in warning and "kept from snapshot history" in warning for warning in warnings))
+        self.assertTrue(any("HISTB" in warning and "kept from snapshot history" in warning for warning in warnings))
+        self.assertFalse(any("QUIETB" in warning for warning in warnings))
+        self.assertFalse(any("BNCB" in warning and "vanished" in warning for warning in warnings))
+        self.assertGreater(meta["registries"]["snapshot-seen"]["added"], 0)
+        self.assertGreater(len(rows), 3)
 
 
 if __name__ == "__main__":

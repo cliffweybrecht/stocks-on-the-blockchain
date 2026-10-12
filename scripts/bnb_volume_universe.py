@@ -32,6 +32,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from pathlib import Path
 from typing import Any, Callable
 
 STOCKSONCHAIN = "https://stocksonchain.io/api/tokens.json"
@@ -77,9 +78,12 @@ BSTOCK_BEACON_SLOT = "0xa3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6cb3582b
 BSTOCK_REFERENCE = "0x02fca66c1d1afb4e2a7884261eb00f63598a7436"  # NVDAB
 DEX_SEARCH = "https://api.dexscreener.com/latest/dex/search?q={q}"
 BSTOCK_SEARCH_QUERIES = ("bStocks", "bStock")
-# Jumper's catalog is stale. These BEP-20s are the same beacon as NVDAB.
-# Near-zero names stay in so a later print is not dropped. Leveraged products
-# are not in this list (SOXLB and the rest still fail the leveraged screen).
+# Jumper's catalog is stale and DexScreener search only returns 30 pairs.
+# These BEP-20s are the same beacon as NVDAB. Near-zero names stay in so a
+# later print is not dropped. Leveraged products are not in this list (SOXLB
+# and the rest still fail the leveraged screen). The list is every bStocks
+# mint that appeared in bnb.json assets[] on 2026-10-08, 2026-10-09, or
+# 2026-10-10, including BNCB, plus the earlier beacon seed.
 # (symbol, name, address, underlying ticker)
 BSTOCKS_SEED = (
     ("SPCXB", "SpaceX", "0xbe9D156892E55e7154BcD3cB0FEA677F9D3103E1", "SPCX"),
@@ -95,6 +99,62 @@ BSTOCKS_SEED = (
     ("COHRB", "Coherent", "0x5131859a059b2446abeefe0f5d313b3c54ff3d36", "COHR"),
     ("DELLB", "Dell Technologies", "0x0e7a51966c66648999d506e1372efdea1b78cb0b", "DELL"),
     ("PYPLB", "PayPal", "0x2806a561fc1f9259b2d54a281796bde0d92762ae", "PYPL"),
+    ("AAOIB", "Applied Optoelectronics", "0x10343ef7da3301493d7ecb647d68a288c6c1db2f", "AAOI"),
+    ("AAPLB", "Apple", "0x431a3bee82e2ca41e49895cbece5bb0f76a89b7a", "AAPL"),
+    ("ALABB", "Astera Labs", "0x1282493ede6a22753d45cb2c0fdbd8d35e97555a", "ALAB"),
+    ("AMDB", "Advanced Micro Devices Inc", "0x75fd4cf6f8392e41e70391d60c90c0d5211603a1", "AMD"),
+    ("AMZNB", "Amazon", "0x1a4b499833a79a09ad7cf1d42d7dacf71e92eb00", "AMZN"),
+    ("ARMB", "Arm Holdings", "0xd42a79ebb7f527f40faecd196ffb47ad5e8d6f8c", "ARM"),
+    ("ASMLB", "ASML", "0xfbfb4f79cfb4c34dcd7c82bdee5a0fa199b2e7f9", "ASML"),
+    ("ASTSB", "AST SpaceMobile", "0x58b6f5feeb8436489f5bf4a56619092b1fa8e777", "ASTS"),
+    ("AVGOB", "Broadcom", "0x76682c454467b3a1150ad8b6a92fc5ee2c21d7ed", "AVGO"),
+    ("AXTIB", "AXT", "0x9bdc8b470dbf89dbcb123587c6f5e49cca3463be", "AXTI"),
+    ("BABAB", "Alibaba", "0x4ef9d3062c7f6eba4aae4990c5036598c6eff4ec", "BABA"),
+    ("BEB", "Bloom Energy", "0x5519de00f5388c17d886b97cb5d2d43a812a82bc", "BE"),
+    ("BMNRB", "BitMine Immersion Technologies", "0x3548da95a9effe481e8604664d75e95821e557f5", "BMNR"),
+    ("BNCB", "CEA Industries", "0x4902C5ebc598265Ed2212b559B042De8a5Eeec3f", "BNC"),
+    ("CBRSB", "Cerebras", "0xe81c6bb0266cd68b4f17278531dd03ea1f12da4e", "CBRS"),
+    ("COINB", "Coinbase", "0x585bde7c54abb5ccd7791f923d6c2187635f3952", "COIN"),
+    ("CRCLB", "Circle Internet Group Inc.", "0x80f3d493ebce97e343c53d29a137942416b4ffc0", "CRCL"),
+    ("CRDOB", "Credo Technology", "0x6e7d451f9d30327d32020f116fa79c23b24e9c8d", "CRDO"),
+    ("CRWVB", "CoreWeave", "0x33e7317e17838fee56b10fe8d0b9ca6ca3090c95", "CRWV"),
+    ("DJTB", "Trump Media & Technology Group Corp", "0xf2ec508422174ee564de98187db9359d318afb6b", "DJT"),
+    ("DRAMB", "Roundhill Memory ETF", "0x93862d63fd9fd488b1328e9b47717d75e994a84b", "DRAM"),
+    ("EWYB", "iShares MSCI South Korea ETF", "0xbe82f76637dba2c114c41df856c2c51e522e2cb8", "EWY"),
+    ("FLNCB", "Fluence Energy", "0x4af1d41cd9dd950dca43984b43aaa2a8702714ac", "FLNC"),
+    ("GLWB", "Corning", "0x740e075cbbea22a082b9d6679e65e82767875b6a", "GLW"),
+    ("GMEB", "GameStop", "0x46ceefda28dd7207059ed19b0acdc026955bb15c", "GME"),
+    ("GOOGLB", "Alphabet", "0x3f53de71c126bdabae20f9cd64848d317f6c3238", "GOOGL"),
+    ("GSB", "Goldman Sachs", "0x20cce6656e5f7f79f280e2d0f5db55b401bdbfce", "GS"),
+    ("HOODB", "Robinhood", "0xa394dcea3fd3847fd793afbfd163e2e3858b7c65", "HOOD"),
+    ("IBMB", "IBM", "0xfa273b076feb8c0fb34e554ae341082323d016a3", "IBM"),
+    ("INTCB", "Intel Corporation", "0xe614e2fc6c787035ff51f452e8e826bfd32d5283", "INTC"),
+    ("IRENB", "IREN", "0xfdc2f2cab77b28f7ef6c819a404706cfa9bca33b", "IREN"),
+    ("LITEB", "Lumentum Holdings", "0x64748bea17b6d19e242adf20425de2440c656142", "LITE"),
+    ("METAB", "Meta Platforms", "0x7425889fe94f9d693e8daefe88bcced6acfef4c0", "META"),
+    ("MRVLB", "Marvell Technology", "0x16cd4fe7e8880ecc3ba222795229e20489fc2c76", "MRVL"),
+    ("MSFTB", "Microsoft", "0x80106cb3ead06659a5ad19df39d9b4733863b9b0", "MSFT"),
+    ("MSTRB", "Strategy Inc.", "0xe87afb3076aeb0f9b14e368de8145ae6a2826a14", "MSTR"),
+    ("MUB", "Micron Technology Inc", "0xcdf2f3e0fa43c47a6662a91c9e4a7c5f69762699", "MU"),
+    ("NBISB", "Nebius", "0xe256bc2a4f5297f8ba6f043f180a46300ecbcbb1", "NBIS"),
+    ("NFLXB", "Netflix", "0xd6829ea836b6fa224d099d40e54b31262f874631", "NFLX"),
+    ("NOKB", "Nokia", "0x7c4d7a180d737dd5a70d8065a90e6746a69c37ea", "NOK"),
+    ("NVDAB", "NVIDIA Corp", "0x02fca66c1d1afb4e2a7884261eb00f63598a7436", "NVDA"),
+    ("ORCLB", "Oracle", "0x4684d9887fc1c71cba7bab8e88835cec217eb598", "ORCL"),
+    ("PLTRB", "Palantir Technologies", "0x0ca5d51d0277bd006fd9607d3e560785ebad8222", "PLTR"),
+    ("QCOMB", "Qualcomm", "0x5f7a56e877b9130608bf8be962621011182fefe1", "QCOM"),
+    ("QNTB", "Quantinuum", "0xd721c192d612db77621df57a9fab38418033c02e", "QNT"),
+    ("QQQB", "Invesco QQQ", "0x205812cdbed920aff76c6580abd681a46d11efc7", "QQQ"),
+    ("RKLBB", "Rocket Lab", "0xc8da12cbcce7c45180692a6420b0076e03a5179a", "RKLB"),
+    ("SKHYB", "SK Hynix", "0xca750ef65f295bbecd685abf54e82caf297bdb61", "SKHY"),
+    ("SMCIB", "Super Micro Computer", "0x387dea1d2772d716d081a29116f3effa0ffe1f36", "SMCI"),
+    ("SMHB", "VanEck Semiconductor ETF", "0xbe1fced7047fdce935f45700727845df2c76877a", "SMH"),
+    ("SNDKB", "Sandisk Corporation", "0x3ee4df61bd4f867e349beae8bfe07bc31b4850fb", "SNDK"),
+    ("SPYB", "SPDR S&P 500 ETF", "0x7138b48df7d98d7e3cc221bfe7192d0a178182d8", "SPY"),
+    ("TSLAB", "Tesla, Inc.", "0x5b1910eaad6450e50f816082aa078c41f10c292f", "TSLA"),
+    ("TSMB", "TSMC", "0xab78b89b5bb00236be0b4b20704cbfa04efc711c", "TSM"),
+    ("USARB", "USA Rare Earth", "0xcd345d4450e04cdef422a60b97d9265d24e0bcee", "USAR"),
+    ("WDCB", "Western Digital", "0xebe29695f8047c13d36e7a790ca8c1b239ffad1c", "WDC"),
 )
 # Not bStocks. A second PDDB, copycat tickers, and Ondo generic baskets.
 FAKE_BSTOCK_SYMBOLS = {
@@ -450,6 +510,7 @@ class Book:
         underlying: str = "",
         kind_raw: str = "",
         kind: str | None = None,
+        trust_lane: bool = False,
     ) -> bool:
         if not is_bep20(address):
             self._skip("not-bep20")
@@ -469,13 +530,19 @@ class Book:
             self._skip("duplicate")
             return False
         raw_kind = kind_raw or kind or ""
-        lane, reason = classify_lane(
-            raw_kind,
-            ticker or symbol,
-            name,
-            underlying,
-            issuer,
-        )
+        if trust_lane:
+            # A mint already stored on a nightly row keeps that issuer and lane.
+            # Re-classifying from a symbol alone drops ETFs the heuristics miss.
+            lane = raw_kind if raw_kind in DESK_KINDS else None
+            reason = "" if lane else "kind"
+        else:
+            lane, reason = classify_lane(
+                raw_kind,
+                ticker or symbol,
+                name,
+                underlying,
+                issuer,
+            )
         if lane not in DESK_KINDS:
             self._skip(reason or "kind")
             return False
@@ -876,6 +943,127 @@ def live_beacon(address: str) -> str | None:
     return beacon.lower()
 
 
+# A prior-day print above this stays in the universe even when live discovery misses it.
+VANISHED_MINT_VOLUME_USD = 100_000.0
+INSTRUMENT_TO_KIND = {"equity": "equity", "etf": "etf", "private": "preipo", "preipo": "preipo"}
+
+
+def snapshot_history_path() -> Path:
+    raw = (os.environ.get("BNB_VOLUME_SNAPSHOT_DIR") or "").strip()
+    root = Path(raw).expanduser() if raw else Path(__file__).resolve().parents[1] / "data" / "volume-snapshots"
+    return root / "bnb.json"
+
+
+def load_snapshot_records(path: Path | None = None) -> tuple[list[dict], str | None]:
+    """Stored bnb.json rows. A missing file warns and returns nothing. It does not blank the day."""
+    file = path or snapshot_history_path()
+    try:
+        payload = json.loads(file.read_text())
+    except FileNotFoundError:
+        return [], f"snapshot history missing {file}; live universe kept"
+    except (OSError, json.JSONDecodeError) as exc:
+        return [], f"snapshot history unreadable ({exc}); live universe kept"
+    records = payload.get("records") if isinstance(payload, dict) else None
+    if not isinstance(records, list):
+        return [], f"snapshot history has no records ({file}); live universe kept"
+    return [row for row in records if isinstance(row, dict)], None
+
+
+def _latest_snapshot_record(records: list[dict]) -> dict | None:
+    dated = [row for row in records if isinstance(row, dict) and isinstance(row.get("date"), str)]
+    if not dated:
+        return None
+    return max(dated, key=lambda row: str(row.get("date")))
+
+
+def mints_from_snapshot_records(records: list[dict]) -> list[dict]:
+    """One row per address ever stored in assets[]. The latest day keeps issuer and lane."""
+    latest: dict[str, tuple[str, dict]] = {}
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        day = str(record.get("date") or "")
+        for asset in record.get("assets") or []:
+            if not isinstance(asset, dict):
+                continue
+            address = str(asset.get("address") or "")
+            if not is_bep20(address):
+                continue
+            prev = latest.get(address.lower())
+            if prev is not None and prev[0] > day:
+                continue
+            latest[address.lower()] = (day, asset)
+    found: list[dict] = []
+    for _key, (_day, asset) in latest.items():
+        instrument = str(asset.get("instrumentKind") or "equity").lower()
+        found.append(
+            {
+                "symbol": str(asset.get("symbol") or ""),
+                "name": str(asset.get("symbol") or ""),
+                "address": str(asset.get("address") or ""),
+                "issuer": str(asset.get("issuer") or "unknown"),
+                "ticker": str(asset.get("symbol") or ""),
+                "kind": INSTRUMENT_TO_KIND.get(instrument, "equity"),
+            }
+        )
+    return found
+
+
+def add_snapshot_mints(book: Book, records: list[dict]) -> int:
+    """Union mints already seen in bnb.json. Live listings and the seed stay first."""
+    added = 0
+    for mint in mints_from_snapshot_records(records):
+        if book.add(
+            symbol=mint["symbol"],
+            name=mint["name"],
+            address=mint["address"],
+            issuer=mint["issuer"],
+            source="snapshot-seen",
+            ticker=mint["ticker"],
+            kind=mint["kind"],
+            kind_raw=mint["kind"],
+            trust_lane=True,
+        ):
+            added += 1
+    return added
+
+
+def vanished_mint_warnings(records: list[dict], live_addresses: set[str], kept_addresses: set[str]) -> list[str]:
+    """Warn when a prior-day mint above $100k is absent from live discovery.
+
+    The mint stays when snapshot history still has it. The warning does not drop it
+    and does not empty the universe.
+    """
+    prior = _latest_snapshot_record(records)
+    if prior is None:
+        return []
+    warnings: list[str] = []
+    day = prior.get("date")
+    for asset in prior.get("assets") or []:
+        if not isinstance(asset, dict):
+            continue
+        address = str(asset.get("address") or "")
+        if not is_bep20(address) or address.lower() in live_addresses:
+            continue
+        volume = asset.get("volume24hUsd")
+        if isinstance(volume, bool) or not isinstance(volume, (int, float)):
+            continue
+        if float(volume) <= VANISHED_MINT_VOLUME_USD:
+            continue
+        symbol = asset.get("symbol") or address
+        if address.lower() in kept_addresses:
+            warnings.append(
+                f"vanished mint {symbol} {address} prior-day {day} volume {volume} "
+                f"> {int(VANISHED_MINT_VOLUME_USD)}; kept from snapshot history"
+            )
+        else:
+            warnings.append(
+                f"vanished mint {symbol} {address} prior-day {day} volume {volume} "
+                f"> {int(VANISHED_MINT_VOLUME_USD)}; live universe kept"
+            )
+    return warnings
+
+
 def add_fourmeme(book: Book) -> int:
     """Public-equity 4Stock mints. The seed list is the whole registry."""
     added = 0
@@ -953,12 +1141,18 @@ def _record_failure(name: str, url: str, exc: Exception, statuses: dict[str, Any
 def load_universe(
     fetch: Fetch | None = None,
     beacon_of: Callable[[str], str | None] | None = None,
+    *,
+    snapshot_records: list[dict] | None = None,
 ) -> tuple[list[dict], list[str], dict[str, Any]]:
     """Union every BNB registry. A 403 on one source does not blank the day.
 
-    Beacon discovery runs on the live path. A caller that injects `fetch` and
-    does not pass `beacon_of` skips the RPC so tests stay offline. The seed
-    still lands.
+    The universe is the seed, plus live discovery, plus every mint ever stored
+    in bnb.json assets[] (issuer and lane kept from that row). Beacon discovery
+    runs on the live path. A caller that injects `fetch` and does not pass
+    `beacon_of` skips the RPC so tests stay offline. The seed still lands.
+    Injected fetch does not read the snapshot file unless `snapshot_records`
+    is passed. A mint with more than $100k of prior-day volume that live
+    sources miss is warned and kept from history.
     """
     getter = fetch or live_fetch
     if beacon_of is None and fetch is None:
@@ -986,7 +1180,7 @@ def load_universe(
     statuses["bstocks-seed"] = {
         "status": "ok",
         "added": len(book.rows) - before,
-        "note": "Jumper misses listings; seed is the NVDAB beacon set through 2026-10-08",
+        "note": "Jumper misses listings; seed includes every bStocks mint in bnb.json assets[] on 2026-10-08 through 2026-10-10, including BNCB",
     }
 
     if beacon_of is not None:
@@ -1091,6 +1285,24 @@ def load_universe(
         "added": len(book.rows) - before,
         "note": "static 4Stock seed; docs do not publish contracts",
     }
+
+    live_addresses = {str(row.get("address") or "").lower() for row in book.rows}
+    history = snapshot_records
+    if history is None and fetch is None:
+        history, history_warning = load_snapshot_records()
+        if history_warning:
+            warnings.append(history_warning)
+    elif history is None:
+        history = []
+    before = len(book.rows)
+    add_snapshot_mints(book, history)
+    statuses["snapshot-seen"] = {
+        "status": "ok",
+        "added": len(book.rows) - before,
+        "note": "union of every mint stored in bnb.json assets[]; issuer and lane kept",
+    }
+    kept_addresses = {str(row.get("address") or "").lower() for row in book.rows}
+    warnings.extend(vanished_mint_warnings(history, live_addresses, kept_addresses))
 
     if book.rows:
         info = ", ".join(f"{slug}={count}" for slug, count in sorted(count_issuers(book.rows).items()))
