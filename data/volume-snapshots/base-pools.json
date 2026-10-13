@@ -742,7 +742,7 @@
           "quoteToken": "0x31c2c14134e6e3b7ef9478297f199331133fc2d8",
           "baseSymbol": "STONXCAT",
           "quoteSymbol": "wtSPYM",
-          "listedOnDex": false,
+          "listedOnDex": true,
           "source": "geckoterminal"
         },
         {
@@ -1139,6 +1139,34 @@
         }
       ]
     },
+    "0x515a3ac2a6ab590bdfa970cafffd7fadc680886e": {
+      "address": "0x515A3Ac2a6aB590bDFa970caFFFd7fAdC680886E",
+      "symbol": "wtMSFT",
+      "issuer": "st0x",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x4106f36750730f9d901bd43124803ae0d4502ff0dec55accf81a1e8c34f7702a",
+          "dexId": "uniswap",
+          "baseToken": "0x21f3ef71881efbd3aec2885a7c6abf93603b5da0",
+          "quoteToken": "0x515a3ac2a6ab590bdfa970cafffd7fadc680886e",
+          "baseSymbol": "POWERSHELL",
+          "quoteSymbol": "wtMSFT",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0xb47c83f0ee1a3dd35f4f4fbc50644ba920b379dd558be87efe4872cc1076cc50",
+          "dexId": "uniswap",
+          "baseToken": "0x515a3ac2a6ab590bdfa970cafffd7fadc680886e",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "wtMSFT",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        }
+      ]
+    },
     "0x522dc65c89c9af4f410bae01bbf53af75854a9f9": {
       "address": "0x522DC65c89C9Af4f410BAe01bbf53aF75854a9f9",
       "symbol": "wtAMAT",
@@ -1172,6 +1200,16 @@
           "source": "dexscreener"
         },
         {
+          "pairAddress": "0x16356da83c7cbc9d938bd083fea649144f90799bf40f5d0f704aa02b5404f205",
+          "dexId": "uniswap",
+          "baseToken": "0x420177729df4e94282f7873e045142fd7221b84c",
+          "quoteToken": "0x5cda0e1ca4ce2af96315f7f8963c85399c172204",
+          "baseSymbol": "SIFI",
+          "quoteSymbol": "wtCOIN",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0x1785d551d7d29dc47516ba91218a20f4b6389b88e5efc1f3db34ffd3e8f6d2b1",
           "dexId": "uniswap-v4-base",
           "baseToken": "0xb200000000000000000000b9ffe52fd5f97522b5",
@@ -1187,6 +1225,16 @@
           "baseToken": "0x398583e2e15737d64264d6fbb9eb23dc10eb1424",
           "quoteToken": "0x5cda0e1ca4ce2af96315f7f8963c85399c172204",
           "baseSymbol": "\ud83d\udfe6",
+          "quoteSymbol": "wtCOIN",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x22ef3925370741827d0c4dd68d655e5b1664673242453f952cf304f22c031612",
+          "dexId": "uniswap",
+          "baseToken": "0x2f3a0f8445fe4854ff9ce141bcf5963440c67c49",
+          "quoteToken": "0x5cda0e1ca4ce2af96315f7f8963c85399c172204",
+          "baseSymbol": "\u9ec4\u72d7",
           "quoteSymbol": "wtCOIN",
           "listedOnDex": true,
           "source": "dexscreener"
@@ -1262,6 +1310,16 @@
           "source": "geckoterminal"
         },
         {
+          "pairAddress": "0x3a5e6b6663781630224b9f7f52dbc1796de0971103e322f2af17d234cf416a42",
+          "dexId": "uniswap",
+          "baseToken": "0x5cda0e1ca4ce2af96315f7f8963c85399c172204",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "wtCOIN",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0x3bf7c28ed75855d4384796cb13e869e2309b27c15f06afe28cac8264db4f8286",
           "dexId": "uniswap-v4-base",
           "baseToken": "0x28c74b28429df12d1f39f244f5c72fd472847a6b",
@@ -1297,6 +1355,36 @@
           "baseToken": "0x5a6a8023755cd13a157e5b3f841f28625dc32e43",
           "quoteToken": "0x5cda0e1ca4ce2af96315f7f8963c85399c172204",
           "baseSymbol": "MEME",
+          "quoteSymbol": "wtCOIN",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x5378cd371c9fcbeb29f596896e1d978645a65b8278fdf24ba408500a5cbff904",
+          "dexId": "uniswap",
+          "baseToken": "0x187ca26376e8c4f7d9b2e0e1159436dccb5f8222",
+          "quoteToken": "0x5cda0e1ca4ce2af96315f7f8963c85399c172204",
+          "baseSymbol": "REX",
+          "quoteSymbol": "wtCOIN",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x58826e14e6ea570362d267a6681635017b7ac6e445c27ca8d053a9d55bd20b70",
+          "dexId": "uniswap",
+          "baseToken": "0x45e7acd7cba67ef8005be24a3524c894d8d5cd4a",
+          "quoteToken": "0x5cda0e1ca4ce2af96315f7f8963c85399c172204",
+          "baseSymbol": "DUGE",
+          "quoteSymbol": "wtCOIN",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x5c478dbecd6676acdd67864bf80c97740286fffff2136cc43e0673c318d480ca",
+          "dexId": "uniswap",
+          "baseToken": "0x4ff131ebe4bef14a3e17e0e3b3e6e6b042f62222",
+          "quoteToken": "0x5cda0e1ca4ce2af96315f7f8963c85399c172204",
+          "baseSymbol": "BM",
           "quoteSymbol": "wtCOIN",
           "listedOnDex": true,
           "source": "dexscreener"
@@ -1346,6 +1434,16 @@
           "source": "dexscreener"
         },
         {
+          "pairAddress": "0x6fa73b6dbadceee9aaf8629100d20ac86dda37387d0694d19e95971eac319ec3",
+          "dexId": "uniswap",
+          "baseToken": "0x17cee9060680b65474350d550f6a8c86d36406d7",
+          "quoteToken": "0x5cda0e1ca4ce2af96315f7f8963c85399c172204",
+          "baseSymbol": "PEPETUALS",
+          "quoteSymbol": "wtCOIN",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0x7a81cc2c6300bc728d6fb954ed7ca6d3e17a5de3bf884d0b1cdd711835f4362b",
           "dexId": "uniswap-v4-base",
           "baseToken": "0xf736ac2fb885f8c49748efd5260d57728d370a75",
@@ -1388,6 +1486,26 @@
           "quoteSymbol": "USDC",
           "listedOnDex": false,
           "source": "geckoterminal"
+        },
+        {
+          "pairAddress": "0x813b3dcbd7164be0f19370b8163646ba619a9ec5457e69a8e5775916e01b5600",
+          "dexId": "uniswap",
+          "baseToken": "0x54cd70ae9e13126b023178570d8f0172a798a2c8",
+          "quoteToken": "0x5cda0e1ca4ce2af96315f7f8963c85399c172204",
+          "baseSymbol": "CCAT",
+          "quoteSymbol": "wtCOIN",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x82955e2a8104e8649040fa964b367e0fe4ca50b89a5f1c3c9dd80b7522c2facd",
+          "dexId": "uniswap",
+          "baseToken": "0x34c4c4c45587cf3602dfe643fdea816f5a7823cd",
+          "quoteToken": "0x5cda0e1ca4ce2af96315f7f8963c85399c172204",
+          "baseSymbol": "JESSE",
+          "quoteSymbol": "wtCOIN",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0x8495444b5f3699D223baa01E67Bf534475620aff",
@@ -1440,11 +1558,51 @@
           "source": "dexscreener"
         },
         {
+          "pairAddress": "0x9634aa11c802139e34d329e0a8424ba3fb97e826b4fdad0f1f3457c2e43d60b7",
+          "dexId": "uniswap",
+          "baseToken": "0x20c5f1e54d4c1819d9f6928f69e3cf7b7c0e2d62",
+          "quoteToken": "0x5cda0e1ca4ce2af96315f7f8963c85399c172204",
+          "baseSymbol": "SIFI",
+          "quoteSymbol": "wtCOIN",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0x9a590ec47bf62fc17bb9545b55428640a8bc4f71607daa29a9a77ce54422f687",
           "dexId": "uniswap-v4-base",
           "baseToken": "0x386e73071f94532ce265a7b01ad6901bf14742c0",
           "quoteToken": "0x5cda0e1ca4ce2af96315f7f8963c85399c172204",
           "baseSymbol": "COINU",
+          "quoteSymbol": "wtCOIN",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x9ad4b471ee76fec2511d318fcc9dc9c0314abd3d7bfc6bf8d4b54d2ad3fe77e5",
+          "dexId": "uniswap",
+          "baseToken": "0x440a91f61b15add1a129745d02044b3a78e1b092",
+          "quoteToken": "0x5cda0e1ca4ce2af96315f7f8963c85399c172204",
+          "baseSymbol": "BASENYAN",
+          "quoteSymbol": "wtCOIN",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x9ccbc74d35b33dcb03e5d8f254c48c0d19d49cb0c956b8b99bad5bc0df13b140",
+          "dexId": "uniswap",
+          "baseToken": "0x28a2fc5cdc4286c6eff7397fc257c238279a9af7",
+          "quoteToken": "0x5cda0e1ca4ce2af96315f7f8963c85399c172204",
+          "baseSymbol": "DUGE",
+          "quoteSymbol": "wtCOIN",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x9d76825a16daa85ffcfb9c62e031033d214aa8744be0f5853f39a09dd9564de1",
+          "dexId": "uniswap",
+          "baseToken": "0x19bbdb1eb5778c97016efe8872c5c785003b7222",
+          "quoteToken": "0x5cda0e1ca4ce2af96315f7f8963c85399c172204",
+          "baseSymbol": "YADDAK",
           "quoteSymbol": "wtCOIN",
           "listedOnDex": true,
           "source": "dexscreener"
@@ -1504,6 +1662,16 @@
           "source": "dexscreener"
         },
         {
+          "pairAddress": "0xb7fa6af500964f67b01167becb672d294e9c37d6e1525dc3b7dad7816811064f",
+          "dexId": "uniswap",
+          "baseToken": "0x39a7a4cdc54b3a95b3b18577b971aebf224c2222",
+          "quoteToken": "0x5cda0e1ca4ce2af96315f7f8963c85399c172204",
+          "baseSymbol": "OMEN",
+          "quoteSymbol": "wtCOIN",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0xba1be6ff1a236c592e87c384aae21c4f52d6a862b2018a7ac8eb5c6392a72d61",
           "dexId": "uniswap-v4-base",
           "baseToken": "0x5cda0e1ca4ce2af96315f7f8963c85399c172204",
@@ -1540,6 +1708,16 @@
           "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
           "baseSymbol": "wtCOIN",
           "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0xd24fd6dc3964f91ea6145f23dc4e0b2d61a8609ad1dc776e87bc023b372e882b",
+          "dexId": "uniswap",
+          "baseToken": "0x571bc392659d684ebd5d5ad2a933bbc0fd47f222",
+          "quoteToken": "0x5cda0e1ca4ce2af96315f7f8963c85399c172204",
+          "baseSymbol": "PERP",
+          "quoteSymbol": "wtCOIN",
           "listedOnDex": true,
           "source": "dexscreener"
         },
@@ -1595,11 +1773,23 @@
         },
         {
           "pairAddress": "0xe17e95043475ab700ebb64b5ca35dfecca3a529dc0194096cc114d46930a3c43",
-          "dexId": "uniswap"
+          "dexId": "uniswap",
+          "baseToken": "0x305baa753c347786070ae6bed08f9b865ee22d7b",
+          "quoteToken": "0x5cda0e1ca4ce2af96315f7f8963c85399c172204",
+          "baseSymbol": "TRENCHORS",
+          "quoteSymbol": "wtCOIN",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0xea7F3aE1492edee20f8C49C201923B62FCe20449",
-          "dexId": "flapsh"
+          "dexId": "flapsh",
+          "baseToken": "0xfcca0f4250ac5df10d06cf77ed9cf7ec36127777",
+          "quoteToken": "0x5cda0e1ca4ce2af96315f7f8963c85399c172204",
+          "baseSymbol": "SPIKE",
+          "quoteSymbol": "wtCOIN",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0xec123e9b2d436cddfca44d17380fc7994b786f63a02304a2f7438d03a28768ec",
@@ -1617,6 +1807,16 @@
           "baseToken": "0x387b7418b967fdc35f0e4bf2f994fb81562fe202",
           "quoteToken": "0x5cda0e1ca4ce2af96315f7f8963c85399c172204",
           "baseSymbol": "SI",
+          "quoteSymbol": "wtCOIN",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0xf08754f6cdefeaea7c610e6aa613857a87103df8cc7cb2af0ed94d4093790c35",
+          "dexId": "uniswap",
+          "baseToken": "0x423839ae7392b6196fda9702a62dfed122647d2e",
+          "quoteToken": "0x5cda0e1ca4ce2af96315f7f8963c85399c172204",
+          "baseSymbol": "SIFI",
           "quoteSymbol": "wtCOIN",
           "listedOnDex": true,
           "source": "dexscreener"
@@ -1826,6 +2026,16 @@
           "source": "geckoterminal"
         },
         {
+          "pairAddress": "0x8e1a7839b4716dca70206f705e7eebec8e0fe887ee32691ce7c25f0361934ea5",
+          "dexId": "uniswap",
+          "baseToken": "0x6aed8b1acfb04f4e0e6db580f12ff41438a394e5",
+          "quoteToken": "0x0000000000000000000000000000000000000000",
+          "baseSymbol": "wtFGI",
+          "quoteSymbol": "ETH",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0x96f1489d068a12838f5170caa918442e6e56d90c45d7f3557c9282e0e334c10e",
           "dexId": "bankr",
           "baseToken": "0x8999222c6b296f3c7df312abe7a233890250447c",
@@ -1932,7 +2142,7 @@
           "quoteToken": "0x6aed8b1acfb04f4e0e6db580f12ff41438a394e5",
           "baseSymbol": "PLUMBER",
           "quoteSymbol": "wtFGI",
-          "listedOnDex": false,
+          "listedOnDex": true,
           "source": "geckoterminal"
         },
         {
@@ -2399,6 +2609,16 @@
       "kind": "equity",
       "pools": [
         {
+          "pairAddress": "0x02729266b3bbc64c6af7cd352da9b2ea984b072208e12419b5a1ea0d561f5471",
+          "dexId": "uniswap",
+          "baseToken": "0xb2000000000000000000000d8ce462e99ee7a47b",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "AMDc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0x05c96ceb75dd480fb60404dc2d52c586b7684386",
           "dexId": "aerodrome-slipstream-3",
           "baseToken": "0xb2000000000000000000000d8ce462e99ee7a47b",
@@ -2439,6 +2659,16 @@
           "source": "geckoterminal"
         },
         {
+          "pairAddress": "0x2e99d23efd6b8acf8c9b3af05ae68011a19be6f4ebbe6bf5013d7c6a564e2d80",
+          "dexId": "uniswap",
+          "baseToken": "0xbb29fa505a169e9e8ffcb99177e3d0e99a8b2901",
+          "quoteToken": "0xb2000000000000000000000d8ce462e99ee7a47b",
+          "baseSymbol": "HELION",
+          "quoteSymbol": "AMDc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0x3794f7b84c4d243c117e3cba9cd07c23ac001585e0d9464820bbf503f3c0c3be",
           "dexId": "uniswap-v4-base",
           "baseToken": "0xb2000000000000000000000d8ce462e99ee7a47b",
@@ -2469,6 +2699,16 @@
           "source": "geckoterminal"
         },
         {
+          "pairAddress": "0x52abd01c6fda19184d42cd7084e4ee03dbdb8c7c93b05bdfb1e7cb7b652a080d",
+          "dexId": "uniswap",
+          "baseToken": "0xb2000000000000000000000d8ce462e99ee7a47b",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "AMDc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0x6605ce9140fd14ec7bd00bc0a0cdb7051f85cfcb",
           "dexId": "aerodrome-slipstream-3",
           "baseToken": "0xfcb789f5e1eca15854c6790515a22a287227fe51",
@@ -2477,6 +2717,16 @@
           "quoteSymbol": "AMDc",
           "listedOnDex": false,
           "source": "geckoterminal"
+        },
+        {
+          "pairAddress": "0x6ce89350098fb8d9eb5e4ba95269e8f589e5c4e8ba3e304220d5591774428a7f",
+          "dexId": "uniswap",
+          "baseToken": "0x71bcd8e2c687be9f5a5a1226fb9a1d8185a5db01",
+          "quoteToken": "0xb2000000000000000000000d8ce462e99ee7a47b",
+          "baseSymbol": "AI",
+          "quoteSymbol": "AMDc",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0x7684444cba577bcaca3bc40e860a0046240b0140",
@@ -2625,8 +2875,18 @@
           "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
           "baseSymbol": "BEc",
           "quoteSymbol": "USDC",
-          "listedOnDex": false,
+          "listedOnDex": true,
           "source": "geckoterminal"
+        },
+        {
+          "pairAddress": "0xa862a043d968e7af0f3ae5c2c6b244972d78c6e6a10b0a144841d2f2c65d013f",
+          "dexId": "uniswap",
+          "baseToken": "0xb20000000000000000000016f9dfe862feba122b",
+          "quoteToken": "0xb200000000000000000000bcf092e48f02bcff01",
+          "baseSymbol": "BEc",
+          "quoteSymbol": "VI",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0xac4f407cab54ddddde27e0be8ffeba0914267e02",
@@ -2650,12 +2910,61 @@
         }
       ]
     },
+    "0xb20000000000000000000017bb66e9301e913a99": {
+      "address": "0xB20000000000000000000017BB66E9301E913A99",
+      "symbol": "SANc",
+      "issuer": "coinbase",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0xE531069DF73530bf59c954F3718945D5fAA2e7dF",
+          "dexId": "aerodrome",
+          "baseToken": "0xb20000000000000000000017bb66e9301e913a99",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "SANc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        }
+      ]
+    },
     "0xb200000000000000000000187f7071d6e321a7d2": {
       "address": "0xb200000000000000000000187f7071D6E321a7d2",
       "symbol": "SKHYc",
       "issuer": "coinbase",
       "kind": "equity",
-      "pools": []
+      "pools": [
+        {
+          "pairAddress": "0x07746e5087799ef53380d9fb254f1c4e21c25f984e42cc2b6cb21b80114ad5e4",
+          "dexId": "uniswap",
+          "baseToken": "0x952582aa4d8bdb093d5b2362043053ec265f7001",
+          "quoteToken": "0xb200000000000000000000187f7071d6e321a7d2",
+          "baseSymbol": "\ud30c\ub7ad\uc774",
+          "quoteSymbol": "SKHYc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x35ad82ded4238a7b31d58f637294c3074a2bc34eaf0f8c7021d95b942b7e2dd2",
+          "dexId": "uniswap",
+          "baseToken": "0x71715b0644b9a8321b3b5e56e0b593922c68c101",
+          "quoteToken": "0xb200000000000000000000187f7071d6e321a7d2",
+          "baseSymbol": "\ud30c\ub7ad\uc774",
+          "quoteSymbol": "SKHYc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x6678992e0a166F4E78Bf6cAd5dd7E61Ca041711c",
+          "dexId": "aerodrome",
+          "baseToken": "0xb200000000000000000000187f7071d6e321a7d2",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "SKHYc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        }
+      ]
     },
     "0xb20000000000000000000018fe7ec7d6dfeeb528": {
       "address": "0xB20000000000000000000018FE7eC7d6DfeeB528",
@@ -2755,6 +3064,16 @@
       "issuer": "coinbase",
       "kind": "equity",
       "pools": [
+        {
+          "pairAddress": "0x07061c39d9c5c734b5bba03f05e3c23c509253c209674c371935c1a052b9cfa1",
+          "dexId": "uniswap",
+          "baseToken": "0xb2000000000000000000001e800a7f5189430cd0",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "TSLAc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
         {
           "pairAddress": "0x0b338f17b1278e4669d7c95f34841d4a0d963ff87902f74ebede1f5f39803e72",
           "dexId": "uniswap",
@@ -2958,6 +3277,16 @@
           "source": "geckoterminal"
         },
         {
+          "pairAddress": "0xb9b04060e6e275c2a052c9f5b8c52eefd1c8180c68914fc08e0e59ef8dd6b4cf",
+          "dexId": "uniswap",
+          "baseToken": "0x87c769caddd2536e5d92246ecd2aad27fe4f2222",
+          "quoteToken": "0xb2000000000000000000001e800a7f5189430cd0",
+          "baseSymbol": "SHRUB",
+          "quoteSymbol": "TSLAc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0xC2a19E25feC7fB2fC8bFe566278ea97991bB130B",
           "dexId": "aerodrome"
         },
@@ -2970,6 +3299,16 @@
           "quoteSymbol": "TSLAc",
           "listedOnDex": false,
           "source": "geckoterminal"
+        },
+        {
+          "pairAddress": "0xc5d31e4010e0b4a174ef68eff5c53021355a0f58151326b3edb13140d877bc73",
+          "dexId": "uniswap",
+          "baseToken": "0xb2000000000000000000001e800a7f5189430cd0",
+          "quoteToken": "0xd4789f3895093d308e06b9ad1a4e0798075b50da",
+          "baseSymbol": "TSLAc",
+          "quoteSymbol": "STINKS",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0xcc810e9a3ea08b7316cc8adf71f6ced5b29f7dd70075b4e1f2abb40241867885",
@@ -3020,6 +3359,16 @@
           "quoteSymbol": "TSLAc",
           "listedOnDex": false,
           "source": "geckoterminal"
+        },
+        {
+          "pairAddress": "0xfef59908e654b1104455835f03327bb951fd10597c9106cf6624d17a2ad39f5b",
+          "dexId": "uniswap",
+          "baseToken": "0xb2000000000000000000001e800a7f5189430cd0",
+          "quoteToken": "0xb200000000000000000000cfcd1d711eef213b01",
+          "baseSymbol": "TSLAc",
+          "quoteSymbol": "STC",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0xfF85eDcD1794d814ABD87489EEA6f641048e7ba7",
@@ -3100,6 +3449,16 @@
       "kind": "equity",
       "pools": [
         {
+          "pairAddress": "0x355748bcacdbe0b707e56df2c5e5f414c0c26f6fe54818cd7be5d110ac36aa8b",
+          "dexId": "uniswap",
+          "baseToken": "0xb2000000000000000000002601c5c94f435da168",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "HTZc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0x377406a6a5ebadba2ef3d58cbb45ae54f696bf27",
           "dexId": "aerodrome-slipstream-3",
           "baseToken": "0x333757bc7507693bfa685e06f70db3dc2dc12eda",
@@ -3161,6 +3520,34 @@
         }
       ]
     },
+    "0xb20000000000000000000026215d755356e5043f": {
+      "address": "0xB20000000000000000000026215D755356E5043f",
+      "symbol": "ARMc",
+      "issuer": "coinbase",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x7988f5ed9164b742e92659e687c41f80f15953b08a8090fb8989deee40a1446d",
+          "dexId": "uniswap",
+          "baseToken": "0xb20000000000000000000026215d755356e5043f",
+          "quoteToken": "0xb20000000000000000000067aa3afbb99a9aa601",
+          "baseSymbol": "ARMc",
+          "quoteSymbol": "STRONG",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x9A0F4Fd0766Ccdb792bA58fE631aA7720097623c",
+          "dexId": "aerodrome",
+          "baseToken": "0xb20000000000000000000026215d755356e5043f",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "ARMc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        }
+      ]
+    },
     "0xb200000000000000000000281c973bf2555dd94b": {
       "address": "0xB200000000000000000000281C973bf2555dD94B",
       "symbol": "WINGc",
@@ -3200,7 +3587,13 @@
         },
         {
           "pairAddress": "0x0d1518a9b2243F034a119A629B8F5170D59965b3",
-          "dexId": "hydrex"
+          "dexId": "hydrex",
+          "baseToken": "0xb2000000000000000000002d0ba3164cc74f58b7",
+          "quoteToken": "0x4200000000000000000000000000000000000006",
+          "baseSymbol": "GOOGLc",
+          "quoteSymbol": "WETH",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0x1076224834300dae064fd36345bb0b772d5304ec50ba87e7d2040339ced8c922",
@@ -3229,6 +3622,16 @@
           "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
           "baseSymbol": "GOOGLc",
           "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x21101c06A39803eB7A348f94Ad111Ded261c19B6",
+          "dexId": "aerodrome",
+          "baseToken": "0xe5020a6d073a794b6e7f05678707de47986fb0b6",
+          "quoteToken": "0xb2000000000000000000002d0ba3164cc74f58b7",
+          "baseSymbol": "frxUSD",
+          "quoteSymbol": "GOOGLc",
           "listedOnDex": true,
           "source": "dexscreener"
         },
@@ -3391,6 +3794,16 @@
           "source": "dexscreener"
         },
         {
+          "pairAddress": "0x6c4d1489ce9b468be24c92777ad4469d83059bcd052a1f148c8df21db8b22308",
+          "dexId": "uniswap",
+          "baseToken": "0x27c6b1d6a1e65a1ca2bfd76b34654ff56f9ae71b",
+          "quoteToken": "0xb2000000000000000000002d0ba3164cc74f58b7",
+          "baseSymbol": "bSTOCKS",
+          "quoteSymbol": "GOOGLc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0x6c6bf37cf5a5829a5279dd0a5bee13d007f6094bf000fba49f467d6506b43107",
           "dexId": "uniswap-v4-base",
           "baseToken": "0x4fc59c42653e052c7ab5c8381f839e2d70504131",
@@ -3411,8 +3824,24 @@
           "source": "dexscreener"
         },
         {
+          "pairAddress": "0x6f0b46cefd412e7f5b2b04180d6612ccf842e70b08a1822b764a07ccb3f70661",
+          "dexId": "uniswap",
+          "baseToken": "0xb2000000000000000000008a681d6f092e0bf601",
+          "quoteToken": "0xb2000000000000000000002d0ba3164cc74f58b7",
+          "baseSymbol": "the bot",
+          "quoteSymbol": "GOOGLc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0x735481df7daf09329b7eef032fba1d284362c91d3271a147869c805d029a2e13",
-          "dexId": "uniswap"
+          "dexId": "uniswap",
+          "baseToken": "0xb2000000000000000000002d0ba3164cc74f58b7",
+          "quoteToken": "0x0000000000000000000000000000000000000000",
+          "baseSymbol": "GOOGLc",
+          "quoteSymbol": "ETH",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0x76f67310e5d6227702fed15d09afb86235bebc706db077a89cdaea4afa8d64b1",
@@ -3451,6 +3880,16 @@
           "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
           "baseSymbol": "GOOGLc",
           "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x8bff00f08782f91e0dc06f7ef2940566556f8ac27ea8c64e60035ccd99c827bd",
+          "dexId": "uniswap",
+          "baseToken": "0x27c97b9d686ca33ff40ba6526daa3dc35d083ba3",
+          "quoteToken": "0xb2000000000000000000002d0ba3164cc74f58b7",
+          "baseSymbol": "fastlane",
+          "quoteSymbol": "GOOGLc",
           "listedOnDex": true,
           "source": "dexscreener"
         },
@@ -3523,6 +3962,16 @@
           "source": "dexscreener"
         },
         {
+          "pairAddress": "0xb1fa2a9c7395f39301df2efde05565dfc95fc372605860840a9d501ed4660121",
+          "dexId": "uniswap",
+          "baseToken": "0xb2000000000000000000002d0ba3164cc74f58b7",
+          "quoteToken": "0xb20000000000000000000078ee7ce2fe4908108c",
+          "baseSymbol": "GOOGLc",
+          "quoteSymbol": "NVDAc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0xb2c7279b77e67fe4d01c98b9a375d5b25eb3463612fb2e889ec0c2282029e6cb",
           "dexId": "uniswap-v4-base",
           "baseToken": "0xb2000000000000000000002d0ba3164cc74f58b7",
@@ -3541,6 +3990,16 @@
           "quoteSymbol": "GOOGLc",
           "listedOnDex": false,
           "source": "geckoterminal"
+        },
+        {
+          "pairAddress": "0xb634d62019782db7476455593f597b58a37f562c66d891f17c2efee22eaa0841",
+          "dexId": "uniswap",
+          "baseToken": "0xb2000000000000000000009c32da1d05228dc2bc",
+          "quoteToken": "0xb2000000000000000000002d0ba3164cc74f58b7",
+          "baseSymbol": "TREX",
+          "quoteSymbol": "GOOGLc",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0xb76af4fdc8074be2a3dbd74355a6eb3552e35501a9b521c89a2e23151fd37faf",
@@ -3573,6 +4032,16 @@
           "source": "dexscreener"
         },
         {
+          "pairAddress": "0xbc289f76a10953b3be86904b319ddbe7ea9c7277d89f0a7fe911017a75426c58",
+          "dexId": "uniswap",
+          "baseToken": "0xb2000000000000000000008481093b0b6d9b1101",
+          "quoteToken": "0xb2000000000000000000002d0ba3164cc74f58b7",
+          "baseSymbol": "ChromeDino",
+          "quoteSymbol": "GOOGLc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0xC0fD714A5CF89780846DcD75Fd3a01906Dac2E3e",
           "dexId": "hydrex",
           "baseToken": "0x6a2357df4975c667b171be53da6ffe6debf7030c",
@@ -3591,6 +4060,16 @@
           "quoteSymbol": "GOOGLc",
           "listedOnDex": false,
           "source": "geckoterminal"
+        },
+        {
+          "pairAddress": "0xc825245c8bc95b12d72b63a7efb02fedf3878564603d794da39a93192c43d0af",
+          "dexId": "uniswap",
+          "baseToken": "0xb2000000000000000000002ae64a9be5b830e601",
+          "quoteToken": "0xb2000000000000000000002d0ba3164cc74f58b7",
+          "baseSymbol": "JEFFREE",
+          "quoteSymbol": "GOOGLc",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0xc8d9aaba82bd4e42f10d05d5e0f6afe896fcba9dd11875c7f86727c689728691",
@@ -3624,11 +4103,57 @@
         },
         {
           "pairAddress": "0xe6e1af911ca2081d62a2eeffd5194eef98bf464b0e1438bcc7d98c61204a9a5a",
-          "dexId": "uniswap"
+          "dexId": "uniswap",
+          "baseToken": "0xb2000000000000000000007e4d25602ade52b901",
+          "quoteToken": "0xb2000000000000000000002d0ba3164cc74f58b7",
+          "baseSymbol": "GOKU",
+          "quoteSymbol": "GOOGLc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0xe87a417958bf5a93d523470981eb10e610998dbac113792088680afc54473f91",
+          "dexId": "uniswap",
+          "baseToken": "0xb2000000000000000000002d0ba3164cc74f58b7",
+          "quoteToken": "0x0000000000000000000000000000000000000000",
+          "baseSymbol": "GOOGLc",
+          "quoteSymbol": "ETH",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0xf0bbf25cb8f24c8dbe5d33ae9837d8bd56bac1095e08ef84fd421536dcb8afd5",
+          "dexId": "uniswap",
+          "baseToken": "0xb200000000000000000000092de62fd962722001",
+          "quoteToken": "0xb2000000000000000000002d0ba3164cc74f58b7",
+          "baseSymbol": "67",
+          "quoteSymbol": "GOOGLc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0xf2869ce8b0a5e9531e31797fc836425707c2fd1aec0ee03e3048f18b40621376",
+          "dexId": "uniswap",
+          "baseToken": "0x6d2ed89d2c656597544080456a1d002fae2afee1",
+          "quoteToken": "0xb2000000000000000000002d0ba3164cc74f58b7",
+          "baseSymbol": "YOSHKA",
+          "quoteSymbol": "GOOGLc",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0xf2d6ade02a54c5dbdca0e94b5dd17b88ea0b00510f368ed8669688236e3ff062",
           "dexId": "uniswap"
+        },
+        {
+          "pairAddress": "0xf634e8a1bc8a2d9d27dc038736b007755fd08ae88b2353e9f66726ae1f0e1315",
+          "dexId": "uniswap",
+          "baseToken": "0xb20000000000000000000046bdcf3517c302af01",
+          "quoteToken": "0xb2000000000000000000002d0ba3164cc74f58b7",
+          "baseSymbol": "Backrub",
+          "quoteSymbol": "GOOGLc",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0xfbdc010f4ab53cb97407a647ddf8ee213f3769dfb1df2aac37ce29bba798cfe3",
@@ -3648,14 +4173,36 @@
       "symbol": "NIOc",
       "issuer": "coinbase",
       "kind": "equity",
-      "pools": []
+      "pools": [
+        {
+          "pairAddress": "0x484cc2CA594ced3fE38362FE950C60cE66f53F6D",
+          "dexId": "aerodrome",
+          "baseToken": "0xb2000000000000000000002d2b5dc53c61f1ba06",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "NIOc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        }
+      ]
     },
     "0xb2000000000000000000003088798f6d0722aaac": {
       "address": "0xB2000000000000000000003088798F6d0722AaAC",
       "symbol": "SEc",
       "issuer": "coinbase",
       "kind": "equity",
-      "pools": []
+      "pools": [
+        {
+          "pairAddress": "0x0274e5078033cB3fE788cf76bb97150FD9bc4547",
+          "dexId": "aerodrome",
+          "baseToken": "0xb2000000000000000000003088798f6d0722aaac",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "SEc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        }
+      ]
     },
     "0xb200000000000000000000347afba223d7b6b63c": {
       "address": "0xb200000000000000000000347AFbA223D7B6b63C",
@@ -3690,7 +4237,7 @@
           "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
           "baseSymbol": "ORCLc",
           "quoteSymbol": "USDC",
-          "listedOnDex": false,
+          "listedOnDex": true,
           "source": "geckoterminal"
         },
         {
@@ -3709,6 +4256,24 @@
           "baseToken": "0xb200000000000000000000347afba223d7b6b63c",
           "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
           "baseSymbol": "ORCLc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        }
+      ]
+    },
+    "0xb200000000000000000000349ef3aa93a0897476": {
+      "address": "0xB200000000000000000000349ef3Aa93a0897476",
+      "symbol": "ULc",
+      "issuer": "coinbase",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x013FCB940735d17c81D3B91557aCC62Da723d9D5",
+          "dexId": "aerodrome",
+          "baseToken": "0xb200000000000000000000349ef3aa93a0897476",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "ULc",
           "quoteSymbol": "USDC",
           "listedOnDex": true,
           "source": "dexscreener"
@@ -3762,6 +4327,16 @@
           "source": "geckoterminal"
         },
         {
+          "pairAddress": "0x41D84375459F0104b0794cBcbbd9537D1cc760c6",
+          "dexId": "aerodrome",
+          "baseToken": "0xa77d48135abeee16c2ded4b885347ec310c1396d",
+          "quoteToken": "0xb200000000000000000000397293cb8cda9a10c5",
+          "baseSymbol": "SSD",
+          "quoteSymbol": "SNDKc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0x47c1f1827778bed03f9553a0780075b1a4a5d9a0e8c857bc90ae0be96e4d301f",
           "dexId": "o1-launchpad",
           "baseToken": "0xb200000000000000000000d62d2b9a496d7d0801",
@@ -3773,7 +4348,13 @@
         },
         {
           "pairAddress": "0x507b27040e73D67B72Bb6620A4feD123CD866c8a",
-          "dexId": "equalizer"
+          "dexId": "equalizer",
+          "baseToken": "0xb200000000000000000000397293cb8cda9a10c5",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "SNDKc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0x5A8236f575471e7BfCA2C8462a200c28f737246E",
@@ -3842,7 +4423,7 @@
           "quoteToken": "0xb200000000000000000000397293cb8cda9a10c5",
           "baseSymbol": "MEMORY",
           "quoteSymbol": "SNDKc",
-          "listedOnDex": false,
+          "listedOnDex": true,
           "source": "geckoterminal"
         },
         {
@@ -4178,6 +4759,16 @@
           "source": "dexscreener"
         },
         {
+          "pairAddress": "0x4332178724255CEe4555fa012a56d6f75E7BA16F",
+          "dexId": "aerodrome",
+          "baseToken": "0xeb60616cc4c065c067340a5d59027742178fce88",
+          "quoteToken": "0xb20000000000000000000043a599976181bcf336",
+          "baseSymbol": "HYMOTHI",
+          "quoteSymbol": "HIMSc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0x4b7ffff1b16574485a83e0ba53e6ddb5fdebaab2",
           "dexId": "aerodrome-slipstream-3",
           "baseToken": "0x7181de39872e393aa5891f96df6063bb49167be9",
@@ -4490,6 +5081,16 @@
           "quoteSymbol": "USDC",
           "listedOnDex": false,
           "source": "geckoterminal"
+        },
+        {
+          "pairAddress": "0xf9ba1d135b5dffdc25ab2953cff8499008b0228fc26c24a9078ee9004faae1e6",
+          "dexId": "uniswap",
+          "baseToken": "0xb200000000000000000000450ad3abe5d4846c6e",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "PYPLc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
         }
       ]
     },
@@ -4523,6 +5124,16 @@
           "baseToken": "0xb200000000000000000000856a95738c92feed01",
           "quoteToken": "0xb2000000000000000000004884b426556b92883d",
           "baseSymbol": "BRTC",
+          "quoteSymbol": "MSTRc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x1377c449b982bc2bf6bf9062715652a0d4ed02b089a9d62fadb31b5b73e28aa5",
+          "dexId": "uniswap",
+          "baseToken": "0x8457b878403aa2aba9e3d393be8de644686ec797",
+          "quoteToken": "0xb2000000000000000000004884b426556b92883d",
+          "baseSymbol": "BATE",
           "quoteSymbol": "MSTRc",
           "listedOnDex": true,
           "source": "dexscreener"
@@ -4628,12 +5239,42 @@
           "source": "geckoterminal"
         },
         {
+          "pairAddress": "0x78e3baaa6d18df6f952f835a734e51d411563a91b69b41372f4e97125cede10a",
+          "dexId": "uniswap",
+          "baseToken": "0x42c4508e9a86667fc5fb21d384a4c710f67dfee1",
+          "quoteToken": "0xb2000000000000000000004884b426556b92883d",
+          "baseSymbol": "MAXI",
+          "quoteSymbol": "MSTRc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x7de8f942ba7aa9dad7e299d3c6abfc3aa8d854afedf7b9ad6681c5a3d63388a3",
+          "dexId": "uniswap",
+          "baseToken": "0x56a0435b426938da425ba7b22df6418ea56dfee1",
+          "quoteToken": "0xb2000000000000000000004884b426556b92883d",
+          "baseSymbol": "BMSTR",
+          "quoteSymbol": "MSTRc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0x8b27f626ab668197000BC722A1012022CAeD10E2",
           "dexId": "aerodrome",
           "baseToken": "0xb2000000000000000000004884b426556b92883d",
           "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
           "baseSymbol": "MSTRc",
           "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x90d5044831e8bd131c7a25f78cb47c30cb125c2d8c14802cf12ad39c8d9ad258",
+          "dexId": "uniswap",
+          "baseToken": "0x52214e37e767ade0da79816dba0287e03cb56654",
+          "quoteToken": "0xb2000000000000000000004884b426556b92883d",
+          "baseSymbol": "DOPE",
+          "quoteSymbol": "MSTRc",
           "listedOnDex": true,
           "source": "dexscreener"
         },
@@ -4730,6 +5371,16 @@
           "quoteSymbol": "MSTRc",
           "listedOnDex": false,
           "source": "geckoterminal"
+        },
+        {
+          "pairAddress": "0xd5ec06e6163c87fe32ddeabce27c347a5161b1ec6ad0e0cb1c9d537b3e6add29",
+          "dexId": "uniswap",
+          "baseToken": "0x3d86fc947422f93f0e22e78f342f9c60ba0afee1",
+          "quoteToken": "0xb2000000000000000000004884b426556b92883d",
+          "baseSymbol": "DOBBY",
+          "quoteSymbol": "MSTRc",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0xdaf20e256ba987b6d3d91e356eacdb9b156b66ec559a715351c996db54ddab8a",
@@ -5022,6 +5673,16 @@
           "dexId": "uniswap"
         },
         {
+          "pairAddress": "0xe5b5db47e67b9884064fb7945c36824569e9db64173e1610a98d25aead588628",
+          "dexId": "uniswap",
+          "baseToken": "0x13df69b06bed32dc1a9e52d535921c9a2c5ce222",
+          "quoteToken": "0xb20000000000000000000058b8c947e44011dfe6",
+          "baseSymbol": "CHILL",
+          "quoteSymbol": "NFLXc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0xf724380cdf3906c024d0223e38fc0f5577c0cb9ed4d5284ae02f0e5cd88f6ea1",
           "dexId": "bankr",
           "baseToken": "0x6c9fa56388235ef65fe1b260042fd339f1461ba3",
@@ -5030,6 +5691,16 @@
           "quoteSymbol": "NFLXc",
           "listedOnDex": false,
           "source": "geckoterminal"
+        },
+        {
+          "pairAddress": "0xfca0b8d74b698b15273e989008d3635876553ea510bdb6e58fcd852c53e89f7f",
+          "dexId": "uniswap",
+          "baseToken": "0xa582bd228b6443ed4a3b09ac177aaa5728bf0ba3",
+          "quoteToken": "0xb20000000000000000000058b8c947e44011dfe6",
+          "baseSymbol": "NETFLIX",
+          "quoteSymbol": "NFLXc",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0xfdc7b151dbabfaa2799ffe187c87d91279fb5ac919e49e0866859a6849464f4c",
@@ -5056,6 +5727,44 @@
       "issuer": "coinbase",
       "kind": "equity",
       "pools": []
+    },
+    "0xb2000000000000000000005ac674f707e357409c": {
+      "address": "0xB2000000000000000000005ac674f707E357409c",
+      "symbol": "NOKc",
+      "issuer": "coinbase",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x11ee7b6996d6bdf7a5d958b77dc3a1e45a52deb5a35cc38f5d6b5d0aaa52b7ab",
+          "dexId": "uniswap",
+          "baseToken": "0xb2000000000000000000005ac674f707e357409c",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "NOKc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x2Ec52131c560105143E0Af64578a85cc74D503a1",
+          "dexId": "aerodrome",
+          "baseToken": "0xd02a25c2ce6feff3a1da74044aafba32aed4fc35",
+          "quoteToken": "0xb2000000000000000000005ac674f707e357409c",
+          "baseSymbol": "3210",
+          "quoteSymbol": "NOKc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0xc541eAc49f32D46C1E2f88952f22215Ef0f2Db71",
+          "dexId": "aerodrome",
+          "baseToken": "0xb2000000000000000000005ac674f707e357409c",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "NOKc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        }
+      ]
     },
     "0xb2000000000000000000005bcde0a6926919fef9": {
       "address": "0xb2000000000000000000005BCdE0a6926919FEF9",
@@ -5117,7 +5826,7 @@
           "quoteToken": "0xb2000000000000000000005bd7ae89b9e6189bb5",
           "baseSymbol": "GUEST",
           "quoteSymbol": "RBLXc",
-          "listedOnDex": false,
+          "listedOnDex": true,
           "source": "geckoterminal"
         },
         {
@@ -5164,7 +5873,18 @@
       "symbol": "VALEc",
       "issuer": "coinbase",
       "kind": "equity",
-      "pools": []
+      "pools": [
+        {
+          "pairAddress": "0x0F48336b76ee52Fa6bb19edf5AF358529Df57574",
+          "dexId": "aerodrome",
+          "baseToken": "0xb20000000000000000000063376b142c0764b489",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "VALEc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        }
+      ]
     },
     "0xb20000000000000000000065ca0f772a5502e976": {
       "address": "0xB20000000000000000000065ca0F772a5502E976",
@@ -5190,11 +5910,31 @@
           "source": "geckoterminal"
         },
         {
+          "pairAddress": "0x0fD3385197c121416609d921da52E8e7910523f7",
+          "dexId": "aerodrome",
+          "baseToken": "0xe70e7c6cbdc9fb235f672566badc88a587414264",
+          "quoteToken": "0xb20000000000000000000066242d4067724cb7a1",
+          "baseSymbol": "BaseNyancat",
+          "quoteSymbol": "RDDTc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0x1356a0bf627d0fb11d3184f63d75bb322fa82a395eefdfa2a385689bd5dd6e0e",
           "dexId": "uniswap",
           "baseToken": "0xb200000000000000000000e34d35f7b7e9039e01",
           "quoteToken": "0xb20000000000000000000066242d4067724cb7a1",
           "baseSymbol": "Karma",
+          "quoteSymbol": "RDDTc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x15304201b147C3CD18AC418858AD9c3204445B56",
+          "dexId": "aerodrome",
+          "baseToken": "0xb96b458850b4262013574538d388732f4c30cdf9",
+          "quoteToken": "0xb20000000000000000000066242d4067724cb7a1",
+          "baseSymbol": "NYANCAT",
           "quoteSymbol": "RDDTc",
           "listedOnDex": true,
           "source": "dexscreener"
@@ -5260,6 +6000,26 @@
           "source": "geckoterminal"
         },
         {
+          "pairAddress": "0x8840c0415003ce44922f77ff6215ba6a6b885e50436a6b0b8c18e6bff0b0c043",
+          "dexId": "uniswap",
+          "baseToken": "0xb20000000000000000000066242d4067724cb7a1",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "RDDTc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x8d517015cfc56bdb0a2b91e727e4ebf3b8a09508ecd2d0486612897319a1c619",
+          "dexId": "uniswap",
+          "baseToken": "0xb20000000000000000000066242d4067724cb7a1",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "RDDTc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0x94ad2Eb40af779806b77585A32fb819917F2E917",
           "dexId": "uniswap-v3-base",
           "baseToken": "0xb20000000000000000000066242d4067724cb7a1",
@@ -5318,6 +6078,36 @@
           "quoteSymbol": "RDDTc",
           "listedOnDex": false,
           "source": "geckoterminal"
+        },
+        {
+          "pairAddress": "0xb519f94e141767c73e99bb630a73e9c19e8ce53df9ea1eb6339dcea7bf5b247d",
+          "dexId": "uniswap",
+          "baseToken": "0xb200000000000000000000c03b15597a886b7f01",
+          "quoteToken": "0xb20000000000000000000066242d4067724cb7a1",
+          "baseSymbol": "BaseNyancat",
+          "quoteSymbol": "RDDTc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0xc2b857d897e3cbec1437928832b8b74a7b9045fadc6be8f138c6a29676066409",
+          "dexId": "uniswap",
+          "baseToken": "0x96de77a51d69f13733b3ffc122af57c5e817fd01",
+          "quoteToken": "0xb20000000000000000000066242d4067724cb7a1",
+          "baseSymbol": "BaseNyanCat",
+          "quoteSymbol": "RDDTc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0xc2f112458026fb9851bd644379208e5092f7cf16b11ef461379e8ef0c6162a1f",
+          "dexId": "uniswap",
+          "baseToken": "0xb2000000000000000000008b821a0348dd709a01",
+          "quoteToken": "0xb20000000000000000000066242d4067724cb7a1",
+          "baseSymbol": "NYANCAT",
+          "quoteSymbol": "RDDTc",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0xd088498aa78f0c7e4faad4de2b7b09f34aa6f4cc2c7bb57d55475549d0711ab4",
@@ -5444,6 +6234,16 @@
           "source": "dexscreener"
         },
         {
+          "pairAddress": "0x51159c13432b68f12b860737344756b780ecbfe29d7f0d43c92a75fdd4b606a5",
+          "dexId": "uniswap",
+          "baseToken": "0xb200000000000000000000dfc4e26eaf8c0be101",
+          "quoteToken": "0xb2000000000000000000007790ed6e48e06ed935",
+          "baseSymbol": "Dumb",
+          "quoteSymbol": "GMEc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0x723e3c6bf63baa05f38ac34b1801aca48bad08ee053ba87d302443ea33a11df5",
           "dexId": "uniswap-v4-base",
           "baseToken": "0xb2000000000000000000007790ed6e48e06ed935",
@@ -5504,6 +6304,16 @@
           "source": "geckoterminal"
         },
         {
+          "pairAddress": "0xeb3e7eed2cd4bc5b6725c978151c24d8d4853c4a3058154c49a5917cad8974b2",
+          "dexId": "uniswap",
+          "baseToken": "0xb200000000000000000000930b80400962abba01",
+          "quoteToken": "0xb2000000000000000000007790ed6e48e06ed935",
+          "baseSymbol": "Short",
+          "quoteSymbol": "GMEc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0xfa77b259c6655a7271c81b63f584983493474ff6ec9b738d20adc28d3c7a3804",
           "dexId": "uniswap-v4-base",
           "baseToken": "0xb2000000000000000000007790ed6e48e06ed935",
@@ -5552,6 +6362,16 @@
           "source": "dexscreener"
         },
         {
+          "pairAddress": "0x1ddeb61dfebf1c2b85d68a68f95843e3c6cf4691161aeb9b192912b671b7c014",
+          "dexId": "uniswap",
+          "baseToken": "0xeeb306e87ff7257bbd34f46672d9a6d654de6a01",
+          "quoteToken": "0xb20000000000000000000078ee7ce2fe4908108c",
+          "baseSymbol": "AIAIAIAI",
+          "quoteSymbol": "NVDAc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0x1f8d2d4291731f7ce6b861decf1ac8603e6167cf4b2f1f93e8c3f3898ceef4dc",
           "dexId": "uniswap-v4-base",
           "baseToken": "0x2d87fa1fde7c34fca28c8b207870df78a15355a2",
@@ -5588,6 +6408,16 @@
           "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
           "baseSymbol": "NVDAc",
           "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x2ca153de5d8bec67fc590bc8fd860d0b3e065efbb82612e81dace2e5717bc8c5",
+          "dexId": "uniswap",
+          "baseToken": "0xb20000000000000000000078ee7ce2fe4908108c",
+          "quoteToken": "0x0000000000000000000000000000000000000000",
+          "baseSymbol": "NVDAc",
+          "quoteSymbol": "ETH",
           "listedOnDex": true,
           "source": "dexscreener"
         },
@@ -5668,7 +6498,7 @@
           "quoteToken": "0xb20000000000000000000078ee7ce2fe4908108c",
           "baseSymbol": "B5",
           "quoteSymbol": "NVDAc",
-          "listedOnDex": false,
+          "listedOnDex": true,
           "source": "geckoterminal"
         },
         {
@@ -5708,7 +6538,7 @@
           "quoteToken": "0xb20000000000000000000078ee7ce2fe4908108c",
           "baseSymbol": "SI",
           "quoteSymbol": "NVDAc",
-          "listedOnDex": false,
+          "listedOnDex": true,
           "source": "geckoterminal"
         },
         {
@@ -5747,7 +6577,13 @@
         },
         {
           "pairAddress": "0x73429136d60ad9fb734c9e51db90bf30acbebdb78a7b029053ba8fefd89d78a1",
-          "dexId": "uniswap"
+          "dexId": "uniswap",
+          "baseToken": "0xb20000000000000000000078ee7ce2fe4908108c",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "NVDAc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0x79e2e3d4934a32fae6bbc4f82cfa5136f7e9ca75",
@@ -5791,7 +6627,13 @@
         },
         {
           "pairAddress": "0x8e4cdc84672f6985c092a4af1b475bce17ef2dfad14d4da3c105b24ef52e6600",
-          "dexId": "uniswap"
+          "dexId": "uniswap",
+          "baseToken": "0x45d5ddab8a207b86d751d1c473557760c10b1f1c",
+          "quoteToken": "0xb20000000000000000000078ee7ce2fe4908108c",
+          "baseSymbol": "OCCUPY",
+          "quoteSymbol": "NVDAc",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0x8e740D5Fa742B763cD82159894b9919eD57E4f70",
@@ -5820,7 +6662,7 @@
           "quoteToken": "0xb20000000000000000000078ee7ce2fe4908108c",
           "baseSymbol": "BTEST",
           "quoteSymbol": "NVDAc",
-          "listedOnDex": false,
+          "listedOnDex": true,
           "source": "geckoterminal"
         },
         {
@@ -5954,6 +6796,16 @@
           "source": "dexscreener"
         },
         {
+          "pairAddress": "0xae47f9b40f865c470ff2f4a5428e7bd14979fef5ba17f80ee568734b1a5fdd5e",
+          "dexId": "uniswap",
+          "baseToken": "0xb20000000000000000000078ee7ce2fe4908108c",
+          "quoteToken": "0x0000000000000000000000000000000000000000",
+          "baseSymbol": "NVDAc",
+          "quoteSymbol": "ETH",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0xae5d1c714c2bcd537f5cb8b5fddfa9d8ee6b107c500e13b105ff33601c2bb8ea",
           "dexId": "uniswap-v4-base",
           "baseToken": "0xb20000000000000000000078ee7ce2fe4908108c",
@@ -5965,7 +6817,13 @@
         },
         {
           "pairAddress": "0xaf37c58BAaD0dF59bBAe19B7Ee17afC93Db8bDF5",
-          "dexId": "equalizer"
+          "dexId": "equalizer",
+          "baseToken": "0xb20000000000000000000078ee7ce2fe4908108c",
+          "quoteToken": "0xacfe6019ed1a7dc6f7b508c02d1b04ec88cc21bf",
+          "baseSymbol": "NVDAc",
+          "quoteSymbol": "VVV",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0xb13f16b43f7e581949cf97a36fdc7a6405fc7a2cf259b4e54b02957d9e8fbeea",
@@ -5974,7 +6832,7 @@
           "quoteToken": "0xb20000000000000000000078ee7ce2fe4908108c",
           "baseSymbol": "mmETH",
           "quoteSymbol": "NVDAc",
-          "listedOnDex": false,
+          "listedOnDex": true,
           "source": "geckoterminal"
         },
         {
@@ -5996,6 +6854,16 @@
           "quoteSymbol": "USDC",
           "listedOnDex": false,
           "source": "geckoterminal"
+        },
+        {
+          "pairAddress": "0xb1fa2a9c7395f39301df2efde05565dfc95fc372605860840a9d501ed4660121",
+          "dexId": "uniswap",
+          "baseToken": "0xb2000000000000000000002d0ba3164cc74f58b7",
+          "quoteToken": "0xb20000000000000000000078ee7ce2fe4908108c",
+          "baseSymbol": "GOOGLc",
+          "quoteSymbol": "NVDAc",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0xb21769526e3a0814752628ec6c6e08efc883a025a18c64ee3ad376aa67728a18",
@@ -6026,6 +6894,16 @@
           "quoteSymbol": "NVDAc",
           "listedOnDex": false,
           "source": "geckoterminal"
+        },
+        {
+          "pairAddress": "0xb54d415cfd7a48b54c79d9f500c78fc79f5e1758ebbd59a05302bd978a371d2f",
+          "dexId": "uniswap",
+          "baseToken": "0xb20000000000000000000078ee7ce2fe4908108c",
+          "quoteToken": "0xb200000000000000000000c2e324d24d7eecd1fb",
+          "baseSymbol": "NVDAc",
+          "quoteSymbol": "AAPLc",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0xb9f42cb6b82192550f9b543ce9abfb5006495692",
@@ -6108,7 +6986,7 @@
           "quoteToken": "0xb20000000000000000000078ee7ce2fe4908108c",
           "baseSymbol": "kGOLONGFUN",
           "quoteSymbol": "NVDAc",
-          "listedOnDex": false,
+          "listedOnDex": true,
           "source": "geckoterminal"
         },
         {
@@ -6138,12 +7016,18 @@
           "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
           "baseSymbol": "NVDAc",
           "quoteSymbol": "USDC",
-          "listedOnDex": false,
+          "listedOnDex": true,
           "source": "geckoterminal"
         },
         {
           "pairAddress": "0xe9f61a0beb0f9a8a646d0666a526b5582477a6b002aa0b0afc4234608e1d43b0",
-          "dexId": "uniswap"
+          "dexId": "uniswap",
+          "baseToken": "0xd193604529ac73f252c8c9e1b8bbc45db260dca1",
+          "quoteToken": "0xb20000000000000000000078ee7ce2fe4908108c",
+          "baseSymbol": "WOOF",
+          "quoteSymbol": "NVDAc",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0xf3f004a3cdd48f6d7cb3176712a203de15017114d5eeb00921a05b022bd39851",
@@ -6273,6 +7157,16 @@
           "source": "geckoterminal"
         },
         {
+          "pairAddress": "0x41c1152515ac397a67780f623817903242d68bdd7d342b41bbdcefed5b36b0b7",
+          "dexId": "uniswap",
+          "baseToken": "0x2c4077fd018bc094c66115f1527089d04a378501",
+          "quoteToken": "0xb2000000000000000000007b9fcbd005511acbd5",
+          "baseSymbol": "capitalism",
+          "quoteSymbol": "SPCXc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0x439f13305c78564279c03e36e701cd6439bb7ff9f1bd24549a26287bc4961b8e",
           "dexId": "uniswap-v4-base",
           "baseToken": "0xad4b036d32b6ffc0d38222ff022c510e935f6f2f",
@@ -6281,6 +7175,26 @@
           "quoteSymbol": "SPCXc",
           "listedOnDex": false,
           "source": "geckoterminal"
+        },
+        {
+          "pairAddress": "0x44175bcd309420a74c2fdc10942c4f469153f9094551136f1ea562c18626052a",
+          "dexId": "uniswap",
+          "baseToken": "0xb2000000000000000000007b9fcbd005511acbd5",
+          "quoteToken": "0xb200000000000000000000ad7fab3dd63a6bd701",
+          "baseSymbol": "SPCXc",
+          "quoteSymbol": "SGI",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x4710b86a81414fb99d59098898c00b4c1979712b345cf1e9fc144f40cc84625c",
+          "dexId": "uniswap",
+          "baseToken": "0x8b807dc8f999cf8fa110330abf4af5c6b59b928d",
+          "quoteToken": "0xb2000000000000000000007b9fcbd005511acbd5",
+          "baseSymbol": "MOONRODER",
+          "quoteSymbol": "SPCXc",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0x4fc0021BdD59f5DbAE07fA6F070677fc202cf161",
@@ -6298,6 +7212,16 @@
           "baseToken": "0xa3c042ddd6150784d8238cc6c6987191ac321444",
           "quoteToken": "0xb2000000000000000000007b9fcbd005511acbd5",
           "baseSymbol": "OWL",
+          "quoteSymbol": "SPCXc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x5646752d32912ef81e3bae1e5d93d7eb3941163bae7622f9312093b711f526d4",
+          "dexId": "uniswap",
+          "baseToken": "0xb2000000000000000000004c75424bb2a9ba7601",
+          "quoteToken": "0xb2000000000000000000007b9fcbd005511acbd5",
+          "baseSymbol": "PROMETHEUS",
           "quoteSymbol": "SPCXc",
           "listedOnDex": true,
           "source": "dexscreener"
@@ -6323,6 +7247,16 @@
           "quoteToken": "0xb200000000000000000000f065aacb72155cc001",
           "baseSymbol": "SPCXc",
           "quoteSymbol": "MOONBASE",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x641e1a642e5cc035aa1b2d26df03677a3830f455c17a4e27c17d7bec477ba1f2",
+          "dexId": "uniswap",
+          "baseToken": "0x632dc3233a459caff5e2f7581419e13ea93efee1",
+          "quoteToken": "0xb2000000000000000000007b9fcbd005511acbd5",
+          "baseSymbol": "CHIP",
+          "quoteSymbol": "SPCXc",
           "listedOnDex": true,
           "source": "dexscreener"
         },
@@ -6507,6 +7441,16 @@
           "source": "dexscreener"
         },
         {
+          "pairAddress": "0xb5DBeBc4A5815eca5166C70249782Ce5FC597f6d",
+          "dexId": "flapsh",
+          "baseToken": "0xd34764827c5b725534611e5353adc522544d7777",
+          "quoteToken": "0xb2000000000000000000007b9fcbd005511acbd5",
+          "baseSymbol": "AGI",
+          "quoteSymbol": "SPCXc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0xb65846b493b54249a6fa439fa0aaf9e7c34479134d51b920e052b53bd732ea79",
           "dexId": "uniswap"
         },
@@ -6532,7 +7476,13 @@
         },
         {
           "pairAddress": "0xc0a1412c1a95b979e533b256523da57959cd2174e26e9a4e5cdf857c12a5fcb4",
-          "dexId": "uniswap"
+          "dexId": "uniswap",
+          "baseToken": "0xb2000000000000000000007b9fcbd005511acbd5",
+          "quoteToken": "0xb200000000000000000000cb2aca487c6ef53c01",
+          "baseSymbol": "SPCXc",
+          "quoteSymbol": "Grok",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0xc512f6f8681e192b463052aee2f02c3e4ca45ab0941d7a2556f9c1eec05340c3",
@@ -6706,6 +7656,16 @@
           "quoteSymbol": "PLTRc",
           "listedOnDex": false,
           "source": "geckoterminal"
+        },
+        {
+          "pairAddress": "0x1949cc5872e678bad9f3e359e263ac753d54aebb8453669a498a9d95f9a55d94",
+          "dexId": "uniswap",
+          "baseToken": "0x7cc10f76341a9828c82a3d31b2a9bdc8e9a67fc8",
+          "quoteToken": "0xb2000000000000000000007d16372840df4dabbe",
+          "baseSymbol": "LANKY",
+          "quoteSymbol": "PLTRc",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0x1f0ff67beac180f958606ebcb79b507be41cf5f8",
@@ -6896,6 +7856,16 @@
           "source": "geckoterminal"
         },
         {
+          "pairAddress": "0xe0297239c5b9d2ee608c60233b97639b16ed194f81f20d4523e56b435ddbc66c",
+          "dexId": "uniswap",
+          "baseToken": "0xb2000000000000000000007d16372840df4dabbe",
+          "quoteToken": "0xb200000000000000000000ea4d670715f624eb01",
+          "baseSymbol": "PLTRc",
+          "quoteSymbol": "Monitoring ",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0xe870c01dc3e6c404293c26e7ed0859674c6c2ae66e58bfe3e252a98339b07893",
           "dexId": "uniswap-v4-base",
           "baseToken": "0xe936a826b4a46657a8a761ca292ed8d964bc7c5c",
@@ -7001,18 +7971,48 @@
           "source": "dexscreener"
         },
         {
+          "pairAddress": "0x1358b26f03a32d3d069016a57a924f09a23ccbf0a3924dadd28402026a35bc01",
+          "dexId": "uniswap",
+          "baseToken": "0xb200000000000000000000bf9951a7d2fd9eb101",
+          "quoteToken": "0xb2000000000000000000008bc8786b856e61707c",
+          "baseSymbol": "BASEBOOK",
+          "quoteSymbol": "METAc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x14e3c91dbdf0536700fbea498b9ed7152e806eff77b52c418012841a80da58d0",
+          "dexId": "uniswap",
+          "baseToken": "0xb2000000000000000000006817045bce6baa9301",
+          "quoteToken": "0xb2000000000000000000008bc8786b856e61707c",
+          "baseSymbol": "SIFI",
+          "quoteSymbol": "METAc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0x1c9fcd793f44bd69d6c941b2ea53af502338b20a",
           "dexId": "uniswap-v3-base",
           "baseToken": "0xb2000000000000000000008bc8786b856e61707c",
           "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
           "baseSymbol": "METAc",
           "quoteSymbol": "USDC",
-          "listedOnDex": false,
+          "listedOnDex": true,
           "source": "geckoterminal"
         },
         {
           "pairAddress": "0x267f4a2cfab1240bcc759d346048e01a8aad75127a50025603ae4ba45a64e2a3",
           "dexId": "uniswap"
+        },
+        {
+          "pairAddress": "0x2facd812b45b7eba8d3cc0fd67fff755e4f91a10225169f3cff5d7050f98f14f",
+          "dexId": "uniswap",
+          "baseToken": "0xbb2c70bccb18ed88ffa3acd51d9fc093e1492001",
+          "quoteToken": "0xb2000000000000000000008bc8786b856e61707c",
+          "baseSymbol": "Wonder",
+          "quoteSymbol": "METAc",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0x357339183802d1f4342e7d033cb9b898a6dca298ec73dcf23e5014b8858ddbdc",
@@ -7035,8 +8035,24 @@
           "source": "dexscreener"
         },
         {
+          "pairAddress": "0x451c802e27f3c806ce829e55661a9f26420981d99fa10f76102771312dd7f03a",
+          "dexId": "uniswap",
+          "baseToken": "0xb200000000000000000000ec6f6ac0868e12f901",
+          "quoteToken": "0xb2000000000000000000008bc8786b856e61707c",
+          "baseSymbol": "Watermelon",
+          "quoteSymbol": "METAc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0x574edceF8ED01fABDe8bc55717e83516E8Ab8343",
-          "dexId": "equalizer"
+          "dexId": "equalizer",
+          "baseToken": "0xbef29bcffffc0c435f64eb4058c890c8f269415c",
+          "quoteToken": "0xb2000000000000000000008bc8786b856e61707c",
+          "baseSymbol": "OPP",
+          "quoteSymbol": "METAc",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0x583919ec1975a1238C50e1940911894ee6912476",
@@ -7070,7 +8086,13 @@
         },
         {
           "pairAddress": "0x5d51983c78f577d8880939c3446c663d6a0cdd835caa4961d0c3224424cc7c20",
-          "dexId": "uniswap"
+          "dexId": "uniswap",
+          "baseToken": "0xb200000000000000000000b9faf2ab896a6bbb01",
+          "quoteToken": "0xb2000000000000000000008bc8786b856e61707c",
+          "baseSymbol": "WATERMELON",
+          "quoteSymbol": "METAc",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0x5db3d5abeb3195fd0837dda3d88a539cb0be830da0ae75fa07a4fd7a61d44d6a",
@@ -7079,6 +8101,16 @@
           "quoteToken": "0xb200000000000000000000fcb611e8eef54bbb01",
           "baseSymbol": "METAc",
           "quoteSymbol": "LLAMA",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x637a35ee8e47781da3e075043893362e49ed91b109bb1a4c8681455dedb323dd",
+          "dexId": "uniswap",
+          "baseToken": "0xc04e678903ade0eb0a21f85ecf7cb2daa3fb1ba3",
+          "quoteToken": "0xb2000000000000000000008bc8786b856e61707c",
+          "baseSymbol": "Musewonder",
+          "quoteSymbol": "METAc",
           "listedOnDex": true,
           "source": "dexscreener"
         },
@@ -7138,7 +8170,13 @@
         },
         {
           "pairAddress": "0x8e550867852ae8d40b74a67018d4be592cdc5415c3917a2037d88dc2a6f57029",
-          "dexId": "uniswap"
+          "dexId": "uniswap",
+          "baseToken": "0xb2000000000000000000008bc8786b856e61707c",
+          "quoteToken": "0xb200000000000000000000bf0548ab2ebd00ba5e",
+          "baseSymbol": "METAc",
+          "quoteSymbol": "RWAGMI",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0x939793794fd5996d55b48d3ebb4d9664b598ec2123a3cf7cfff7deb815a4e2f4",
@@ -7152,7 +8190,13 @@
         },
         {
           "pairAddress": "0x9491b5bc02234e969b7f4a83629df46c22bc61d26a82fd1245c34701ec65de0a",
-          "dexId": "uniswap"
+          "dexId": "uniswap",
+          "baseToken": "0xb200000000000000000000cc4d0566b5e93fc601",
+          "quoteToken": "0xb2000000000000000000008bc8786b856e61707c",
+          "baseSymbol": "WEIGHT",
+          "quoteSymbol": "METAc",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0x9B6EA8352AC4010a779Ad780c22ee2F42Af39D84",
@@ -7199,12 +8243,32 @@
           "dexId": "uniswap"
         },
         {
+          "pairAddress": "0xA9adb51f26d09760C42DcD0C982E97F8Ed6a62c5",
+          "dexId": "aerodrome",
+          "baseToken": "0x3442e5840bf6534bdbcdf9ec6a71a5c8c1406150",
+          "quoteToken": "0xb2000000000000000000008bc8786b856e61707c",
+          "baseSymbol": "Watermelon",
+          "quoteSymbol": "METAc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0xac81669dc9d0a3e6229eb4ce17552b38d9e5d4649baa3ffadafa9a4a21789f23",
           "dexId": "uniswap-v4-base",
           "baseToken": "0xb2000000000000000000008bc8786b856e61707c",
           "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
           "baseSymbol": "METAc",
           "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0xb43f9523c17584702631053680555c495ec56b44b5e6382ad53a93f35e523e03",
+          "dexId": "uniswap",
+          "baseToken": "0xb200000000000000000000ed4eec3fe83e974601",
+          "quoteToken": "0xb2000000000000000000008bc8786b856e61707c",
+          "baseSymbol": "BaseMuse",
+          "quoteSymbol": "METAc",
           "listedOnDex": true,
           "source": "dexscreener"
         },
@@ -7219,12 +8283,48 @@
           "source": "dexscreener"
         },
         {
+          "pairAddress": "0xc75098f684689798e532d2101846b785b90c0e830639fc70140a215cd385375e",
+          "dexId": "uniswap",
+          "baseToken": "0xb2000000000000000000007c4d441a0686e2b420",
+          "quoteToken": "0xb2000000000000000000008bc8786b856e61707c",
+          "baseSymbol": "CUCK",
+          "quoteSymbol": "METAc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0xc817947E52f2A615C75749eE1DAD18C68A6143D9",
+          "dexId": "aerodrome",
+          "baseToken": "0xdd084f55af30580b38b0c38148b751f08d1013cc",
+          "quoteToken": "0xb2000000000000000000008bc8786b856e61707c",
+          "baseSymbol": "SIFI",
+          "quoteSymbol": "METAc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0xccabcd197ee30ff776fb5239790dfff83228a909c4c6486627828039f124d332",
           "dexId": "uniswap"
         },
         {
           "pairAddress": "0xe445744b00C2Ca873Eae1DCb1Ebe9B18B1330b54",
-          "dexId": "aerodrome"
+          "dexId": "aerodrome",
+          "baseToken": "0xe5020a6d073a794b6e7f05678707de47986fb0b6",
+          "quoteToken": "0xb2000000000000000000008bc8786b856e61707c",
+          "baseSymbol": "frxUSD",
+          "quoteSymbol": "METAc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0xe68e3466a623361c4ab4997d9404b15761a716762cc206da514553fcc302e164",
+          "dexId": "uniswap",
+          "baseToken": "0xb2000000000000000000008451ec13f1b36c4e01",
+          "quoteToken": "0xb2000000000000000000008bc8786b856e61707c",
+          "baseSymbol": "Wonder",
+          "quoteSymbol": "METAc",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0xEAF57753BC382E0324a1D43F72E7027705a2273E",
@@ -7247,6 +8347,16 @@
           "source": "dexscreener"
         },
         {
+          "pairAddress": "0xF35cd17156e60C2f629f7229303b49a23A1C7B5A",
+          "dexId": "aerodrome",
+          "baseToken": "0xe1bcf8817d3e957a675937683614faba05d54098",
+          "quoteToken": "0xb2000000000000000000008bc8786b856e61707c",
+          "baseSymbol": "MUSE",
+          "quoteSymbol": "METAc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0xf54dc0f5e29ce0282e425af391c851935dbdab5abac022140a7fe0fca87639e5",
           "dexId": "o1-launchpad",
           "baseToken": "0xb2000000000000000000008fc7debd14e0029a01",
@@ -7264,7 +8374,18 @@
       "symbol": "NVOc",
       "issuer": "coinbase",
       "kind": "equity",
-      "pools": []
+      "pools": [
+        {
+          "pairAddress": "0xc1ba39D668F14Eee2462CA5877402e4a7c4d1f34",
+          "dexId": "aerodrome",
+          "baseToken": "0xb2000000000000000000008d5328e9208773dc58",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "NVOc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        }
+      ]
     },
     "0xb2000000000000000000008fc2a8c23cf5937b66": {
       "address": "0xB2000000000000000000008FC2A8C23cf5937b66",
@@ -7272,6 +8393,16 @@
       "issuer": "coinbase",
       "kind": "equity",
       "pools": [
+        {
+          "pairAddress": "0x5264A0b70c6Ae4901997F076fC714e436AAfE7ac",
+          "dexId": "aerodrome",
+          "baseToken": "0x910fe59e69a9d2ffaccaa708cec1b28f53372603",
+          "quoteToken": "0xb2000000000000000000008fc2a8c23cf5937b66",
+          "baseSymbol": "MARLBORO",
+          "quoteSymbol": "PMc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
         {
           "pairAddress": "0x88274b1e6cadE876082537fC158ceba48338219f",
           "dexId": "aerodrome",
@@ -7303,13 +8434,23 @@
           "source": "dexscreener"
         },
         {
+          "pairAddress": "0xc48a3023e36646955a15a3abe9e6e71433a4556e09b4181db741a4fa138464a5",
+          "dexId": "uniswap",
+          "baseToken": "0x40804d93105f54d6e61795ccc5e86bcbf2c8db01",
+          "quoteToken": "0xb2000000000000000000008fc2a8c23cf5937b66",
+          "baseSymbol": "PARLIAMENT",
+          "quoteSymbol": "PMc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0xf11fe3e9ecc1049864e3adb1578c37f0588a766001eb5ef11c5d56d3c1e92947",
           "dexId": "uniswap-v4-base",
           "baseToken": "0xb2000000000000000000008fc2a8c23cf5937b66",
           "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
           "baseSymbol": "PMc",
           "quoteSymbol": "USDC",
-          "listedOnDex": false,
+          "listedOnDex": true,
           "source": "geckoterminal"
         }
       ]
@@ -7465,7 +8606,18 @@
       "symbol": "SONYc",
       "issuer": "coinbase",
       "kind": "equity",
-      "pools": []
+      "pools": [
+        {
+          "pairAddress": "0x26Dd2AC81eA9a212afC84848893EdC21c5A76FDC",
+          "dexId": "aerodrome",
+          "baseToken": "0xb200000000000000000000a26326a922ffa87f6c",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "SONYc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        }
+      ]
     },
     "0xb200000000000000000000a310e034e09186fb2d": {
       "address": "0xB200000000000000000000a310e034E09186Fb2d",
@@ -7553,6 +8705,16 @@
       "kind": "equity",
       "pools": [
         {
+          "pairAddress": "0x0c5010e478400b9f2bd8d224cb713a1edd0871fa2224e5d992811b4fff8b74be",
+          "dexId": "uniswap",
+          "baseToken": "0x64cad0c21b9eed7507f18897f7c1c77dc9978222",
+          "quoteToken": "0xb200000000000000000000ab99cfa739e253872b",
+          "baseSymbol": "LAPTOP",
+          "quoteSymbol": "MSFTc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0x0ce01c1916aa8baa9007f3073431be0ca3760d234c5c9ca6a9bb2f4f8c08b381",
           "dexId": "uniswap",
           "baseToken": "0x87fd25ee76e442398ee4ea635eee22df1d691ba3",
@@ -7601,6 +8763,16 @@
           "quoteSymbol": "MSFTc",
           "listedOnDex": false,
           "source": "geckoterminal"
+        },
+        {
+          "pairAddress": "0x5ca15d55f35ce7278afb380daeb2a236ba1ebf7c2c1eaa689f8ef7aa823df165",
+          "dexId": "uniswap",
+          "baseToken": "0xb200000000000000000000ab99cfa739e253872b",
+          "quoteToken": "0xec775beeaa130e402ad50d7d654a66cb252f7ba3",
+          "baseSymbol": "MSFTc",
+          "quoteSymbol": "LiteBox",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0x7103eB3c9590d1281f7dc03b2A9EE27C39dF5D54",
@@ -7693,6 +8865,16 @@
           "source": "geckoterminal"
         },
         {
+          "pairAddress": "0xbF793a8F3E0DC8bF189E3732daB8a205d89570d4",
+          "dexId": "aerodrome",
+          "baseToken": "0x3a2efec430b54e98eb85a802efad604f57edb06a",
+          "quoteToken": "0xb200000000000000000000ab99cfa739e253872b",
+          "baseSymbol": "MILKREG",
+          "quoteSymbol": "MSFTc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0xc7934f65f7e2dbcdb0e7ec951ca68c29dac43a70d82fa8897f5bd5dfccd4eb1f",
           "dexId": "uniswap",
           "baseToken": "0xb200000000000000000000ab99cfa739e253872b",
@@ -7729,6 +8911,16 @@
           "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
           "baseSymbol": "MSFTc",
           "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0xddb20a2faa24bc1ee141c2e63da00d2ef7630d26d2de9f36b22b73a50ce408a1",
+          "dexId": "uniswap",
+          "baseToken": "0xb200000000000000000000ab99cfa739e253872b",
+          "quoteToken": "0xb200000000000000000000d14adb86f74ceccd01",
+          "baseSymbol": "MSFTc",
+          "quoteSymbol": "ROCKY",
           "listedOnDex": true,
           "source": "dexscreener"
         },
@@ -7862,6 +9054,26 @@
       "kind": "equity",
       "pools": [
         {
+          "pairAddress": "0x01a3812084c453a7b8ef9f6363ffd2e056486f8e79b382ab42e6dcbf55834509",
+          "dexId": "uniswap",
+          "baseToken": "0xb200000000000000000000c2e324d24d7eecd1fb",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "AAPLc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x024329617d31660939c2d4a4ab18c148124eb88953228c32d4fd255b741df92a",
+          "dexId": "uniswap",
+          "baseToken": "0xb200000000000000000000c2e324d24d7eecd1fb",
+          "quoteToken": "0x0000000000000000000000000000000000000000",
+          "baseSymbol": "AAPLc",
+          "quoteSymbol": "ETH",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0x09942c37dd3d456d8714ddeaa114008206b8d1573e0470035b11933e8a14c702",
           "dexId": "uniswap-v4-base",
           "baseToken": "0x4fc59c42653e052c7ab5c8381f839e2d70504131",
@@ -7890,6 +9102,16 @@
           "quoteSymbol": "AAPL",
           "listedOnDex": false,
           "source": "geckoterminal"
+        },
+        {
+          "pairAddress": "0x21dedf1fa8705ee89fa07aa26ee216c552e92e3da28a562816c56d666720d3d0",
+          "dexId": "uniswap",
+          "baseToken": "0xb200000000000000000000c2e324d24d7eecd1fb",
+          "quoteToken": "0x0000000000000000000000000000000000000000",
+          "baseSymbol": "AAPLc",
+          "quoteSymbol": "ETH",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0x2c555a85d018b6b7a700d72d7a7a8a85bf5cdde7a0eed6b4e2591934551af161",
@@ -7943,11 +9165,23 @@
         },
         {
           "pairAddress": "0x4a5fc0d81ade0fcc8d04ae2154d492a86b70bb2dddb0bf27131621fcf1034e4e",
-          "dexId": "uniswap"
+          "dexId": "uniswap",
+          "baseToken": "0xa79ff60ace2792de9a0782b2d8ae9874905e7ca1",
+          "quoteToken": "0xb200000000000000000000c2e324d24d7eecd1fb",
+          "baseSymbol": "WORM",
+          "quoteSymbol": "AAPLc",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0x529ecd2ea776e995ebdd22bf7dd0bfdf6307001ee3e32a0716e6646f75135812",
-          "dexId": "uniswap"
+          "dexId": "uniswap",
+          "baseToken": "0xb20000000000000000000080a1d3934e3a989a01",
+          "quoteToken": "0xb200000000000000000000c2e324d24d7eecd1fb",
+          "baseSymbol": "NEWTON",
+          "quoteSymbol": "AAPLc",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0x5580a811048284f784eee78bb1226f8dfe310c40ce203da2a78df032afde96cc",
@@ -8001,7 +9235,13 @@
         },
         {
           "pairAddress": "0x6683ba95105f6868f82e20050473547861909ab2118039849fa6f3e049aa4a1f",
-          "dexId": "uniswap"
+          "dexId": "uniswap",
+          "baseToken": "0xb200000000000000000000449250006462512e01",
+          "quoteToken": "0xb200000000000000000000c2e324d24d7eecd1fb",
+          "baseSymbol": "PPAP",
+          "quoteSymbol": "AAPLc",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0x681e1c92b488f51d2b3a7ae5ce047104884adf98abf8e33fc3790ff9ff04974b",
@@ -8070,6 +9310,26 @@
           "dexId": "equalizer"
         },
         {
+          "pairAddress": "0x70b96A3d58C19B312a5469b38bdcE1e3E04995DB",
+          "dexId": "aerodrome",
+          "baseToken": "0xb200000000000000000000c2e324d24d7eecd1fb",
+          "quoteToken": "0x4200000000000000000000000000000000000006",
+          "baseSymbol": "AAPLc",
+          "quoteSymbol": "WETH",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x735464f856a50b3aa501a194152016caf7b72a7b300f205e37a0c87480535580",
+          "dexId": "uniswap",
+          "baseToken": "0xb200000000000000000000c2e324d24d7eecd1fb",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "AAPLc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0x75e4a239077a67587db08e1b68404593cff4581cf4003fa29746b0bf0160a7e0",
           "dexId": "uniswap-v4-base",
           "baseToken": "0x07d15798a67253d76cea61f0ea6f57aedc59dffb",
@@ -8121,7 +9381,13 @@
         },
         {
           "pairAddress": "0x86071a51586744f7d984c12094246adfb81e7e5b57038eeecda83f8bea512f30",
-          "dexId": "uniswap"
+          "dexId": "uniswap",
+          "baseToken": "0xb200000000000000000000bf0548ab2ebd00ba5e",
+          "quoteToken": "0xb200000000000000000000c2e324d24d7eecd1fb",
+          "baseSymbol": "RWAGMI",
+          "quoteSymbol": "AAPLc",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0x929cdab1a3d34a74557dc54d395dea0b2599c920197b30e87242bc2666b40727",
@@ -8184,6 +9450,16 @@
           "source": "dexscreener"
         },
         {
+          "pairAddress": "0xa96e03c4e8ad8f8c2cea37ff4d95202be7c86d01a706e27bfadad86c8c40926a",
+          "dexId": "uniswap",
+          "baseToken": "0xb20000000000000000000009f394ffa075a80d01",
+          "quoteToken": "0xb200000000000000000000c2e324d24d7eecd1fb",
+          "baseSymbol": "finder",
+          "quoteSymbol": "AAPLc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0xabd74823402fee98df57366dd76dcb3434da93a769a25c8d8767fa2512449b67",
           "dexId": "uniswap-v4-base",
           "baseToken": "0xc335a7ea65f284f1ea68682490ba0dc896fba8f3",
@@ -8202,6 +9478,26 @@
           "quoteSymbol": "AAPL",
           "listedOnDex": false,
           "source": "geckoterminal"
+        },
+        {
+          "pairAddress": "0xb0b0dd5480874688f210b934c1a5d3f10c2402bfe0c511a293cb77f392113848",
+          "dexId": "uniswap",
+          "baseToken": "0xb200000000000000000000c2e324d24d7eecd1fb",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "AAPLc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0xb54d415cfd7a48b54c79d9f500c78fc79f5e1758ebbd59a05302bd978a371d2f",
+          "dexId": "uniswap",
+          "baseToken": "0xb20000000000000000000078ee7ce2fe4908108c",
+          "quoteToken": "0xb200000000000000000000c2e324d24d7eecd1fb",
+          "baseSymbol": "NVDAc",
+          "quoteSymbol": "AAPLc",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0xb572145670691bb84497145566e1bbb9eedbb1b560d3f83037cb259104d95dd7",
@@ -8242,6 +9538,16 @@
           "quoteSymbol": "AAPL",
           "listedOnDex": false,
           "source": "geckoterminal"
+        },
+        {
+          "pairAddress": "0xc14ea3248578985ef11b390e57d58d0ff5a67c02545d71e25d12ab1496c4ea03",
+          "dexId": "uniswap",
+          "baseToken": "0xb200000000000000000000d3cb8dde527eddbb01",
+          "quoteToken": "0xb200000000000000000000c2e324d24d7eecd1fb",
+          "baseSymbol": "AAPLCAT",
+          "quoteSymbol": "AAPLc",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0xc2c2ed70b75192076b640094a2c5a1b88c020d9c61d98a608e281019e4fd5c9c",
@@ -8317,7 +9623,13 @@
         },
         {
           "pairAddress": "0xe1746e28ddcb2e025e5db75453fd1502d981e0b42f02eedc492c954fb0e50a7d",
-          "dexId": "uniswap"
+          "dexId": "uniswap",
+          "baseToken": "0x27c6b1d6a1e65a1ca2bfd76b34654ff56f9ae71b",
+          "quoteToken": "0xb200000000000000000000c2e324d24d7eecd1fb",
+          "baseSymbol": "bSTOCKS",
+          "quoteSymbol": "AAPLc",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0xe68911c367933983d41304e3a231ffe4d6c81759c458a6a95eb245d016194736",
@@ -8377,7 +9689,18 @@
       "symbol": "BUDc",
       "issuer": "coinbase",
       "kind": "equity",
-      "pools": []
+      "pools": [
+        {
+          "pairAddress": "0x5ee52963d3d33196a47Fad722ABB897E0FA395d9",
+          "dexId": "aerodrome",
+          "baseToken": "0xb200000000000000000000c36ce081dd09e86ca2",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "BUDc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        }
+      ]
     },
     "0xb200000000000000000000c597c476fcf9aed3a8": {
       "address": "0xB200000000000000000000C597c476FCf9Aed3a8",
@@ -8432,7 +9755,18 @@
       "symbol": "PDDc",
       "issuer": "coinbase",
       "kind": "equity",
-      "pools": []
+      "pools": [
+        {
+          "pairAddress": "0x84608BE6d655ee05032303FE7f0D6F3A51c2CF51",
+          "dexId": "aerodrome",
+          "baseToken": "0xb200000000000000000000c8a7223510467d8563",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "PDDc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        }
+      ]
     },
     "0xb200000000000000000000ca425ab42e07c35bc3": {
       "address": "0xb200000000000000000000CA425ab42e07C35bC3",
@@ -8512,6 +9846,54 @@
         }
       ]
     },
+    "0xb200000000000000000000ca7c6d1438e7245eb6": {
+      "address": "0xb200000000000000000000ca7C6D1438e7245eb6",
+      "symbol": "BILIc",
+      "issuer": "coinbase",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x32A3cE6C3a8D6c24C4A51A5cF2869410CbF4D637",
+          "dexId": "aerodrome",
+          "baseToken": "0xb200000000000000000000ca7c6d1438e7245eb6",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "BILIc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x500b282be8b590dd295279b93b00c808b4b7acf101ccad968dd4cc35a74348bd",
+          "dexId": "uniswap",
+          "baseToken": "0xb20000000000000000000061dbb46895b4297801",
+          "quoteToken": "0xb200000000000000000000ca7c6d1438e7245eb6",
+          "baseSymbol": "22&33",
+          "quoteSymbol": "BILIc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x50fb45ba87406cd0c4a4123e1d257509f3900281a59b9458e3400f39bad47f1f",
+          "dexId": "uniswap",
+          "baseToken": "0xb200000000000000000000ca7c6d1438e7245eb6",
+          "quoteToken": "0xc4751e8992034df34b6a869940c1e84950aefee1",
+          "baseSymbol": "BILIc",
+          "quoteSymbol": "N22",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0xa83a13Abd01778D88Ea7fD3dF627d6d7d96fe8f7",
+          "dexId": "aerodrome",
+          "baseToken": "0x1dbbb0b4935db7f382c174c16f79a6f9cd123b2c",
+          "quoteToken": "0xb200000000000000000000ca7c6d1438e7245eb6",
+          "baseSymbol": "22&33",
+          "quoteSymbol": "BILIc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        }
+      ]
+    },
     "0xb200000000000000000000cd7dfaef0423f1f103": {
       "address": "0xB200000000000000000000cd7dFaef0423F1f103",
       "symbol": "RDWc",
@@ -8538,7 +9920,18 @@
       "symbol": "BIDUc",
       "issuer": "coinbase",
       "kind": "equity",
-      "pools": []
+      "pools": [
+        {
+          "pairAddress": "0xD47b8F13ffC3198148B138D3f07CC89C92042950",
+          "dexId": "aerodrome",
+          "baseToken": "0xb200000000000000000000d2b7d9aee52f6c6bef",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "BIDUc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        }
+      ]
     },
     "0xb200000000000000000000d5c0393796e92fcab0": {
       "address": "0xb200000000000000000000d5c0393796E92FCAB0",
@@ -8546,6 +9939,24 @@
       "issuer": "coinbase",
       "kind": "equity",
       "pools": []
+    },
+    "0xb200000000000000000000d61efd9f54a23ef9eb": {
+      "address": "0xb200000000000000000000D61eFD9F54A23ef9eB",
+      "symbol": "LIc",
+      "issuer": "coinbase",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0xD71b2D9cB3532477Df77AE26e780963CCe784a0c",
+          "dexId": "aerodrome",
+          "baseToken": "0xb200000000000000000000d61efd9f54a23ef9eb",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "LIc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        }
+      ]
     },
     "0xb200000000000000000000d9192b6b456483c2e8": {
       "address": "0xb200000000000000000000d9192b6B456483C2E8",
@@ -8600,6 +10011,16 @@
           "quoteToken": "0x48b3e8510d6c43b109960cc56d2c27a72e19fdb4",
           "baseSymbol": "AMZNc",
           "quoteSymbol": "\ud83c\udf198",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x396d4566f692027c7efcd7c810f5a6100a81622df76342ebca568193c160e533",
+          "dexId": "uniswap",
+          "baseToken": "0xd4789f3895093d308e06b9ad1a4e0798075b50da",
+          "quoteToken": "0xb200000000000000000000d9192b6b456483c2e8",
+          "baseSymbol": "STINKS",
+          "quoteSymbol": "AMZNc",
           "listedOnDex": true,
           "source": "dexscreener"
         },
@@ -8668,6 +10089,16 @@
           "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
           "baseSymbol": "AMZNc",
           "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0x849813811e95917ac60f57857692eb873eb55e33f826f315d046ec993e7554bc",
+          "dexId": "uniswap",
+          "baseToken": "0xd708ffe09a8a1d5bd5dd9eabc7b4dd326f0afee1",
+          "quoteToken": "0xb200000000000000000000d9192b6b456483c2e8",
+          "baseSymbol": "ECAT",
+          "quoteSymbol": "AMZNc",
           "listedOnDex": true,
           "source": "dexscreener"
         },
@@ -8811,7 +10242,18 @@
       "symbol": "SAPc",
       "issuer": "coinbase",
       "kind": "equity",
-      "pools": []
+      "pools": [
+        {
+          "pairAddress": "0x21313A06B7f8ed38D8bC1fb8Be2fBD847634A6ec",
+          "dexId": "aerodrome",
+          "baseToken": "0xb200000000000000000000da6f64c306234127e0",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "SAPc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        }
+      ]
     },
     "0xb200000000000000000000e215e9b76ecba02468": {
       "address": "0xB200000000000000000000e215e9B76ecBA02468",
@@ -8921,6 +10363,24 @@
         }
       ]
     },
+    "0xb200000000000000000000e88efe88d8ade3f0da": {
+      "address": "0xb200000000000000000000e88EFe88D8aDE3f0dA",
+      "symbol": "WRDc",
+      "issuer": "coinbase",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0xbc440AFf9A79cCed69d5B21c7B71e60BD0278EFB",
+          "dexId": "aerodrome",
+          "baseToken": "0xb200000000000000000000e88efe88d8ade3f0da",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "WRDc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        }
+      ]
+    },
     "0xb200000000000000000000e8e50cbbb9a3861a3c": {
       "address": "0xb200000000000000000000e8E50CBbb9a3861a3C",
       "symbol": "RKLBc",
@@ -8972,6 +10432,16 @@
           "source": "dexscreener"
         },
         {
+          "pairAddress": "0x765945b60F1dc572d31D7510b1aC0c3BC285A7dc",
+          "dexId": "aerodrome",
+          "baseToken": "0x740a150eeca9f106cd90eb0ae569d7f2226db966",
+          "quoteToken": "0xb200000000000000000000ec3c4c7395cc609813",
+          "baseSymbol": "WW",
+          "quoteSymbol": "MRVLc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0x84b7f462b2adfebd61c55582f24e57a61ff20248d4d67f1fc35fe756bdb70b62",
           "dexId": "uniswap-v4-base",
           "baseToken": "0xb200000000000000000000ec3c4c7395cc609813",
@@ -9004,6 +10474,16 @@
         {
           "pairAddress": "0xae12d4a739e2683ad3f9a01ea32b8f8abd364a8a0b8d2f87b647fb07ed97bd5f",
           "dexId": "uniswap"
+        },
+        {
+          "pairAddress": "0xBC91a00A997c9e08cbBbdc8Fd41dB55C8521E8C0",
+          "dexId": "aerodrome",
+          "baseToken": "0x490c7faff095238ef71a02ddd438e8b4acee5b42",
+          "quoteToken": "0xb200000000000000000000ec3c4c7395cc609813",
+          "baseSymbol": "CAPTAIN",
+          "quoteSymbol": "MRVLc",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0xc2acfa04e0ee7e7250dcc0408efdbd2c69174b4aa31a677b03156349cd0f9c49",
@@ -9173,6 +10653,16 @@
           "quoteSymbol": "USDC",
           "listedOnDex": false,
           "source": "geckoterminal"
+        },
+        {
+          "pairAddress": "0x97aa57f9e09e10817be49061ca47fe91a6f4895e358ad141c7f52950b140fef0",
+          "dexId": "uniswap",
+          "baseToken": "0xb200000000000000000000f1a0f91e34892e4718",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "LLYc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0x9d94192cb49adc9bcd6fd3a6610a8f79871b7dbc",
@@ -9358,6 +10848,42 @@
         }
       ]
     },
+    "0xb200000000000000000000f3049f4aa834b23b64": {
+      "address": "0xb200000000000000000000f3049F4aa834b23b64",
+      "symbol": "HSAIc",
+      "issuer": "coinbase",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0xDc8D2C31de17bf4dF00C05E4E132BCEA22F24c3b",
+          "dexId": "aerodrome",
+          "baseToken": "0xb200000000000000000000f3049f4aa834b23b64",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "HSAIc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        }
+      ]
+    },
+    "0xb200000000000000000000f6b0417af5f52341fc": {
+      "address": "0xb200000000000000000000F6b0417af5F52341FC",
+      "symbol": "INFYc",
+      "issuer": "coinbase",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x356cC16Fe38A6ad0eB25e655759dD963F8D674BF",
+          "dexId": "aerodrome",
+          "baseToken": "0xb200000000000000000000f6b0417af5f52341fc",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "INFYc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        }
+      ]
+    },
     "0xb200000000000000000000f720c26062bc3067da": {
       "address": "0xB200000000000000000000f720C26062Bc3067Da",
       "symbol": "TTWOc",
@@ -9385,6 +10911,16 @@
           "source": "dexscreener"
         },
         {
+          "pairAddress": "0xa589bcc0d793a9a04ab28fc7b2f1f607bb3b1d1186d10195378361b3c95b886b",
+          "dexId": "uniswap",
+          "baseToken": "0xb200000000000000000000eb3e7b0d0d7e440901",
+          "quoteToken": "0xb200000000000000000000f720c26062bc3067da",
+          "baseSymbol": "Dacity",
+          "quoteSymbol": "TTWOc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0xaa800e93ab2fdd66fd7881c5dd17da39ac0f0117faf27587766149b523b255d6",
           "dexId": "bankr",
           "baseToken": "0x196b52bdf02d7b9a8ea7e2ecddabe75f2ea44ba3",
@@ -9401,7 +10937,7 @@
           "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
           "baseSymbol": "TTWOc",
           "quoteSymbol": "USDC",
-          "listedOnDex": false,
+          "listedOnDex": true,
           "source": "geckoterminal"
         },
         {
@@ -9470,6 +11006,16 @@
           "source": "dexscreener"
         },
         {
+          "pairAddress": "0x4cacecf937e679cc9638a1c0641a12ff333ff4195684c8bc5d6101f113153923",
+          "dexId": "uniswap",
+          "baseToken": "0xb200000000000000000000fc737aea6196ab5a4c",
+          "quoteToken": "0xe34cb32ef1edd00016b4056c257d31c3cdad1c01",
+          "baseSymbol": "AVGOc",
+          "quoteSymbol": "casino",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0x4ee43ecb7665865aa0a542aecc7678b3f811dedd",
           "dexId": "aerodrome-slipstream-3",
           "baseToken": "0xc718f11b3256769d7e590ad0bd99df7a9d25ba16",
@@ -9478,6 +11024,26 @@
           "quoteSymbol": "AVGOc",
           "listedOnDex": false,
           "source": "geckoterminal"
+        },
+        {
+          "pairAddress": "0x60f4783d1073c4eafac4feb279ca900fdd0232badebb7cc3b449c35166972dd1",
+          "dexId": "uniswap",
+          "baseToken": "0x604a7fc69a8a8723f7a16b888a2a4ad30854b001",
+          "quoteToken": "0xb200000000000000000000fc737aea6196ab5a4c",
+          "baseSymbol": "casino",
+          "quoteSymbol": "AVGOc",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
+          "pairAddress": "0xa2ed2fa66780422445a60a11e9ec7f23c1c2faf512616d3d9051664ed07daa6b",
+          "dexId": "uniswap",
+          "baseToken": "0xb20000000000000000000045c8eed82ceef73e01",
+          "quoteToken": "0xb200000000000000000000fc737aea6196ab5a4c",
+          "baseSymbol": "casino",
+          "quoteSymbol": "AVGOc",
+          "listedOnDex": true,
+          "source": "dexscreener"
         },
         {
           "pairAddress": "0xb3363a1b749860e38596b13af421a096e2a8c4f85aeb483f6043aa9e93ce0af5",
@@ -9672,6 +11238,16 @@
           "source": "geckoterminal"
         },
         {
+          "pairAddress": "0xb0ce25fbb283c86dc7de3bf9c2a9e99d544bece596780468d4eedbac1738cb0b",
+          "dexId": "uniswap",
+          "baseToken": "0xb200000000000000000000fd2f87532b90095211",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "MUc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
+        },
+        {
           "pairAddress": "0xb1de48d0cc2d6d8271b2fe1864ae73b73ba14083",
           "dexId": "aerodrome-slipstream-3",
           "baseToken": "0xf8de061c15e5c0c0cbc67e99ccf6aa3276cb5b44",
@@ -9724,6 +11300,16 @@
           "quoteSymbol": "MUc",
           "listedOnDex": false,
           "source": "geckoterminal"
+        },
+        {
+          "pairAddress": "0xf9abb7d94dbeb1e9ef4af64e8ac8263ed55d450d1b4582e3f3392697fd1da0ac",
+          "dexId": "uniswap",
+          "baseToken": "0xb200000000000000000000fd2f87532b90095211",
+          "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "baseSymbol": "MUc",
+          "quoteSymbol": "USDC",
+          "listedOnDex": true,
+          "source": "dexscreener"
         }
       ],
       "mainPool": "0x17e1bEB2cD65493Da73ed4BbbC7BEcAAa0F91C73"
@@ -9807,7 +11393,7 @@
           "quoteToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
           "baseSymbol": "wbCOIN",
           "quoteSymbol": "USDC",
-          "listedOnDex": false,
+          "listedOnDex": true,
           "source": "geckoterminal"
         },
         {
@@ -10205,6 +11791,16 @@
           "quoteSymbol": "ETH",
           "listedOnDex": false,
           "source": "geckoterminal"
+        },
+        {
+          "pairAddress": "0xaffa3bc144d57a0453f4752242640fc5294b2a9de64032aed13fe646eaa107c9",
+          "dexId": "uniswap",
+          "baseToken": "0xd5609c744f17ddf95a619d9f89895cf0677a8de9",
+          "quoteToken": "0xfcd17ac4c4bf6a72c93018096f3fc09e66573ff9",
+          "baseSymbol": "SKHYNET",
+          "quoteSymbol": "wtSKHY",
+          "listedOnDex": true,
+          "source": "dexscreener"
         }
       ]
     },
