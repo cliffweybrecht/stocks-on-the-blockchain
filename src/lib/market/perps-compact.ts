@@ -1,3 +1,4 @@
+import { decodePerpsArchive, encodePerpsArchive, type PerpsArchiveCheck } from "./perps-archive";
 import type { PerpsCategory } from "./perps-classify";
 import { perpGroupLabel } from "./perps-classify";
 import { sumNullable } from "./numbers";
@@ -93,6 +94,8 @@ export interface PerpsCompactDay {
   capturedAt: string;
   venues: PerpsCompactVenue[];
   tickers: PerpsCompactTicker[];
+  /** Binance/Bybit official-archive cross-check. Absent on older rows. */
+  archive?: PerpsArchiveCheck;
 }
 
 export function isCompactDay(row: object): row is PerpsCompactDay {
@@ -310,12 +313,14 @@ function compactTickers(day: PerpsDaySnapshot): PerpsCompactTicker[] {
 }
 
 export function compactPerpsDay(day: PerpsDaySnapshot): PerpsCompactDay {
-  return {
+  const compact: PerpsCompactDay = {
     date: day.date,
     capturedAt: day.capturedAt,
     venues: day.venues.map(compactVenue),
     tickers: compactTickers(day),
   };
+  if (day.archive) compact.archive = day.archive;
+  return compact;
 }
 
 function finite(value: unknown): number | undefined {
@@ -491,6 +496,8 @@ export function encodeCompactDay(day: PerpsCompactDay): {
   capturedAt: string;
   venues: unknown[];
   tickers: unknown[];
+  arc?: unknown[];
+  arcNote?: string;
 } {
   const venueIndex = new Map(day.venues.map((venue, index) => [venue.venue, index]));
   const funded = fundingGroups(day.tickers);
@@ -539,7 +546,20 @@ export function encodeCompactDay(day: PerpsCompactDay): {
     }
     return wire;
   });
-  return { date: day.date, capturedAt: day.capturedAt, venues, tickers };
+  const encoded: {
+    date: string;
+    capturedAt: string;
+    venues: unknown[];
+    tickers: unknown[];
+    arc?: unknown[];
+    arcNote?: string;
+  } = { date: day.date, capturedAt: day.capturedAt, venues, tickers };
+  if (day.archive) {
+    const archive = encodePerpsArchive(day.archive);
+    encoded.arc = archive.arc;
+    if (archive.arcNote) encoded.arcNote = archive.arcNote;
+  }
+  return encoded;
 }
 
 function decodePart(value: unknown): PerpsCompactPart | null {
@@ -556,7 +576,14 @@ function decodePart(value: unknown): PerpsCompactPart | null {
   return part;
 }
 
-function decodeWireDay(row: { date: string; capturedAt?: unknown; venues?: unknown; tickers?: unknown }): PerpsCompactDay | null {
+function decodeWireDay(row: {
+  date: string;
+  capturedAt?: unknown;
+  venues?: unknown;
+  tickers?: unknown;
+  arc?: unknown;
+  arcNote?: unknown;
+}): PerpsCompactDay | null {
   const capturedAt = typeof row.capturedAt === "string" ? row.capturedAt : "";
   const venues: PerpsCompactVenue[] = [];
   if (Array.isArray(row.venues)) {
@@ -648,10 +675,14 @@ function decodeWireDay(row: { date: string; capturedAt?: unknown; venues?: unkno
     }
   }
   tickers.sort((a, b) => a.group.localeCompare(b.group) || a.category.localeCompare(b.category));
-  return { date: row.date, capturedAt, venues, tickers };
+  const decoded: PerpsCompactDay = { date: row.date, capturedAt, venues, tickers };
+  const archive = decodePerpsArchive(row.arc, row.arcNote);
+  if (archive) decoded.archive = archive;
+  return decoded;
 }
 
-function isWireDay(row: { venues?: unknown; tickers?: unknown }): boolean {
+function isWireDay(row: { venues?: unknown; tickers?: unknown; arc?: unknown }): boolean {
+  if (Array.isArray(row.arc)) return true;
   if (Array.isArray(row.tickers) && row.tickers.some((ticker) => Array.isArray(ticker))) return true;
   if (!Array.isArray(row.venues)) return false;
   return row.venues.some((venue) => {
@@ -662,7 +693,14 @@ function isWireDay(row: { venues?: unknown; tickers?: unknown }): boolean {
   });
 }
 
-export function parseCompactDay(row: { date: string; capturedAt?: unknown; venues?: unknown; tickers?: unknown }): PerpsCompactDay | null {
+export function parseCompactDay(row: {
+  date: string;
+  capturedAt?: unknown;
+  venues?: unknown;
+  tickers?: unknown;
+  arc?: unknown;
+  arcNote?: unknown;
+}): PerpsCompactDay | null {
   if (isWireDay(row)) return decodeWireDay(row);
   const venues = Array.isArray(row.venues)
     ? row.venues.map(parseCompactVenue).filter((venue): venue is PerpsCompactVenue => venue !== null)

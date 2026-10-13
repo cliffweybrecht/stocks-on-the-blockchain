@@ -35,6 +35,13 @@ captureEquityPerpsSnapshot()
       `Headline ${billions(view.headlineUsd)}  onchain ${billions(view.onchainUsd)}  major CEX ${billions(view.cexDirectUsd)}  Binance+Bybit ${billions(view.cexCoingeckoUsd)}  long-tail ${billions(view.longTailUsd)}  excluded ${billions(view.excludedUsd)}`,
     );
     console.log(`Venues ${view.venueCount}  markets ${view.marketCount}  pre-IPO ${billions(view.preipoUsd)}`);
+    if (day.archive) {
+      const binance = day.archive.binance;
+      const bybit = day.archive.bybit;
+      console.log(
+        `Archive ${day.archive.utcDate}  Binance CG ${billions(binance.coingeckoVolumeUsd)} vs dump ${billions(binance.volumeUsd)} (${binance.covered}/${binance.symbols})  Bybit CG ${billions(bybit.coingeckoVolumeUsd)} vs dump ${billions(bybit.volumeUsd)} (${bybit.covered}/${bybit.symbols})${day.archive.note ? `  ${day.archive.note}` : ""}`,
+      );
+    }
     for (const venue of view.venues) {
       const vol = venue.volumeUsd === null ? "—".padStart(10) : `${(venue.volumeUsd / 1e6).toFixed(1)}M`.padStart(10);
       const flag = venue.error ? `  ERROR ${venue.error}` : venue.credible ? "" : "  EXCLUDED";

@@ -82,8 +82,8 @@ export interface PerpsCgSpec {
 }
 
 export const CG_SPECS: readonly PerpsCgSpec[] = [
-  { market: "Binance (Futures)", venue: "Binance", tier: "cex-coingecko", note: "Binance blocks this host. CoinGecko only. The www.binance.com route is not used." },
-  { market: "Bybit (Futures)", venue: "Bybit", tier: "cex-coingecko", note: "Bybit blocks this host. CoinGecko only." },
+  { market: "Binance (Futures)", venue: "Binance", tier: "cex-coingecko", note: "Binance blocks this host. CoinGecko rolling 24h is the headline. The www.binance.com route is not used. A prior-UTC-day archive cross-check is stored beside the row and is not the headline." },
+  { market: "Bybit (Futures)", venue: "Bybit", tier: "cex-coingecko", note: "Bybit blocks this host. CoinGecko rolling 24h is the headline. A prior-UTC-day public trade-archive cross-check is stored beside the row and is not the headline." },
   { market: "Tapbit (Futures)", venue: "Tapbit", tier: "long-tail", note: "CoinGecko only, unverified. Opt-in long-tail. Not in the default headline." },
   { market: "CoinW (Futures)", venue: "CoinW", tier: "long-tail", note: "CoinGecko only, unverified. Opt-in long-tail. Not in the default headline." },
   { market: "Ourbit (Futures)", venue: "Ourbit", tier: "long-tail", note: "CoinGecko only, unverified. Opt-in long-tail. Not in the default headline." },
@@ -345,6 +345,21 @@ export const PERPS_DIRECT_SPECS: readonly PerpsDirectSpec[] = [
     source: "GET https://socket-api-pub.avantisfi.com/socket-api/v1/data",
     note: "No public 24h volume. Open interest is the equities group (groupIndex 6). Volume stays blank.",
   },
+  {
+    venue: "WEEX",
+    tier: "cex-direct",
+    volumeWindow: "rolling-24h",
+    source:
+      "GET https://api-contract.weex.com/capi/v3/market/ticker/24hr (+ /market/exchangeInfo, /market/openInterest?symbol=)",
+    note: "Rolling 24h quoteVolume, kept when quoteVolume / volume is a price inside that bar. Otherwise volume × mark. Open interest is base size × mark. Equity flag is underlyingType Stocks, Indices, or Pre-IPO. The CoinGecko WEEX row is not added.",
+  },
+  {
+    venue: "Coinbase International",
+    tier: "cex-direct",
+    volumeWindow: "rolling-24h",
+    source: "GET https://api.international.coinbase.com/api/v1/instruments",
+    note: "Paused equity, equity-ETF, and pre-IPO instruments are stored at $0 24h notional. They are not omitted. USD open interest stays blank because this feed's open interest is base size.",
+  },
 ];
 
 export interface PerpsHeldOut {
@@ -353,13 +368,8 @@ export interface PerpsHeldOut {
   reason: string;
 }
 
-export const PERPS_HELD_OUT: readonly PerpsHeldOut[] = [
-  {
-    venue: "WEEX",
-    cgMarket: "WEEX (Futures)",
-    reason: "Listed on the place map and not snapshotted. Its direct API and CoinGecko disagree by about 4×.",
-  },
-];
+/** Venues on the place map that this writer still refuses to snapshot. Empty while WEEX and Coinbase International are fetched. */
+export const PERPS_HELD_OUT: readonly PerpsHeldOut[] = [];
 
 /** CoinGecko market name for a direct book. Used so the skip list is not described as unfetched. */
 export const PERPS_DIRECT_CG_MARKET: Readonly<Record<string, string>> = {
@@ -393,6 +403,7 @@ export const PERPS_DIRECT_CG_MARKET: Readonly<Record<string, string>> = {
   Pacifica: "Pacifica",
   Orderly: "Orderly",
   Paradex: "Paradex",
+  WEEX: "WEEX (Futures)",
 };
 
 /** CoinGecko markets on the skip list that this writer does not fetch another way. */
@@ -475,3 +486,10 @@ export function listPerpsSourceCatalog(): PerpsCatalogRow[] {
 
 /** Snapshot clock. The Eastern day key is still that America/New_York date. */
 export const PERPS_SNAPSHOT_CLOCK = "11:59 PM America/New_York";
+
+/** Official USD-M daily dumps. Not a geo-block workaround. */
+export const PERPS_BINANCE_ARCHIVE_SOURCE =
+  "https://data.binance.vision/data/futures/um/daily/klines/<SYM>/1d/<SYM>-1d-YYYY-MM-DD.zip and https://data.binance.vision/data/futures/um/daily/metrics/<SYM>/<SYM>-metrics-YYYY-MM-DD.zip";
+
+/** Official public trade dumps. Sum of size × price. api.bybit.com is not used. */
+export const PERPS_BYBIT_ARCHIVE_SOURCE = "https://public.bybit.com/trading/<SYM>/<SYM>YYYY-MM-DD.csv.gz";
