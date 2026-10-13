@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type PointerEvent } from "react";
+import Link from "next/link";
 import { CHART_PLOT_FRAME_CLASS, DESK_CHART_STROKE, monotoneLinePath } from "@/lib/desk/chart-curve";
 import {
   VOLUME_CHART_HEIGHT,
@@ -10,11 +11,15 @@ import {
   VOLUME_CHART_WIDTH,
   type VolumeChartRangeId,
 } from "@/lib/market/daily-volume-view";
+import { PERPS_CSV_FILES } from "@/lib/market/perps-csv";
 import { formatChartDay, formatUsdCompact, formatUsdFull, volumeShare } from "@/lib/market/format";
 import { maxNullable } from "@/lib/market/numbers";
 import { perpCategoryLabel, type PerpsCategory } from "@/lib/market/perps-classify";
 import { HIP3_BUILDERS, PERP_PLACES } from "@/lib/market/perps-meta";
+import { PERPS_HELD_OUT, perpsFeedKind } from "@/lib/market/perps-sources";
+import { perpsTickerHref } from "@/lib/market/perps-ticker";
 import {
+  formatPerpsEt,
   perpsTierLabel,
   selectPerpsRange,
   shortPerpsSource,
@@ -129,6 +134,21 @@ export function PerpsDesk({ model }: { model: PerpsDeskModel }) {
           25× open interest, or whose open interest is under $5M with volume over $100M, is recorded and
           left out.
         </p>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm" data-perps-downloads>
+          <Link href="/perps/methodology" className="text-primary underline-offset-2 hover:underline" data-perps-methodology-link>
+            Methodology
+          </Link>
+          {PERPS_CSV_FILES.map((file) => (
+            <a
+              key={file.id}
+              href={file.href}
+              data-perps-csv={file.id}
+              className="text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            >
+              {file.label} CSV
+            </a>
+          ))}
+        </div>
       </header>
 
       <section className="rounded-xl border border-border bg-card/80 px-4 py-4 sm:px-5" data-perps-volume-card>
@@ -320,8 +340,8 @@ export function PerpsDesk({ model }: { model: PerpsDeskModel }) {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <div className="grid w-full min-w-[76rem] grid-cols-[2.5rem_minmax(13rem,1.4fr)_6.5rem_minmax(6.5rem,0.8fr)_minmax(6rem,0.7fr)_4.5rem_4rem_minmax(9rem,1.1fr)_minmax(7rem,0.8fr)] gap-x-3 gap-y-2">
-              {["#", "Venue", "Tier", "Volume", "Open interest", "Vol/OI", "Markets", "Chain / operator", "Source"].map((label) => (
+            <div className="grid w-full min-w-[84rem] grid-cols-[2.5rem_minmax(13rem,1.4fr)_6.5rem_minmax(6.5rem,0.8fr)_minmax(6rem,0.7fr)_4.5rem_4rem_minmax(9rem,1.1fr)_minmax(8rem,0.9fr)_minmax(8rem,0.7fr)] gap-x-3 gap-y-2">
+              {["#", "Venue", "Tier", "Volume", "Open interest", "Vol/OI", "Markets", "Chain / operator", "Source", "As of"].map((label) => (
                 <div key={label} className="px-1 text-xs text-muted-foreground">
                   {label}
                 </div>
@@ -370,7 +390,9 @@ export function PerpsDesk({ model }: { model: PerpsDeskModel }) {
                 data-perps-underlying={row.group}
               >
                 <div className="min-w-0">
-                  <p className="truncate font-medium">{row.group}</p>
+                  <Link href={perpsTickerHref(row.group)} className="block truncate font-medium hover:text-primary" data-perps-underlying-link={row.group}>
+                    {row.group}
+                  </Link>
                   <p className="text-[10px] text-muted-foreground">
                     {perpCategoryLabel(row.category)}
                     {row.venueCount > 0 ? ` · ${row.venueCount} ${row.venueCount === 1 ? "venue" : "venues"}` : ""}
@@ -635,7 +657,7 @@ function PlacesSection() {
     <section className="space-y-3" data-perps-places>
       <h3 className="font-heading text-lg font-medium">Where it runs</h3>
       <p className="max-w-3xl text-[11px] leading-snug text-muted-foreground">
-        Static reference from the Oct 8 2026 venue map. Jurisdiction is what CoinGecko lists unless noted. Oracle sources that were not confirmed in docs stay unverified. WEEX is listed and not snapshotted: its direct API and CoinGecko disagree by about 4×.
+        Static reference from the Oct 8 2026 venue map. Jurisdiction is what CoinGecko lists unless noted. Oracle sources that were not confirmed in docs stay unverified. {PERPS_HELD_OUT.map((row) => `${row.venue}: ${row.reason}`).join(" ")}
       </p>
       <div className="overflow-x-auto">
         <div className="grid w-full min-w-[64rem] grid-cols-[minmax(12rem,0.9fr)_minmax(14rem,1.2fr)_minmax(10rem,0.8fr)_minmax(10rem,0.8fr)_minmax(14rem,1.2fr)] gap-x-3 gap-y-2">
@@ -711,8 +733,12 @@ function VenueRow({
         <p className="truncate text-xs">{chainLabel(venue.chain)}</p>
         <p className="truncate text-[10px] text-muted-foreground">{venue.operator || "—"}</p>
       </div>
-      <p className="truncate text-xs text-muted-foreground" title={venue.source}>
-        {shortPerpsSource(venue.source)}
+      <div className="min-w-0" title={venue.source} data-perps-source-kind={perpsFeedKind(venue.source)}>
+        <p className="truncate text-xs">{perpsFeedKind(venue.source)}</p>
+        <p className="truncate text-[10px] text-muted-foreground">{shortPerpsSource(venue.source)}</p>
+      </div>
+      <p className="text-xs leading-snug text-muted-foreground" data-perps-freshness title={venue.windowNote}>
+        {venue.capturedAt ? formatPerpsEt(venue.capturedAt) : "—"}
       </p>
     </div>
   );

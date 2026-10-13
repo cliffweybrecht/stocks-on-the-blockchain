@@ -148,9 +148,19 @@ export function normPerpSymbol(sym: string): string {
   return ALIAS[s] ?? s;
 }
 
+/** Explicit leveraged/inverse equity ETF tickers. Suffix rule is separate. */
+export const PERPS_LEVERAGED_ETF_UNDERLYINGS: ReadonlySet<string> = LEVERAGED_ETF;
+/** Pre-IPO names. Stored as a side stat, not in the headline or the ticker list. */
+export const PERPS_PREIPO_UNDERLYINGS: ReadonlySet<string> = PREIPO;
+/** Index aliases collapse to one underlying label. */
+export const PERPS_INDEX_LABELS: Readonly<Record<string, string>> = INDEX_ALIASES;
+/** CSOP-style leveraged suffixes. Applied only when the name is at least this long. */
+export const PERPS_LEVERAGED_SUFFIX = /(?:2L|3L|2S|3S)$/;
+export const PERPS_LEVERAGED_SUFFIX_MIN_LENGTH = 5;
+
 function leveragedName(n: string): boolean {
-  if (LEVERAGED_ETF.has(n)) return true;
-  return n.length >= 5 && /(?:2L|3L|2S|3S)$/.test(n);
+  if (PERPS_LEVERAGED_ETF_UNDERLYINGS.has(n)) return true;
+  return n.length >= PERPS_LEVERAGED_SUFFIX_MIN_LENGTH && PERPS_LEVERAGED_SUFFIX.test(n);
 }
 
 export function classifyPerpUnderlying(n: string): PerpsClass {
