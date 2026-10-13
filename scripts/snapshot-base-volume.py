@@ -1119,6 +1119,7 @@ def load_seed(universe: Universe) -> None:
 
 
 def load_coinbase_api(universe: Universe) -> None:
+    """Every page of the public list. The first response is 100 tokens and sets next_page_token."""
     try:
         data = fetch_json(COINBASE_API)
     except Exception as e:  # noqa: BLE001
@@ -1126,10 +1127,29 @@ def load_coinbase_api(universe: Universe) -> None:
         return
     universe.mark("coinbase-api")
     rows = listings_from_coinbase_api(data)
+    pages = 1
+    seen_tokens: set[str] = set()
+    token = data.get("next_page_token") if isinstance(data, dict) else None
+    while token and pages < 20:
+        page_token = str(token)
+        if page_token in seen_tokens:
+            break
+        seen_tokens.add(page_token)
+        pages += 1
+        url = COINBASE_API + "?page_token=" + urllib.parse.quote(page_token)
+        try:
+            data = fetch_json(url)
+        except Exception as e:  # noqa: BLE001
+            universe.warn(f"coinbase tokenized-stocks page {pages}: {e}")
+            break
+        if not isinstance(data, dict):
+            break
+        rows.extend(listings_from_coinbase_api(data))
+        token = data.get("next_page_token")
     for row in rows:
         _remember_coinbase(row["address"])
         universe.add(row, "coinbase-api")
-    print(f"snapshot:base coinbase-api tokens={len(rows)}", flush=True)
+    print(f"snapshot:base coinbase-api tokens={len(rows)} pages={pages}", flush=True)
 
 
 def load_base_docs(universe: Universe) -> None:
