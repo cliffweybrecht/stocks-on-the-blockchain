@@ -576,6 +576,8 @@ export interface PerpsVenueRow {
   source: string;
   volumeWindow: string;
   windowNote: string;
+  /** Capture instant for this venue. Falls back to the day when the row omitted its own. */
+  capturedAt: string;
   error: string | null;
   zeroFee: boolean;
   credible: boolean;
@@ -733,7 +735,7 @@ function rangeLabel(range: VolumeChartRangeId): string {
   return VOLUME_CHART_RANGES.find((row) => row.id === range)?.label ?? range;
 }
 
-function formatEt(iso: string): string {
+export function formatPerpsEt(iso: string): string {
   const t = Date.parse(iso);
   if (!Number.isFinite(t)) return "";
   return new Intl.DateTimeFormat("en-US", {
@@ -797,9 +799,9 @@ export function selectPerpsRange(
   } else if (!newest) {
     caption = `${rangeLabel(range)} · no closed Eastern day in this range. 24H is the latest capture, and it is not a closed-day total until 11:59 PM America/New_York.`;
   } else if (range === "24h" && openDay) {
-    caption = `Latest capture ${formatEt(newest.capturedAt)} · Eastern day ${newest.date} has not closed · rolling 24h venue totals, not the 11:59 PM ET snapshot`;
+    caption = `Latest capture ${formatPerpsEt(newest.capturedAt)} · Eastern day ${newest.date} has not closed · rolling 24h venue totals, not the 11:59 PM ET snapshot`;
   } else if (range === "24h") {
-    caption = `24H · ${newest.date} America/New_York · last closed snapshot${capturedAt ? ` · captured ${formatEt(newest.capturedAt)}` : ""}`;
+    caption = `24H · ${newest.date} America/New_York · last closed snapshot${capturedAt ? ` · captured ${formatPerpsEt(newest.capturedAt)}` : ""}`;
   } else {
     caption = `${rangeLabel(range)} · sum of closed Eastern snapshots · ${reportedDays} of ${windowDays} days with a reported total`;
   }
@@ -819,6 +821,7 @@ export function selectPerpsRange(
         excludeReason: venue.excludeReason,
         chain: venue.chain,
         operator: venue.operator,
+        capturedAt: venue.capturedAt,
         volumeUsd: null,
         openInterestUsd: null,
         marketCount: 0,
@@ -850,6 +853,7 @@ export function selectPerpsRange(
       existing.operator = venue.operator || existing.operator;
       existing.tier = venue.tier;
       if (newest && day.date === newest.date) {
+        existing.capturedAt = venue.capturedAt || existing.capturedAt;
         existing.openInterestUsd = sumNullable(ois);
         existing.marketCount = count;
       }

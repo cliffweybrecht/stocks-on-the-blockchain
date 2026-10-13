@@ -24,7 +24,7 @@ import type {
 
 export const PERPS_TICKER_CAP = 48;
 /** Funding is stored for names that can reach the 10-row table under any toggle. */
-const PERPS_FUNDING_CAP = 16;
+export const PERPS_FUNDING_CAP = 16;
 
 const CATEGORY_ORDER = ["stock", "etf", "leveraged-etf", "index", "preipo"] as const;
 
