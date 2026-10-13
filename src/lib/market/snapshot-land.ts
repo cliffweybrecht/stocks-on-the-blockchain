@@ -275,23 +275,6 @@ export function parseOriginPrListNumber(text: string): number | null {
   return match ? Number(match[1]) : null;
 }
 
-/**
- * stdout cap for `execFileSync` when git prints a snapshot file. Node's
- * default is 1 MiB. Volume snapshots and perps both use this cap. Callers
- * omit `maxBuffer` when this returns undefined (status, log, and other
- * small commands).
- */
-export const SNAPSHOT_GIT_MAX_BUFFER = 64 * 1024 * 1024;
-
-export function snapshotGitMaxBuffer(args: readonly string[]): number | undefined {
-  for (const arg of args) {
-    if (arg.includes("data/volume-snapshots/") || arg.includes("data/perps-snapshots/")) {
-      return SNAPSHOT_GIT_MAX_BUFFER;
-    }
-  }
-  return undefined;
-}
-
 export const SNAPSHOT_LAND_PUSH_REJECTED = `Origin rejected merging this snapshot PR.
 Landed locally instead when possible: git merge --no-ff into main, push origin main (never force), then comment the merge commit and close the PR.
 Do not force-push main.`;

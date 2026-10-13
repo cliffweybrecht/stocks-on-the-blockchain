@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
+import { readGitStdout } from "../src/lib/market/snapshot-git";
 import {
   SNAPSHOT_LAND_PUSH_REJECTED,
   assertAppendOnlySnapshot,
@@ -15,7 +16,6 @@ import {
   parseOriginPrView,
   porcelainPath,
   snapshotCommitSubject,
-  snapshotGitMaxBuffer,
   volumeSnapshotChain,
   type VolumeSnapshotChain,
 } from "../src/lib/market/snapshot-land";
@@ -68,17 +68,8 @@ function gitText(error: unknown): string {
 }
 
 function git(args: string[], cwd: string): string {
-  const maxBuffer = snapshotGitMaxBuffer(args);
-  try {
-    return execFileSync("git", args, {
-      cwd,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-      ...(maxBuffer === undefined ? {} : { maxBuffer }),
-    });
-  } catch (error) {
-    throw new Error(gitText(error));
-  }
+  // Temp files, not execFileSync. Snapshot blobs are past Node's 1 MiB pipe cap.
+  return readGitStdout(args, cwd);
 }
 
 function origin(args: string[], cwd: string): { ok: true; stdout: string } | { ok: false; output: string } {
