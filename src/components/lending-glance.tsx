@@ -16,7 +16,13 @@ import {
   type LendingFillingFlag,
   type LendingGlanceCopy,
 } from "@/lib/market/lending-glance";
-import { formatLendingApy, formatLendingFractionPct, formatLtvPerHundred, type LendingTotals } from "@/lib/market/lending-snapshot";
+import {
+  formatLendingApy,
+  formatLendingFractionPct,
+  formatLtvPerHundred,
+  lendingOmissionSentence,
+  type LendingTotals,
+} from "@/lib/market/lending-snapshot";
 
 type Metric = "collateral" | "borrowed";
 
@@ -152,6 +158,7 @@ export function LendingGlancePanel({
   depth,
   capturedLabel,
   totals,
+  fullnessNote,
   riskLine,
   readError,
 }: {
@@ -162,6 +169,7 @@ export function LendingGlancePanel({
   depth: LendingDepth;
   capturedLabel: string | null;
   totals: LendingTotals;
+  fullnessNote: string;
   riskLine: string;
   readError: string | null;
 }) {
@@ -250,6 +258,9 @@ export function LendingGlancePanel({
           <span className="num text-foreground">{totals.borrowApy === null ? "—" : formatLendingFractionPct(totals.borrowApy)}</span>
         </p>
       </div>
+      <p className="max-w-3xl text-sm leading-6 text-muted-foreground" data-lending-full-definition>
+        {fullnessNote}
+      </p>
 
       {flags.length > 0 ? (
         <ul className="flex flex-wrap gap-2" data-lending-flags>
@@ -348,6 +359,7 @@ export function LendingGlancePanel({
           drill={drill}
           depth={depth}
           totals={totals}
+          fullnessNote={fullnessNote}
           onDrill={setDrill}
           onClose={() => setDrill(null)}
         />
@@ -360,12 +372,14 @@ function DrillView({
   drill,
   depth,
   totals,
+  fullnessNote,
   onDrill,
   onClose,
 }: {
   drill: Drill;
   depth: LendingDepth;
   totals: LendingTotals;
+  fullnessNote: string;
   onDrill: (drill: Drill) => void;
   onClose: () => void;
 }) {
@@ -408,7 +422,9 @@ function DrillView({
           </>
         ) : null}
       </nav>
-      {drill.kind === "chains" ? <ChainList depth={depth} totals={totals} metric={drill.metric} onOpen={(chainId) => onDrill({ kind: "chain", chainId })} /> : null}
+      {drill.kind === "chains" ? (
+        <ChainList depth={depth} totals={totals} fullnessNote={fullnessNote} metric={drill.metric} onOpen={(chainId) => onDrill({ kind: "chain", chainId })} />
+      ) : null}
       {drill.kind === "chain" && chain ? (
         <ChainDetail chain={chain} venues={depth.venues.filter((item) => item.chainId === chain.chainId)} onOpen={(venueId) => onDrill({ kind: "venue", venueId })} />
       ) : null}
@@ -421,11 +437,13 @@ function DrillView({
 function ChainList({
   depth,
   totals,
+  fullnessNote,
   metric,
   onOpen,
 }: {
   depth: LendingDepth;
   totals: LendingTotals;
+  fullnessNote: string;
   metric: Metric;
   onOpen: (chainId: string) => void;
 }) {
@@ -439,8 +457,10 @@ function ChainList({
       <div>
         <h3 className="text-xl font-semibold tracking-tight text-foreground">Every chain</h3>
         <p className="mt-1 text-sm leading-6 text-muted-foreground" data-lending-stat="full">
-          Dollar pools are {formatLendingFractionPct(totals.utilization)} full.{" "}
-          <span data-lending-stat="cost">A typical loan costs {formatLendingApy(totals)} a year.</span>
+          {totals.utilization === null
+            ? "How full is unknown until a pool reports both dollars borrowed and dollars supplied to lend."
+            : `Pools with their own lend supply are ${formatLendingFractionPct(totals.utilization)} full.`}{" "}
+          <span data-lending-stat="cost">A typical loan costs {formatLendingApy(totals)} a year.</span> {fullnessNote}
         </p>
       </div>
       <ul className="divide-y divide-border/70">
@@ -468,7 +488,8 @@ function ChainDetail({ chain, venues, onOpen }: { chain: LendingDepthChain; venu
         <p className="mt-1 text-sm leading-6 text-muted-foreground">
           {usd(chain.collateralUsd)} locked, {usd(chain.stableBorrowedUsd)} borrowed
           {chain.utilization !== null ? `, ${formatLendingFractionPct(chain.utilization)} full` : ""}
-          {chain.borrowApy !== null ? `, ${formatLendingFractionPct(chain.borrowApy)} a year` : ""}.
+          {chain.borrowApy !== null ? `, ${formatLendingFractionPct(chain.borrowApy)} a year` : ""}.{" "}
+          {lendingOmissionSentence(venues) ?? ""}
         </p>
       </div>
       <ul className="divide-y divide-border/70">

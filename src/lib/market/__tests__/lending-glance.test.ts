@@ -250,6 +250,39 @@ describe("lending glance", () => {
     expect(lendingDropAnswer([gap], "morpho-base", 0.1).sentence).toMatch(/priced stock/);
   });
 
+  it("leaves a shared pool out of the chain total and keeps that pool's own fullness", () => {
+    const own = row({
+      id: "kamino-xstocks",
+      venue: "Kamino xStocks",
+      stableBorrowedUsd: 50,
+      lendSupplyUsd: 100,
+      utilization: 0.5,
+      collateralUsd: 80,
+    });
+    const shared = row({
+      id: "jupiter-lend",
+      venue: "Jupiter Lend",
+      stableBorrowedUsd: 40,
+      lendSupplyUsd: null,
+      utilization: 0.9,
+      collateralUsd: 70,
+    });
+    const depth = buildLendingDepth([
+      {
+        schema: "equity-lending-v1",
+        date: "2026-10-12",
+        capturedAt: "2026-10-13T04:00:00.000Z",
+        rows: [own, shared],
+        failures: [],
+      },
+    ]);
+    expect(depth.venues.find((venue) => venue.id === "jupiter-lend")?.utilization).toBe(0.9);
+    expect(depth.venues.find((venue) => venue.id === "jupiter-lend")?.history[0]?.utilization).toBe(0.9);
+    expect(depth.chains[0]?.utilization).toBeCloseTo(0.5, 6);
+    expect(depth.chains[0]?.history[0]?.utilization).toBeCloseTo(0.5, 6);
+    expect(aggregateLendingTotals([own, shared]).utilization).toBeCloseTo(0.5, 6);
+  });
+
   it("reads the stored snapshots without inventing a jump or a breach", () => {
     const latest = parseLendingSnapshot(JSON.parse(readFileSync("data/lending-snapshots/2026-10-09.json", "utf8")));
     const prior = parseLendingSnapshot(JSON.parse(readFileSync("data/lending-snapshots/2026-10-08.json", "utf8")));

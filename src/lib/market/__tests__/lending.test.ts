@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -24,18 +25,22 @@ import {
   formatStockBorrowedNote,
   groupLendingRows,
   lendingDayFromCapture,
+  lendingDeskUtilization,
+  lendingFullnessNote,
   lendingHeadline,
   lendingHistoryFromDays,
   lendingHistorySeries,
   lendingLtvExplainer,
+  lendingSnapshotSanity,
   lendingUtilization,
+  lendingUtilizationOmissions,
   parseLendingSnapshot,
   serializeLendingSnapshot,
 } from "../lending-snapshot";
 import { existsSync } from "node:fs";
 import { lendingChainLogo, lendingStockLogo, lendingVenueLogo } from "../lending-logos";
 import { classifyLendingSymbol, isSmallLendingBook, lendingActionChips, lendingActionLines, lendingBoardRows, lendingChainShareParts, lendingStockGroups } from "../lending-stocks";
-import { lendingGlossary } from "../lending-glossary";
+import { LENDING_FULLNESS_TEXT, lendingGlossary } from "../lending-glossary";
 import { tokenCountFromRaw } from "../numbers";
 import {
   attributeVenusBorrow,
@@ -604,7 +609,16 @@ describe("lending aggregation", () => {
       borrowApyMax: 0.05,
     };
     const mixed = aggregateLendingTotals([kamino, shared]);
-    expect(mixed.utilization).toBeCloseTo((0.9 * 45 + 0.8 * 40) / 85, 6);
+    expect(mixed.utilization).toBeCloseTo(0.9, 6);
+    expect(mixed.utilization).not.toBeCloseTo((0.9 * 45 + 0.8 * 40) / 85, 2);
+    expect(lendingDeskUtilization([kamino, shared])).toBe(mixed.utilization);
+    expect(aggregateLendingTotals([shared]).utilization).toBeNull();
+    expect(lendingUtilizationOmissions([kamino, shared])).toEqual(["Jupiter Lend"]);
+    expect(lendingFullnessNote([kamino, shared])).toBe(
+      `${LENDING_FULLNESS_TEXT} Jupiter Lend is left out of how full because it does not publish its own lend supply.`,
+    );
+    const idle = { ...kamino, id: "idle", stableBorrowedUsd: 0, lendSupplyUsd: 100, utilization: 0 };
+    expect(aggregateLendingTotals([kamino, idle]).utilization).toBeCloseTo(45 / 150, 6);
     expect(mixed.collateralUsd).toBe(180);
     const estimateRow = parseVenusMarkets(
       { result: [{ category: "bstocks", underlyingSymbol: "NVDAB", underlyingAddress: "0x02fca66c1d1afb4e2a7884261eb00f63598a7436", totalSupplyUnderlyingCents: "10000", totalBorrowCents: "0", collateralFactorMantissa: "600000000000000000" }] },
@@ -629,7 +643,10 @@ describe("lending aggregation", () => {
     const headline = lendingHeadline([kamino, estimateRow], withEstimate);
     expect(headline.collateralSentence).toMatch(/locked/);
     expect(headline.borrowedSentence).toMatch(/Venus estimate/);
-    expect(headline.fullSentence).toMatch(/Venus is left out/);
+    expect(headline.fullSentence).toBe(
+      "90.0% of the dollars supplied to lend are already borrowed. Venus is left out of how full because it does not publish its own lend supply.",
+    );
+    expect(lendingGlossary("utilization").text).toBe(LENDING_FULLNESS_TEXT);
     expect(lendingLtvExplainer([estimateRow])).toBe("You can borrow up to $60 for every $100 of stock. That limit is called LTV.");
     expect(lendingLtvExplainer([missing])).toMatch(/does not|Each token has a limit/);
     const history = lendingHistoryFromDays([
@@ -710,6 +727,42 @@ describe("lending aggregation", () => {
     expect(failed).toBe(1);
     expect(errors[0]).toMatch(/no amounts/);
     await rm(dir, { recursive: true, force: true });
+  });
+});
+
+describe("lending how full on stored days", () => {
+  const shown = {
+    "2026-10-08": "56.3%",
+    "2026-10-09": "57.1%",
+    "2026-10-10": "46.0%",
+    "2026-10-11": "46.2%",
+    "2026-10-12": "47.3%",
+  } as const;
+
+  it("uses borrowed divided by lend supply, and the sanity check uses that same number", () => {
+    for (const date of Object.keys(shown) as (keyof typeof shown)[]) {
+      const day = parseLendingSnapshot(JSON.parse(readFileSync(`data/lending-snapshots/${date}.json`, "utf8")));
+      expect(day?.date).toBe(date);
+      if (!day) continue;
+      const totals = aggregateLendingTotals(day.rows);
+      const sanity = lendingSnapshotSanity(day);
+      const pools = day.rows.filter(
+        (row): row is typeof row & { stableBorrowedUsd: number; lendSupplyUsd: number } =>
+          row.stableBorrowedUsd !== null && row.lendSupplyUsd !== null && row.lendSupplyUsd > 0,
+      );
+      const borrowed = pools.reduce((sum, row) => sum + row.stableBorrowedUsd, 0);
+      const supply = pools.reduce((sum, row) => sum + row.lendSupplyUsd, 0);
+      const collateral = day.rows.reduce((sum, row) => sum + (row.collateralUsd ?? 0), 0);
+      const allBorrowed = day.rows.reduce((sum, row) => sum + (row.stableBorrowedUsd ?? 0), 0);
+      expect(totals.utilization).toBeCloseTo(borrowed / supply, 10);
+      expect(sanity.utilization).toBe(totals.utilization);
+      expect(lendingDeskUtilization(day.rows)).toBe(totals.utilization);
+      expect(formatLendingFractionPct(totals.utilization)).toBe(shown[date]);
+      expect(totals.utilization).not.toBeCloseTo(allBorrowed / collateral, 2);
+      expect(sanity.omittedVenues).toEqual(["Jupiter Lend", "Venus"]);
+      expect(sanity.fullnessNote).toBe(lendingFullnessNote(day.rows));
+      expect(sanity.fullnessNote.startsWith(LENDING_FULLNESS_TEXT)).toBe(true);
+    }
   });
 });
 
