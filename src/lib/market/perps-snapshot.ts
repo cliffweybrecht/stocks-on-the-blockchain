@@ -1,3 +1,4 @@
+import type { PerpsArchiveCheck, PerpsArchiveSymbol } from "./perps-archive";
 import { VOLUME_CHART_RANGES, type VolumeChartRangeId } from "./daily-volume-view";
 import {
   compactPerpsDay,
@@ -92,6 +93,13 @@ export interface PerpsDaySnapshot {
   date: string;
   capturedAt: string;
   venues: PerpsVenueSnapshot[];
+  /**
+   * Exchange symbols for the archive cross-check. Used at capture time and
+   * dropped when the day is compacted. Not written to the snapshot file.
+   */
+  archiveSymbols?: { binance: PerpsArchiveSymbol[]; bybit: PerpsArchiveSymbol[] };
+  /** Official-archive cross-check. Stored as a short array on the compact day. */
+  archive?: PerpsArchiveCheck;
 }
 
 /** A capture day (full book) or a compact stored day. */
@@ -207,6 +215,8 @@ export function parsePerpsSnapshotFile(raw: unknown): PerpsSnapshotFile {
       capturedAt,
       venues: (row as { venues?: unknown }).venues,
       tickers: (row as { tickers?: unknown }).tickers,
+      arc: (row as { arc?: unknown }).arc,
+      arcNote: (row as { arcNote?: unknown }).arcNote,
     });
     if (compact) records.push(compact);
   }
@@ -337,6 +347,7 @@ export interface PerpsViewDay {
   venues: PerpsViewVenue[];
   /** Set on compact days. Underlying and funding lists read this instead of markets. */
   tickers?: PerpsCompactTicker[];
+  archive?: PerpsArchiveCheck;
 }
 
 export interface PerpsDeskModel {
@@ -497,6 +508,7 @@ function compactDayToView(day: PerpsCompactDay, prior: ReadonlyMap<string, numbe
     closed: perpsDayIsClosed(day.date, nowUnixSeconds),
     venues,
     tickers,
+    ...(day.archive ? { archive: day.archive } : {}),
   };
 }
 
@@ -547,6 +559,7 @@ function marketDayToView(day: PerpsDaySnapshot, priorLifetime: ReadonlyMap<strin
     capturedAt: day.capturedAt,
     closed: perpsDayIsClosed(day.date, nowUnixSeconds),
     venues,
+    ...(day.archive ? { archive: day.archive } : {}),
   };
 }
 

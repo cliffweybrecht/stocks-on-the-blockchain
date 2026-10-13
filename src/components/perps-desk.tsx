@@ -657,7 +657,8 @@ function PlacesSection() {
     <section className="space-y-3" data-perps-places>
       <h3 className="font-heading text-lg font-medium">Where it runs</h3>
       <p className="max-w-3xl text-[11px] leading-snug text-muted-foreground">
-        Static reference from the Oct 8 2026 venue map. Jurisdiction is what CoinGecko lists unless noted. Oracle sources that were not confirmed in docs stay unverified. {PERPS_HELD_OUT.map((row) => `${row.venue}: ${row.reason}`).join(" ")}
+        Static reference from the Oct 8 2026 venue map. Jurisdiction is what CoinGecko lists unless noted. Oracle sources that were not confirmed in docs stay unverified.
+        {PERPS_HELD_OUT.length > 0 ? ` ${PERPS_HELD_OUT.map((row) => `${row.venue}: ${row.reason}`).join(" ")}` : ""}
       </p>
       <div className="overflow-x-auto">
         <div className="grid w-full min-w-[64rem] grid-cols-[minmax(12rem,0.9fr)_minmax(14rem,1.2fr)_minmax(10rem,0.8fr)_minmax(10rem,0.8fr)_minmax(14rem,1.2fr)] gap-x-3 gap-y-2">

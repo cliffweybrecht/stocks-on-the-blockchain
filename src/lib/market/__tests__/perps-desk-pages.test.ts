@@ -64,6 +64,7 @@ describe("equity perp methodology catalog", () => {
     expect(names.has("Binance")).toBe(true);
     expect(names.has("Bybit")).toBe(true);
     expect(names.has("WEEX")).toBe(false);
+    expect(names.has("Coinbase International")).toBe(false);
     for (const venue of day.venues) {
       if (venue.venue === "Hyperliquid HIP-3") {
         expect(venue.source).toBe('POST https://api.hyperliquid.xyz/info {"type":"perpDexs"}');
@@ -76,7 +77,10 @@ describe("equity perp methodology catalog", () => {
     expect(perpsDirectSpec("Ostium").volumeWindow).toBe("lifetime");
     expect(listPerpsSourceCatalog().find((row) => row.venue === "Binance")?.feed).toBe("CoinGecko");
     expect(coingeckoVenueSource("Binance (Futures)")).toContain("api.coingecko.com");
-    expect(PERPS_HELD_OUT.map((row) => row.venue)).toContain("WEEX");
+    expect(PERPS_HELD_OUT).toEqual([]);
+    expect(perpsDirectSpec("WEEX").source).toContain("api-contract.weex.com");
+    expect(perpsDirectSpec("WEEX").tier).toBe("cex-direct");
+    expect(perpsDirectSpec("Coinbase International").source).toContain("api.international.coinbase.com");
     expect(coingeckoMarketsNotFetched()).toEqual(["dYdX Chain", "Gate DEX"]);
   });
 

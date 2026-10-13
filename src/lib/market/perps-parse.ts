@@ -1,3 +1,4 @@
+import type { PerpsArchiveSymbol } from "./perps-archive";
 import {
   classifyPerpUnderlying,
   isStoredEquityCategory,
@@ -90,6 +91,9 @@ export interface PerpsFeeds {
   pacifica?: PerpsFeedResult<unknown>;
   orderly?: PerpsFeedResult<unknown>;
   paradex?: PerpsFeedResult<unknown>;
+  /** Absent in unit fixtures. The live fetcher always sets these. */
+  weex?: { tickers: unknown; exchangeInfo: unknown; openInterest: unknown; error: string | null };
+  coinbase?: PerpsFeedResult<unknown>;
 }
 
 interface Observation {
@@ -324,6 +328,36 @@ export function hyperliquidEtDayNotional(candles: unknown): number | null {
   }
   return any ? sum : null;
 }
+
+/**
+ * WEEX quoteVolume is USD when quoteVolume / volume lands inside the bar.
+ * A quote that does not match volume × a price in that range is discarded,
+ * and volume × mark is used instead. CoinGecko's WEEX quote is not used.
+ */
+export function weexQuoteVolumeUsd(ticker: {
+  volume?: unknown;
+  quoteVolume?: unknown;
+  markPrice?: unknown;
+  lastPrice?: unknown;
+  highPrice?: unknown;
+  lowPrice?: unknown;
+}): number | null {
+  const base = vol(ticker.volume);
+  const quote = vol(ticker.quoteVolume);
+  const mark = px(ticker.markPrice) ?? px(ticker.lastPrice);
+  const low = px(ticker.lowPrice);
+  const high = px(ticker.highPrice);
+  if (quote !== null && base !== null && base > 0) {
+    const implied = quote / base;
+    const floor = low ?? mark;
+    const cap = high ?? mark;
+    if (floor !== null && cap !== null && implied >= floor * 0.98 && implied <= cap * 1.02) return quote;
+  }
+  if (base !== null && mark !== null) return base * mark;
+  return null;
+}
+
+const WEEX_EQUITY_TYPES = new Set(["Stocks", "Indices", "Pre-IPO"]);
 
 function pushUntagged(
   markets: PerpsMarketSnapshot[],
@@ -1243,7 +1277,11 @@ interface CgPoint {
   fundingRate: number | null;
 }
 
-function coingeckoVenues(feeds: PerpsFeeds, reference: ReferenceBook): { venues: PerpsVenueSnapshot[]; points: Map<string, CgPoint[]> } {
+function coingeckoVenues(
+  feeds: PerpsFeeds,
+  reference: ReferenceBook,
+  archiveSymbols: { binance: PerpsArchiveSymbol[]; bybit: PerpsArchiveSymbol[] },
+): { venues: PerpsVenueSnapshot[]; points: Map<string, CgPoint[]> } {
   const points = new Map<string, CgPoint[]>();
   const specs = CG_SPECS;
   if (feeds.coingecko.error) {
@@ -1274,9 +1312,14 @@ function coingeckoVenues(feeds: PerpsFeeds, reference: ReferenceBook): { venues:
     list.push(point);
     points.set(marketName, list);
     if (DIRECT_CG_MARKETS.has(marketName) || !specByMarket.has(marketName) || !matched) continue;
+    const quote = vol(ticker.volume_24h);
     buckets.get(marketName)?.push(
-      market(symbol, matched.underlying, matched.category, vol(ticker.volume_24h), vol(ticker.open_interest), price, null, rate(ticker.funding_rate)),
+      market(symbol, matched.underlying, matched.category, quote, vol(ticker.open_interest), price, null, rate(ticker.funding_rate)),
     );
+    const exchangeSymbol = text(ticker.symbol).toUpperCase();
+    if (!/^[A-Z0-9]{2,30}USDT$/.test(exchangeSymbol)) continue;
+    if (marketName === "Binance (Futures)") archiveSymbols.binance.push({ symbol: exchangeSymbol, volumeUsd: quote });
+    if (marketName === "Bybit (Futures)") archiveSymbols.bybit.push({ symbol: exchangeSymbol, volumeUsd: quote });
   }
   return {
     venues: specs.flatMap((item) => {
@@ -1410,6 +1453,91 @@ function avantisVenue(feeds: PerpsFeeds): PerpsVenueSnapshot {
   return shell(null, markets);
 }
 
+function weexVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSnapshot | null {
+  const feed = feeds.weex;
+  if (!feed) return null;
+  const spec = perpsDirectSpec("WEEX");
+  const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
+  if (feed.error) return shell(feed.error);
+  const meta = indexBy(asList(rec(feed.exchangeInfo)?.symbols), "symbol");
+  const oiBySymbol = new Map<string, number>();
+  for (const row of asList(feed.openInterest)) {
+    const item = rec(row);
+    if (!item) continue;
+    const symbol = text(item.symbol);
+    const base = vol(item.openInterest);
+    if (symbol && base !== null) oiBySymbol.set(symbol, base);
+  }
+  const markets: PerpsMarketSnapshot[] = [];
+  for (const row of asList(feed.tickers)) {
+    const ticker = rec(row);
+    if (!ticker) continue;
+    const symbol = text(ticker.symbol);
+    const info = meta.get(symbol);
+    if (!info || text(info.contractType) !== "TRADIFI_PERPETUAL") continue;
+    const kind = text(info.underlyingType);
+    if (!WEEX_EQUITY_TYPES.has(kind)) continue;
+    const underlying = normPerpSymbol(text(info.baseAsset) || symbol);
+    const classifiedName = classified(underlying, { forcePreipo: kind === "Pre-IPO" });
+    const price = px(ticker.markPrice) ?? px(ticker.lastPrice);
+    const oiBase = oiBySymbol.get(symbol);
+    observe(
+      observations,
+      markets,
+      symbol,
+      classifiedName.underlying,
+      classifiedName.category,
+      weexQuoteVolumeUsd(ticker),
+      oiBase === undefined ? null : mul(oiBase, price),
+      price,
+    );
+  }
+  return shell(null, markets);
+}
+
+function coinbaseVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSnapshot | null {
+  const feed = feeds.coinbase;
+  if (!feed) return null;
+  const spec = perpsDirectSpec("Coinbase International");
+  const shell = (error: string | null, markets: PerpsMarketSnapshot[] = [], note = spec.note) =>
+    shellFromSpec(spec, feeds.capturedAt, error, markets, note);
+  if (feed.error) return shell(feed.error);
+  const markets: PerpsMarketSnapshot[] = [];
+  let listed = 0;
+  let paused = 0;
+  for (const row of asList(feed.data)) {
+    const instrument = rec(row);
+    if (!instrument || text(instrument.type) !== "PERP") continue;
+    const kind = text(instrument.underlying_type);
+    if (kind !== "EQUITY" && kind !== "EQUITY_ETF" && kind !== "PREIPO") continue;
+    const state = text(instrument.trading_state);
+    if (state === "DELISTED") continue;
+    const underlying = normPerpSymbol(text(instrument.base_asset_name) || text(instrument.symbol));
+    const classifiedName = classified(underlying, { forcePreipo: kind === "PREIPO" });
+    if (!isStoredEquityCategory(classifiedName.category) && classifiedName.category !== "preipo") continue;
+    listed += 1;
+    const notional = vol(instrument.notional_24hr);
+    const volume = state === "PAUSED" ? 0 : notional;
+    if (state === "PAUSED") paused += 1;
+    observe(
+      observations,
+      markets,
+      text(instrument.symbol) || underlying,
+      classifiedName.underlying,
+      classifiedName.category,
+      volume,
+      null,
+      null,
+    );
+  }
+  const note =
+    listed > 0 && paused === listed
+      ? `${spec.note} All ${listed} equity instruments on this feed are paused, so 24h notional is $0.`
+      : spec.note;
+  return shell(null, markets, note);
+}
+
 export function parseEquityPerpsFeeds(feeds: PerpsFeeds): PerpsDaySnapshot {
   const capturedMs = Date.parse(feeds.capturedAt);
   const date = easternDayKey((Number.isFinite(capturedMs) ? capturedMs : Date.now()) / 1000);
@@ -1426,11 +1554,20 @@ export function parseEquityPerpsFeeds(feeds: PerpsFeeds): PerpsDaySnapshot {
     kucoinVenue(feeds, referenceObservations),
     extendedVenue(feeds, referenceObservations),
   ];
-  for (const venue of [xtVenue(feeds, referenceObservations), phemexVenue(feeds, referenceObservations), htxVenue(feeds, referenceObservations), grvtVenue(feeds, referenceObservations), apexVenue(feeds, referenceObservations)]) {
+  for (const venue of [
+    xtVenue(feeds, referenceObservations),
+    phemexVenue(feeds, referenceObservations),
+    htxVenue(feeds, referenceObservations),
+    grvtVenue(feeds, referenceObservations),
+    apexVenue(feeds, referenceObservations),
+    weexVenue(feeds, referenceObservations),
+    coinbaseVenue(feeds, referenceObservations),
+  ]) {
     if (venue) tagged.push(venue);
   }
   const reference = buildReference(referenceObservations);
-  const coingecko = coingeckoVenues(feeds, reference);
+  const archiveSymbols = { binance: [] as PerpsArchiveSymbol[], bybit: [] as PerpsArchiveSymbol[] };
+  const coingecko = coingeckoVenues(feeds, reference, archiveSymbols);
   const venues = [
     ...tagged,
     bookVenue(feeds, reference, "lighter"),
@@ -1461,5 +1598,10 @@ export function parseEquityPerpsFeeds(feeds: PerpsFeeds): PerpsDaySnapshot {
   fillMissingOpenInterest(venues, coingecko.points);
   const annotated = venues.map(annotateCredibility).sort((a, b) => a.venue.localeCompare(b.venue));
 
-  return { date, capturedAt: feeds.capturedAt, venues: annotated };
+  return {
+    date,
+    capturedAt: feeds.capturedAt,
+    venues: annotated,
+    archiveSymbols,
+  };
 }

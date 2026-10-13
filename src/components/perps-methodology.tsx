@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { perpsArchiveVariance, type PerpsArchiveCheck, type PerpsArchiveVenueCheck } from "@/lib/market/perps-archive";
 import { PERPS_CSV_FILES } from "@/lib/market/perps-csv";
+import { formatUsdCompact } from "@/lib/market/format";
 import {
   PERPS_INDEX_LABELS,
   PERPS_LEVERAGED_ETF_UNDERLYINGS,
@@ -14,6 +16,8 @@ import { HIP3_BUILDERS, PERP_PLACES } from "@/lib/market/perps-meta";
 import {
   CG_OI_MARKETS,
   DIRECT_CG_MARKETS,
+  PERPS_BINANCE_ARCHIVE_SOURCE,
+  PERPS_BYBIT_ARCHIVE_SOURCE,
   PERPS_COINGECKO_NAMED_SKIP,
   PERPS_HELD_OUT,
   PERPS_PRICE_BAND_MAX,
@@ -76,7 +80,12 @@ function place(venue: string) {
   return PERP_PLACES.find((row) => row.venue === venue) ?? null;
 }
 
-export function PerpsMethodology() {
+export function PerpsMethodology({
+  archive,
+}: {
+  /** Latest stored cross-check. Null until a snapshot written by this writer exists. */
+  archive?: { date: string; check: PerpsArchiveCheck } | null;
+}) {
   const catalog = listPerpsSourceCatalog();
   const catalogNames = new Set(catalog.map((row) => row.venue));
   const unfetched = PERP_PLACES.filter((row) => !catalogNames.has(row.venue)).map((row) => row.venue);
@@ -89,6 +98,8 @@ export function PerpsMethodology() {
   const avantis = catalog.find((row) => row.venue === "Avantis");
   const binance = catalog.find((row) => row.venue === "Binance");
   const bybit = catalog.find((row) => row.venue === "Bybit");
+  const weex = catalog.find((row) => row.venue === "WEEX");
+  const coinbase = catalog.find((row) => row.venue === "Coinbase International");
   const preipo = [...PERPS_PREIPO_UNDERLYINGS].sort((a, b) => a.localeCompare(b));
   const indexes = Object.entries(PERPS_INDEX_LABELS).sort((a, b) => a[0].localeCompare(b[0]));
   const graveyard = HIP3_BUILDERS.filter((builder) => !builder.live);
@@ -234,7 +245,14 @@ export function PerpsMethodology() {
           <Rule title="Binance and Bybit via CoinGecko" body={`${binance?.note ?? ""} ${bybit?.note ?? ""}`.trim()} />
           <Rule title="Avantis has no volume" body={avantis?.note ?? "No public 24h volume."} />
           <Rule title="Ostium is a lifetime difference" body={ostium?.note ?? "Daily volume is the difference between consecutive Eastern snapshots."} />
-          <Rule title="WEEX is held out" body={PERPS_HELD_OUT.map((row) => `${row.venue}: ${row.reason}`).join(" ")} />
+          <Rule title="WEEX uses the direct ticker" body={weex?.note ?? "Direct v3 quote volume. The CoinGecko WEEX row is not added."} />
+          <Rule
+            title="Coinbase International is $0 while paused"
+            body={coinbase?.note ?? "Paused equity instruments are stored at $0, not omitted."}
+          />
+          {PERPS_HELD_OUT.length > 0 ? (
+            <Rule title="Held out of the snapshot" body={PERPS_HELD_OUT.map((row) => `${row.venue}: ${row.reason}`).join(" ")} />
+          ) : null}
           <Rule
             title="CoinGecko open interest fills a blank"
             body={`These direct venues do not get a second volume row. Open interest is filled from CoinGecko when the venue feed left it blank: ${Object.keys(CG_OI_MARKETS).sort((a, b) => a.localeCompare(b)).join(", ")}.`}
@@ -258,6 +276,27 @@ export function PerpsMethodology() {
         </div>
       </section>
 
+      <section className="space-y-3" data-perps-archive>
+        <h3 className="font-heading text-lg font-medium">CoinGecko versus official archives</h3>
+        <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
+          Binance and Bybit stay on CoinGecko for the rolling 24h headline. Each snapshot also reads the prior
+          UTC day from the official archives and stores that comparison on the row. If the prior UTC day is not
+          published yet, the writer steps back one UTC day. The symbol list is the equity contracts already kept
+          from CoinGecko, because the exchange info hosts block this environment.{" "}
+          {PERPS_BINANCE_ARCHIVE_SOURCE}. Bybit sums size × price from {PERPS_BYBIT_ARCHIVE_SOURCE}. Binance open
+          interest is the last metrics row of that UTC day (sum_open_interest_value), not a sum of the intraday
+          rows. Bybit&apos;s trade file has no open interest. www.binance.com and api.bybit.com are not used.
+        </p>
+        {archive ? (
+          <ArchiveTable date={archive.date} check={archive.check} />
+        ) : (
+          <p className="max-w-3xl text-sm text-muted-foreground" data-perps-archive-empty>
+            No archive cross-check is stored yet. The next nightly snapshot records it. Until then the Binance
+            and Bybit headline numbers are CoinGecko only.
+          </p>
+        )}
+      </section>
+
       <section className="space-y-3" data-perps-method-downloads>
         <h3 className="font-heading text-lg font-medium">Downloads</h3>
         <p className="max-w-3xl text-[11px] leading-snug text-muted-foreground">
@@ -277,6 +316,61 @@ export function PerpsMethodology() {
           ))}
         </div>
       </section>
+    </div>
+  );
+}
+
+function varianceLabel(coingeckoUsd: number | null, archiveUsd: number | null): string {
+  const ratio = perpsArchiveVariance(coingeckoUsd, archiveUsd);
+  if (ratio === null) return "—";
+  const pct = ratio * 100;
+  const sign = pct > 0 ? "+" : "";
+  return `${sign}${pct.toFixed(1)}%`;
+}
+
+function ArchiveCells({ row }: { row: PerpsArchiveVenueCheck }) {
+  return (
+    <>
+      <p className="num text-xs">{formatUsdCompact(row.coingeckoVenueUsd)}</p>
+      <p className="num text-xs">{formatUsdCompact(row.coingeckoVolumeUsd)}</p>
+      <p className="num text-xs">{formatUsdCompact(row.volumeUsd)}</p>
+      <p className="num text-xs">{varianceLabel(row.coingeckoVolumeUsd, row.volumeUsd)}</p>
+      <p className="num text-xs">{formatUsdCompact(row.openInterestUsd)}</p>
+      <p className="num text-xs">
+        {row.covered}/{row.symbols}
+      </p>
+    </>
+  );
+}
+
+function ArchiveTable({ date, check }: { date: string; check: PerpsArchiveCheck }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-[11px] text-muted-foreground" data-perps-archive-date>
+        Snapshot {date}. Archive UTC day {check.utcDate}. Variance is CoinGecko rolling 24h on the covered
+        symbols minus the archive total, divided by the archive total. The headline still uses the full
+        CoinGecko venue total.
+        {check.note ? ` ${check.note}` : ""}
+      </p>
+      <div className="overflow-x-auto">
+        <div className="grid w-full min-w-[64rem] grid-cols-[10rem_repeat(6,minmax(7rem,1fr))] gap-x-3 gap-y-2">
+          {["Venue", "CoinGecko venue", "CoinGecko covered", "Archive volume", "Variance", "Archive OI", "Covered"].map(
+            (label) => (
+              <div key={label} className="px-1 text-xs text-muted-foreground">
+                {label}
+              </div>
+            ),
+          )}
+          <div className="col-span-full grid grid-cols-subgrid items-center rounded-xl bg-card px-3 py-2.5 ring-1 ring-foreground/10" data-perps-archive-venue="Binance">
+            <p className="text-sm font-medium">Binance</p>
+            <ArchiveCells row={check.binance} />
+          </div>
+          <div className="col-span-full grid grid-cols-subgrid items-center rounded-xl bg-card px-3 py-2.5 ring-1 ring-foreground/10" data-perps-archive-venue="Bybit">
+            <p className="text-sm font-medium">Bybit</p>
+            <ArchiveCells row={check.bybit} />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
