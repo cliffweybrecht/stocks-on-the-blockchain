@@ -87,6 +87,8 @@ export interface LendingBorrowEstimate {
   /** ISO time the estimate was measured. May be earlier than the snapshot. */
   asOf: string;
   lowerBoundUsd: number | null;
+  /** True when a later scan failed and this older figure was kept. */
+  stale?: boolean;
 }
 
 /** Collateral that first crosses the liquidation line at this whole-percent drop. 101 means a 100% drop stays inside. */
@@ -507,7 +509,10 @@ function parseBorrowEstimate(value: unknown): LendingBorrowEstimate | null {
   const method = asNonEmptyString(estimate.method);
   const asOf = asNonEmptyString(estimate.asOf);
   if (!method || !asOf) return null;
-  return { method, asOf, lowerBoundUsd: nullableUsd(estimate.lowerBoundUsd) };
+  const stale = estimate.stale === true || /did not refresh/i.test(method);
+  return stale
+    ? { method, asOf, lowerBoundUsd: nullableUsd(estimate.lowerBoundUsd), stale: true }
+    : { method, asOf, lowerBoundUsd: nullableUsd(estimate.lowerBoundUsd) };
 }
 
 function nullableUsd(value: unknown): number | null {

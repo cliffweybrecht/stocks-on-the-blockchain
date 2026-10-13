@@ -1135,9 +1135,12 @@ describe("venus log scan", () => {
     expect(kept.usd).toBe(1234);
     expect(kept.asOf).toBe("2026-10-08T18:00:00.000Z");
     expect(kept.method).toMatch(/did not refresh/);
+    expect(kept.stale).toBe(true);
     const live = { ...previous, usd: 2000, asOf: "2026-10-09T03:00:00.000Z" };
-    expect(chooseVenusEstimate(live, previous, VENUS_CHECKED_ESTIMATE)).toEqual(live);
-    expect(chooseVenusEstimate(null, null, VENUS_CHECKED_ESTIMATE).asOf).toBe(VENUS_CHECKED_ESTIMATE.asOf);
+    expect(chooseVenusEstimate(live, previous, VENUS_CHECKED_ESTIMATE)).toEqual({ ...live, stale: false });
+    const checked = chooseVenusEstimate(null, null, VENUS_CHECKED_ESTIMATE);
+    expect(checked.asOf).toBe(VENUS_CHECKED_ESTIMATE.asOf);
+    expect(checked.stale).toBe(true);
   });
 
   it("resumes a Venus log cache from the contiguous prefix and skips finished ranges", () => {

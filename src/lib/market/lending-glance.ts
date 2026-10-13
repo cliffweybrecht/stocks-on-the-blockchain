@@ -7,7 +7,9 @@ import {
   formatLendingFractionPct,
   formatLtvPerHundred,
   groupLendingRows,
+  lendingUtilization,
   type LendingAsset,
+  type LendingBorrowEstimate,
   type LendingDaySnapshot,
   type LendingHealthBand,
   type LendingRow,
@@ -28,6 +30,19 @@ export const LENDING_DROP_FRACTIONS = [0.1, 0.2, 0.3, 0.5] as const;
 const PAST_LIMIT_USD = LENDING_PAST_LIMIT_USD;
 
 export type LendingDropFraction = (typeof LENDING_DROP_FRACTIONS)[number];
+
+export interface LendingSimpleBadge {
+  venueId: string;
+  kind: "nearly-full" | "rate-jumped";
+  label: "Nearly full" | "Rate jumped";
+  text: string;
+}
+
+export interface LendingStaleNote {
+  venueId: string;
+  label: "Stale";
+  text: string;
+}
 
 export interface LendingFillingFlag {
   venueId: string;
@@ -232,6 +247,76 @@ export function lendingFillingFlags(rows: readonly LendingRow[], previous: reado
     (a, b) => rank[a.kind] - rank[b.kind] || score(b) - score(a) || a.venue.localeCompare(b.venue) || a.chainLabel.localeCompare(b.chainLabel),
   );
   return flags;
+}
+
+const NO_LEND_SUPPLY_PREFIX = ["jupiter", "venus"] as const;
+
+/** How full is stable dollars borrowed divided by dollars supplied to lend. Jupiter and Venus do not publish that supply. */
+export function lendingHowFull(
+  row: Pick<LendingRow, "id" | "stableBorrowedUsd" | "lendSupplyUsd" | "borrowEstimate">,
+): number | null {
+  if (row.borrowEstimate) return null;
+  if (NO_LEND_SUPPLY_PREFIX.some((prefix) => row.id.startsWith(prefix))) return null;
+  return lendingUtilization(row.stableBorrowedUsd, row.lendSupplyUsd);
+}
+
+/**
+ * Nearly full: how-full is at least 90% and the borrow book is big enough to matter.
+ * Rate jumped: yearly cost rose by at least one point since the prior snapshot.
+ * Both use only the stored snapshots. A missing prior rate stays unlabeled.
+ */
+export function lendingSimpleBadges(rows: readonly LendingRow[], previous: readonly LendingRow[] | null): LendingSimpleBadge[] {
+  const prior = new Map((previous ?? []).map((row) => [row.id, row]));
+  const badges: LendingSimpleBadge[] = [];
+  for (const row of rows) {
+    if ((row.stableBorrowedUsd ?? 0) < LENDING_FILLING_MIN_BORROWED_USD) continue;
+    const label = lendingVenueLabel(row, rows);
+    const howFull = lendingHowFull(row);
+    if (howFull !== null && howFull >= LENDING_FILLING_UTIL) {
+      badges.push({
+        venueId: row.id,
+        kind: "nearly-full",
+        label: "Nearly full",
+        text: `${label} is ${formatLendingFractionPct(howFull)} full.`,
+      });
+    }
+    const before = prior.get(row.id);
+    if (!before || before.borrowEstimate || row.borrowEstimate) continue;
+    if (row.borrowApy === null || before.borrowApy === null) continue;
+    const jump = row.borrowApy - before.borrowApy;
+    if (jump >= LENDING_FILLING_APY_JUMP) {
+      badges.push({
+        venueId: row.id,
+        kind: "rate-jumped",
+        label: "Rate jumped",
+        text: `${label} yearly cost rose by ${pointsLabel(jump)} points since the last snapshot.`,
+      });
+    }
+  }
+  badges.sort((a, b) => {
+    if (a.kind !== b.kind) return a.kind === "nearly-full" ? -1 : 1;
+    return a.text.localeCompare(b.text);
+  });
+  return badges;
+}
+
+export function borrowEstimateIsStale(estimate: Pick<LendingBorrowEstimate, "method" | "stale"> | null | undefined): boolean {
+  if (!estimate) return false;
+  return estimate.stale === true || /did not refresh/i.test(estimate.method);
+}
+
+export function lendingStaleNotes(rows: readonly LendingRow[]): LendingStaleNote[] {
+  const notes: LendingStaleNote[] = [];
+  for (const row of rows) {
+    const estimate = row.borrowEstimate;
+    if (!estimate || !borrowEstimateIsStale(estimate)) continue;
+    notes.push({
+      venueId: row.id,
+      label: "Stale",
+      text: `${lendingVenueLabel(row, rows)} borrowed dollars are a pro-rata estimate last measured ${formatLendingCapturedAt(estimate.asOf)}. The new scan did not finish.`,
+    });
+  }
+  return notes;
 }
 
 function marketSentence(collateral: number | null, borrowed: number | null): string | null {
@@ -486,7 +571,7 @@ function venueHealthLine(row: LendingRow, rows: readonly LendingRow[]): string {
     const count = health.loanCount ?? 0;
     const priced = health.collateralCoveredUsd === null ? "" : `, ${formatUsdCompact(health.collateralCoveredUsd)} of stock priced`;
     const gap = (health.unpricedLoanCount ?? 0) > 0 ? ` ${health.unpricedLoanCount} loans had no collateral price and are left out.` : "";
-    return `${label} uses each loan (${count} loans${priced}).${gap}`;
+    return `${label} uses each loan (${count} loans${priced}), read ${formatLendingCapturedAt(health.asOf)} from ${sourceLabel(health.source)}.${gap}`;
   }
   const why = health?.fallback ?? "Each loan was not in this snapshot.";
   return `${label} uses the pool estimate. ${why}`;
@@ -654,6 +739,14 @@ function historyPoint(date: string, rows: readonly LendingRow[]): LendingDepthHi
   };
 }
 
+function sourceLabel(source: string): string {
+  try {
+    return new URL(source).host.replace(/^www\./, "");
+  } catch {
+    return source || "the snapshot";
+  }
+}
+
 function ltvLabel(assets: readonly LendingAsset[]): string | null {
   const values = assets
     .map((asset) => asset.maxLtv)
@@ -675,7 +768,7 @@ function positionsNote(row: LendingRow): string {
     const count = health.loanCount ?? 0;
     const priced = health.collateralCoveredUsd === null ? "" : `, ${formatUsdCompact(health.collateralCoveredUsd)} of stock priced`;
     const gap = (health.unpricedLoanCount ?? 0) > 0 ? ` ${health.unpricedLoanCount} loans had no collateral price and are left out.` : "";
-    return `${row.venue} publishes each loan. This snapshot keeps ${count} loans${priced}, not each wallet.${gap}`;
+    return `${row.venue} publishes each loan. This snapshot keeps ${count} loans${priced}, read ${formatLendingCapturedAt(health.asOf)} from ${sourceLabel(health.source)}, not each wallet.${gap}`;
   }
   if (health?.method === "pool") {
     const why = health.fallback ?? "Each loan was not available.";
@@ -756,7 +849,7 @@ export function buildLendingDepth(days: readonly LendingDaySnapshot[]): LendingD
         source: row.source,
         note: row.note ?? null,
         estimateLabel: estimate
-          ? `Borrowed dollars are an estimate, measured ${formatLendingCapturedAt(estimate.asOf)}. ${estimate.method}${
+          ? `${borrowEstimateIsStale(estimate) ? "Stale. " : ""}Borrowed dollars are a pro-rata estimate, measured ${formatLendingCapturedAt(estimate.asOf)}. ${estimate.method}${
               estimate.lowerBoundUsd === null ? "" : ` Lower bound ${formatUsdCompact(estimate.lowerBoundUsd)}.`
             }`
           : null,

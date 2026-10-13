@@ -15,6 +15,8 @@ import {
   type LendingDropScope,
   type LendingFillingFlag,
   type LendingGlanceCopy,
+  type LendingSimpleBadge,
+  type LendingStaleNote,
 } from "@/lib/market/lending-glance";
 import {
   formatLendingApy,
@@ -153,6 +155,8 @@ function MoneyButton({
 export function LendingGlancePanel({
   glance,
   flags,
+  badges,
+  staleNotes,
   scopes,
   answers,
   depth,
@@ -164,6 +168,8 @@ export function LendingGlancePanel({
 }: {
   glance: LendingGlanceCopy;
   flags: readonly LendingFillingFlag[];
+  badges: readonly LendingSimpleBadge[];
+  staleNotes: readonly LendingStaleNote[];
   scopes: readonly LendingDropScope[];
   answers: Record<string, Record<string, LendingDropAnswer>>;
   depth: LendingDepth;
@@ -177,6 +183,13 @@ export function LendingGlancePanel({
   const [drop, setDrop] = useState<LendingDropFraction>(0.2);
   const [drill, setDrill] = useState<Drill | null>(null);
   const answer = answers[scopeId]?.[lendingDropKey(drop)] ?? answers.all?.[lendingDropKey(drop)];
+  const nearlyFull = new Set(badges.filter((badge) => badge.kind === "nearly-full").map((badge) => badge.venueId));
+  const rateJumped = new Set(badges.filter((badge) => badge.kind === "rate-jumped").map((badge) => badge.venueId));
+  const extraFlags = flags.filter((flag) => {
+    if (flag.kind === "full" && nearlyFull.has(flag.venueId)) return false;
+    if (flag.kind === "rate-jump" && rateJumped.has(flag.venueId)) return false;
+    return true;
+  });
   const scope = scopes.find((item) => item.id === scopeId) ?? scopes[0];
   const venues = scopes.filter((item) => item.kind === "venue");
   const stocks = scopes.filter((item) => item.kind === "stock");
@@ -262,10 +275,29 @@ export function LendingGlancePanel({
         {fullnessNote}
       </p>
 
-      {flags.length > 0 ? (
-        <ul className="flex flex-wrap gap-2" data-lending-flags>
-          {flags.map((flag) => (
-            <li key={flag.venueId}>
+      {badges.length > 0 || staleNotes.length > 0 || extraFlags.length > 0 ? (
+        <ul className="flex flex-wrap gap-2" data-lending-badges>
+          {badges.map((badge) => (
+            <li key={`${badge.kind}-${badge.venueId}`}>
+              <button
+                type="button"
+                className="rounded-full border border-border px-3 py-1.5 text-sm text-foreground hover:bg-muted/50"
+                data-lending-badge={badge.kind}
+                onClick={() => setDrill({ kind: "venue", venueId: badge.venueId })}
+              >
+                <span className="font-medium">{badge.label}</span>
+                <span className="text-muted-foreground"> {badge.text}</span>
+              </button>
+            </li>
+          ))}
+          {staleNotes.map((note) => (
+            <li key={note.venueId} data-lending-stale={note.venueId} className="rounded-full border border-border px-3 py-1.5 text-sm">
+              <span className="font-medium text-foreground">{note.label}</span>
+              <span className="text-muted-foreground"> {note.text}</span>
+            </li>
+          ))}
+          {extraFlags.map((flag) => (
+            <li key={flag.venueId} data-lending-flags>
               <button
                 type="button"
                 className="rounded-full border border-border px-3 py-1.5 text-sm text-foreground hover:bg-muted/50"
