@@ -643,11 +643,13 @@ function sortedDays(days: readonly LendingDaySnapshot[]): LendingDaySnapshot[] {
 
 function historyPoint(date: string, rows: readonly LendingRow[]): LendingDepthHistoryPoint {
   const totals = aggregateLendingTotals(rows);
+  const only = rows.length === 1 ? rows[0] : undefined;
   return {
     date,
     collateralUsd: totals.collateralUsd,
     stableBorrowedUsd: totals.stableBorrowedUsd,
-    utilization: totals.utilization,
+    // One venue keeps the fullness it reported. A chain total is borrowed divided by that chain's own lend supply.
+    utilization: only ? only.utilization : totals.utilization,
     borrowApy: totals.borrowApy,
   };
 }

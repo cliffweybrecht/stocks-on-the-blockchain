@@ -20,6 +20,7 @@ import {
   formatLendingApy,
   formatLendingCapturedAt,
   formatLendingFractionPct,
+  lendingFullnessNote,
   lendingHistorySeries,
   lendingLtvExplainer,
   lendingStockBorrows,
@@ -210,6 +211,7 @@ export function LendingDesk({ model, days }: { model: LendingDeskModel; days: re
         depth={depth}
         capturedLabel={model.capturedAt ? `Snapshot ${formatLendingCapturedAt(model.capturedAt)}` : null}
         totals={model.totals}
+        fullnessNote={lendingFullnessNote(model.rows)}
         riskLine={lendingRiskLine(model.rows)}
         readError={model.readError}
       />
@@ -227,6 +229,7 @@ export function LendingDesk({ model, days }: { model: LendingDeskModel; days: re
           <span className="num text-foreground">{formatLendingApy(model.totals)}</span>
         </span>
       </p>
+      <p className="max-w-3xl text-sm leading-6 text-muted-foreground">{lendingFullnessNote(model.rows)}</p>
 
       <ChainShare chains={model.chains} />
 

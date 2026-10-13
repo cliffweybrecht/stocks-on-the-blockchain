@@ -1,4 +1,5 @@
 import { formatUsdCompact } from "./format";
+import { LENDING_FULLNESS_TEXT } from "./lending-glossary";
 import { asNonEmptyString, asReportedNumber, sumNullable } from "./numbers";
 import { easternDayKey } from "./volume-snapshots";
 
@@ -39,7 +40,11 @@ export interface LendingRow {
    * Null when borrows draw from a shared pool that is not this book.
    */
   lendSupplyUsd: number | null;
-  /** Borrowed / lend-side supply, as a fraction. */
+  /**
+   * How full this venue's dollar pool is, as a fraction.
+   * When lendSupplyUsd is set, this is stableBorrowedUsd / lendSupplyUsd.
+   * A shared pool may still report how full that shared pool is while lendSupplyUsd stays null.
+   */
   utilization: number | null;
   /** Borrow-weighted stablecoin borrow APY, as a fraction. */
   borrowApy: number | null;
@@ -212,15 +217,84 @@ export function lendingApyBand(
  */
 export function lendingUtilization(borrowedUsd: number | null, supplyUsd: number | null): number | null {
   if (borrowedUsd === null || supplyUsd === null) return null;
-  if (!(supplyUsd > 0) || !Number.isFinite(borrowedUsd)) return null;
+  if (!(supplyUsd > 0) || !Number.isFinite(borrowedUsd) || borrowedUsd < 0) return null;
   return borrowedUsd / supplyUsd;
+}
+
+function measurableLendPool(
+  row: Pick<LendingRow, "stableBorrowedUsd" | "lendSupplyUsd">,
+): row is Pick<LendingRow, "stableBorrowedUsd" | "lendSupplyUsd"> & { stableBorrowedUsd: number; lendSupplyUsd: number } {
+  return (
+    typeof row.stableBorrowedUsd === "number" &&
+    Number.isFinite(row.stableBorrowedUsd) &&
+    row.stableBorrowedUsd >= 0 &&
+    typeof row.lendSupplyUsd === "number" &&
+    Number.isFinite(row.lendSupplyUsd) &&
+    row.lendSupplyUsd > 0
+  );
+}
+
+/**
+ * How full the dollar pools are.
+ * Sum of stablecoins borrowed, divided by the sum of stablecoins supplied to lend,
+ * for venues that publish both. Collateral is not the denominator.
+ * A shared pool with no lend-side supply is left out of both sides.
+ * A missing supply is not replaced with a borrow-weighted average of utilization rates.
+ */
+export function lendingDeskUtilization(rows: readonly Pick<LendingRow, "stableBorrowedUsd" | "lendSupplyUsd">[]): number | null {
+  const pools = rows.filter(measurableLendPool);
+  if (pools.length === 0) return null;
+  return lendingUtilization(
+    sumNullable(pools.map((row) => row.stableBorrowedUsd)),
+    sumNullable(pools.map((row) => row.lendSupplyUsd)),
+  );
+}
+
+/** Venues that borrowed, or reported how full, but did not publish their own lend supply. */
+export function lendingUtilizationOmissions(
+  rows: readonly Pick<LendingRow, "venue" | "stableBorrowedUsd" | "lendSupplyUsd" | "utilization">[],
+): string[] {
+  const names = new Set<string>();
+  for (const row of rows) {
+    if (measurableLendPool(row)) continue;
+    const borrowed = typeof row.stableBorrowedUsd === "number" && row.stableBorrowedUsd > 0;
+    const reported = row.utilization !== null;
+    if (borrowed || reported) names.add(row.venue);
+  }
+  return [...names].sort((a, b) => a.localeCompare(b));
+}
+
+function joinNames(names: readonly string[]): string {
+  if (names.length <= 1) return names[0] ?? "";
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
+}
+
+/** Who is left out of the desk how-full number. Null when every reported pool has its own supply. */
+export function lendingOmissionSentence(
+  rows: readonly Pick<LendingRow, "venue" | "stableBorrowedUsd" | "lendSupplyUsd" | "utilization">[],
+): string | null {
+  const leftOut = lendingUtilizationOmissions(rows);
+  if (leftOut.length === 0) return null;
+  const names = joinNames(leftOut);
+  const verb = leftOut.length === 1 ? "is" : "are";
+  const own = leftOut.length === 1 ? "it does not publish its" : "they do not publish their";
+  return `${names} ${verb} left out of how full because ${own} own lend supply.`;
+}
+
+/** Standing definition, plus who is left out of this snapshot. */
+export function lendingFullnessNote(
+  rows: readonly Pick<LendingRow, "venue" | "stableBorrowedUsd" | "lendSupplyUsd" | "utilization">[],
+): string {
+  const omission = lendingOmissionSentence(rows);
+  return omission ? `${LENDING_FULLNESS_TEXT} ${omission}` : LENDING_FULLNESS_TEXT;
 }
 
 export function aggregateLendingTotals(rows: readonly LendingRow[]): LendingTotals {
   const collateralUsd = sumNullable(rows.map((row) => row.collateralUsd));
   const stableBorrowedUsd = sumNullable(rows.map((row) => row.stableBorrowedUsd));
   const stockBorrowedUsd = sumNullable(rows.map((row) => row.stockBorrowedUsd));
-  const utilization = aggregateUtilization(rows);
+  const utilization = lendingDeskUtilization(rows);
   const band = lendingApyBand(rows.map((row) => ({ apy: row.borrowApy, weight: row.stableBorrowedUsd })));
   const spread = materialApySpread(rows);
   return {
@@ -247,32 +321,6 @@ function materialApySpread(rows: readonly LendingRow[]): { min: number; max: num
   const lows = band.map((row) => row.borrowApyMin ?? row.borrowApy);
   const highs = band.map((row) => row.borrowApyMax ?? row.borrowApy);
   return { min: Math.min(...lows), max: Math.max(...highs) };
-}
-
-function aggregateUtilization(rows: readonly LendingRow[]): number | null {
-  const withUtil = rows.filter(
-    (row): row is LendingRow & { utilization: number; stableBorrowedUsd: number } =>
-      row.utilization !== null && row.stableBorrowedUsd !== null && row.stableBorrowedUsd > 0,
-  );
-  if (withUtil.length === 0) return weightedUtilization(rows);
-  const allHaveSupply = withUtil.every((row) => row.lendSupplyUsd !== null && row.lendSupplyUsd > 0);
-  if (allHaveSupply) {
-    return lendingUtilization(
-      sumNullable(withUtil.map((row) => row.stableBorrowedUsd)),
-      sumNullable(withUtil.map((row) => row.lendSupplyUsd)),
-    );
-  }
-  return weightedUtilization(withUtil);
-}
-
-function weightedUtilization(rows: readonly LendingRow[]): number | null {
-  const points = rows.filter(
-    (row): row is LendingRow & { utilization: number; stableBorrowedUsd: number } =>
-      row.utilization !== null && row.stableBorrowedUsd !== null && row.stableBorrowedUsd > 0,
-  );
-  const weight = points.reduce((sum, row) => sum + row.stableBorrowedUsd, 0);
-  if (!(weight > 0)) return null;
-  return points.reduce((sum, row) => sum + row.utilization * row.stableBorrowedUsd, 0) / weight;
 }
 
 function chainRank(chainId: string): number {
@@ -580,6 +628,33 @@ function costSentence(totals: LendingTotals, hasEstimate: boolean): string {
   return `A typical loan costs about ${typical} a year.${spread}${venus}`;
 }
 
+export function lendingFullSentence(rows: readonly LendingRow[], utilization: number | null): string {
+  if (utilization === null) return "How full is unknown until a pool reports both dollars borrowed and dollars supplied to lend.";
+  const omission = lendingOmissionSentence(rows);
+  const lead = `${formatLendingFractionPct(utilization)} of the dollars supplied to lend are already borrowed.`;
+  return omission ? `${lead} ${omission}` : lead;
+}
+
+/** Totals a nightly snapshot check should print. Utilization is lendingDeskUtilization, never borrowed divided by collateral. */
+export function lendingSnapshotSanity(day: Pick<LendingDaySnapshot, "date" | "rows">): {
+  date: string;
+  collateralUsd: number | null;
+  stableBorrowedUsd: number | null;
+  utilization: number | null;
+  fullnessNote: string;
+  omittedVenues: readonly string[];
+} {
+  const totals = aggregateLendingTotals(day.rows);
+  return {
+    date: day.date,
+    collateralUsd: totals.collateralUsd,
+    stableBorrowedUsd: totals.stableBorrowedUsd,
+    utilization: totals.utilization,
+    fullnessNote: lendingFullnessNote(day.rows),
+    omittedVenues: lendingUtilizationOmissions(day.rows),
+  };
+}
+
 export function lendingHeadline(rows: readonly LendingRow[], totals: LendingTotals): LendingHeadline {
   const estimate = lendingBorrowEstimateUsd(rows);
   const collateral = totals.collateralUsd;
@@ -596,12 +671,7 @@ export function lendingHeadline(rows: readonly LendingRow[], totals: LendingTota
         : estimate === null
           ? `They borrowed ${formatUsdCompact(borrowed)} of dollar coins.`
           : `They borrowed ${formatUsdCompact(borrowed)} of dollar coins. About ${formatLendingEstimateUsd(estimate)} is a Venus estimate.`,
-    fullSentence:
-      full === null
-        ? "How full is unknown until supply and borrows are both reported."
-        : estimate === null
-          ? `${formatLendingFractionPct(full)} of the dollar pools is already lent out.`
-          : `${formatLendingFractionPct(full)} of the dollar pools is already lent out. Venus is left out.`,
+    fullSentence: lendingFullSentence(rows, full),
     costSentence: costSentence(totals, estimate !== null),
   };
 }

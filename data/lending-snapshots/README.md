@@ -12,6 +12,12 @@ Success prints nothing and exits 0. A capture with no amounts is not written and
 
 The command needs network access to the venue APIs. No API key is required.
 
+How full, on the page and in a snapshot check, is one number: dollars borrowed divided by dollars supplied to lend, added up only for pools that publish their own lend supply. Locked stock is not the bottom number. Jupiter and Venus borrow from a shared pool and are left out of that total. Their borrowed dollars still count in the borrowed total. Check a file with the same function the page uses:
+
+```bash
+npx tsx scripts/check-lending-snapshot.ts data/lending-snapshots/YYYY-MM-DD.json
+```
+
 Optional environment:
 
 - `LENDING_SNAPSHOT_DATE` — `YYYY-MM-DD` pin for the file key only. `capturedAt` stays the real capture instant. A blank value is ignored. `SNAPSHOT_DATE` is the fallback when this variable is unset. With neither set, the file is the America/New_York date of the capture. An impossible calendar day is refused and nothing is written.
