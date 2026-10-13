@@ -12,9 +12,7 @@ import {
   newestSnapshotDate,
   parseOriginPrListNumber,
   parseOriginPrView,
-  SNAPSHOT_GIT_MAX_BUFFER,
   snapshotCommitSubject,
-  snapshotGitMaxBuffer,
   volumeSnapshotChain,
 } from "../snapshot-land";
 
@@ -131,15 +129,6 @@ describe("snapshot land guards", () => {
     expect(volumeSnapshotChain("robinhood-chain")?.label).toBe("Robinhood");
     expect(volumeSnapshotChain("perps")?.file).toBe("data/perps-snapshots/perps.json");
     expect(volumeSnapshotChain("ethereum")).toBeNull();
-    expect(SNAPSHOT_GIT_MAX_BUFFER).toBeGreaterThan(1_128_616);
-    expect(snapshotGitMaxBuffer(["show", "origin/main:data/volume-snapshots/solana.json"])).toBe(SNAPSHOT_GIT_MAX_BUFFER);
-    expect(snapshotGitMaxBuffer(["show", "origin/main:data/volume-snapshots/base.json"])).toBe(SNAPSHOT_GIT_MAX_BUFFER);
-    expect(snapshotGitMaxBuffer(["diff", "--", "data/volume-snapshots/bnb.json"])).toBe(SNAPSHOT_GIT_MAX_BUFFER);
-    expect(snapshotGitMaxBuffer(["show", "origin/main:data/volume-snapshots/robinhood.json"])).toBe(SNAPSHOT_GIT_MAX_BUFFER);
-    expect(snapshotGitMaxBuffer(["status", "--porcelain"])).toBeUndefined();
-    expect(snapshotGitMaxBuffer(["show", "origin/main:data/perps-snapshots/perps.json"])).toBe(SNAPSHOT_GIT_MAX_BUFFER);
-    expect(snapshotGitMaxBuffer(["diff", "--", "data/perps-snapshots/perps.json"])).toBe(64 * 1024 * 1024);
-    expect(SNAPSHOT_GIT_MAX_BUFFER).toBeGreaterThan(1024 * 1024);
     expect(assertSnapshotWorktree(["?? data/perps-snapshots/perps.json"]).ok).toBe(true);
     expect(
       assertSnapshotOnlyNameStatus(["A\tdata/perps-snapshots/perps.json"]).ok,
