@@ -1,8 +1,11 @@
-/** Public BSC endpoints. NowNodes has older logs. Pocket and 48 Club cover recent blocks. */
+/** Public BSC endpoints. NowNodes has older logs. The rest are fallbacks when one node drops a call. */
 const PUBLIC_BSC_RPCS = [
   "https://public-bsc.nownodes.io",
   "https://bsc.api.pocket.network",
   "https://rpc-bsc.48.club",
+  "https://bsc-dataseed.binance.org",
+  "https://bsc-dataseed1.defibit.io",
+  "https://bsc.publicnode.com",
 ];
 
 export const BSC_LOG_RPC = PUBLIC_BSC_RPCS[1];
@@ -22,20 +25,41 @@ export function bscCallRpc(): string {
   return bscRpcUrls()[0] ?? PUBLIC_BSC_RPCS[0];
 }
 
-/** Try each public RPC until one batch succeeds. */
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Try each URL, then try the list again. A dropped call does not fail the scan
+ * until every URL has failed twice.
+ */
+export async function tryEachUrl<T>(
+  urls: readonly string[],
+  run: (url: string) => Promise<T>,
+  options?: { rounds?: number; sleep?: (ms: number) => Promise<void> },
+): Promise<T> {
+  const rounds = options?.rounds ?? 2;
+  const pause = options?.sleep ?? sleep;
+  let last = "request failed";
+  const list = urls.filter(Boolean);
+  if (list.length === 0) throw new Error("No RPC URL is configured.");
+  for (let round = 0; round < rounds; round += 1) {
+    for (const url of list) {
+      try {
+        return await run(url);
+      } catch (error) {
+        last = error instanceof Error ? error.message : last;
+      }
+    }
+    if (round < rounds - 1) await pause(Math.min(1_200, 400 * 2 ** round));
+  }
+  throw new Error(last);
+}
+
+/** Try each public RPC until one batch succeeds. A full miss is retried once. */
 export async function bscBatchRotating(
   calls: { method: string; params: unknown[] }[],
   timeoutMs = 60_000,
 ): Promise<(string | null)[]> {
-  let last = "BSC RPC failed.";
-  for (const url of bscRpcUrls()) {
-    try {
-      return await bscBatch(url, calls, timeoutMs);
-    } catch (error) {
-      last = error instanceof Error ? error.message : last;
-    }
-  }
-  throw new Error(last);
+  return tryEachUrl(bscRpcUrls(), (url) => bscBatch(url, calls, timeoutMs));
 }
 
 export function padAddress(address: string): string {

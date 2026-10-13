@@ -12,6 +12,8 @@ import {
   lendingGlance,
   lendingPreviousRows,
   lendingRiskLine,
+  lendingSimpleBadges,
+  lendingStaleNotes,
 } from "@/lib/market/lending-glance";
 import { lendingActionChips, lendingBoardRows, lendingChainShareParts } from "@/lib/market/lending-stocks";
 import { lendingChainLogo } from "@/lib/market/lending-logos";
@@ -186,7 +188,10 @@ function HistoryChart({ history }: { history: readonly LendingHistoryPoint[] }) 
 }
 
 export function LendingDesk({ model, days }: { model: LendingDeskModel; days: readonly LendingDaySnapshot[] }) {
-  const flags = lendingFillingFlags(model.rows, lendingPreviousRows(days));
+  const previous = lendingPreviousRows(days);
+  const flags = lendingFillingFlags(model.rows, previous);
+  const badges = lendingSimpleBadges(model.rows, previous);
+  const staleNotes = lendingStaleNotes(model.rows);
   const glance = lendingGlance(model.rows, model.totals, flags);
   const scopes = lendingDropScopes(model.rows);
   const answers = lendingDropTable(model.rows, scopes);
@@ -205,6 +210,8 @@ export function LendingDesk({ model, days }: { model: LendingDeskModel; days: re
       <LendingGlancePanel
         glance={glance}
         flags={flags}
+        badges={badges}
+        staleNotes={staleNotes}
         scopes={scopes}
         answers={answers}
         depth={depth}

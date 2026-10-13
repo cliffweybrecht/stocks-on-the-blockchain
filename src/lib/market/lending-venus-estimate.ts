@@ -1,6 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { bscBatchRotating, bscRpcUrls, padAddress, topicAddress } from "./lending-bsc";
+import { bscBatchRotating, bscRpcUrls, padAddress, topicAddress, tryEachUrl } from "./lending-bsc";
 
 export const VENUS_CORE_COMPTROLLER = "0xfd36e2c2a6789db23113685031d7f16329158384";
 export const VENUS_CORE_POOL = "https://api.venus.io/markets/core-pool?chainId=56&limit=100";
@@ -41,6 +41,8 @@ export interface VenusBorrowEstimate {
   method: string;
   asOf: string;
   block: number | null;
+  /** True when this figure was kept from an earlier scan. */
+  stale?: boolean;
 }
 
 /**
@@ -167,7 +169,7 @@ function parseCoreMarkets(payload: unknown): CoreMarket[] {
   return markets;
 }
 
-async function getJson(url: string): Promise<unknown> {
+async function getJsonOnce(url: string): Promise<unknown> {
   const response = await fetch(url, {
     signal: AbortSignal.timeout(45_000),
     headers: {
@@ -178,6 +180,17 @@ async function getJson(url: string): Promise<unknown> {
   });
   if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
   return response.json();
+}
+
+async function getJson(url: string): Promise<unknown> {
+  try {
+    return await getJsonOnce(url);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (!/\b(429|502|503|504)\b/.test(message) && !/timeout|network|fetch/i.test(message)) throw error;
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    return getJsonOnce(url);
+  }
 }
 
 async function latestBlock(): Promise<number> {
@@ -305,27 +318,19 @@ async function fetchLogsAt(url: string, vTokens: readonly string[], range: LogRa
 }
 
 async function fetchLogsRotating(vTokens: readonly string[], range: LogRangeQuery): Promise<{ topics?: string[] }[]> {
-  let last = "eth_getLogs failed";
-  for (const url of bscRpcUrls()) {
-    try {
-      return await fetchLogsAt(url, vTokens, range);
-    } catch (error) {
-      last = error instanceof Error ? error.message : last;
-    }
-  }
-  throw new Error(last);
+  return tryEachUrl(bscRpcUrls(), (url) => fetchLogsAt(url, vTokens, range));
 }
 
-/** A finished live scan wins. Otherwise keep the newest saved estimate and its original time. */
+/** A finished live scan wins. Otherwise keep the newest saved estimate, its original time, and mark it stale. */
 export function chooseVenusEstimate(
   live: VenusBorrowEstimate | null,
   previous: VenusBorrowEstimate | null,
   checked: VenusBorrowEstimate,
 ): VenusBorrowEstimate {
-  if (live && Number.isFinite(live.usd)) return live;
+  if (live && Number.isFinite(live.usd)) return { ...live, stale: false };
   const base = previous && Number.isFinite(previous.usd) && previous.asOf ? previous : checked;
   const note = "The live scan did not refresh this figure.";
-  return { ...base, method: base.method.includes(note) ? base.method : `${base.method} ${note}` };
+  return { ...base, stale: true, method: base.method.includes(note) ? base.method : `${base.method} ${note}` };
 }
 
 export function venusEstimateFromSnapshot(

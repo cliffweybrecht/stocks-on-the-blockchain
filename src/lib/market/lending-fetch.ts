@@ -14,6 +14,11 @@ import {
   type ListaCollateralQuote,
 } from "./lending-parse";
 import { loansFromAavePositions, loansFromMorphoPositions, poolLoanHealth, positionLoanHealth } from "./lending-health";
+import {
+  fetchKaminoMarketObligations,
+  kaminoReserveMints,
+  loansFromKaminoObligations,
+} from "./lending-kamino-obligations";
 import { asReportedNumber, tokenCountFromBaseUnits } from "./numbers";
 import { lendingDayFromCapture, type LendingDaySnapshot, type LendingLoanHealth, type LendingRow, type LendingSourceNote } from "./lending-snapshot";
 import { chooseVenusEstimate, scanVenusBStockBorrow, VENUS_CHECKED_ESTIMATE, type VenusBorrowEstimate } from "./lending-venus-estimate";
@@ -412,7 +417,7 @@ export async function captureLendingSnapshot(
     MORPHO_CHAINS.map((chainId, index) => captureMorpho(chainId, morphoChains[index], book, asOf)),
   );
   const rows: LendingRow[] = [
-    ...(await captureKamino(kaminoList.data, book)),
+    ...(await captureKamino(kaminoList.data, book, asOf)),
     captureJupiter(jupiterVaults, jupiterLiquidity, book),
     captureAave(aave, book),
     ...morphoRows,
@@ -437,12 +442,12 @@ async function anchoredTextFrom(result: { data: unknown; error: string | null })
   return null;
 }
 
-async function captureKamino(list: unknown, book: EquityAddressBook): Promise<LendingRow[]> {
+async function captureKamino(list: unknown, book: EquityAddressBook, asOf: string): Promise<LendingRow[]> {
   const targets = kaminoTargets(list);
   const metrics = await Promise.all(
     targets.map((target) => settle(target.venue, () => getJsonRetry(kaminoMetricsUrl(target.market)))),
   );
-  return metrics.map((result, index) => {
+  const rows = metrics.map((result, index) => {
     const target = targets[index];
     if (!target) {
       return parseKaminoReserveMetrics(null, {
@@ -459,6 +464,59 @@ async function captureKamino(list: unknown, book: EquityAddressBook): Promise<Le
     }
     return parseKaminoReserveMetrics(result.data, { ...target, equityMints: book.solana, source });
   });
+  return Promise.all(
+    rows.map(async (row, index) => {
+      if (row.id !== "kamino-sentora" || row.error) return row;
+      return attachSentoraLoans(row, metrics[index]?.data, book.solana, asOf);
+    }),
+  );
+}
+
+const SENTORA_LOAN_SOURCE_NOTE =
+  "Kamino's HTTP API lists a loan only when the wallet is known. The market-wide routes do not exist, so loans are read from Solana.";
+
+async function attachSentoraLoans(
+  row: LendingRow,
+  metrics: unknown,
+  equityMints: ReadonlySet<string>,
+  asOf: string,
+): Promise<LendingRow> {
+  try {
+    const read = await fetchKaminoMarketObligations(KAMINO_SENTORA);
+    const loans = loansFromKaminoObligations({
+      accounts: read.accounts,
+      reserveMints: kaminoReserveMints(metrics),
+      equityMints,
+    });
+    if (loans.loans.length === 0) {
+      return {
+        ...row,
+        loanHealth: poolLoanHealth({
+          asOf,
+          source: read.source,
+          fallback: `${SENTORA_LOAN_SOURCE_NOTE} No priced stock loan came back, so this is the pool estimate.`,
+        }),
+      };
+    }
+    return {
+      ...row,
+      loanHealth: positionLoanHealth({
+        asOf,
+        source: read.source,
+        loans: loans.loans,
+        unpricedLoanCount: loans.unpricedLoanCount,
+      }),
+    };
+  } catch (error) {
+    return {
+      ...row,
+      loanHealth: poolLoanHealth({
+        asOf,
+        source: KAMINO_MARKETS,
+        fallback: `${SENTORA_LOAN_SOURCE_NOTE} The Solana read failed (${errorMessage(error)}), so this is the pool estimate.`,
+      }),
+    };
+  }
 }
 
 function captureJupiter(

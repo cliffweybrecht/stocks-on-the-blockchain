@@ -697,6 +697,7 @@ export interface VenusBorrowEstimateInput {
   lowerBoundUsd: number | null;
   method: string;
   asOf: string;
+  stale?: boolean;
 }
 
 export function parseVenusMarkets(
@@ -778,7 +779,12 @@ export function parseVenusMarkets(
     assets: sortAssets(assets),
     note: venusNote(estimate),
     borrowEstimate: estimate
-      ? { method: estimate.method, asOf: estimate.asOf, lowerBoundUsd: estimate.lowerBoundUsd }
+      ? {
+          method: estimate.method,
+          asOf: estimate.asOf,
+          lowerBoundUsd: estimate.lowerBoundUsd,
+          ...(estimate.stale || /did not refresh/i.test(estimate.method) ? { stale: true as const } : {}),
+        }
       : null,
   });
 }
@@ -1125,5 +1131,9 @@ function venusNote(estimate: VenusBorrowEstimateInput | null): string {
     estimate.lowerBoundUsd === null
       ? ""
       : ` Accounts that use only these stocks as collateral have borrowed ${formatUsdCompact(estimate.lowerBoundUsd)}.`;
-  return `${shared} Dollars borrowed are an estimate: each account's borrow times the share of its borrowing power that comes from these stocks.${lower} How full and the yearly cost are not available. Borrowing the stock tokens themselves is turned off.`;
+  const stale =
+    estimate.stale || /did not refresh/i.test(estimate.method)
+      ? " This pro-rata figure is stale."
+      : "";
+  return `${shared} Dollars borrowed are a pro-rata estimate: each account's borrow times the share of its borrowing power that comes from these stocks.${lower}${stale} How full and the yearly cost are not available. Borrowing the stock tokens themselves is turned off.`;
 }

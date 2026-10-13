@@ -9,8 +9,11 @@ import {
   lendingDropTable,
   lendingFillingFlags,
   lendingGlance,
+  lendingHowFull,
   lendingPreviousRows,
   lendingRiskLine,
+  lendingSimpleBadges,
+  lendingStaleNotes,
   type LendingDropFraction,
 } from "../lending-glance";
 import { poolLoanHealth, positionLoanHealth } from "../lending-health";
@@ -248,6 +251,62 @@ describe("lending glance", () => {
       }),
     });
     expect(lendingDropAnswer([gap], "morpho-base", 0.1).sentence).toMatch(/priced stock/);
+  });
+
+  it("badges a pool that is at least 90% full and a sharp rate jump, using lend supply", () => {
+    const full = row({
+      id: "kamino-xstocks",
+      venue: "Kamino xStocks",
+      stableBorrowedUsd: 90_000,
+      lendSupplyUsd: 100_000,
+      utilization: 0.4,
+      borrowApy: 0.06,
+    });
+    const jupiter = row({
+      id: "jupiter-lend",
+      venue: "Jupiter Lend",
+      stableBorrowedUsd: 200_000,
+      lendSupplyUsd: 100_000,
+      utilization: 0.95,
+      borrowApy: 0.08,
+    });
+    const venus = row({
+      id: "venus-bnb",
+      venue: "Venus",
+      chainId: "bnb",
+      chainLabel: "BNB",
+      stableBorrowedUsd: 250_000,
+      lendSupplyUsd: 260_000,
+      utilization: 0.96,
+      borrowApy: 0.04,
+      borrowEstimate: { method: "Pro-rata test. The live scan did not refresh this figure.", asOf: "2026-10-08T18:00:00.000Z", lowerBoundUsd: 100, stale: true },
+    });
+    const dust = row({
+      id: "morpho-hyperevm",
+      venue: "Morpho",
+      chainId: "hyperevm",
+      chainLabel: "HyperEVM",
+      stableBorrowedUsd: 11,
+      lendSupplyUsd: 12,
+      utilization: 0.92,
+    });
+    const prior = row({ id: "morpho-robinhood-chain", venue: "Morpho", chainId: "4663", chainLabel: "Robinhood Chain", borrowApy: 0.02, stableBorrowedUsd: 100_000, lendSupplyUsd: 200_000, utilization: 0.5 });
+    const jumped = row({ ...prior, borrowApy: 0.035 });
+    const badges = lendingSimpleBadges([full, jupiter, venus, dust, jumped], [prior]);
+    expect(badges.map((badge) => badge.label)).toEqual(["Nearly full", "Rate jumped"]);
+    expect(badges[0]?.venueId).toBe("kamino-xstocks");
+    expect(badges[0]?.text).toMatch(/90\.0% full/);
+    expect(lendingHowFull(jupiter)).toBeNull();
+    expect(lendingHowFull(venus)).toBeNull();
+    expect(badges[1]?.text).toMatch(/1\.5 points/);
+    const quiet = lendingSimpleBadges([row({ id: "lista-bnb", venue: "Lista", borrowApy: 0.021, stableBorrowedUsd: 100_000, lendSupplyUsd: 200_000 })], [row({ id: "lista-bnb", venue: "Lista", borrowApy: 0.02 })]);
+    expect(quiet).toEqual([]);
+    const missing = lendingSimpleBadges([jumped], [row({ id: prior.id, venue: "Morpho", borrowApy: null })]);
+    expect(missing.some((badge) => badge.kind === "rate-jumped")).toBe(false);
+    const stale = lendingStaleNotes([venus]);
+    expect(stale[0]?.label).toBe("Stale");
+    expect(stale[0]?.text).toMatch(/pro-rata estimate/);
+    expect(stale[0]?.text).toMatch(/Oct 8, 2026/);
   });
 
   it("reads the stored snapshots without inventing a jump or a breach", () => {
