@@ -56640,7 +56640,7 @@
           "symbol": "SPCX",
           "instrumentKind": "private",
           "volume24hUsd": 5761469.909999998,
-          "displayedLiquidityUsd": 444195258.63,
+          "displayedLiquidityUsd": 1966749.25,
           "pools": [
             {
               "pairAddress": "Bq6qtrFcr1GdVhmZYCNKBBi9oeN1MTvET26J66zf9giT",
@@ -56821,6 +56821,17 @@
               "dexId": "meteora",
               "volume24hUsd": 0.57,
               "liquidityUsd": 1.19
+            }
+          ],
+          "correction": {
+            "reason": "excluded pool 3rnGsqSr5fFXNVjhEEQjiERFu64YH2ChKsdwfRei7QmD raw liquidity 442228509.38: liquidity-above-50m-with-volume-below-0.01pct",
+            "displayedLiquidityUsd": 444195258.63
+          },
+          "excludedLiquidityPools": [
+            {
+              "poolId": "3rnGsqSr5fFXNVjhEEQjiERFu64YH2ChKsdwfRei7QmD",
+              "liquidityUsd": 442228509.38,
+              "reason": "liquidity-above-50m-with-volume-below-0.01pct"
             }
           ]
         },
@@ -134762,7 +134773,7 @@
           "symbol": "SPCX",
           "instrumentKind": "private",
           "volume24hUsd": 10.96,
-          "displayedLiquidityUsd": 596294797.53,
+          "displayedLiquidityUsd": 0,
           "pools": [
             {
               "pairAddress": "7co5wJY7chDAmkE8Rd3UsSkwjB1X8YC4WDB1FqoyyMYY",
@@ -134771,7 +134782,18 @@
               "liquidityUsd": 596294797.53
             }
           ],
-          "issuer": "Backpack Securities"
+          "issuer": "Backpack Securities",
+          "correction": {
+            "reason": "excluded pool 7co5wJY7chDAmkE8Rd3UsSkwjB1X8YC4WDB1FqoyyMYY raw liquidity 596294797.53: liquidity-above-50m-with-volume-below-0.01pct",
+            "displayedLiquidityUsd": 596294797.53
+          },
+          "excludedLiquidityPools": [
+            {
+              "poolId": "7co5wJY7chDAmkE8Rd3UsSkwjB1X8YC4WDB1FqoyyMYY",
+              "liquidityUsd": 596294797.53,
+              "reason": "liquidity-above-50m-with-volume-below-0.01pct"
+            }
+          ]
         },
         {
           "address": "SPCXxcqXj6e5dJDVNovHN8744zkbhM2bYudU45BimGb",
@@ -147259,7 +147281,7 @@
           "symbol": "SPCX",
           "instrumentKind": "private",
           "volume24hUsd": 0.11,
-          "displayedLiquidityUsd": 596989189.19,
+          "displayedLiquidityUsd": 0,
           "pools": [
             {
               "pairAddress": "7co5wJY7chDAmkE8Rd3UsSkwjB1X8YC4WDB1FqoyyMYY",
@@ -147268,7 +147290,18 @@
               "liquidityUsd": 596989189.19
             }
           ],
-          "issuer": "Backpack Securities"
+          "issuer": "Backpack Securities",
+          "correction": {
+            "reason": "excluded pool 7co5wJY7chDAmkE8Rd3UsSkwjB1X8YC4WDB1FqoyyMYY raw liquidity 596989189.19: liquidity-above-50m-with-volume-below-0.01pct",
+            "displayedLiquidityUsd": 596989189.19
+          },
+          "excludedLiquidityPools": [
+            {
+              "poolId": "7co5wJY7chDAmkE8Rd3UsSkwjB1X8YC4WDB1FqoyyMYY",
+              "liquidityUsd": 596989189.19,
+              "reason": "liquidity-above-50m-with-volume-below-0.01pct"
+            }
+          ]
         },
         {
           "address": "SPCXxcqXj6e5dJDVNovHN8744zkbhM2bYudU45BimGb",

@@ -9,7 +9,15 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from snapshot_asset_rows import assets_for, upsert_day_record
+from snapshot_asset_rows import (
+    LIQUIDITY_SANITY_REASON_DEAD_DEPTH,
+    LIQUIDITY_SANITY_REASON_DOMINANCE,
+    LIQUIDITY_SANITY_REASON_GECKO,
+    apply_liquidity_sanity,
+    assets_for,
+    correct_stored_snapshot,
+    upsert_day_record,
+)
 
 
 def load(name: str):
@@ -179,6 +187,136 @@ class BnbAssetCaptureTest(unittest.TestCase):
         self.assertEqual(assets[0]["volume24hUsd"], 3)
         self.assertEqual(assets[0]["displayedLiquidityUsd"], 8)
         self.assertEqual(assets[0]["issuer"], "xstocks")
+
+
+class LiquiditySanityTest(unittest.TestCase):
+    def test_dead_depth_is_excluded_and_volume_stays(self) -> None:
+        pool = "7co5wJY7chDAmkE8Rd3UsSkwjB1X8YC4WDB1FqoyyMYY"
+        assets = assets_for(
+            [{"address": "Mint", "symbol": "SPCX", "kind": "preipo", "issuer": "backpack"}],
+            {"mint": 10.96},
+            {
+                "mint": [
+                    {
+                        "pairAddress": pool,
+                        "dexId": "orca",
+                        "volume24hUsd": 10.96,
+                        "liquidityUsd": 596_294_797.53,
+                    }
+                ]
+            },
+        )
+        self.assertEqual(assets[0]["volume24hUsd"], 10.96)
+        self.assertEqual(assets[0]["pools"][0]["volume24hUsd"], 10.96)
+        self.assertEqual(assets[0]["pools"][0]["liquidityUsd"], 596_294_797.53)
+        self.assertEqual(assets[0]["displayedLiquidityUsd"], 0)
+        self.assertEqual(assets[0]["excludedLiquidityPools"][0]["poolId"], pool)
+        self.assertEqual(assets[0]["excludedLiquidityPools"][0]["liquidityUsd"], 596_294_797.53)
+        self.assertEqual(assets[0]["excludedLiquidityPools"][0]["reason"], LIQUIDITY_SANITY_REASON_DEAD_DEPTH)
+
+    def test_active_large_pool_and_exact_thresholds_stay(self) -> None:
+        kept = apply_liquidity_sanity(
+            [{"poolId": "deep", "liquidityUsd": 60_000_000, "volume24hUsd": 10_000}]
+        )
+        self.assertEqual(kept["displayedLiquidityUsd"], 60_000_000)
+        self.assertEqual(kept["excludedLiquidityPools"], [])
+        boundary = apply_liquidity_sanity(
+            [{"poolId": "edge", "liquidityUsd": 50_000_000, "volume24hUsd": 0}]
+        )
+        self.assertEqual(boundary["displayedLiquidityUsd"], 50_000_000)
+        ratio = apply_liquidity_sanity(
+            [{"poolId": "ratio", "liquidityUsd": 60_000_000, "volume24hUsd": 6_000}]
+        )
+        self.assertEqual(ratio["displayedLiquidityUsd"], 60_000_000)
+
+    def test_remaining_pools_stay_in_the_sum(self) -> None:
+        result = apply_liquidity_sanity(
+            [
+                {"poolId": "bogus", "liquidityUsd": 442_228_509.38, "volume24hUsd": 29_053.87},
+                {"poolId": "real", "liquidityUsd": 1_966_749.25, "volume24hUsd": 100},
+            ]
+        )
+        self.assertEqual(result["displayedLiquidityUsd"], 1_966_749.25)
+        self.assertEqual(result["excludedLiquidityPools"][0]["poolId"], "bogus")
+
+    def test_dominance_needs_a_known_market_value(self) -> None:
+        pools = [
+            {"poolId": "wide", "liquidityUsd": 40_000_000, "volume24hUsd": 5_000_000},
+            {"poolId": "next", "liquidityUsd": 100_000, "volume24hUsd": 1_000},
+        ]
+        unknown = apply_liquidity_sanity(pools)
+        self.assertEqual(unknown["displayedLiquidityUsd"], 40_100_000)
+        known = apply_liquidity_sanity(pools, market_value_usd=1_000_000)
+        self.assertEqual(known["displayedLiquidityUsd"], 100_000)
+        self.assertEqual(known["excludedLiquidityPools"][0]["reason"], LIQUIDITY_SANITY_REASON_DOMINANCE)
+        single = apply_liquidity_sanity(
+            [{"poolId": "only", "liquidityUsd": 40_000_000, "volume24hUsd": 5_000_000}],
+            market_value_usd=1_000_000,
+        )
+        self.assertEqual(single["displayedLiquidityUsd"], 40_000_000)
+
+    def test_gecko_reserve_replaces_a_far_higher_report(self) -> None:
+        result = apply_liquidity_sanity(
+            [
+                {
+                    "poolId": "pool",
+                    "liquidityUsd": 2_000_000,
+                    "volume24hUsd": 50_000,
+                    "geckoReserveUsd": 20_000,
+                }
+            ]
+        )
+        self.assertEqual(result["displayedLiquidityUsd"], 20_000)
+        self.assertEqual(result["excludedLiquidityPools"][0]["reason"], LIQUIDITY_SANITY_REASON_GECKO)
+        self.assertEqual(result["excludedLiquidityPools"][0]["replacementLiquidityUsd"], 20_000)
+        self.assertEqual(result["excludedLiquidityPools"][0]["liquidityUsd"], 2_000_000)
+        raw_dead = apply_liquidity_sanity(
+            [
+                {
+                    "poolId": "7co5wJY7chDAmkE8Rd3UsSkwjB1X8YC4WDB1FqoyyMYY",
+                    "liquidityUsd": 596_294_797.53,
+                    "volume24hUsd": 10.96,
+                    "geckoReserveUsd": 2_000_000,
+                }
+            ]
+        )
+        self.assertEqual(raw_dead["displayedLiquidityUsd"], 2_000_000)
+        self.assertEqual(raw_dead["excludedLiquidityPools"][0]["reason"], LIQUIDITY_SANITY_REASON_GECKO)
+
+    def test_stored_row_keeps_the_original_displayed_total(self) -> None:
+        payload = {
+            "records": [
+                {
+                    "date": "2026-10-11",
+                    "combined24hUsd": 1,
+                    "assets": [
+                        {
+                            "address": "mint",
+                            "symbol": "SPCX",
+                            "volume24hUsd": 10.96,
+                            "displayedLiquidityUsd": 596_294_797.53,
+                            "pools": [
+                                {
+                                    "pairAddress": "7co5wJY7chDAmkE8Rd3UsSkwjB1X8YC4WDB1FqoyyMYY",
+                                    "volume24hUsd": 10.96,
+                                    "liquidityUsd": 596_294_797.53,
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ]
+        }
+        changes = correct_stored_snapshot(payload)
+        asset = payload["records"][0]["assets"][0]
+        self.assertEqual(len(changes), 1)
+        self.assertEqual(asset["volume24hUsd"], 10.96)
+        self.assertEqual(asset["pools"][0]["volume24hUsd"], 10.96)
+        self.assertEqual(asset["pools"][0]["liquidityUsd"], 596_294_797.53)
+        self.assertEqual(asset["displayedLiquidityUsd"], 0)
+        self.assertEqual(asset["correction"]["displayedLiquidityUsd"], 596_294_797.53)
+        self.assertIn("7co5wJY7chDAmkE8Rd3UsSkwjB1X8YC4WDB1FqoyyMYY", asset["correction"]["reason"])
+        self.assertEqual(correct_stored_snapshot(payload), [])
 
 
 if __name__ == "__main__":
