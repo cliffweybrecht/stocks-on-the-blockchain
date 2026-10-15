@@ -11,53 +11,216 @@
         {
           "pairAddress": "0x18d52270d09ab842c87acd45977dcf64a82fa4ad",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 768629.489
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x1cE9f5dF0f680E0a7742D211E8117c00555F595c",
+          "dexId": "uniswap",
+          "uniswapV4": false
         },
         {
           "pairAddress": "0x217e9ed14c797df4597512d2245c00ca93e5a567",
           "dexId": "pancakeswap_v2",
-          "uniswapV4": false,
-          "reserveUsd": 24043.0366
+          "uniswapV4": false
         },
         {
           "pairAddress": "0x699884c4518b330303dc07138202524fc099734463df2b9c6c165aaaadc7a1a2",
           "dexId": "uniswap-v4-bsc",
-          "uniswapV4": true,
-          "reserveUsd": 4918.3851
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x83514bba8e4272a2ffa1ce622c78dca13eef1440",
+          "dexId": "uniswap-bsc",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x883fbe44efccc45e79756c984cb1e3428bef44bb4363ed1a92196def784a6d1a",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
         },
         {
           "pairAddress": "0x8fb4243b553ac29ba088acf00b9b7da24bd6690c",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 6088453.9526
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x9540E735A8Ba603c304EdBF9632D5aF7228bacc2",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x98e5ed25d8637d772b3568c86452b987d5d54c4f0c8c231325144a759cee55b7",
+          "dexId": "pancakeswap-infinity-clmm",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xaF2c5f636d9BC8467FE648fC70c725F14e59c3d3",
+          "dexId": "uniswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xBbDB86FD896D2C2533bD01d183c9268B8560a052",
+          "dexId": "uniswap",
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xcc2bffaec373a6004bb6ccc8a62cdd66061f7c6a",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 51555.4451
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xd322f2c2b9a7bae13ab40b64f85c0448768eb94d",
           "dexId": "topaz",
-          "uniswapV4": false,
-          "reserveUsd": 14625.5417
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xd7138Bf47270b46DBB356916c820757502d95a37",
+          "dexId": "uniswap",
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xdd9d5164ccbc57be377a964fc064135b03d06177",
           "dexId": "uniswap-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 447846.6909
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xdebed59510885e29ce1d3da0e5412d49d21f0354",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 108401.3575
+          "uniswapV4": false
         }
       ],
       "mainPool": "0x8fb4243b553ac29ba088acf00b9b7da24bd6690c"
+    },
+    "0x03e4bd1ea53f1da84513da0319d1f03dd1bbcf93": {
+      "address": "0x03E4bd1Ea53f1da84513da0319D1f03dD1BBCf93",
+      "symbol": "ORCLon",
+      "issuer": "ondo",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x258b868142CD8dC7875D2c214De450fd65B0C69e",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        }
+      ]
+    },
+    "0x04b5e199f2ec84f78b111035f57b16bee448db6f": {
+      "address": "0x04b5E199F2eC84f78B111035F57b16BeE448dB6F",
+      "symbol": "NKEon",
+      "issuer": "ondo",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x07E9A5dcA4B3F46Ab9b87Bf8E18e0a358B5d97dF",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        }
+      ]
+    },
+    "0x05353dabf163fb2fec87f9e0f00f94eae4ac1631": {
+      "address": "0x05353Dabf163Fb2fec87f9e0f00f94Eae4AC1631",
+      "symbol": "xSPCX",
+      "issuer": "paimon",
+      "kind": "preipo",
+      "pools": [
+        {
+          "pairAddress": "0xce944569629b9301aa184e4457ce078b637dc10134587a343f7bd2806631cd1d",
+          "dexId": "pancakeswap-infinity-clmm",
+          "uniswapV4": false
+        }
+      ]
+    },
+    "0x091fc7778e6932d4009b087b191d1ee3bac5729a": {
+      "address": "0x091FC7778e6932d4009B087B191D1EE3bac5729A",
+      "symbol": "GOOGLon",
+      "issuer": "ondo",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x6731932C92E882Cc22a10749324C70A7d6aDde60",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x764cab723947431bcebd2073a9169b93d5360a090d9032ec19c54aa3f6de1751",
+          "dexId": "pancakeswap-infinity-clmm",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x8f5dada826d7f684bfa266dc4fe255eaaa0279375460ebb77702dcbe5f67ac39",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xCdB2f7831600afFC6151543711387FfBDb7748dA",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        }
+      ]
+    },
+    "0x0cde6936d305d5b34667fc46425e852efd73559a": {
+      "address": "0x0cdE6936d305d5B34667fC46425E852efd73559a",
+      "symbol": "QQQon",
+      "issuer": "ondo",
+      "kind": "etf",
+      "pools": [
+        {
+          "pairAddress": "0x8d7ea29ba83ea3d4ba5690cdbe7fefa14137626c289b45debae335f96faa56bf",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x9e1d24dEe1dddB38658dd3ECe97fA7A6D3E0634a",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xE59dC391582Bd70210B917b7E6e526F7f7464b76",
+          "dexId": "uniswap",
+          "uniswapV4": false
+        }
+      ]
+    },
+    "0x0e7a51966c66648999d506e1372efdea1b78cb0b": {
+      "address": "0x0e7a51966c66648999d506e1372efdea1b78cb0b",
+      "symbol": "DELLB",
+      "issuer": "bstocks",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x2cefb9dbcc0c867f7cd9df71ba8206bbc4fe856d52649789326bf033826d710b",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xd98482547d778da2d2b1b75b53cdab040cfe79d8798de17a95f10e125bcb72ff",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xe4b2f64377e9dabba577c161b4de630dff95e8721165c879c030e99da7601f24",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        }
+      ]
+    },
+    "0x10343ef7da3301493d7ecb647d68a288c6c1db2f": {
+      "address": "0x10343ef7da3301493d7ecb647d68a288c6c1db2f",
+      "symbol": "AAOIB",
+      "issuer": "bstocks",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0xa87e051Aa7819aBABff7b64A4CcB9cB7B75c17ba",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xd54a65c57506e369f6a02f328f1d46771329d39a690bb9c2c7308117057301f5",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        }
+      ]
     },
     "0x16cd4fe7e8880ecc3ba222795229e20489fc2c76": {
       "address": "0x16cd4fe7e8880ecc3ba222795229e20489fc2c76",
@@ -66,10 +229,14 @@
       "kind": "equity",
       "pools": [
         {
+          "pairAddress": "0x37b248cd42841e1f10eb619b47d3bd0b5dcc64188a2ee9958dfb653619517d85",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
           "pairAddress": "0xd5aefc40828b76d43859b0428534d99fb2480c1f",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 26094.4851
+          "uniswapV4": false
         }
       ],
       "mainPool": "0xd5aefc40828b76d43859b0428534d99fb2480c1f"
@@ -83,59 +250,86 @@
         {
           "pairAddress": "0x7530beb7bde5843f668cf31b996fa1f748c9b6b1",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 217785.7386
+          "uniswapV4": false
         },
         {
           "pairAddress": "0x84cbd08021c40fcea28f3389721ffefc73291340",
           "dexId": "uniswap-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 13783.1744
+          "uniswapV4": false
         }
       ],
       "mainPool": "0x7530beb7bde5843f668cf31b996fa1f748c9b6b1"
     },
     "0x1d80392d12caaaf9e333bb0bb7f021eacf297fe6": {
-      "address": "0x1d80392d12caaaf9e333bb0bb7f021eacf297fe6",
+      "address": "0x1D80392D12CAAaF9E333Bb0bb7f021eaCf297Fe6",
       "symbol": "pPOLY",
       "issuer": "paimon",
       "kind": "preipo",
       "pools": [
         {
+          "pairAddress": "0x27ffa5dd38169b06620c504ed82603a00f48732d561e8a153e850ded14c794e2",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x34019f55f60d9e5ef9234b2d2a9da4b8026c78b5766057a449a45c25ea78b4d3",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x5dacbab80394129eb3b49362ad557ccb5113a5ac75706a25660bfcde39c44ff4",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x644b35566322e99b72a4bcc729c766eabec43f3271fc5d554caee9c9d5b93319",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
           "pairAddress": "0x82489cf1f5b3eadd47ffed481ebf146b5b15bcd0",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 1551.5461
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x87D7C289e6981CD0774024Cb2FcB3656c5c36d21",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x9cb5dfb8b6a238ca6d9ef3767cff16ffad31752ee13d6021091e8ae43ba54d60",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
         },
         {
           "pairAddress": "0xa0c00a1ac8b0bf7be5ee038cb288b4ece75f0bb953a55600c348a225ecd9a073",
           "dexId": "uniswap-v4-bsc",
-          "uniswapV4": true,
-          "reserveUsd": 11244.1256
+          "uniswapV4": true
         },
         {
           "pairAddress": "0xa91250260525ac59a23a46bd657616eb5697c8d9",
           "dexId": "uniswap",
-          "uniswapV4": false,
-          "reserveUsd": 62307.22
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xb2c8244fbeee2da006b5d9cf09908081f807c649",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 279713.3729
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xb37EFe4E307a63DbD9A2F6677bADfbed95c5C1f6",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xc626fce3cf3781c56fe7d31f87250a8da3540a34",
           "dexId": "uniswap-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 726722.1489
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xf0e8f3a6b7983d43b91bcddf7c329812d35203a7",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 5951.218
+          "uniswapV4": false
         }
       ],
       "mainPool": "0xb2c8244fbeee2da006b5d9cf09908081f807c649"
@@ -149,41 +343,106 @@
         {
           "pairAddress": "0x0f494581240974b082075af27e087e92612f90dd",
           "dexId": "pancakeswap_v2",
-          "uniswapV4": false,
-          "reserveUsd": 148071.8478
+          "uniswapV4": false
         },
         {
           "pairAddress": "0x47bc06722295ac316a569eef87ac32faa455f441",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 913828.4396
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x5ceBDb47BaCB5bb7360AEBB3791148AbB3D947f4",
+          "dexId": "uniswap",
+          "uniswapV4": false
         },
         {
           "pairAddress": "0x62609d8964b2fb5ce0322c4e0b659466e7297df903633c0e3fdb2c7fed0c84c9",
           "dexId": "uniswap-v4-bsc",
-          "uniswapV4": true,
-          "reserveUsd": 12300.4431
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x661673D0dd963Af9146dd71092357f6c285D74c8",
+          "dexId": "topaz",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x702C833A01844FDb14fFA6744C6E2DCf58f42b8D",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x787446ebc6600802eae6709c492a3d61f0353a67f95368aafe092889ebff7310",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
         },
         {
           "pairAddress": "0x7c84f9943ec82cf2233c97a7ee417f18bd2ec295",
           "dexId": "pancakeswap",
-          "uniswapV4": false,
-          "reserveUsd": 5921.41
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x81e1f351dc99ee4f3e8b2cfc651c6f18b732a1c5",
+          "dexId": "pancakeswap-v3-bsc",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xD389b1e12786DB2024979d3214EE9f75e50E6120",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xe531fcb1f5a195de7608b9f4f9518544c2cdb693",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 649908.8107
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xfc4e77248b76fefc27c4cac7151a2ee5b5cc590e",
           "dexId": "uniswap-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 774508.2627
+          "uniswapV4": false
         }
       ],
       "mainPool": "0x47bc06722295ac316a569eef87ac32faa455f441"
+    },
+    "0x2494b603319d4d9f9715c9f4496d9e0364b59d93": {
+      "address": "0x2494b603319d4D9F9715c9f4496d9E0364B59d93",
+      "symbol": "TSLAon",
+      "issuer": "ondo",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x680eC663A1f38C5c703e5d70B99395015a858Da7",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xaec45847282fa53283b2a5a16423ad224b2d0ba8197f538dade52bff5136de37",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xc0be69e27d58743e1a43a9a7d4625556d1405da3889f03552dcda548b2320a1e",
+          "dexId": "pancakeswap-infinity-clmm",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xccf577c778d08d91175525ddb5dd9e439dddc5fe50b0b801475b696c93e6d251",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        }
+      ]
+    },
+    "0x33e7317e17838fee56b10fe8d0b9ca6ca3090c95": {
+      "address": "0x33e7317e17838fee56b10fe8d0b9ca6ca3090c95",
+      "symbol": "CRWVB",
+      "issuer": "bstocks",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x75EE177CE590B7807a886CB8933eD9A42A526F74",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        }
+      ]
     },
     "0x3548da95a9effe481e8604664d75e95821e557f5": {
       "address": "0x3548da95a9effe481e8604664d75e95821e557f5",
@@ -192,18 +451,93 @@
       "kind": "equity",
       "pools": [
         {
+          "pairAddress": "0x39b9a2a4f11ea1f03145a50dad4f06c7c84f8bc8646d4a6127810fae0b92efa4",
+          "dexId": "pancakeswap-infinity-clmm",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x4370199e1685e1408f379d8b865de63727b3ffad97b738c15a42cdee444d5634",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x48f9FA8125Ffebd32C94A977810d46F4609Fb068",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
           "pairAddress": "0x52a427db0b2d9154a5f4ad09d22f3792f754b6fc",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 76603.6024
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x5544552CAbacfBDE8358Ca77Ae666938e4A59557",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x8c9FcDF8016BD9a6646e78C8A2D6E39b34416204",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
         },
         {
           "pairAddress": "0x8fb62e3f2615e4e46127d20a2d36e7e5c95f8d7c",
-          "dexId": "unknown",
+          "dexId": "pancakeswap",
           "uniswapV4": false
         }
       ],
       "mainPool": "0x52a427db0b2d9154a5f4ad09d22f3792f754b6fc"
+    },
+    "0x3557ba345b01efa20a1bddc61f573bfd87195081": {
+      "address": "0x3557Ba345B01EFa20A1bdDC61F573BFD87195081",
+      "symbol": "AMZNx",
+      "issuer": "xstocks",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x28A73f5bd589Fea90BA0D24117BF91D648be3ef2",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        }
+      ]
+    },
+    "0x390a684ef9cade28a7ad0dfa61ab1eb3842618c4": {
+      "address": "0x390a684EF9cADE28A7AD0DFa61AB1Eb3842618c4",
+      "symbol": "AAPLon",
+      "issuer": "ondo",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x2cf94f4671c376e2aef86f98ae5a85d7b6a941f1930e329737c155bde2fc227c",
+          "dexId": "pancakeswap-infinity-clmm",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x6d0a537fc3dea363e784c6ed9b09a235be7f5e011da8884efa33aa3e34b8896a",
+          "dexId": "pancakeswap-infinity-clmm",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x8D39c7E9427EdfF441C63fc51861522CF02167C8",
+          "dexId": "uniswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x8dcBA688219dc5Ee6dbf74ee2F74045E2A07C79C",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xC0BFbc52dEeceE475BDb52A62f8D7cF128B59358",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xEd226182eC1d7A888C9bFc002710fF1EEDbFD7Ab",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        }
+      ]
     },
     "0x3ee4df61bd4f867e349beae8bfe07bc31b4850fb": {
       "address": "0x3ee4df61bd4f867e349beae8bfe07bc31b4850fb",
@@ -212,16 +546,19 @@
       "kind": "equity",
       "pools": [
         {
+          "pairAddress": "0x662de37344ee3a7fd366a780ebdf6e37a1b4c873d2fb4cc37579a14bda526b0a",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
           "pairAddress": "0xb68beea809718a727b9b04cde8b599547e707bb7",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 7787.5921
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xe4b5403f5103b02d1e8193b0d7d76d49f3f8ad77",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 234813.4115
+          "uniswapV4": false
         }
       ],
       "mainPool": "0xe4b5403f5103b02d1e8193b0d7d76d49f3f8ad77"
@@ -235,44 +572,66 @@
         {
           "pairAddress": "0x0d268e5abac7a2b4d3ae86670b4c6511955e6af9",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 14758.5816
+          "uniswapV4": false
         },
         {
           "pairAddress": "0x17759dee839565285e62ba5aa418a3b65d139a8c",
           "dexId": "pancakeswap_v2",
-          "uniswapV4": false,
-          "reserveUsd": 10530.4316
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x2c097784b50e6bd7aae3932ffc7f5d1fe665eae4",
+          "dexId": "pancakeswap-v3-bsc",
+          "uniswapV4": false
         },
         {
           "pairAddress": "0x89001d846f7ca36ee089f73eefc25657e1798144",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 1688073.0231
+          "uniswapV4": false
         },
         {
           "pairAddress": "0x998591c364e46da28b2972f4b271ac74dd02300f",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 38526.6365
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xaf6cb213eae80642fc16b359fea2452113a86c4e6fc3b81938524451c7d003ac",
           "dexId": "uniswap-v4-bsc",
-          "uniswapV4": true,
-          "reserveUsd": 120839.8951
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xd374ba131A11602Aec00734a068b74b96fb3Bbd0",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xf5a91043817ec002b8892688a25afb281ab06f4b",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 35466.8158
+          "uniswapV4": false
         }
       ],
       "mainPool": "0x89001d846f7ca36ee089f73eefc25657e1798144"
     },
+    "0x405f38b90bebf1259062cf29da299f3398662bcb": {
+      "address": "0x405F38B90beBF1259062CF29Da299f3398662bcb",
+      "symbol": "KOon",
+      "issuer": "ondo",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x3826b483c2ad1647c45ee591158cd811884495e8afddfc3f4075a6ad6dd3657c",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x529D728E0141A67D9C27ee4eEcb6181c49638D6E",
+          "dexId": "uniswap",
+          "uniswapV4": false
+        }
+      ]
+    },
     "0x41622a9125a22767df8c1dc79fc17299bac4bd0b": {
-      "address": "0x41622a9125a22767df8c1dc79fc17299bac4bd0b",
+      "address": "0x41622a9125A22767Df8C1dC79FC17299BAc4Bd0b",
       "symbol": "RDDTB",
       "issuer": "bstocks",
       "kind": "equity",
@@ -280,8 +639,27 @@
         {
           "pairAddress": "0x1ad976537ba876c975809539c8163e433dd7342b",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 4704.8892
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x2604b9942511bc015c0e3cbc4c3a8dfa5463a7322061eabcc68d3d3adb5e6c1d",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x2a4b0d938d18016096a9cb6b79c871fb5a4d23541ca5aad8dfeb566411a903c3",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xcc8e47d3bfcc76319789c8b32d6e0fd6e3a3c3db012d92180be5ab95b1de33ab",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xddeba87f60d612f30496f724fb183f37e0215d127e91f67d0eebcf2432eda3b7",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
         }
       ],
       "mainPool": "0x1ad976537ba876c975809539c8163e433dd7342b"
@@ -295,41 +673,91 @@
         {
           "pairAddress": "0x21632d9be3a5895d83a2f9adde60fa3b2450ffd596f897da1a048219b3963f99",
           "dexId": "uniswap-v4-bsc",
-          "uniswapV4": true,
-          "reserveUsd": 45646.0188
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x236E428C7773103EafF775b71874b63A49306A42",
+          "dexId": "uniswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x2C097784B50e6bD7AAE3932FFc7F5D1fe665Eae4",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
         },
         {
           "pairAddress": "0x36c0fc3159eb8662a2e1b84a4df518d916bce0e1",
           "dexId": "uniswap-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 101118.8346
+          "uniswapV4": false
         },
         {
           "pairAddress": "0x49fcb68f78a4b75fc3e2464bfd21ebd5a3349b3a4cf811acaf2a9975a2110617",
           "dexId": "uniswap-v4-bsc",
-          "uniswapV4": true,
-          "reserveUsd": 20721.6225
+          "uniswapV4": true
         },
         {
           "pairAddress": "0x550c36d2c777f8621d300f2aa9da4fda5aefffe5",
           "dexId": "pancakeswap_v2",
-          "uniswapV4": false,
-          "reserveUsd": 24316.0707
+          "uniswapV4": false
         },
         {
           "pairAddress": "0x5aca9563f8d14a6d79f12421d549a5606644a270",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 92933.4589
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x83514bba8E4272a2ffA1ce622C78dCa13eeF1440",
+          "dexId": "uniswap",
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xe9b9998b2ec5430d2246c7f1f8d9f298c97d7365",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 497025.5369
+          "uniswapV4": false
         }
       ],
       "mainPool": "0xe9b9998b2ec5430d2246c7f1f8d9f298c97d7365"
+    },
+    "0x4553cfe1c09f37f38b12dc509f676964e392f8fc": {
+      "address": "0x4553cFe1C09f37f38b12dC509F676964e392F8Fc",
+      "symbol": "AMZNon",
+      "issuer": "ondo",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x8617Ba6DEEE616694601ADc41Ab7ffE0e610907E",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        }
+      ]
+    },
+    "0x467e59ce5d5fe01686d4a80dd1e1dae13549aa6c": {
+      "address": "0x467e59ce5D5fe01686D4A80dd1E1DAE13549AA6c",
+      "symbol": "BIDUon",
+      "issuer": "ondo",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x2c0b391a80adad16de15da07eb414a4a9c9a241a2db263776c99f3f8a8334de4",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x5bd6ad8e559b8a9362d8c844390ab192541affebf2e2d3174161c13cf41f8089",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xB6bA333Db176F14E6C495204D835Fc39993A7Ff3",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xcd22040fdf1eee0f158a8de9ce141574fc6d8bf66c5c53aff7792ed17ab2f6c1",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        }
+      ]
     },
     "0x4684d9887fc1c71cba7bab8e88835cec217eb598": {
       "address": "0x4684d9887fc1c71cba7bab8e88835cec217eb598",
@@ -340,14 +768,12 @@
         {
           "pairAddress": "0x5a3a37abd365f750a5d2e78ec7294b8c70c1a436",
           "dexId": "uniswap-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 10290.4526
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xd5558acff19b7b0c96bdc8fb22c66c06ee17eeaa",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 2205.0758
+          "uniswapV4": false
         }
       ],
       "mainPool": "0x5a3a37abd365f750a5d2e78ec7294b8c70c1a436"
@@ -361,35 +787,123 @@
         {
           "pairAddress": "0x11c5c2d1d3dc0371965296330aa1236feb78ba9b3a27c5da9d835b5d2d46c8aa",
           "dexId": "uniswap-v4-bsc",
-          "uniswapV4": true,
-          "reserveUsd": 3196.1578
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x403267968384ECE76f4F4661315086B780D70439",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
         },
         {
           "pairAddress": "0x852edfc1051132f9d42e045a7e2501e6f8510d36f8c8c13b24ff32bdad395ddb",
           "dexId": "pancakeswap-infinity-clmm",
-          "uniswapV4": true,
-          "reserveUsd": 130984.1727
+          "uniswapV4": true
         },
         {
           "pairAddress": "0x908d49048eb3a7bedfd238972403842805eaf2be",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 148476.6018
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xc557fd382c8e5633b2d75d50155b721d8c05b21f",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 15153.7741
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xd0a1c0100f7bd5140617c78c0822f1fb7de2c1c0",
           "dexId": "pancakeswap_v2",
-          "uniswapV4": false,
-          "reserveUsd": 23531.5928
+          "uniswapV4": false
         }
       ],
       "mainPool": "0x908d49048eb3a7bedfd238972403842805eaf2be"
+    },
+    "0x4902c5ebc598265ed2212b559b042de8a5eeec3f": {
+      "address": "0x4902C5ebc598265Ed2212b559B042De8a5Eeec3f",
+      "symbol": "BNCB",
+      "issuer": "bstocks",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x0bA40bbE85eAC2672128E7363bB096EF6648c1bC",
+          "dexId": "topaz",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x1ec77816c8bb8fb3cff522d8382814fbe232f299ad476b26fb3dd8a6689979d4",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x320e8096e5e7a46E43446141A5B15d801FC596f5",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x32c51041f3D7a66ac14ABA7485444EFb6E15efe1",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x369c3753168D6eFde184f72A8399720EADB73d3E",
+          "dexId": "uniswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x783a3d7c3236cf05f103adc890377f5984d694e5",
+          "dexId": "pancakeswap-v3-bsc",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x7f32EE11CDB66969121A271363191ecEa43db5Bf",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x8dc59be615834a1908fb09c7ab7804337b178ea85c62f978095fedb74497c52b",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x939862Cb12c02d91DAF456396D6b6d06aFdF5c89",
+          "dexId": "topaz",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x9bbad47b24f1c6a1b9951d4cc85714cf88ce9caf4a84ba4fbfdff2c5ac30cb73",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xb754F10CebF50B8862444cF4D6c1cC31A3B71c18",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xC53E634836e95CDa2857E2fbd3eAf2F7F63CF832",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xcf936261a1582b45eae2246105b3388d1e31c94d",
+          "dexId": "pancakeswap-v3-bsc",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xd02643e9323895f4b562c92f3e6ced7e77db73cd8ab057ec685d1dc710551a6b",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xdBF917BF6e7411245A1A3319A0804C7f84A64B5D",
+          "dexId": "topaz",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xFC58462502b7C47f166292DF6e6b11e1ae41F314",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        }
+      ]
     },
     "0x4af1d41cd9dd950dca43984b43aaa2a8702714ac": {
       "address": "0x4af1d41cd9dd950dca43984b43aaa2a8702714ac",
@@ -398,16 +912,29 @@
       "kind": "equity",
       "pools": [
         {
+          "pairAddress": "0x05e5cd31c3349c5c3fd7008745a61762cea21e68a7dc49d8b4a42076a41b24d8",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
           "pairAddress": "0x1f7083a138f980b60eb1582f01ca3b1d6c46ad10",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 66828.5036
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x46d9ed04e24334dca6a1a4dab3b4c8f97363e9303469ebef40b31a67cd4e369f",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
         },
         {
           "pairAddress": "0x7fda3d4c32d66d3fd85280f69a6ed0e6359c6b6aa8fee53448fb6cf7996322c7",
           "dexId": "uniswap-v4-bsc",
-          "uniswapV4": true,
-          "reserveUsd": 31849.8497
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xc514FEAe96126866798a440670d7E4Da83a6a412",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
         }
       ],
       "mainPool": "0x1f7083a138f980b60eb1582f01ca3b1d6c46ad10"
@@ -421,26 +948,46 @@
         {
           "pairAddress": "0x082a0a013f0d9152e53e435b274276e798f75cd5",
           "dexId": "pancakeswap_v2",
-          "uniswapV4": false,
-          "reserveUsd": 10312.2609
+          "uniswapV4": false
         },
         {
           "pairAddress": "0x3c519f6bb91158a4148b276baa2d4fe3e8a26614",
           "dexId": "uniswap-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 23604.5231
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xaddb17C4Cb19A07e099655C813056DD22E867199",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xbA458cb526F0c4F48234600A8fA8a62cda5E78C3",
+          "dexId": "uniswap",
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xfd95cb1391999006eb91797a7c62acfe88b20292",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 2505203.3195
+          "uniswapV4": false
         }
       ],
       "mainPool": "0xfd95cb1391999006eb91797a7c62acfe88b20292"
     },
+    "0x5131859a059b2446abeefe0f5d313b3c54ff3d36": {
+      "address": "0x5131859a059b2446abeefe0f5d313b3c54ff3d36",
+      "symbol": "COHRB",
+      "issuer": "bstocks",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0xf99a6f44cbae082575091b76beefa05d131a4e6bf8e947fd92c95eaafb530b11",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        }
+      ]
+    },
     "0x5407912f1aa4b9e05cbe6abeb9721547a643ec6b": {
-      "address": "0x5407912f1aa4b9e05cbe6abeb9721547a643ec6b",
+      "address": "0x5407912F1Aa4B9E05cBE6aBeb9721547a643eC6b",
       "symbol": "LLYB",
       "issuer": "bstocks",
       "kind": "equity",
@@ -448,17 +995,28 @@
         {
           "pairAddress": "0x86456a3a527ebf106893f59cce995eb0ab5be15a",
           "dexId": "uniswap-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 90245.6044
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xa349205d4152e527fc071eb03df5f7df12b5c9a4",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 40739.4115
+          "uniswapV4": false
         }
       ],
       "mainPool": "0xa349205d4152e527fc071eb03df5f7df12b5c9a4"
+    },
+    "0x5519de00f5388c17d886b97cb5d2d43a812a82bc": {
+      "address": "0x5519de00f5388c17d886b97cb5d2d43a812a82bc",
+      "symbol": "BEB",
+      "issuer": "bstocks",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0xbb68f327cd6f1c546d61a90d6121231618fbbd9c5a53eb030c1bad154bed0728",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        }
+      ]
     },
     "0x585bde7c54abb5ccd7791f923d6c2187635f3952": {
       "address": "0x585bde7c54abb5ccd7791f923d6c2187635f3952",
@@ -469,29 +1027,96 @@
         {
           "pairAddress": "0x14311e51dc17d43babd783120923a7d2701522e774829a9f92298870b1b839d8",
           "dexId": "uniswap-v4-bsc",
-          "uniswapV4": true,
-          "reserveUsd": 61158.0169
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x312cd22812b91e6fde8a8ed3066c20fd373a0b5b707fb5fbb987763f46f33d9c",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
         },
         {
           "pairAddress": "0x4e4c111a5c8c29e21f661a5aff769b19021debc1",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 2740.6875
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x66a3d148a58e1f28564f7750186dbeb7b9731901f3e35cf03b547a5e3ac0dc10",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
         },
         {
           "pairAddress": "0x9d02661895f7acc33cbaca99019e5847c86d839f45cd51b84d552867dee1d34d",
           "dexId": "uniswap-v4-bsc",
-          "uniswapV4": true,
-          "reserveUsd": 74707.1076
+          "uniswapV4": true
         },
         {
           "pairAddress": "0x9e9df2c9053864abfa5bf773f9770f08710c8a10",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 2818.3059
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xa03c94373705d48A19f7CaD1185FB25f7061C42c",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xb3d1aaf3d2600151fb54c30029babb1b3f73ac0f68b8838c5f73d471829af7d5",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xe9a4bbf50b14b6842fc227947ded22ee0149496200953f066318703fbe6f289a",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
         }
       ],
       "mainPool": "0x9e9df2c9053864abfa5bf773f9770f08710c8a10"
+    },
+    "0x58b6f5feeb8436489f5bf4a56619092b1fa8e777": {
+      "address": "0x58b6f5feeb8436489f5bf4a56619092b1fa8e777",
+      "symbol": "ASTSB",
+      "issuer": "bstocks",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x3126f73f650d7Db240889d4991911DA08975c095",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x6af3a52ff5f10bc4e147fa69be20232d6efd36a40e7dbcdaefb95d12390b4d83",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        }
+      ]
+    },
+    "0x5acf40056ed51c8bbcd1b125ef803581ac89a627": {
+      "address": "0x5acf40056ED51C8bBCD1b125Ef803581Ac89A627",
+      "symbol": "FUTUon",
+      "issuer": "ondo",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x4bB43bCE8BBE785C6b73C423bDeF75E69fa57402",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x5fe2e094bba2bd33e493f0feb9fabfe9f6a28d8f36b09750e89de7bb77493a30",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x7f45477db5f35ca3f6475f7884c6c2a3e90057820674c267c33586691ae61a04",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xa0928b346096b4f280801f4044b25b9abf4716566b3013e1947b7d498f405005",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        }
+      ]
     },
     "0x5b1910eaad6450e50f816082aa078c41f10c292f": {
       "address": "0x5b1910eaad6450e50f816082aa078c41f10c292f",
@@ -500,37 +1125,122 @@
       "kind": "equity",
       "pools": [
         {
+          "pairAddress": "0x00823B4815F37E9481714F69A29c83550F5e69C7",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
           "pairAddress": "0x162d64349c57ff06ad69551870f0414f694e6491",
           "dexId": "pancakeswap_v2",
-          "uniswapV4": false,
-          "reserveUsd": 15510.9909
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x2E0a821a0EE710e8723D92907b13656d76Dca069",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
         },
         {
           "pairAddress": "0x53c6291d0a5a02c76cedfa1b8f57a8ac3762f7a9",
           "dexId": "uniswap-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 42069.7535
+          "uniswapV4": false
         },
         {
           "pairAddress": "0x613ebcfcf41749571d659a0bf3e2c0032fd4859e",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 97388.6455
+          "uniswapV4": false
         },
         {
           "pairAddress": "0x787f3ebb965a7c5484d08b143809d8c4b043cd45",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 11359.8439
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xAc5cb50d90A7a2Bc5DEF56194bE8D93C905bCD5F",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xb0f5e5400e8f0f7c242f2b7740c004f020579c41",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 1907977.7448
+          "uniswapV4": false
         }
       ],
       "mainPool": "0xb0f5e5400e8f0f7c242f2b7740c004f020579c41"
+    },
+    "0x6459303f58244ff1e7a42b90aa3782dfb6ca6969": {
+      "address": "0x6459303F58244Ff1E7A42b90aA3782Dfb6Ca6969",
+      "symbol": "TCOMon",
+      "issuer": "ondo",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0xE6eC666dd88181Cc8C2Fb75F7aD443FaFBED1249",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        }
+      ]
+    },
+    "0x65c0249d49e3231540fd0db0a1ae9259e6eaaf57": {
+      "address": "0x65c0249d49E3231540Fd0db0a1ae9259e6eAaf57",
+      "symbol": "ADBEB",
+      "issuer": "bstocks",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x96fb89d04855163580c37002d024e2982b7326cc0385f06b86ec65b81a35baca",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        }
+      ]
+    },
+    "0x6a708ead771238919d85930b5a0f10454e1c331a": {
+      "address": "0x6a708EAD771238919D85930b5a0f10454E1C331a",
+      "symbol": "SPYon",
+      "issuer": "ondo",
+      "kind": "etf",
+      "pools": [
+        {
+          "pairAddress": "0x3b31Ad84092cEFefc71F71A8F84AAce37ACA3ee1",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xafc43fae32302d725fc4d448525c44c522a9a1b9-44",
+          "dexId": "dnax",
+          "uniswapV4": false
+        }
+      ]
+    },
+    "0x6bfe75d1ad432050ea973c3a3dcd88f02e2444c3": {
+      "address": "0x6Bfe75D1ad432050eA973C3A3DcD88F02e2444C3",
+      "symbol": "MSFTon",
+      "issuer": "ondo",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x08c2ce6e530CA82E26Ad2Fe73226D2171B9e6f8E",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xfb3bEB765210975E49448af9F2c037896b044277",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        }
+      ]
+    },
+    "0x6e7d451f9d30327d32020f116fa79c23b24e9c8d": {
+      "address": "0x6e7d451f9d30327d32020f116fa79c23b24e9c8d",
+      "symbol": "CRDOB",
+      "issuer": "bstocks",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x2FC88ed6EA372ED10b671003a995cc39A255f787",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        }
+      ]
     },
     "0x7138b48df7d98d7e3cc221bfe7192d0a178182d8": {
       "address": "0x7138b48df7d98d7e3cc221bfe7192d0a178182d8",
@@ -539,28 +1249,64 @@
       "kind": "etf",
       "pools": [
         {
+          "pairAddress": "0x066B9C1e47303EA27C1e965FC7E3D65546675351",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x0f7802761ee288a4f39C464A46fE800EcD648B23",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
           "pairAddress": "0x1d0c60d03d0ee3beef7691cc8c1b2029379585e0",
           "dexId": "pancakeswap_v2",
-          "uniswapV4": false,
-          "reserveUsd": 10061.456
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x22C8c9fCE6Cd46760934CaF3f3B5274c5f351631",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
         },
         {
           "pairAddress": "0x29cb7803fd34bd9d8cf33a5f19dbc8513f6bd60f",
           "dexId": "uniswap-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 6383.0649
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x3Af4547f392663dCc183f2660Cc3d2245325b747",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x6480bCF10D1Fb1f672856e653A0a15b8F6C5B52D",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x6986CdD5aCf598E9db7C40a4E72F1D00cc336Bec",
+          "dexId": "topaz",
+          "uniswapV4": false
         },
         {
           "pairAddress": "0x7aa6d92fc369a8c1edc631a3aac44efb0808ddbf",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 242617.774
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x81E1F351DC99ee4f3e8B2CFC651C6F18B732a1C5",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xcc9d128a4cb460dc0ae77ce2cd9f2746849db2bef0dbec94cf740b6c359c1d87",
           "dexId": "uniswap-v4-bsc",
-          "uniswapV4": true,
-          "reserveUsd": 87694.9496
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xdc197dfc6cad3c2c02c0ca143aac3324128da92f1251b8d2cbb3ce279f6bcc40",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
         }
       ],
       "mainPool": "0x7aa6d92fc369a8c1edc631a3aac44efb0808ddbf"
@@ -572,13 +1318,63 @@
       "kind": "equity",
       "pools": [
         {
+          "pairAddress": "0x3399A2291815226c08A78Cc77771aBaB727D2D4B",
+          "dexId": "uniswap",
+          "uniswapV4": false
+        },
+        {
           "pairAddress": "0xc2151a561e928d16576d75ea88544543ac63d80b",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 210990.5641
+          "uniswapV4": false
         }
       ],
       "mainPool": "0xc2151a561e928d16576d75ea88544543ac63d80b"
+    },
+    "0x75fd4cf6f8392e41e70391d60c90c0d5211603a1": {
+      "address": "0x75fd4cf6f8392e41e70391d60c90c0d5211603a1",
+      "symbol": "AMDB",
+      "issuer": "bstocks",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x5ddd4d5d915d6011107ce7ec9e7634b39decbddc804c9d68295817cc564ea30d",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x5e1c94b7b15a740a8606c37cedd680bc33e4e0252bbe5372069a60d73d9b24ad",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xa7193077FFd74dC6943Fc98936228E70ef0f4FF4",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        }
+      ]
+    },
+    "0x76682c454467b3a1150ad8b6a92fc5ee2c21d7ed": {
+      "address": "0x76682c454467b3a1150ad8b6a92fc5ee2c21d7ed",
+      "symbol": "AVGOB",
+      "issuer": "bstocks",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x18d1dffd0cc4fe99acbde3ff07971a5720d563ae2192e8c9cc1ead692de75a45",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x5769229774064f01babd3b7bbee50f9b6a49fa6ad3bdddf36d7b6d60c3547d25",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x8988672f2f8c26E2BB8A1f218C2E681099fE7f01",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        }
+      ]
     },
     "0x7c4d7a180d737dd5a70d8065a90e6746a69c37ea": {
       "address": "0x7c4d7a180d737dd5a70d8065a90e6746a69c37ea",
@@ -587,82 +1383,147 @@
       "kind": "equity",
       "pools": [
         {
+          "pairAddress": "0x1abee0b7bce5be52e3a792b5d8ef1a93c11efd035d7533cbb3e4038e31a477ab",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x71cDbCeCDB181c52Da639B22cD9F632d5e9feA18",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
           "pairAddress": "0xd76cb6e9f642cdc7c33c9d4fc6bdd858116dcc84",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 47952.8166
+          "uniswapV4": false
         }
       ],
       "mainPool": "0xd76cb6e9f642cdc7c33c9d4fc6bdd858116dcc84"
     },
     "0x7c8d5502b544ddaf8852fc46d1174e34876d545c": {
-      "address": "0x7c8d5502b544ddaf8852fc46d1174e34876d545c",
+      "address": "0x7C8D5502b544dDAf8852Fc46D1174E34876D545C",
       "symbol": "BNC4",
       "issuer": "fourmeme",
       "kind": "equity",
       "pools": [
         {
+          "pairAddress": "0x1A5497a33B5aBcC0cD94520dea7Fe95E386482b5",
+          "dexId": "uniswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x3df59dE8500cBf99f4C1e145B00aBdb4D245C037",
+          "dexId": "uniswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x719192E607bfD5B33d66172021CDdC925BA7a6b5",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x783A3D7c3236Cf05f103adC890377f5984d694e5",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
           "pairAddress": "0x8e5d9a6b24c33702182b65a7c2dcad53dd4f3c2f",
           "dexId": "uniswap-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 84646.6082
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xb1694665416B6a0888648500a1AB799f50b4Bf52",
+          "dexId": "uniswap",
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xb4eb915dcd3fdf15a49e7c3169a7db4a1e746f49",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 10896.1138
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xbec6906a984f4695aca0f15bafa7de5eb45b54ab",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 845436.7986
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xCf936261a1582b45Eae2246105B3388D1e31c94d",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xdc85783e828973a0a9f0013fb2fc5ed841765c4e9ef7deaf719a4745d37f422e",
           "dexId": "pancakeswap-infinity-clmm",
-          "uniswapV4": true,
-          "reserveUsd": 2324.5458
+          "uniswapV4": true
         },
         {
           "pairAddress": "0xff02b30ee2d7e13d73bdeb27cc8a267d588b8bce",
           "dexId": "uniswap",
-          "uniswapV4": false,
-          "reserveUsd": 1536.4
+          "uniswapV4": false
         }
       ],
       "mainPool": "0xbec6906a984f4695aca0f15bafa7de5eb45b54ab"
     },
     "0x7ddef360f3c2db4cc41c3967984fefa2598cc9a6": {
-      "address": "0x7ddef360f3c2db4cc41c3967984fefa2598cc9a6",
+      "address": "0x7DdEF360f3C2DB4CC41C3967984fefa2598cC9A6",
       "symbol": "xOPAI",
       "issuer": "paimon",
       "kind": "preipo",
       "pools": [
         {
+          "pairAddress": "0x165c5aaf47de0396524f12195126ee87711c8cf106dfcbdb88c5badee009bc81",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x2239a780167c4ceb4d235b6dcff2e3fde15bc6f773626e4116b472f24726ecee",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x39ffe7e8c27e725153da410fbb34d1e4266d22fd0c589749ca85472b46fb276f",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
           "pairAddress": "0x56f973abd2d2c8f4d65f55356fa9cea00f56c908077e5b7c192f8f99f870a206",
           "dexId": "uniswap-v4-bsc",
-          "uniswapV4": true,
-          "reserveUsd": 74078.0676
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x5a2e04617144e2582f722b425bfb56cc245b0a87ed4e2dadc9fff78820d98461",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
         },
         {
           "pairAddress": "0x67edf2c71bbc306861c4d3f388dded6d8b865248",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 25368.9086
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x7b426a7e65ABcd011b23611E7fd6515D61597b39",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xa536846b6c2cb3aaa25c3616401e991f07b082b7954ad97df234c8b00c235d43",
           "dexId": "uniswap-v4-bsc",
-          "uniswapV4": true,
-          "reserveUsd": 8814.8571
+          "uniswapV4": true
         },
         {
           "pairAddress": "0xc7edd91901bdd3592cb213dc221bc6f8f4c4e9101de23df17231c72eae4b4f3e",
           "dexId": "uniswap-v4-bsc",
-          "uniswapV4": true,
-          "reserveUsd": 15681.149
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xe4568ef70796aeeb167a7e781f16b90c6afdfbb54f7e5177d6f5378ea7d7913b",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xfe7307c78dc2000b8cc769779321a55c09a1c6ee217b13732ce2b5149c91a800",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
         }
       ],
       "mainPool": "0x56f973abd2d2c8f4d65f55356fa9cea00f56c908077e5b7c192f8f99f870a206"
@@ -676,14 +1537,27 @@
         {
           "pairAddress": "0x5018b018ceb7645c927c5cf246786f89ebcbe7ea",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 240383.0162
+          "uniswapV4": false
         },
         {
           "pairAddress": "0x58e44c2e5b17ef40915b4b3ae8451b6b87285b44",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 64798.63
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x6a1d40c050289cC8daD85ae2C1ad705222F596D2",
+          "dexId": "uniswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x716accaa9dc3f2d225f233c4b014da8883f827308daf9a507ea815b90a1c408a",
+          "dexId": "pancakeswap-infinity-clmm",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x8d3848bD2A14492F5077dC67840644006A10fFA6",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
         }
       ],
       "mainPool": "0x5018b018ceb7645c927c5cf246786f89ebcbe7ea"
@@ -695,43 +1569,240 @@
       "kind": "equity",
       "pools": [
         {
+          "pairAddress": "0x02944e8f4079698Cf17A4bF7AFd1c619f7a77C27",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
           "pairAddress": "0x29967c54c5bf12e8158c8894376064b30ebab297",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 948991.0489
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x85D4AbC3F64805d22f9dF3c22d69227808C33Eb5",
+          "dexId": "uniswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x9244bB314c1FF36b1221ef87126d2B49Bbd5C77A",
+          "dexId": "uniswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xa2638A90AfB6b21eDb5a9df798A5d139d1AE8BF8",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xa772e1c7f4fd4ffa39170a441ef127f27c41b9ecaf63e231228cbf47c766b4ee",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
         },
         {
           "pairAddress": "0xc2ec808036302cbb263d9c3b9f9232ba33a79dec0f21306b905f1b43f31915d3",
           "dexId": "uniswap-v4-bsc",
-          "uniswapV4": true,
-          "reserveUsd": 13668.785
+          "uniswapV4": true
         }
       ],
       "mainPool": "0x29967c54c5bf12e8158c8894376064b30ebab297"
     },
+    "0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0": {
+      "address": "0x8aD3c73F833d3F9A523aB01476625F269aEB7Cf0",
+      "symbol": "TSLAx",
+      "issuer": "xstocks",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x5E12d6EdB2b7D5330e474ea2D2694A3b3E35d492",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xDC5d5068F5aF6ee4981eCE4f245843430BE32a96",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        }
+      ]
+    },
+    "0x8b6acf6041a81567f012ff6a4c6d96d5818d74bf": {
+      "address": "0x8b6ACf6041A81567f012Ff6A4C6D96d5818d74bF",
+      "symbol": "MUon",
+      "issuer": "ondo",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x8eac2b0a415da079dc7eb0551f3d869c7e2b73645620957539abd6a9db7b4381",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xf7a044cab0303ea2a6153569fa7967e36bae5392c5edaabbe616957baa21bdd1",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        }
+      ]
+    },
+    "0x8b872732b07be325a8803cdb480d9d20b6f8d11b": {
+      "address": "0x8b872732b07be325a8803CDB480D9d20B6f8d11B",
+      "symbol": "SLVon",
+      "issuer": "ondo",
+      "kind": "etf",
+      "pools": [
+        {
+          "pairAddress": "0x1ce6903b7dcae520ecd9035ce9c7862171318e14402b094ccc9ab94c544c55cd",
+          "dexId": "pancakeswap-infinity-clmm",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x2aee74c4254313d04b99229a04c9645dbd919d1db387c0bdb7699042d281ea85",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x3127Aa62B75a3554D96f863e10c41A5e77971B44",
+          "dexId": "uniswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x4Ab1f11507831fc12820F4FE5c3834F3c1936eEB",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x7Fb06E60482B58059dA3139B3b155AfAeB5bb0a9",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xcd4B171F5C5BcE6248F81dAe43dc9a092c5086f5",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xceb98e9d7fb18c2e320decb5ec6d42d0e0f16016708e9ac6cf1e188cb71eea4a",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        }
+      ]
+    },
+    "0x91fc7371d6de682a1e8cfcb4eb7da693312a03a4": {
+      "address": "0x91fc7371d6dE682A1e8CFcB4EB7dA693312A03a4",
+      "symbol": "BILIon",
+      "issuer": "ondo",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x33E1e31133a986FfB1A51e3Be1e0fC86Eb495C2F",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x9fDd40C6C4C37Ab1295F341681C86F4D45e723E2",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        }
+      ]
+    },
+    "0x93862d63fd9fd488b1328e9b47717d75e994a84b": {
+      "address": "0x93862d63fd9fd488b1328e9b47717d75e994a84b",
+      "symbol": "DRAMB",
+      "issuer": "bstocks",
+      "kind": "etf",
+      "pools": [
+        {
+          "pairAddress": "0xc3b76f3a1e5e16a04f686d13e126622f490bb9b03ea2a3713cc70346f10fd6b4",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        }
+      ]
+    },
     "0x95b0409679b55c31772daa2fb4bee7b125b77521": {
-      "address": "0x95b0409679b55c31772daa2fb4bee7b125b77521",
+      "address": "0x95b0409679B55C31772daA2fB4bEE7B125B77521",
       "symbol": "PDDB",
       "issuer": "bstocks",
       "kind": "equity",
       "pools": [
         {
+          "pairAddress": "0x6E57332778b0919476EbCE09ffe58888d4CeE9A7",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x7be063227b4682e503c97dd977cd2ab571513f469461225ea1f2785542f71161",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x9244bB314c1FF36b1221ef87126d2B49Bbd5C77A",
+          "dexId": "uniswap",
+          "uniswapV4": false
+        },
+        {
           "pairAddress": "0xd0c2a4dc7c581db2660286660b703cf6883f29ba",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 177539.0024
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xe2badb7e3b6f662b2860fa322dbe6428a57f2f8d7f3912d0ec306fb30593d3cb",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
         },
         {
           "pairAddress": "0xef9b5eef43ff2b6b671122b50fb18152a48d394f4a90d8a3ae577dfaa087f40c",
           "dexId": "uniswap-v4-bsc",
-          "uniswapV4": true,
-          "reserveUsd": 22186.7324
+          "uniswapV4": true
         }
       ],
       "mainPool": "0xd0c2a4dc7c581db2660286660b703cf6883f29ba"
     },
+    "0x992879cd8ce0c312d98648875b5a8d6d042cbf34": {
+      "address": "0x992879Cd8ce0c312d98648875B5A8D6D042cbF34",
+      "symbol": "CRCLon",
+      "issuer": "ondo",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x5984213FC9AD7EFD003EeA59Bf39ddb81051029d",
+          "dexId": "uniswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x85ddf8f23bcd8a0a370123dfc1b02541d65507169c457b850f10af93936bfc07",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        }
+      ]
+    },
+    "0x995add4ba29a628a57930a8a185c62ca044ec090": {
+      "address": "0x995ADd4bA29a628A57930a8a185c62cA044eC090",
+      "symbol": "MCDon",
+      "issuer": "ondo",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x22E660655F106C12ae737999F43323C5962BC8Fe",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x9e547bf22370cfa6e6bf6cef9a99871b87536769714052ee61ecb47952a17b71",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xbfaee80449345f344506cb9ab2d970faae905f9fd5b017d1965826f32ca08d63",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xf3bcabeb5c0298bfdaca11d8a5b9926812c9d9ea284bff5c9e9367d56cd12388",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        }
+      ]
+    },
     "0x9b8e987e6fec8cf1380c4dca7071e2c7853aeea1": {
-      "address": "0x9b8e987e6fec8cf1380c4dca7071e2c7853aeea1",
+      "address": "0x9b8E987e6fEc8Cf1380C4dcA7071e2C7853AEEA1",
       "symbol": "FXIon",
       "issuer": "ondo",
       "kind": "etf",
@@ -739,41 +1810,79 @@
         {
           "pairAddress": "0x02eda8dbc97a0c9adfbbfab589430d76a7c7f5b6",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 239958.0431
+          "uniswapV4": false
         },
         {
           "pairAddress": "0x6a41179d270446ca0968baba9f5c64acefb91e50",
           "dexId": "uniswap-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 150011.1691
+          "uniswapV4": false
         },
         {
           "pairAddress": "0x8768c8969e177575e37435b8295afa2dfb231c86",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 188760.2664
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x97Aa67D5E77fd546e0Ec29ff32231AF8811e9610",
+          "dexId": "uniswap",
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xad46893e72c24e5a4e69c9826681ded757eafb04",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 4031.7131
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xc70953a1012dd41b478995e4999c659e5fa137fa",
           "dexId": "pancakeswap_v2",
-          "uniswapV4": false,
-          "reserveUsd": 25011.0956
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xe938c0c41f47546ea4cbe570020bb513df88d4e91c29308d5e7d42b923f32997",
           "dexId": "uniswap-v4-bsc",
-          "uniswapV4": true,
-          "reserveUsd": 58215.4485
+          "uniswapV4": true
         }
       ],
       "mainPool": "0x02eda8dbc97a0c9adfbbfab589430d76a7c7f5b6"
+    },
+    "0x9bdc8b470dbf89dbcb123587c6f5e49cca3463be": {
+      "address": "0x9bdc8b470dbf89dbcb123587c6f5e49cca3463be",
+      "symbol": "AXTIB",
+      "issuer": "bstocks",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x18Cb07d5c22Bcd1226db34406CCE75AD9027e144",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        }
+      ]
+    },
+    "0x9d275685dc284c8eb1c79f6aba7a63dc75ec890a": {
+      "address": "0x9d275685dC284C8eB1C79f6ABA7a63Dc75ec890a",
+      "symbol": "AAPLx",
+      "issuer": "xstocks",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0xEe109cc926ce216B3d2490F674300C15131b12B5",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        }
+      ]
+    },
+    "0xa304bd78e739c0f777202b3eb73ac3736d1df801": {
+      "address": "0xa304bd78e739c0f777202b3eb73ac3736d1df801",
+      "symbol": "AMATB",
+      "issuer": "bstocks",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x2e2d0b0a786bfdbdc549ba9f35e26de442663b008a00518238fe2060063dcbb0",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        }
+      ]
     },
     "0xa394dcea3fd3847fd793afbfd163e2e3858b7c65": {
       "address": "0xa394dcea3fd3847fd793afbfd163e2e3858b7c65",
@@ -782,25 +1891,113 @@
       "kind": "equity",
       "pools": [
         {
+          "pairAddress": "0x150E666F508371145F4ae85472A2d44dFc9A5EF1",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x2892cf78ce92a3e39f72b2ef298a705e52df86c6c056141a3449524b54208f48",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x614d373b44d31e5ec06fb68f3edd64b0a3b53fdf714ae26c565ff33d7860f6c1",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
           "pairAddress": "0x89619842155b93c32bc9559ee0fdef92d15c7db9",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 2766.585
+          "uniswapV4": false
         },
         {
           "pairAddress": "0x9e3fa02e31638bbff8b11d7aa416e9a10dec3505",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 21369.5559
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xb82aa15ad413490aa92fe591145d81b1f12bdd013342ba587cf284600314f38c",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xf91679e490bdeE202Be1AD99F0717CeED85301f6",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xfeef70ff6f58f0a900e28a77e5a8945afb343923",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 249797.7014
+          "uniswapV4": false
         }
       ],
       "mainPool": "0xfeef70ff6f58f0a900e28a77e5a8945afb343923"
+    },
+    "0xa528caaa2f96090e379d43f90834c75df54d6e74": {
+      "address": "0xA528CaaA2f96090e379d43F90834C75dF54D6E74",
+      "symbol": "INTCon",
+      "issuer": "ondo",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x95474285f7C60842528CA62EB15a9e2AD50855AB",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        }
+      ]
+    },
+    "0xa9ee28c80f960b889dfbd1902055218cba016f75": {
+      "address": "0xA9eE28C80f960B889dFbd1902055218cBa016F75",
+      "symbol": "NVDAon",
+      "issuer": "ondo",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x2b754227ede64644c90f920a2bfd3d6177bdeba6f210062f4110bf35ec29d37d",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x44758DCf687dC3082c984a8cEED6E63022DB1718",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x4769c80376dc76edf3cf6c09c29ffa239d6dea714de66efeae9fda7fd053acda",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x75407341b852314978f160a543684e1AF522192c",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xafc43fae32302d725fc4d448525c44c522a9a1b9-40",
+          "dexId": "dnax",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xafc43fae32302d725fc4d448525c44c522a9a1b9-41",
+          "dexId": "dnax",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xafc43fae32302d725fc4d448525c44c522a9a1b9-42",
+          "dexId": "dnax",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xafc43fae32302d725fc4d448525c44c522a9a1b9-43",
+          "dexId": "dnax",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xB90BDBFBdfFd4Af5a636b5805539eDeafb969308",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        }
+      ]
     },
     "0xab78b89b5bb00236be0b4b20704cbfa04efc711c": {
       "address": "0xab78b89b5bb00236be0b4b20704cbfa04efc711c",
@@ -811,11 +2008,28 @@
         {
           "pairAddress": "0x03f59988f5c366046321cccd2bf0e3878e2ed69c",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 130546.7046
+          "uniswapV4": false
         }
       ],
       "mainPool": "0x03f59988f5c366046321cccd2bf0e3878e2ed69c"
+    },
+    "0xbd49d695ba2cc46c8c603eb62afcd7fff4698281": {
+      "address": "0xbd49D695ba2cc46c8C603eb62aFcd7Fff4698281",
+      "symbol": "JPMB",
+      "issuer": "bstocks",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x43cdd8bd5ab9539873041fab6ceb0771458472e82a0c4a6f3fd529f92ec2ea36",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xb6cfbbe4dd47c748aca1cd6df0486159d5193cb6b37a13dedbce59a6cbd09faa",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        }
+      ]
     },
     "0xbe9d156892e55e7154bcd3cb0fea677f9d3103e1": {
       "address": "0xbe9d156892e55e7154bcd3cb0fea677f9d3103e1",
@@ -826,47 +2040,121 @@
         {
           "pairAddress": "0x216e3c265cd73965022aff33da6e745836196594",
           "dexId": "uniswap-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 34304.6747
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x366bb6C67FAb6Eb056C307C51EA2338180BffcB7",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x51472DF7d3c9a02A912F2473960Ef835ff1E9a42",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
         },
         {
           "pairAddress": "0x51a45a72cc96ca3ba615e25e80a6af2740ae2e2d",
           "dexId": "uniswap-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 757143.219
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x55410718D7d3860b49d47Dbe67bBd7b30eEfDe6c",
+          "dexId": "uniswap",
+          "uniswapV4": false
         },
         {
           "pairAddress": "0x626301d37c135a6f368adc6a12fe1462b14ef03a",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 32036.7473
+          "uniswapV4": false
         },
         {
           "pairAddress": "0x66faad27cf481f82d0089ec8156b3aa3636010c7",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 2287463.4815
+          "uniswapV4": false
         },
         {
           "pairAddress": "0x7b07ef0c9fc2198de1d20b2828845862179ccf6f",
           "dexId": "pancakeswap_v2",
-          "uniswapV4": false,
-          "reserveUsd": 37468.1998
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x7Db5dB5AA8D3Fa127EAD7EDeBf5F2efc2ff6CC67",
+          "dexId": "topaz",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x8bD2aC21ce8297628c26D36188866e805684DcE4",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
         },
         {
           "pairAddress": "0x977daffc095b33872e2741c19568925015c35b4d",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 1920082.8507
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xa88adfacfff81a5e6e22379dd6c876dcb3ae3738e702d65706b323cdf5312662",
           "dexId": "uniswap-v4-bsc",
-          "uniswapV4": true,
-          "reserveUsd": 169337.5061
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xBaC381f9Ec0033BA34cF010E7c485Ab3382390ca",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xc73e93fcf22a6cc5af60346766b867521bd5e1d92d2bb06317dca6f317c76ae9",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
         }
       ],
       "mainPool": "0x66faad27cf481f82d0089ec8156b3aa3636010c7"
+    },
+    "0xc008c5f579ec1450f20099c39f587547e27c7523": {
+      "address": "0xc008c5F579ec1450F20099c39F587547e27c7523",
+      "symbol": "SGOVon",
+      "issuer": "ondo",
+      "kind": "etf",
+      "pools": [
+        {
+          "pairAddress": "0x03d4ee569237a9011274c05e2b60b79da612a8e37f1fb97ec4c4dcd349595909",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x11c6889064e0fa5b2501c314ca63e8cd26f28d140a1bc442f8413b6198997373",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x583cFeEc2Db6a4C27e9156a6B1518391beF0f090",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xc60c6ba08ff497a25a36478dd70854869404d2ed19b22b047d303fa8cd368afc",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xE0F4C53D777383cc77aDFa89087A9c877586F0dF",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        }
+      ]
+    },
+    "0xc8da12cbcce7c45180692a6420b0076e03a5179a": {
+      "address": "0xc8da12cbcce7c45180692a6420b0076e03a5179a",
+      "symbol": "RKLBB",
+      "issuer": "bstocks",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0xFC73D5b775f85C7a0Fdf15c68D68d9a96c607C2a",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        }
+      ]
     },
     "0xca750ef65f295bbecd685abf54e82caf297bdb61": {
       "address": "0xca750ef65f295bbecd685abf54e82caf297bdb61",
@@ -877,35 +2165,48 @@
         {
           "pairAddress": "0x67288afa1273b167f1a52a5c643788988228c89ddd7f940f6110c6157710ba13",
           "dexId": "uniswap-v4-bsc",
-          "uniswapV4": true,
-          "reserveUsd": 52459.2248
+          "uniswapV4": true
         },
         {
           "pairAddress": "0xa05bd3d917507ed0c018665cf39f32c9ed8d3252",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 47080.1785
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xc27bad53f3b326756e9fefcca834ee741d610538ffa918da4ef923079b44f91e",
           "dexId": "uniswap-v4-bsc",
-          "uniswapV4": true,
-          "reserveUsd": 2826.3942
+          "uniswapV4": true
         },
         {
           "pairAddress": "0xd7d30f434b12f7ed9b0ae11ff1c754745a10ad52",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 761550.5311
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xe7f7473ba867b7aa6a7dfd255a82ed840e1c0f7a",
           "dexId": "pancakeswap_v2",
-          "uniswapV4": false,
-          "reserveUsd": 16344.9869
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xEE9A92c58287706e03EE1f67bdC4678a34C22793",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
         }
       ],
       "mainPool": "0xd7d30f434b12f7ed9b0ae11ff1c754745a10ad52"
+    },
+    "0xcd345d4450e04cdef422a60b97d9265d24e0bcee": {
+      "address": "0xcd345d4450e04cdef422a60b97d9265d24e0bcee",
+      "symbol": "USARB",
+      "issuer": "bstocks",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x6F611C97129E220d3622cF4120Bb496BF8a783F0",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        }
+      ]
     },
     "0xcdf2f3e0fa43c47a6662a91c9e4a7c5f69762699": {
       "address": "0xcdf2f3e0fa43c47a6662a91c9e4a7c5f69762699",
@@ -914,13 +2215,83 @@
       "kind": "equity",
       "pools": [
         {
+          "pairAddress": "0x37D6EbA428fdfDE907BEA0557ADeA475E58c151B",
+          "dexId": "uniswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x5cfbe0ce774b940026ff7e5f058129f1ad75ded67fd214466d5fa0ea5fced4e2",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
           "pairAddress": "0x9e75ced0a01590890917c5180c3e3ed6a86a071e",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 13560.6669
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xDbA9749e11c1344Ac034C57ac60cE0c7D3D79125",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
         }
       ],
       "mainPool": "0x9e75ced0a01590890917c5180c3e3ed6a86a071e"
+    },
+    "0xd0a58bc9d88d3ff48c0294cb7e45937d0e41a928": {
+      "address": "0xd0a58BC9D88D3FF48C0294Cb7e45937d0E41A928",
+      "symbol": "SPCXon",
+      "issuer": "ondo",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x3ce968657b6F152293AFC8Af4712e4BaA3836f74",
+          "dexId": "uniswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x473099F3517EF475B33D6F5fFb1D5881b2299503",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x4D8f07342dbd604972f432C4d4E1eca0d19A7fC9",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x5C67Fda6b3B1c259cC51b36beD03Cc9D5C95558f",
+          "dexId": "topaz",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x868eac8abfe5803cfcb5c32f91f92cc4ea3478140d2f263109078b5a23641236",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xB3F763a6e025519fedB11a42bee4eEf0761861eB",
+          "dexId": "topaz",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xd854d23550116e79bd614f5ede177cb82ac7d36b1d303962c659351c4a518884",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        }
+      ]
+    },
+    "0xd42a79ebb7f527f40faecd196ffb47ad5e8d6f8c": {
+      "address": "0xd42a79ebb7f527f40faecd196ffb47ad5e8d6f8c",
+      "symbol": "ARMB",
+      "issuer": "bstocks",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x07d726370d28b3d38f2285ef70f5e24731b481ee36affa53b00dee467fe7b16c",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        }
+      ]
     },
     "0xd6829ea836b6fa224d099d40e54b31262f874631": {
       "address": "0xd6829ea836b6fa224d099d40e54b31262f874631",
@@ -931,20 +2302,36 @@
         {
           "pairAddress": "0x0f2a0be7382d1fe0e65c2d96737b8927d80b000f",
           "dexId": "pancakeswap_v2",
-          "uniswapV4": false,
-          "reserveUsd": 9611.1536
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xafab4441d8b354bba790229c0e235e7e6187b3d0",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 178483.2088
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xc9a423ed6d453886a0c2ccebedd2a8961512258196e18e62e5ace984dab14f09",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
         }
       ],
       "mainPool": "0xafab4441d8b354bba790229c0e235e7e6187b3d0"
     },
+    "0xd721c192d612db77621df57a9fab38418033c02e": {
+      "address": "0xd721c192d612db77621df57a9fab38418033c02e",
+      "symbol": "QNTB",
+      "issuer": "bstocks",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0xa11Bc9F2D86890AE1a04543F8E8ea70b61CFEc3E",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        }
+      ]
+    },
     "0xdabb9aff4cf02f26d2014e4ca9f94ac6fe6572a3": {
-      "address": "0xdabb9aff4cf02f26d2014e4ca9f94ac6fe6572a3",
+      "address": "0xdABb9afF4cf02f26D2014e4cA9f94aC6fe6572a3",
       "symbol": "GMEon",
       "issuer": "ondo",
       "kind": "equity",
@@ -952,26 +2339,83 @@
         {
           "pairAddress": "0x2a73552f84f04964a84be7cc615f3561d132a089",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 48260.4834
+          "uniswapV4": false
         }
       ],
       "mainPool": "0x2a73552f84f04964a84be7cc615f3561d132a089"
     },
+    "0xde9d6036fca870f7efc5a82722ae694c371ac909": {
+      "address": "0xDE9D6036FCA870f7efc5A82722Ae694c371Ac909",
+      "symbol": "UBERon",
+      "issuer": "ondo",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0xbeBe2550A750F276b2b1c7b7A41d191A26A0028d",
+          "dexId": "uniswap",
+          "uniswapV4": false
+        }
+      ]
+    },
     "0xded1c5fb38c262beb9cff1e1116eff3c5bf278cd": {
-      "address": "0xded1c5fb38c262beb9cff1e1116eff3c5bf278cd",
+      "address": "0xDed1c5FB38C262beb9CfF1E1116EfF3c5bf278Cd",
       "symbol": "WENB",
       "issuer": "bstocks",
       "kind": "equity",
       "pools": [
         {
+          "pairAddress": "0xc265df05e2dcaf4f5768fa82faf79985758a4e486b18e55b4683a78d959af237",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
           "pairAddress": "0xd8edf76883cf0bdbbaef78eca4195e351edfbdce",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 102757.0063
+          "uniswapV4": false
         }
       ],
       "mainPool": "0xd8edf76883cf0bdbbaef78eca4195e351edfbdce"
+    },
+    "0xe0cbb7ffc0883810569d84d78f02bbcb747cfe43": {
+      "address": "0xE0cbb7FFc0883810569d84d78f02bbcB747cFe43",
+      "symbol": "xKLSH",
+      "issuer": "paimon",
+      "kind": "preipo",
+      "pools": [
+        {
+          "pairAddress": "0xdd94c6064da190f138cff2282f7aa6b6126503ee187c04101f1e06fd9208cbea",
+          "dexId": "pancakeswap-infinity-clmm",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xEb59CE03d7E3E6B1E6A658a7A32bD1B4fdEdd7A8",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xfd5CE712A4E5cE76c3eB524599BFb546c98b88d5",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        }
+      ]
+    },
+    "0xe256bc2a4f5297f8ba6f043f180a46300ecbcbb1": {
+      "address": "0xe256bc2a4f5297f8ba6f043f180a46300ecbcbb1",
+      "symbol": "NBISB",
+      "issuer": "bstocks",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x3cdcb29a64cdd14f9d289c4dd96097b6548e93e517e811b00d5713c9a4255a35",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xafa65f050c1991c582301c454f12613974f4e10675f390e724683abfe3b9ab95",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        }
+      ]
     },
     "0xe614e2fc6c787035ff51f452e8e826bfd32d5283": {
       "address": "0xe614e2fc6c787035ff51f452e8e826bfd32d5283",
@@ -982,11 +2426,33 @@
         {
           "pairAddress": "0x4dd8e7c67033ef4a745bb9f82a7c57c676eb2481",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 521766.7437
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x9552bF42A688e09f8106f7E7359DdB0430995BFf",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xd286936B0A7A9366BBDeE91653428B04D863eea5",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
         }
       ],
       "mainPool": "0x4dd8e7c67033ef4a745bb9f82a7c57c676eb2481"
+    },
+    "0xe81c6bb0266cd68b4f17278531dd03ea1f12da4e": {
+      "address": "0xe81c6bb0266cd68b4f17278531dd03ea1f12da4e",
+      "symbol": "CBRSB",
+      "issuer": "bstocks",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x3F9c446079d7c67E3FA91bE2C5e16B571b35831c",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        }
+      ]
     },
     "0xe87afb3076aeb0f9b14e368de8145ae6a2826a14": {
       "address": "0xe87afb3076aeb0f9b14e368de8145ae6a2826a14",
@@ -995,16 +2461,76 @@
       "kind": "equity",
       "pools": [
         {
+          "pairAddress": "0x0fe9C174701aD0e0D7497856Ca5dd8fEd4603187",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x55DAf55F1556683878bA38D0468eD3EbDc25330c",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
           "pairAddress": "0x692081209619735f25700557078ab084d3e5d007",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 402205.3474
+          "uniswapV4": false
         }
       ],
       "mainPool": "0x692081209619735f25700557078ab084d3e5d007"
     },
+    "0xe92be960ae64f6a914ca77014cac9e56de7f36c1": {
+      "address": "0xE92bE960aE64F6a914Ca77014CaC9E56DE7f36C1",
+      "symbol": "JDon",
+      "issuer": "ondo",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x497305eF65cCdCFa11891e939619AD987857DD67",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x695f2682433c61f906b4c5554fda4a355baef7328121a7dc40653a13a0b46d91",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x6D33ABD329EE157b631C19fFB68451e36D7fB411",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x7ff1583debf99544e0f295ff7ef3f32b92676caa0c42eb556f07af5983acf819",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x82066f869a49F447eF6F2e56CAB15387C81214d1",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xf3d55870fa7e85492d292550b4a524966ee0c81c4c537f4e5d3bedbf20c901bd",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        }
+      ]
+    },
+    "0xebe29695f8047c13d36e7a790ca8c1b239ffad1c": {
+      "address": "0xebe29695f8047c13d36e7a790ca8c1b239ffad1c",
+      "symbol": "WDCB",
+      "issuer": "bstocks",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x96199d88617cc6bcbed65b66490a799a93573e0317a6b714d039bdb682f3dbbe",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        }
+      ]
+    },
     "0xeee9eee593cb8f7946260b4066cba7907f40acfa": {
-      "address": "0xeee9eee593cb8f7946260b4066cba7907f40acfa",
+      "address": "0xeEe9eeE593cB8f7946260B4066CBa7907f40ACFa",
       "symbol": "DISon",
       "issuer": "ondo",
       "kind": "equity",
@@ -1012,8 +2538,17 @@
         {
           "pairAddress": "0x167c88898537ea7dc756d9b0bf7489a068f0b497",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 76079.7893
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x21260A5E4712054e345499211d695d645787979F",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x8fd3a84895fc1c2115d36e1841913bd8e455962789178e5bb6458ffe83562566",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
         }
       ],
       "mainPool": "0x167c88898537ea7dc756d9b0bf7489a068f0b497"
@@ -1025,34 +2560,127 @@
       "kind": "equity",
       "pools": [
         {
+          "pairAddress": "0x02c4311aa4018481fa4135f9094ad3045d9c9b45ed0607c7b0499fc08136324f",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x076beb7b6556b19003217e0106324b34e24c280a147205fff83da01db432347a",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x41B5B10afFCBa51C2aD864d85f9C73d7597CD727",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x7a7361E889E947341809b71e00251298122C2FB1",
+          "dexId": "uniswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x84c218936022695b096dd0125c7823b273f1746b0a545e976b95838f508c732e",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
           "pairAddress": "0x9aadbd51515432dbb77c0a7f69c2b2c211f0c837",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 79792.6648
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xb59b8ee5c98df71c0fe046cd80ed3fe828da7402fceeccddf97e17c079e2759c",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xc75a2e25246c56557848b9563e6e6d0110505a80a85efb4078e1e9bec4a2b2f0",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xd7bd320ed89d90ad49e89101f5bc3ab9b66b6740894886c3b91664cedc01d18c",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xf062722fed054552d1f89e256868822223e016049a87e87ff5341ef8510da601",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
         }
       ],
       "mainPool": "0x9aadbd51515432dbb77c0a7f69c2b2c211f0c837"
     },
     "0xf3e82ea164cb344b2b11bad4c24b0ea4f7ba4714": {
-      "address": "0xf3e82ea164cb344b2b11bad4c24b0ea4f7ba4714",
+      "address": "0xF3e82EA164CB344B2b11Bad4c24b0Ea4F7BA4714",
       "symbol": "PDDon",
       "issuer": "ondo",
       "kind": "equity",
       "pools": [
         {
+          "pairAddress": "0x28aa86b180d3b349e86738d6d9f6f8e5171fa96dc2d5706c2ef5413595f65d54",
+          "dexId": "pancakeswap-infinity-clmm",
+          "uniswapV4": false
+        },
+        {
           "pairAddress": "0xadf42e6dcf79120259351e42352b0e180fd7366fdc86c4cc603f0bd0e9857c49",
           "dexId": "uniswap-v4-bsc",
-          "uniswapV4": true,
-          "reserveUsd": 48389.102
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xC2916c7158e464129e38B45C2E2e58DD054F1f24",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
         },
         {
           "pairAddress": "0xe93e583fece88ca22cb51f39416344aa63bf53e4",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 53421.8862
+          "uniswapV4": false
         }
       ],
       "mainPool": "0xe93e583fece88ca22cb51f39416344aa63bf53e4"
+    },
+    "0xf69e40069ac227c11459e3f4e8a446b3401616b6": {
+      "address": "0xf69e40069aC227C11459E3f4e8a446b3401616b6",
+      "symbol": "TLTon",
+      "issuer": "ondo",
+      "kind": "etf",
+      "pools": [
+        {
+          "pairAddress": "0x77e6b624d664150d96e13d99c68144b2a047e554",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xE121b110383236Fdf5899dc10f1Ec93DBf2E801e",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        }
+      ]
+    },
+    "0xfa15e42c18cf57aeef4b1bac1cee7754af7cfe42": {
+      "address": "0xfa15e42c18cf57aeef4b1bac1cee7754af7cfe42",
+      "symbol": "TCENTx",
+      "issuer": "xstocks",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x0c7f1a745db695bebb35afe2bf37b168253b9ad3f042257409b2c2ffe3fd379f",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x57d6a220bCC167389c92Ead65519238BF4213931",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x8f266338a70afebc31191141f2b5ad2d4f303534b29d6a9139f52f2e7c302651",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        }
+      ]
     },
     "0xfa273b076feb8c0fb34e554ae341082323d016a3": {
       "address": "0xfa273b076feb8c0fb34e554ae341082323d016a3",
@@ -1061,19 +2689,58 @@
       "kind": "equity",
       "pools": [
         {
+          "pairAddress": "0x0d7f1b479786d817462242cefd268c988b0082f5daff5bd57ab0063e9e90e1c3",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
           "pairAddress": "0x16588be41c6004d36c338d6afe3ec517d45b778f",
           "dexId": "pancakeswap-v3-bsc",
-          "uniswapV4": false,
-          "reserveUsd": 4986.205
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0x2d7555a3d764a97287053c4cd1b69bba90fabe5781535d80c265edfb98dd2cb8",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
         },
         {
           "pairAddress": "0xd1cd4c16adc3ffae4ddf1b080748713da5d3430f366380c30c1d85de35c14846",
           "dexId": "uniswap-v4-bsc",
-          "uniswapV4": true,
-          "reserveUsd": 53281.5646
+          "uniswapV4": true
         }
       ],
       "mainPool": "0xd1cd4c16adc3ffae4ddf1b080748713da5d3430f366380c30c1d85de35c14846"
+    },
+    "0xfa9a1e901085e269f6d428f79cd5252d8b919344": {
+      "address": "0xfA9a1E901085e269f6D428F79Cd5252d8b919344",
+      "symbol": "GLDon",
+      "issuer": "ondo",
+      "kind": "etf",
+      "pools": [
+        {
+          "pairAddress": "0x730453217f36841cb5affdadb9cfe57fe27ebbfae61522db0e07881a06d60e50",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0xf95AcBfeCc913F59Aa35A6827d15037468332e78",
+          "dexId": "uniswap",
+          "uniswapV4": false
+        }
+      ]
+    },
+    "0xfdc2f2cab77b28f7ef6c819a404706cfa9bca33b": {
+      "address": "0xfdc2f2cab77b28f7ef6c819a404706cfa9bca33b",
+      "symbol": "IRENB",
+      "issuer": "bstocks",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0x11618074a4D3d3cf7bFa88E5318e9B16d9E4c886",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        }
+      ]
     }
   }
 }

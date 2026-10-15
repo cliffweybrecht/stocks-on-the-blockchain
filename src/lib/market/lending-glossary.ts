@@ -4,6 +4,13 @@ export interface LendingGlossaryEntry {
   text: string;
 }
 
+/**
+ * The only definition of how full.
+ * The page, the headline, and snapshot checks all use this sentence.
+ */
+export const LENDING_FULLNESS_TEXT =
+  "How full a pool is. It is the dollars already borrowed, divided by the dollars people supplied to lend. The desk total counts only pools that publish their own lend supply. Locked stock is not the bottom number.";
+
 /** Kid-simple definitions. Tooltips and the bottom glossary use the same sentences. */
 export const LENDING_GLOSSARY: readonly LendingGlossaryEntry[] = [
   {
@@ -29,7 +36,7 @@ export const LENDING_GLOSSARY: readonly LendingGlossaryEntry[] = [
   {
     id: "utilization",
     term: "How full",
-    text: "How full a pool is. It is the dollars already borrowed, divided by the dollars people supplied to lend. Traders call this utilization.",
+    text: LENDING_FULLNESS_TEXT,
   },
   {
     id: "apy",

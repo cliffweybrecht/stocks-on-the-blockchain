@@ -1,4 +1,6 @@
-import { bscBatch, bscCallRpc, BSC_LOG_RPC, padAddress, topicAddress } from "./lending-bsc";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { bscBatchRotating, bscRpcUrls, padAddress, topicAddress, tryEachUrl } from "./lending-bsc";
 
 export const VENUS_CORE_COMPTROLLER = "0xfd36e2c2a6789db23113685031d7f16329158384";
 export const VENUS_CORE_POOL = "https://api.venus.io/markets/core-pool?chainId=56&limit=100";
@@ -8,11 +10,23 @@ const BALANCE_OF = "0x70a08231";
 const BORROW_BALANCE = "0x95dd9193";
 const CHECK_MEMBERSHIP = "0x929fe9a1";
 /** bStocks were listed after this BSC block. */
-const LOG_START_BLOCK = 104_000_000;
-const LOG_SPAN = 50_000;
-const LOG_MIN_SPAN = 5_000;
-/** Stop the live scan and keep the last good estimate after this long. */
-export const VENUS_SCAN_BUDGET_MS = 180_000;
+export const VENUS_LOG_START_BLOCK = 104_000_000;
+const LOG_START_BLOCK = VENUS_LOG_START_BLOCK;
+/** NowNodes serves about 10k historical blocks before the request gets slow. */
+const LOG_SPAN = 10_000;
+const LOG_MIN_SPAN = 2_000;
+/**
+ * Cold log scans of the older BSC ranges take well under an hour at this span.
+ * A warm cache only reads blocks since the last snapshot. Override with VENUS_SCAN_BUDGET_MS.
+ */
+export const VENUS_SCAN_BUDGET_MS = 60 * 60 * 1000;
+
+export function venusScanBudgetMs(raw = process.env.VENUS_SCAN_BUDGET_MS): number {
+  if (!raw) return VENUS_SCAN_BUDGET_MS;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed < 1_000) return VENUS_SCAN_BUDGET_MS;
+  return parsed;
+}
 const ZERO = "0x0000000000000000000000000000000000000000";
 
 export interface VenusAccountBorrow {
@@ -27,6 +41,8 @@ export interface VenusBorrowEstimate {
   method: string;
   asOf: string;
   block: number | null;
+  /** True when this figure was kept from an earlier scan. */
+  stale?: boolean;
 }
 
 /**
@@ -153,7 +169,7 @@ function parseCoreMarkets(payload: unknown): CoreMarket[] {
   return markets;
 }
 
-async function getJson(url: string): Promise<unknown> {
+async function getJsonOnce(url: string): Promise<unknown> {
   const response = await fetch(url, {
     signal: AbortSignal.timeout(45_000),
     headers: {
@@ -166,8 +182,19 @@ async function getJson(url: string): Promise<unknown> {
   return response.json();
 }
 
-async function latestBlock(rpc: string): Promise<number> {
-  const [hex] = await bscBatch(rpc, [{ method: "eth_blockNumber", params: [] }]);
+async function getJson(url: string): Promise<unknown> {
+  try {
+    return await getJsonOnce(url);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (!/\b(429|502|503|504)\b/.test(message) && !/timeout|network|fetch/i.test(message)) throw error;
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    return getJsonOnce(url);
+  }
+}
+
+async function latestBlock(): Promise<number> {
+  const [hex] = await bscBatchRotating([{ method: "eth_blockNumber", params: [] }]);
   if (!hex) throw new Error("BSC block number was missing.");
   return Number(BigInt(hex));
 }
@@ -191,19 +218,24 @@ export async function collectHolderAddresses(input: {
   initialSpan: number;
   minSpan: number;
   deadlineMs: number;
+  /** When set, these ranges are scanned instead of slicing startBlock..endBlock. */
+  ranges?: readonly LogRangeQuery[];
   now?: () => number;
   sleep?: (ms: number) => Promise<void>;
   attempts?: number;
   concurrency?: number;
+  onRange?: (range: LogRangeQuery, addresses: ReadonlySet<string>) => void | Promise<void>;
   getLogs: (range: LogRangeQuery) => Promise<{ topics?: string[] }[]>;
 }): Promise<Set<string>> {
   const now = input.now ?? Date.now;
   const sleep = input.sleep ?? ((ms: number) => new Promise((resolve) => setTimeout(resolve, ms)));
   const attempts = input.attempts ?? 3;
   const addresses = new Set<string>();
-  const queue: LogRangeQuery[] = [];
-  for (let start = input.startBlock; start <= input.endBlock; start += input.initialSpan) {
-    queue.push({ fromBlock: start, toBlock: Math.min(start + input.initialSpan - 1, input.endBlock) });
+  const queue: LogRangeQuery[] = input.ranges ? [...input.ranges] : [];
+  if (!input.ranges) {
+    for (let start = input.startBlock; start <= input.endBlock; start += input.initialSpan) {
+      queue.push({ fromBlock: start, toBlock: Math.min(start + input.initialSpan - 1, input.endBlock) });
+    }
   }
   let failure: string | null = null;
 
@@ -247,6 +279,7 @@ export async function collectHolderAddresses(input: {
       if (!range) return;
       try {
         await readRange(range);
+        if (input.onRange) await input.onRange(range, addresses);
       } catch (error) {
         failure = error instanceof Error ? error.message : "Venus log scan failed";
       }
@@ -258,10 +291,10 @@ export async function collectHolderAddresses(input: {
   return addresses;
 }
 
-async function fetchPocketLogs(vTokens: readonly string[], range: LogRangeQuery): Promise<{ topics?: string[] }[]> {
-  const response = await fetch(BSC_LOG_RPC, {
+async function fetchLogsAt(url: string, vTokens: readonly string[], range: LogRangeQuery): Promise<{ topics?: string[] }[]> {
+  const response = await fetch(url, {
     method: "POST",
-    signal: AbortSignal.timeout(20_000),
+    signal: AbortSignal.timeout(45_000),
     headers: { "content-type": "application/json", "user-agent": "Mozilla/5.0 (compatible; StocksOnTheBlockchain/1.0)" },
     body: JSON.stringify({
       jsonrpc: "2.0",
@@ -284,16 +317,20 @@ async function fetchPocketLogs(vTokens: readonly string[], range: LogRangeQuery)
   return payload.result;
 }
 
-/** A finished live scan wins. Otherwise keep the newest saved estimate and its original time. */
+async function fetchLogsRotating(vTokens: readonly string[], range: LogRangeQuery): Promise<{ topics?: string[] }[]> {
+  return tryEachUrl(bscRpcUrls(), (url) => fetchLogsAt(url, vTokens, range));
+}
+
+/** A finished live scan wins. Otherwise keep the newest saved estimate, its original time, and mark it stale. */
 export function chooseVenusEstimate(
   live: VenusBorrowEstimate | null,
   previous: VenusBorrowEstimate | null,
   checked: VenusBorrowEstimate,
 ): VenusBorrowEstimate {
-  if (live && Number.isFinite(live.usd)) return live;
+  if (live && Number.isFinite(live.usd)) return { ...live, stale: false };
   const base = previous && Number.isFinite(previous.usd) && previous.asOf ? previous : checked;
   const note = "The live scan did not refresh this figure.";
-  return { ...base, method: base.method.includes(note) ? base.method : `${base.method} ${note}` };
+  return { ...base, stale: true, method: base.method.includes(note) ? base.method : `${base.method} ${note}` };
 }
 
 export function venusEstimateFromSnapshot(
@@ -320,43 +357,193 @@ function borrowUsd(raw: bigint, market: CoreMarket): number {
   return bigintDiv(raw * market.priceMantissa, BORROW_SCALE);
 }
 
+export const VENUS_HOLDER_CACHE_SCHEMA = "venus-holder-cache-v1";
+
+export interface VenusHolderCache {
+  schema: typeof VENUS_HOLDER_CACHE_SCHEMA;
+  vTokens: string[];
+  startBlock: number;
+  ranges: LogRangeQuery[];
+  addresses: string[];
+}
+
+export function defaultVenusHolderCachePath(): string {
+  return join(process.cwd(), "data", "lending-snapshots", "venus-holder-cache.json");
+}
+
+export function normalizeVenusRanges(ranges: readonly LogRangeQuery[]): LogRangeQuery[] {
+  const sorted = ranges
+    .filter((range) => Number.isInteger(range.fromBlock) && Number.isInteger(range.toBlock) && range.toBlock >= range.fromBlock)
+    .map((range) => ({ fromBlock: range.fromBlock, toBlock: range.toBlock }))
+    .sort((a, b) => a.fromBlock - b.fromBlock || a.toBlock - b.toBlock);
+  const merged: LogRangeQuery[] = [];
+  for (const range of sorted) {
+    const last = merged[merged.length - 1];
+    if (!last || range.fromBlock > last.toBlock + 1) merged.push({ ...range });
+    else last.toBlock = Math.max(last.toBlock, range.toBlock);
+  }
+  return merged;
+}
+
+/** Last block of the contiguous scanned prefix that begins at startBlock. */
+export function venusCoveredThrough(startBlock: number, ranges: readonly LogRangeQuery[]): number {
+  let cursor = startBlock - 1;
+  for (const range of normalizeVenusRanges(ranges)) {
+    if (range.fromBlock > cursor + 1) break;
+    if (range.toBlock > cursor) cursor = range.toBlock;
+  }
+  return cursor;
+}
+
+export function venusCacheMatches(cache: VenusHolderCache | null, startBlock: number, vTokens: readonly string[]): cache is VenusHolderCache {
+  if (!cache || cache.schema !== VENUS_HOLDER_CACHE_SCHEMA || cache.startBlock !== startBlock) return false;
+  const cached = [...cache.vTokens].map((token) => token.toLowerCase()).sort().join(",");
+  const next = [...vTokens].map((token) => token.toLowerCase()).sort().join(",");
+  return cached === next;
+}
+
+/** Inclusive chunks of `span` inside [start, end] that the cache does not already cover. */
+export function missingVenusLogRanges(
+  startBlock: number,
+  endBlock: number,
+  span: number,
+  covered: readonly LogRangeQuery[],
+): LogRangeQuery[] {
+  if (endBlock < startBlock || span < 1) return [];
+  const merged = normalizeVenusRanges(covered);
+  const missing: LogRangeQuery[] = [];
+  const push = (from: number, to: number) => {
+    for (let cursor = from; cursor <= to; cursor += span) {
+      missing.push({ fromBlock: cursor, toBlock: Math.min(cursor + span - 1, to) });
+    }
+  };
+  let cursor = startBlock;
+  for (const range of merged) {
+    if (range.toBlock < cursor) continue;
+    if (range.fromBlock > endBlock) break;
+    const gapEnd = Math.min(range.fromBlock - 1, endBlock);
+    if (range.fromBlock > cursor) push(cursor, gapEnd);
+    cursor = Math.max(cursor, range.toBlock + 1);
+    if (cursor > endBlock) return missing;
+  }
+  if (cursor <= endBlock) push(cursor, endBlock);
+  return missing;
+}
+
+export function parseVenusHolderCache(payload: unknown): VenusHolderCache | null {
+  if (!payload || typeof payload !== "object") return null;
+  const body = payload as Partial<VenusHolderCache>;
+  const startBlock = body.startBlock;
+  if (body.schema !== VENUS_HOLDER_CACHE_SCHEMA || typeof startBlock !== "number" || !Number.isInteger(startBlock)) return null;
+  if (!Array.isArray(body.vTokens) || !body.vTokens.every((token) => typeof token === "string")) return null;
+  if (!Array.isArray(body.ranges) || !Array.isArray(body.addresses)) return null;
+  const ranges: LogRangeQuery[] = [];
+  for (const range of body.ranges) {
+    if (!range || typeof range !== "object") continue;
+    const row = range as Partial<LogRangeQuery>;
+    const fromBlock = row.fromBlock;
+    const toBlock = row.toBlock;
+    if (!Number.isInteger(fromBlock) || !Number.isInteger(toBlock) || fromBlock === undefined || toBlock === undefined || toBlock < fromBlock) continue;
+    ranges.push({ fromBlock, toBlock });
+  }
+  const addresses = body.addresses.filter((address): address is string => typeof address === "string" && /^0x[0-9a-fA-F]{40}$/.test(address));
+  return {
+    schema: VENUS_HOLDER_CACHE_SCHEMA,
+    vTokens: body.vTokens.map((token) => token.toLowerCase()),
+    startBlock,
+    ranges,
+    addresses: [...new Set(addresses.map((address) => address.toLowerCase()))],
+  };
+}
+
+async function readVenusHolderCache(path: string): Promise<VenusHolderCache | null> {
+  try {
+    return parseVenusHolderCache(JSON.parse(await readFile(path, "utf8")));
+  } catch {
+    return null;
+  }
+}
+
+async function writeVenusHolderCache(cache: VenusHolderCache, path: string): Promise<void> {
+  await mkdir(dirname(path), { recursive: true });
+  const tmp = `${path}.${process.pid}.tmp`;
+  await writeFile(tmp, JSON.stringify(cache));
+  await rename(tmp, path);
+}
+
 /**
  * Live pro-rata scan. Returns null when the chain read fails or the
  * bStock supply it finds is far from the Venus API collateral.
+ * Finished log ranges are cached so the next run only scans new blocks.
  */
-export async function scanVenusBStockBorrow(nowMs = Date.now()): Promise<VenusBorrowEstimate | null> {
-  const deadline = Date.now() + VENUS_SCAN_BUDGET_MS;
+export async function scanVenusBStockBorrow(nowMs = Date.now(), cachePath = defaultVenusHolderCachePath()): Promise<VenusBorrowEstimate | null> {
+  const deadline = Date.now() + venusScanBudgetMs();
+  const cacheState: VenusHolderCache = {
+    schema: VENUS_HOLDER_CACHE_SCHEMA,
+    vTokens: [],
+    startBlock: LOG_START_BLOCK,
+    ranges: [],
+    addresses: [],
+  };
+  let sinceWrite = 0;
+  const persist = async (force = false) => {
+    if (!force && sinceWrite < 20) return;
+    sinceWrite = 0;
+    try {
+      await writeVenusHolderCache(cacheState, cachePath);
+    } catch {
+      // A cache miss next time is slower. It does not change the estimate.
+    }
+  };
   try {
     const payload = await getJson(VENUS_CORE_POOL);
     const markets = parseCoreMarkets(payload);
     const bstocks = markets.filter((market) => market.category === "bstocks");
     if (bstocks.length === 0 || markets.length === 0) return null;
     const collateralHintUsd = venusCollateralHint(payload);
-    const rpc = bscCallRpc();
-    const endBlock = await latestBlock(rpc);
+    const endBlock = await latestBlock();
     const vTokens = bstocks.map((market) => market.vToken);
-    const holders = [
-      ...(await collectHolderAddresses({
+    const stored = await readVenusHolderCache(cachePath);
+    const reusable = venusCacheMatches(stored, LOG_START_BLOCK, vTokens) ? stored : null;
+    cacheState.vTokens = vTokens.map((token) => token.toLowerCase());
+    cacheState.ranges = reusable ? [...reusable.ranges] : [];
+    cacheState.addresses = reusable ? [...reusable.addresses] : [];
+    const holders = new Set(cacheState.addresses);
+    const missing = missingVenusLogRanges(LOG_START_BLOCK, endBlock, LOG_SPAN, cacheState.ranges);
+    if (missing.length > 0) {
+      await collectHolderAddresses({
         vTokens,
         startBlock: LOG_START_BLOCK,
         endBlock,
         initialSpan: LOG_SPAN,
         minSpan: LOG_MIN_SPAN,
         deadlineMs: deadline,
-        getLogs: (range) => fetchPocketLogs(vTokens, range),
-      })),
-    ];
-    if (holders.length === 0 || Date.now() >= deadline) return null;
+        ranges: missing,
+        concurrency: 8,
+        onRange: async (range, found) => {
+          cacheState.ranges.push(range);
+          for (const address of found) holders.add(address);
+          cacheState.addresses = [...holders];
+          sinceWrite += 1;
+          await persist();
+        },
+        getLogs: (range) => fetchLogsRotating(vTokens, range),
+      });
+      cacheState.addresses = [...holders];
+      await persist(true);
+    }
+    if (holders.size === 0 || Date.now() >= deadline) return null;
 
-    const balanceCalls = holders.flatMap((account) =>
+    const holderList = [...holders];
+    const balanceCalls = holderList.flatMap((account) =>
       bstocks.map((market) => ({
         method: "eth_call",
         params: [{ to: market.vToken, data: BALANCE_OF + padAddress(account) }, "latest"],
       })),
     );
-    const balances = await bscBatch(rpc, balanceCalls);
+    const balances = await bscBatchRotating(balanceCalls);
     const active: string[] = [];
-    holders.forEach((account, holderIndex) => {
+    holderList.forEach((account, holderIndex) => {
       const stillHolds = bstocks.some((_, marketIndex) => word(balances[holderIndex * bstocks.length + marketIndex]) > ZERO_WORD);
       if (stillHolds) active.push(account);
     });
@@ -380,7 +567,7 @@ export async function scanVenusBStockBorrow(nowMs = Date.now()): Promise<VenusBo
           ],
         },
       ]);
-      const results = await bscBatch(rpc, calls);
+      const results = await bscBatchRotating(calls);
       let borrow = 0;
       let power = 0;
       let bPower = 0;
@@ -412,6 +599,7 @@ export async function scanVenusBStockBorrow(nowMs = Date.now()): Promise<VenusBo
       method: `Pro-rata from onchain balances at BSC block ${endBlock.toLocaleString("en-US")}. Each account's borrow is multiplied by the share of its borrowing power that comes from bStock collateral.`,
     };
   } catch {
+    if (cacheState.vTokens.length > 0) await persist(true);
     return null;
   }
 }

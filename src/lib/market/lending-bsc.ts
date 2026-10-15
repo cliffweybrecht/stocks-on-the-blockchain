@@ -1,6 +1,20 @@
-const DEFAULT_CALL_RPC = "https://bsc-rpc.publicnode.com";
+/** Public BSC endpoints. NowNodes has older logs. The rest are fallbacks when one node drops a call. */
+const PUBLIC_BSC_RPCS = [
+  "https://public-bsc.nownodes.io",
+  "https://bsc.api.pocket.network",
+  "https://rpc-bsc.48.club",
+  "https://bsc-dataseed.binance.org",
+  "https://bsc-dataseed1.defibit.io",
+  "https://bsc.publicnode.com",
+];
 
-export const BSC_LOG_RPC = "https://bsc.api.pocket.network";
+export const BSC_LOG_RPC = PUBLIC_BSC_RPCS[1];
+
+/** `BSC_RPC_URL` is tried first when set. The public list is the fallback. */
+export function bscRpcUrls(): string[] {
+  const preferred = process.env.BSC_RPC_URL?.trim();
+  return [...new Set([preferred, ...PUBLIC_BSC_RPCS].filter((url): url is string => Boolean(url)))];
+}
 
 /** EIP-1967 beacon slot. */
 export const BSTOCK_BEACON_SLOT = "0xa3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6cb3582b35133d50";
@@ -8,7 +22,44 @@ export const BSTOCK_BEACON_SLOT = "0xa3f0ad74e5423aebfd80d3ef4346578335a9a72aeae
 export const SYMBOL_SELECTOR = "0x95d89b41";
 
 export function bscCallRpc(): string {
-  return process.env.BSC_RPC_URL || DEFAULT_CALL_RPC;
+  return bscRpcUrls()[0] ?? PUBLIC_BSC_RPCS[0];
+}
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Try each URL, then try the list again. A dropped call does not fail the scan
+ * until every URL has failed twice.
+ */
+export async function tryEachUrl<T>(
+  urls: readonly string[],
+  run: (url: string) => Promise<T>,
+  options?: { rounds?: number; sleep?: (ms: number) => Promise<void> },
+): Promise<T> {
+  const rounds = options?.rounds ?? 2;
+  const pause = options?.sleep ?? sleep;
+  let last = "request failed";
+  const list = urls.filter(Boolean);
+  if (list.length === 0) throw new Error("No RPC URL is configured.");
+  for (let round = 0; round < rounds; round += 1) {
+    for (const url of list) {
+      try {
+        return await run(url);
+      } catch (error) {
+        last = error instanceof Error ? error.message : last;
+      }
+    }
+    if (round < rounds - 1) await pause(Math.min(1_200, 400 * 2 ** round));
+  }
+  throw new Error(last);
+}
+
+/** Try each public RPC until one batch succeeds. A full miss is retried once. */
+export async function bscBatchRotating(
+  calls: { method: string; params: unknown[] }[],
+  timeoutMs = 60_000,
+): Promise<(string | null)[]> {
+  return tryEachUrl(bscRpcUrls(), (url) => bscBatch(url, calls, timeoutMs));
 }
 
 export function padAddress(address: string): string {
@@ -50,12 +101,10 @@ export async function bscBatch(url: string, calls: { method: string; params: unk
   return out;
 }
 
-export async function readBeacons(addresses: readonly string[], rpc = bscCallRpc()): Promise<Map<string, string | null>> {
+export async function readBeacons(addresses: readonly string[], rpc?: string): Promise<Map<string, string | null>> {
   const unique = [...new Set(addresses.map((address) => address.toLowerCase()))];
-  const results = await bscBatch(
-    rpc,
-    unique.map((address) => ({ method: "eth_getStorageAt", params: [address, BSTOCK_BEACON_SLOT, "latest"] })),
-  );
+  const calls = unique.map((address) => ({ method: "eth_getStorageAt", params: [address, BSTOCK_BEACON_SLOT, "latest"] }));
+  const results = rpc ? await bscBatch(rpc, calls) : await bscBatchRotating(calls);
   const map = new Map<string, string | null>();
   unique.forEach((address, index) => {
     const raw = results[index];
@@ -86,14 +135,12 @@ export function decodeAbiString(hex: string | null | undefined): string | null {
   }
 }
 
-export async function readSymbols(addresses: readonly string[], rpc = bscCallRpc()): Promise<Map<string, string>> {
+export async function readSymbols(addresses: readonly string[], rpc?: string): Promise<Map<string, string>> {
   const unique = [...new Set(addresses.map((address) => address.toLowerCase()))];
   const map = new Map<string, string>();
   try {
-    const results = await bscBatch(
-      rpc,
-      unique.map((address) => ({ method: "eth_call", params: [{ to: address, data: SYMBOL_SELECTOR }, "latest"] })),
-    );
+    const calls = unique.map((address) => ({ method: "eth_call", params: [{ to: address, data: SYMBOL_SELECTOR }, "latest"] }));
+    const results = rpc ? await bscBatch(rpc, calls) : await bscBatchRotating(calls);
     unique.forEach((address, index) => {
       const symbol = decodeAbiString(results[index]);
       if (symbol) map.set(address, symbol);

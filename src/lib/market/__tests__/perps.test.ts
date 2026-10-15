@@ -1,19 +1,25 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { formatUsdCompact } from "../format";
 import { classifyPerpUnderlying, normPerpSymbol } from "../perps-classify";
 import { hyperliquidEtDayNotional, matchUntaggedPerp, parseEquityPerpsFeeds, type PerpsFeeds } from "../perps-parse";
 import {
+  assertPerpsLandSnapshot,
   buildPerpsDeskModel,
   mergePerpsDay,
   parsePerpsSnapshotFile,
   perpsExcludeReason,
+  perpsHomeSummary,
   selectPerpsRange,
   serializePerpsSnapshot,
   PERPS_SNAPSHOT_SCHEMA,
   type PerpsDaySnapshot,
+  type PerpsRangeView,
   type PerpsSnapshotFile,
 } from "../perps-snapshot";
-import { assertAppendOnlySnapshot } from "../snapshot-land";
-import { volumeSnapshotChain } from "../snapshot-land";
+import { assertAppendOnlySnapshot, volumeSnapshotChain } from "../snapshot-land";
+import { easternDayKey, utcInstantForDayKey } from "../volume-snapshots";
 
 function emptyFeeds(overrides: Partial<PerpsFeeds> = {}): PerpsFeeds {
   const skipped = { data: null, error: "skipped" };
@@ -38,6 +44,43 @@ function emptyFeeds(overrides: Partial<PerpsFeeds> = {}): PerpsFeeds {
     avantis: skipped,
     ...overrides,
   };
+}
+
+function expectCompactMatches(day: PerpsDaySnapshot, nowUnixSeconds: number) {
+  const raw = buildPerpsDeskModel({ schema: PERPS_SNAPSHOT_SCHEMA, records: [day] }, nowUnixSeconds);
+  const stored = parsePerpsSnapshotFile(JSON.parse(serializePerpsSnapshot({ schema: PERPS_SNAPSHOT_SCHEMA, records: [day] })));
+  const compact = buildPerpsDeskModel(stored, nowUnixSeconds);
+  const fields = [
+    "headlineUsd",
+    "onchainUsd",
+    "cexDirectUsd",
+    "cexCoingeckoUsd",
+    "longTailUsd",
+    "excludedUsd",
+    "leveragedUsd",
+    "preipoUsd",
+    "venueCount",
+    "marketCount",
+  ] as const;
+  for (const leveraged of [false, true]) {
+    for (const tail of [false, true]) {
+      const left = selectPerpsRange(raw.days, "24h", leveraged, tail);
+      const right = selectPerpsRange(compact.days, "24h", leveraged, tail);
+      for (const field of fields) expect(right[field], field).toBe(left[field]);
+      expect(right.venues.map(venueIdentity)).toEqual(left.venues.map(venueIdentity));
+      expect(right.underlyings).toEqual(left.underlyings);
+      expect(right.onchainUnderlyings).toEqual(left.onchainUnderlyings);
+      expect(right.categories).toEqual(left.categories);
+      expect(right.chains).toEqual(left.chains);
+      expect(right.builders).toEqual(left.builders);
+      expect(right.fundingVenues).toEqual(left.fundingVenues);
+      expect(right.funding).toEqual(left.funding);
+    }
+  }
+}
+
+function venueIdentity(row: PerpsRangeView["venues"][number]) {
+  return [row.venue, row.tier, row.volumeUsd, row.openInterestUsd, row.marketCount, row.credible, row.excludeReason];
 }
 
 function hlBook() {
@@ -184,6 +227,7 @@ describe("equity perp snapshot", () => {
     const hidden = selectPerpsRange(model.days, "24h", true);
     expect(hidden.headlineUsd).toBe(1000 + 400 + 30 + 40);
     expect(hidden.leveragedUsd).toBe(250);
+    expectCompactMatches(day, Date.parse("2026-10-09T16:00:00.000Z") / 1000);
   });
 
   it("shows an Ostium daily diff only across consecutive Eastern snapshots", () => {
@@ -272,12 +316,12 @@ describe("equity perp snapshot", () => {
     expect(week.caption).not.toMatch(/No equity-perp snapshot yet/);
   });
 
-  it("keeps equity-perps-v1 and leaves a failed volume/OI screen out of the headline", () => {
+  it("migrates equity-perps-v1 into compact v2 and leaves a failed volume/OI screen out of the headline", () => {
     expect(perpsExcludeReason(26, 1)).toMatch(/×/);
     expect(perpsExcludeReason(25, 1)).toBeNull();
     expect(perpsExcludeReason(100_000_001, 4_999_999)).toMatch(/\$5M/);
     expect(perpsExcludeReason(50_000_000, null)).toBeNull();
-    const legacy = parsePerpsSnapshotFile({
+    const v1 = {
       schema: "equity-perps-v1",
       records: [
         {
@@ -299,15 +343,34 @@ describe("equity perp snapshot", () => {
           ],
         },
       ],
-    });
+    };
+    const legacy = parsePerpsSnapshotFile(v1);
     expect(legacy.schema).toBe(PERPS_SNAPSHOT_SCHEMA);
+    expect(legacy.schema).toBe("equity-perps-v2");
     expect(legacy.records[0]?.venues[0]?.credible).toBe(true);
+    expect(legacy.records[0] && "tickers" in legacy.records[0]).toBe(true);
     const next = parsePerpsSnapshotFile(JSON.parse(serializePerpsSnapshot(legacy)));
-    expect(next.schema).toBe("equity-perps-v1");
-    const landed = assertAppendOnlySnapshot(legacy, {
-      schema: "equity-perps-v1",
+    expect(next.schema).toBe("equity-perps-v2");
+    expect(JSON.parse(serializePerpsSnapshot(next))).toEqual(JSON.parse(serializePerpsSnapshot(legacy)));
+    const stored = JSON.parse(serializePerpsSnapshot(legacy)) as { schema: string; records: unknown[] };
+    const landed = assertAppendOnlySnapshot(stored, {
+      schema: "equity-perps-v2",
       records: [
-        ...legacy.records,
+        ...stored.records,
+        {
+          date: "2026-10-08",
+          capturedAt: "2026-10-09T03:59:00.000Z",
+          venues: [],
+          tickers: [],
+        },
+      ],
+    });
+    expect(landed.ok).toBe(true);
+
+    const migrated = assertPerpsLandSnapshot(v1, {
+      ...JSON.parse(serializePerpsSnapshot(legacy)),
+      records: [
+        ...JSON.parse(serializePerpsSnapshot(legacy)).records,
         {
           date: "2026-10-08",
           capturedAt: "2026-10-09T03:59:00.000Z",
@@ -321,22 +384,83 @@ describe("equity perp snapshot", () => {
               capturedAt: "2026-10-09T03:59:00.000Z",
               error: null,
               credible: true,
-              markets: [
-                {
-                  symbol: "NVDA",
-                  underlying: "NVDA",
-                  category: "stock",
-                  volume24hUsd: 12,
-                  openInterestUsd: 4,
-                  fundingRate: 0.0001,
-                  priceUsd: 100,
-                },
-              ],
+              excludeReason: null,
+              parts: { stock: { volumeUsd: 12, openInterestUsd: 4, markets: 1, fundingVolumeUsd: 12 } },
+            },
+          ],
+          tickers: [
+            {
+              group: "NVDA",
+              category: "stock",
+              tiers: { "long-tail": { volumeUsd: 12, openInterestUsd: 4, venues: ["Tapbit"] } },
+              funding: { Tapbit: 0.0001 },
             },
           ],
         },
       ],
     });
-    expect(landed.ok).toBe(true);
+    expect(migrated.ok).toBe(true);
+    if (migrated.ok) expect(migrated.added).toEqual(["2026-10-08"]);
+
+    const rewritten = assertPerpsLandSnapshot(legacy, {
+      schema: "equity-perps-v2",
+      records: [
+        {
+          date: "2026-10-07",
+          capturedAt: "2026-10-08T03:59:00.000Z",
+          venues: [],
+          tickers: [],
+        },
+        {
+          date: "2026-10-08",
+          capturedAt: "2026-10-09T03:59:00.000Z",
+          venues: [],
+          tickers: [],
+        },
+      ],
+    });
+    expect(rewritten.ok).toBe(false);
+  });
+
+  it("renders the migrated 2026-10-08 row from the compact file", () => {
+    const text = readFileSync(join(process.cwd(), "data", "perps-snapshots", "perps.json"), "utf8");
+    const parsed = parsePerpsSnapshotFile(JSON.parse(text));
+    expect(parsed.schema).toBe("equity-perps-v2");
+    expect(parsed.readError).toBeUndefined();
+    expect(Buffer.byteLength(text)).toBeLessThan(80_000 * parsed.records.length);
+    const dates = parsed.records.map((row) => row.date);
+    expect(dates[0]).toBe("2026-10-08");
+    expect(dates.at(-1)! >= "2026-10-10").toBe(true);
+    expect(new Set(dates).size).toBe(dates.length);
+    for (let index = 1; index < dates.length; index += 1) {
+      expect(dates[index]! > dates[index - 1]!).toBe(true);
+      expect(easternDayKey(utcInstantForDayKey(dates[index - 1]!) + 26 * 3600)).toBe(dates[index]);
+    }
+    expect(parsed.records[0]?.venues).toHaveLength(60);
+    expect(serializePerpsSnapshot(parsed)).toBe(text);
+    const model = buildPerpsDeskModel(parsed, Date.parse("2026-10-09T16:00:00.000Z") / 1000);
+    const view = selectPerpsRange(model.days, "24h", false, false);
+    expect(formatUsdCompact(view.headlineUsd)).toBe("$26.1B");
+    expect(formatUsdCompact(view.onchainUsd)).toBe("$5.4B");
+    expect(formatUsdCompact(view.cexDirectUsd)).toBe("$9.4B");
+    expect(formatUsdCompact(view.cexCoingeckoUsd)).toBe("$11.3B");
+    expect(formatUsdCompact(view.longTailUsd)).toBe("$11.6B");
+    expect(formatUsdCompact(view.excludedUsd)).toBe("$14.5B");
+    expect(formatUsdCompact(view.preipoUsd)).toBe("$3.0B");
+    expect(view.venueCount).toBe(42);
+    expect(view.marketCount).toBe(4866);
+    expect(view.underlyings[0]).toMatchObject({ group: "SOXL", venueCount: 30 });
+    expect(view.onchainUnderlyings[0]?.group).toBe("Nasdaq-100 index");
+    expect(view.builders[0]).toMatchObject({ dex: "xyz", marketCount: 98 });
+    expect(view.chains[0]?.chain).toBe("Hyperliquid L1");
+    expect(view.funding[0]?.group).toBe("SOXL");
+    expect(view.fundingVenues[0]).toBe("Binance");
+    expect(formatUsdCompact(selectPerpsRange(model.days, "24h", true, false).headlineUsd)).toBe("$20.4B");
+    expect(formatUsdCompact(selectPerpsRange(model.days, "24h", false, true).headlineUsd)).toBe("$37.7B");
+    const home = perpsHomeSummary(model);
+    expect(home.hasSnapshot).toBe(true);
+    expect(formatUsdCompact(home.totalUsd)).toBe("$26.1B");
+    expect(home.venueCount).toBe(42);
+    expect(home.marketCount).toBe(4866);
   });
 });

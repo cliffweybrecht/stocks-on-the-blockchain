@@ -4,6 +4,9 @@ import {
   assertSnapshotCommitSubjects,
   assertSnapshotOnlyNameStatus,
   assertSnapshotWorktree,
+  chainSnapshotFiles,
+  isDailySnapshotPath,
+  isPoolRegistryPath,
   isSnapshotCommitSubject,
   manualMergeComment,
   newestSnapshotDate,
@@ -103,6 +106,26 @@ describe("snapshot land guards", () => {
     ).toBe("2026-09-24");
     expect(newestSnapshotDate({ records: [] })).toBeNull();
     expect(volumeSnapshotChain("bsc")?.file).toBe("data/volume-snapshots/bnb.json");
+    expect(chainSnapshotFiles(volumeSnapshotChain("bnb")!)).toEqual([
+      "data/volume-snapshots/bnb.json",
+      "data/volume-snapshots/bnb-pools.json",
+    ]);
+    expect(chainSnapshotFiles(volumeSnapshotChain("base")!)).toEqual(["data/volume-snapshots/base.json"]);
+    expect(chainSnapshotFiles(volumeSnapshotChain("solana")!)).toEqual(["data/volume-snapshots/solana.json"]);
+    expect(chainSnapshotFiles(volumeSnapshotChain("robinhood")!)).toEqual(["data/volume-snapshots/robinhood.json"]);
+    expect(chainSnapshotFiles(volumeSnapshotChain("perps")!)).toEqual(["data/perps-snapshots/perps.json"]);
+    expect(isPoolRegistryPath("data/volume-snapshots/bnb-pools.json")).toBe(true);
+    expect(isPoolRegistryPath("data/volume-snapshots/base-pools.json")).toBe(true);
+    expect(isPoolRegistryPath("data/volume-snapshots/bnb.json")).toBe(false);
+    expect(isDailySnapshotPath("data/volume-snapshots/bnb.json")).toBe(true);
+    expect(isDailySnapshotPath("data/volume-snapshots/bnb-pools.json")).toBe(false);
+    expect(isDailySnapshotPath("data/perps-snapshots/perps.json")).toBe(true);
+    expect(
+      assertSnapshotOnlyNameStatus([
+        "M\tdata/volume-snapshots/bnb.json",
+        "M\tdata/volume-snapshots/bnb-pools.json",
+      ]).ok,
+    ).toBe(true);
     expect(volumeSnapshotChain("robinhood-chain")?.label).toBe("Robinhood");
     expect(volumeSnapshotChain("perps")?.file).toBe("data/perps-snapshots/perps.json");
     expect(volumeSnapshotChain("ethereum")).toBeNull();

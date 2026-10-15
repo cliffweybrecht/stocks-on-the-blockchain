@@ -4,7 +4,8 @@ export const LENDING_CHAIN_LOGOS: Record<string, string> = {
   "ethereum": "/lending-logos/chains/ethereum.png",
   "bnb": "/lending-logos/chains/bnb.png",
   "base": "/lending-logos/chains/base.png",
-  "hyperevm": "/lending-logos/chains/hyperevm.png"
+  "hyperevm": "/lending-logos/chains/hyperevm.png",
+  "robinhood-chain": "/lending-logos/chains/robinhood.png"
 };
 export const LENDING_VENUE_LOGOS: Record<string, string> = {
   "kamino": "/lending-logos/venues/kamino.png",

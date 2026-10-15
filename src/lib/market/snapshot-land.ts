@@ -16,12 +16,19 @@ export interface VolumeSnapshotChain {
   id: string;
   label: string;
   file: string;
+  /** Extra snapshot JSON committed with this chain. Not a daily row. */
+  companions?: readonly string[];
 }
 
 export const VOLUME_SNAPSHOT_CHAINS: readonly VolumeSnapshotChain[] = [
   { id: "solana", label: "Solana", file: "data/volume-snapshots/solana.json" },
   { id: "base", label: "Base", file: "data/volume-snapshots/base.json" },
-  { id: "bnb", label: "BNB", file: "data/volume-snapshots/bnb.json" },
+  {
+    id: "bnb",
+    label: "BNB",
+    file: "data/volume-snapshots/bnb.json",
+    companions: ["data/volume-snapshots/bnb-pools.json"],
+  },
   { id: "robinhood", label: "Robinhood", file: "data/volume-snapshots/robinhood.json" },
   { id: "perps", label: "Perps", file: "data/perps-snapshots/perps.json" },
 ];
@@ -43,6 +50,20 @@ export function isVolumeSnapshotPath(filePath: string): boolean {
 
 export function isCompanionTestPath(filePath: string): boolean {
   return COMPANION_TEST_RE.test(filePath);
+}
+
+export function chainSnapshotFiles(chain: VolumeSnapshotChain): readonly string[] {
+  return [chain.file, ...(chain.companions ?? [])];
+}
+
+/** Pool-list cache (`bnb-pools.json`, `base-pools.json`). Not a daily records file. */
+export function isPoolRegistryPath(filePath: string): boolean {
+  return /^data\/volume-snapshots\/[a-z0-9][a-z0-9-]*-pools\.json$/.test(filePath);
+}
+
+/** Daily desk rows. Pool registries may change on a land and are not append-only dates. */
+export function isDailySnapshotPath(filePath: string): boolean {
+  return isVolumeSnapshotPath(filePath) && !isPoolRegistryPath(filePath);
 }
 
 export function volumeSnapshotChain(id: string): VolumeSnapshotChain | null {
