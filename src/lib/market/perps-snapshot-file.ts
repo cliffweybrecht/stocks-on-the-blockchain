@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { withPerpsChecks } from "./perps-checks";
 import { isCompactDay, compactPerpsDay, type PerpsCompactDay } from "./perps-compact";
 import {
   buildPerpsDeskModel,
@@ -54,7 +55,14 @@ export async function savePerpsDay(
   }
   const prior = [...existing.records].reverse().find((row) => row.date < day.date) ?? null;
   const previous: PerpsCompactDay | null = prior ? (isCompactDay(prior) ? prior : compactPerpsDay(prior)) : null;
-  const next = mergePerpsDay(existing, stampPerpsQuality(day, previous));
+  const stamped = stampPerpsQuality(day, previous);
+  let checked = stamped;
+  try {
+    checked = withPerpsChecks(stamped, existing);
+  } catch {
+    checked = stamped;
+  }
+  const next = mergePerpsDay(existing, checked);
   await mkdir(dirname(path), { recursive: true });
   const tmp = `${path}.${process.pid}.${randomUUID()}.tmp`;
   await writeFile(tmp, serializePerpsSnapshot(next), "utf8");
