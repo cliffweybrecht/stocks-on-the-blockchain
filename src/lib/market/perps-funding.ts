@@ -108,8 +108,9 @@ export function fundingSpreads(
 export function formatFundingPercent(rate: number | null): string {
   if (rate === null || !Number.isFinite(rate)) return "—";
   const pct = rate * 100;
-  const digits = Math.abs(pct) >= 1 ? 2 : 3;
-  return `${pct >= 0 ? "" : "−"}${Math.abs(pct).toFixed(digits)}%`;
+  const abs = Math.abs(pct);
+  const digits = abs === 0 || abs >= 0.001 ? (abs >= 1 ? 2 : 3) : 6;
+  return `${pct >= 0 ? "" : "−"}${abs.toFixed(digits)}%`;
 }
 
 export function formatAnnualizedPercent(pct: number | null): string {

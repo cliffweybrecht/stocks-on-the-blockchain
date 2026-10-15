@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { PERPS_CHANGELOG } from "../perps-changelog";
 import { classifyPerpUnderlying, normPerpSymbol, perpGroupLabel } from "../perps-classify";
-import { fundingSpreads, normalizeFunding, perpsFundingIntervalHours } from "../perps-funding";
+import { formatFundingPercent, fundingSpreads, normalizeFunding, perpsFundingIntervalHours } from "../perps-funding";
 import {
   compactPerpsDay,
   encodeCompactDay,
@@ -403,6 +403,8 @@ describe("equity perp quality, books, and downloads", () => {
     expect(hyperliquid.hours).toBe(1);
     expect(hyperliquid.eightHour).toBeCloseTo(0.00005);
     expect(hyperliquid.annualizedPct).toBeCloseTo(5.475);
+    expect(formatFundingPercent(0.00000625)).toBe("0.000625%");
+    expect(formatFundingPercent(0.00005)).toBe("0.005%");
     const gate = normalizeFunding("Gate", 0.0008, 4);
     expect(gate.hoursSource).toBe("stored");
     expect(gate.eightHour).toBeCloseTo(0.0016);
