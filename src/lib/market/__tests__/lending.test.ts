@@ -655,13 +655,14 @@ describe("lending aggregation", () => {
     expect(history).toHaveLength(1);
     expect(history[0]?.collateralUsd).toBe(100);
     expect(history[0]?.stableBorrowedUsd).toBe(45);
+    expect(history[0]?.utilization).toBeCloseTo(0.9, 6);
     expect(lendingHistorySeries(history).kind).toBe("single");
     expect(lendingHistorySeries([]).kind).toBe("empty");
     const second = lendingDayFromCapture(Date.parse("2026-10-10T01:20:00.000Z"), [kamino], []);
     expect(lendingHistorySeries(lendingHistoryFromDays([second, ...history.map(() => second)])).kind).toBe("line");
     const twoDays = lendingHistorySeries([
-      history[0] ?? { date: "2026-10-08", capturedAt: "", collateralUsd: 100, stableBorrowedUsd: 45 },
-      { date: "2026-10-09", capturedAt: "", collateralUsd: 110, stableBorrowedUsd: 40 },
+      history[0] ?? { date: "2026-10-08", capturedAt: "", collateralUsd: 100, stableBorrowedUsd: 45, utilization: 0.9 },
+      { date: "2026-10-09", capturedAt: "", collateralUsd: 110, stableBorrowedUsd: 40, utilization: null },
     ]);
     expect(twoDays.kind).toBe("line");
     const attributed = attributeVenusBorrow([
