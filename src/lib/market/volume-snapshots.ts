@@ -1,4 +1,9 @@
 import { combinedPublicPrivateVolume24h } from "./aggregate";
+import {
+  applyLiquiditySanity,
+  type ExcludedLiquidityPool,
+  type LiquiditySnapshotCorrection,
+} from "./liquidity-sanity";
 import { asNonNegativeNumber, sumNullable } from "./numbers";
 import type {
   AssetPoolMark,
@@ -43,13 +48,25 @@ export interface DeskSnapshotAsset {
   volume24hUsd: number | null;
   displayedLiquidityUsd: number | null;
   pools: DeskSnapshotPool[];
+  /**
+   * Reserves left out of `displayedLiquidityUsd`. The pool row still holds the
+   * raw `liquidityUsd`. Absent when every reported reserve was kept.
+   */
+  excludedLiquidityPools?: ExcludedLiquidityPool[];
+  /** Previous displayed liquidity when a stored row was rewritten by the guard. */
+  correction?: LiquiditySnapshotCorrection;
 }
 
 export type DeskSnapshotAssetSource = Pick<
   AssetSummary,
   "contractAddress" | "symbol" | "issuer" | "instrumentKind" | "volume24hUsd" | "displayedLiquidityUsd"
 > & {
-  pools: readonly Pick<AssetPoolMark, "pairAddress" | "dexId" | "volume24hUsd" | "liquidityUsd">[];
+  /** Passed to the dominance check when the desk knows a market value. */
+  marketValueUsd?: number | null;
+  pools: readonly (Pick<AssetPoolMark, "pairAddress" | "dexId" | "volume24hUsd" | "liquidityUsd"> & {
+    /** GeckoTerminal `reserve_in_usd` beside the reported reserve. */
+    geckoReserveUsd?: number | null;
+  })[];
 };
 
 export interface DeskVolumeSnapshot {
@@ -170,7 +187,14 @@ function clonePool(pool: DeskSnapshotPool): DeskSnapshotPool {
 }
 
 function cloneAsset(asset: DeskSnapshotAsset): DeskSnapshotAsset {
-  return { ...asset, pools: asset.pools.map(clonePool) };
+  return {
+    ...asset,
+    pools: asset.pools.map(clonePool),
+    ...(asset.excludedLiquidityPools
+      ? { excludedLiquidityPools: asset.excludedLiquidityPools.map((row) => ({ ...row })) }
+      : {}),
+    ...(asset.correction ? { correction: { ...asset.correction } } : {}),
+  };
 }
 
 function cloneSnapshot(row: DeskVolumeSnapshot): DeskVolumeSnapshot {
@@ -185,9 +209,10 @@ function roundUsd(value: number | null): number | null {
 
 /**
  * Asset rows for the nightly JSON. Displayed liquidity is the sum of classified
- * pool `liquidity.usd`, matching Base. The mint's `volume24hUsd` is the live
- * desk figure. A pool sum is used only when the desk left that figure null.
- * Assets with no pools and no reported volume or liquidity are omitted.
+ * pool `liquidity.usd` after the liquidity sanity guard. The mint's
+ * `volume24hUsd` is the live desk figure. A pool sum is used only when the desk
+ * left that figure null. Assets with no pools and no reported volume or
+ * liquidity are omitted.
  */
 export function deskSnapshotAssetsFromSummaries(
   assets: readonly DeskSnapshotAssetSource[],
@@ -198,6 +223,7 @@ export function deskSnapshotAssetsFromSummaries(
     const symbol = asset.symbol.trim();
     if (!address || !symbol || byAddress.has(address)) continue;
     const pools: DeskSnapshotPool[] = [];
+    const geckoByPair = new Map<string, number | null>();
     const seenPairs = new Set<string>();
     for (const pool of asset.pools) {
       const pairAddress = pool.pairAddress.trim();
@@ -209,10 +235,19 @@ export function deskSnapshotAssetsFromSummaries(
         volume24hUsd: roundUsd(asNonNegativeNumber(pool.volume24hUsd)),
         liquidityUsd: roundUsd(asNonNegativeNumber(pool.liquidityUsd)),
       });
+      geckoByPair.set(pairAddress, asNonNegativeNumber(pool.geckoReserveUsd));
     }
-    const displayedFromPools = roundUsd(sumNullable(pools.map((pool) => pool.liquidityUsd)));
+    const sanity = applyLiquiditySanity({
+      pools: pools.map((pool) => ({
+        poolId: pool.pairAddress,
+        liquidityUsd: pool.liquidityUsd,
+        volume24hUsd: pool.volume24hUsd,
+        geckoReserveUsd: geckoByPair.get(pool.pairAddress) ?? null,
+      })),
+      marketValueUsd: asset.marketValueUsd,
+    });
     const displayedLiquidityUsd =
-      displayedFromPools ?? roundUsd(asNonNegativeNumber(asset.displayedLiquidityUsd));
+      sanity.displayedLiquidityUsd ?? roundUsd(asNonNegativeNumber(asset.displayedLiquidityUsd));
     const volume24hUsd =
       roundUsd(asNonNegativeNumber(asset.volume24hUsd)) ??
       roundUsd(sumNullable(pools.map((pool) => pool.volume24hUsd)));
@@ -225,6 +260,7 @@ export function deskSnapshotAssetsFromSummaries(
       displayedLiquidityUsd,
       pools,
     };
+    if (sanity.excludedLiquidityPools.length > 0) row.excludedLiquidityPools = sanity.excludedLiquidityPools;
     const issuer = asset.issuer?.trim() ?? "";
     if (issuer) row.issuer = issuer;
     byAddress.set(address, row);
@@ -512,6 +548,37 @@ function parseSnapshotPool(row: unknown): DeskSnapshotPool | null {
   };
 }
 
+function parseExcludedLiquidityPools(value: unknown): ExcludedLiquidityPool[] {
+  if (!Array.isArray(value)) return [];
+  const parsed: ExcludedLiquidityPool[] = [];
+  for (const row of value) {
+    if (!row || typeof row !== "object") continue;
+    const rec = row as Record<string, unknown>;
+    const poolId = typeof rec.poolId === "string" ? rec.poolId.trim() : "";
+    const liquidityUsd = asNonNegativeNumber(rec.liquidityUsd);
+    const reason = typeof rec.reason === "string" ? rec.reason.trim() : "";
+    if (!poolId || liquidityUsd === null || !reason) continue;
+    const item: ExcludedLiquidityPool = { poolId, liquidityUsd, reason };
+    if ("replacementLiquidityUsd" in rec) {
+      const replacement = asNonNegativeNumber(rec.replacementLiquidityUsd);
+      if (replacement !== null) item.replacementLiquidityUsd = replacement;
+    }
+    parsed.push(item);
+  }
+  return parsed;
+}
+
+function parseLiquidityCorrection(value: unknown): LiquiditySnapshotCorrection | null {
+  if (!value || typeof value !== "object") return null;
+  const rec = value as Record<string, unknown>;
+  const reason = typeof rec.reason === "string" ? rec.reason.trim() : "";
+  if (!reason || !("displayedLiquidityUsd" in rec)) return null;
+  if (rec.displayedLiquidityUsd === null) return { reason, displayedLiquidityUsd: null };
+  const displayedLiquidityUsd = asNonNegativeNumber(rec.displayedLiquidityUsd);
+  if (displayedLiquidityUsd === null) return null;
+  return { reason, displayedLiquidityUsd };
+}
+
 function parseSnapshotAssets(rows: readonly unknown[]): DeskSnapshotAsset[] {
   const parsed: DeskSnapshotAsset[] = [];
   const seen = new Set<string>();
@@ -535,6 +602,10 @@ function parseSnapshotAssets(rows: readonly unknown[]): DeskSnapshotAsset[] {
       displayedLiquidityUsd: asNonNegativeNumber(rec.displayedLiquidityUsd),
       pools,
     };
+    const excluded = parseExcludedLiquidityPools(rec.excludedLiquidityPools);
+    if (excluded.length > 0) asset.excludedLiquidityPools = excluded;
+    const correction = parseLiquidityCorrection(rec.correction);
+    if (correction) asset.correction = correction;
     if (typeof rec.issuer === "string" && rec.issuer.trim()) asset.issuer = rec.issuer.trim();
     parsed.push(asset);
   }
