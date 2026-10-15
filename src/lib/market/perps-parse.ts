@@ -6,8 +6,8 @@ import {
   type PerpsCategory,
   type PerpsClass,
 } from "./perps-classify";
-import { asNonNegativeNumber, asReportedNumber, sumNullable } from "./numbers";
-import { perpsExcludeReason, type PerpsDaySnapshot, type PerpsMarketSnapshot, type PerpsTier, type PerpsVenueSnapshot, type PerpsVolumeWindow } from "./perps-snapshot";
+import { asNonNegativeNumber, asReportedNumber } from "./numbers";
+import { perpsExcludeReason, perpsScreenInputs, type PerpsDaySnapshot, type PerpsMarketSnapshot, type PerpsTier, type PerpsVenueSnapshot, type PerpsVolumeWindow } from "./perps-snapshot";
 import {
   CG_OI_MARKETS,
   CG_SPECS,
@@ -190,6 +190,8 @@ function venueShell(
     windowNote,
     capturedAt,
     error,
+    quality: error ? "failed" : "fresh",
+    lastGoodAt: error ? null : capturedAt,
     markets: sorted,
   };
 }
@@ -1322,22 +1324,18 @@ function coingeckoVenues(
     if (marketName === "Bybit (Futures)") archiveSymbols.bybit.push({ symbol: exchangeSymbol, volumeUsd: quote });
   }
   return {
-    venues: specs.flatMap((item) => {
-      const markets = buckets.get(item.market) ?? [];
-      if (markets.length === 0 && item.tier !== "cex-coingecko") return [];
-      return [
-        venueShell(
-          item.venue,
-          item.tier,
-          coingeckoVenueSource(item.market),
-          "rolling-24h",
-          item.note,
-          feeds.capturedAt,
-          null,
-          markets,
-        ),
-      ];
-    }),
+    venues: specs.map((item) =>
+      venueShell(
+        item.venue,
+        item.tier,
+        coingeckoVenueSource(item.market),
+        "rolling-24h",
+        item.note,
+        feeds.capturedAt,
+        null,
+        buckets.get(item.market) ?? [],
+      ),
+    ),
     points,
   };
 }
@@ -1373,14 +1371,8 @@ function fillMissingOpenInterest(venues: PerpsVenueSnapshot[], points: Map<strin
 }
 
 function annotateCredibility(venue: PerpsVenueSnapshot): PerpsVenueSnapshot {
-  const volumes: (number | null)[] = [];
-  const ois: (number | null)[] = [];
-  for (const market of venue.markets) {
-    if (market.category === "preipo") continue;
-    volumes.push(market.volume24hUsd);
-    ois.push(market.openInterestUsd);
-  }
-  const excludeReason = perpsExcludeReason(sumNullable(volumes), sumNullable(ois));
+  const screen = perpsScreenInputs(venue.markets);
+  const excludeReason = perpsExcludeReason(screen.volumeUsd, screen.openInterestUsd);
   return { ...venue, credible: excludeReason === null, excludeReason };
 }
 

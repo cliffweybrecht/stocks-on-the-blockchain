@@ -218,9 +218,29 @@ export function PerpsTickerView({ model }: { model: PerpsTickerPageModel }) {
       <section className="space-y-3" data-perps-ticker-venues>
         <h3 className="font-heading text-lg font-medium">Venues</h3>
         <p className="max-w-3xl text-[11px] leading-snug text-muted-foreground">
-          Venues that listed this name on the latest stored day. Share is the tier volume when that tier has one venue. Several venues in one tier share that tier total, and the file does not split it further.
+          {latest && latest.books.length > 0
+            ? "Per-venue volume and open interest for this name. Stored for the top names only. A venue outside that list is absent, not zero."
+            : "Venues that listed this name on the latest stored day. Share is the tier volume when that tier has one venue. Several venues in one tier share that tier total when the snapshot did not store a per-venue split."}
         </p>
-        {model.venueShares.length === 0 ? (
+        {latest && latest.books.length > 0 ? (
+          <div className="grid gap-2" data-perps-ticker-books>
+            {latest.books.map((book) => {
+              const share =
+                latest.volumeUsd !== null && latest.volumeUsd > 0 && book.volumeUsd !== null
+                  ? book.volumeUsd / latest.volumeUsd
+                  : null;
+              return (
+                <div key={book.venue} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 rounded-xl bg-card px-4 py-2 text-sm ring-1 ring-foreground/10" data-perps-ticker-book={book.venue}>
+                  <p className="min-w-[8rem] flex-1 truncate font-medium">{book.venue}</p>
+                  <p className="num text-primary">{formatUsdCompact(book.volumeUsd)}</p>
+                  <p className="num text-muted-foreground">{formatUsdCompact(book.openInterestUsd)}</p>
+                  <p className="num text-xs text-muted-foreground">{formatShare(share)}</p>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
+        {latest && latest.books.length > 0 ? null : model.venueShares.length === 0 ? (
           <Empty>No venue list is stored for this name.</Empty>
         ) : (
           <div className="grid gap-2">

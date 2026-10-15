@@ -23,6 +23,7 @@ export interface PerpsTickerPoint {
   longTailUsd: number | null;
   cexUsd: number | null;
   funding: { venue: string; rate: number }[];
+  books: { venue: string; volumeUsd: number | null; openInterestUsd: number | null }[];
   tiers: {
     tier: PerpsTier;
     volumeUsd: number | null;
@@ -101,6 +102,11 @@ function pointFromTicker(
     longTailUsd,
     cexUsd: sumNullable([cexDirectUsd, cexCoingeckoUsd, longTailUsd]),
     funding,
+    books: (ticker.books ?? []).map((book) => ({
+      venue: book.venue,
+      volumeUsd: finite(book.volumeUsd),
+      openInterestUsd: finite(book.openInterestUsd),
+    })),
     tiers,
   };
 }

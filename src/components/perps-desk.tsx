@@ -12,6 +12,13 @@ import {
   type VolumeChartRangeId,
 } from "@/lib/market/daily-volume-view";
 import { PERPS_CSV_FILES } from "@/lib/market/perps-csv";
+import {
+  perpsChainShareSeries,
+  perpsListingChanges,
+  perpsOiSeries,
+  perpsVenueShareSeries,
+} from "@/lib/market/perps-history";
+import { PERPS_JSON_FILES } from "@/lib/market/perps-json";
 import { formatChartDay, formatUsdCompact, formatUsdFull, volumeShare } from "@/lib/market/format";
 import { maxNullable } from "@/lib/market/numbers";
 import { perpCategoryLabel, type PerpsCategory } from "@/lib/market/perps-classify";
@@ -21,6 +28,7 @@ import { perpsTickerHref } from "@/lib/market/perps-ticker";
 import {
   formatPerpsEt,
   perpsTierLabel,
+  perpsVenueQuality,
   selectPerpsRange,
   shortPerpsSource,
   type PerpsDeskModel,
@@ -103,6 +111,7 @@ export function PerpsDesk({ model }: { model: PerpsDeskModel }) {
   const underlyings = onchainOnly ? view.onchainUnderlyings : view.underlyings;
   const maxUnderlying = maxNullable(underlyings.map((row) => row.volumeUsd));
   const hovered = hover === null ? null : bars.find((bar) => bar.index === hover) ?? null;
+  const historyDates = [...model.days].map((day) => day.date).sort((a, b) => a.localeCompare(b));
 
   function hoverFromClient(plot: HTMLDivElement, clientX: number) {
     const svg = plot.querySelector("svg");
@@ -146,6 +155,16 @@ export function PerpsDesk({ model }: { model: PerpsDeskModel }) {
               className="text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
             >
               {file.label} CSV
+            </a>
+          ))}
+          {PERPS_JSON_FILES.map((file) => (
+            <a
+              key={file.id}
+              href={file.href}
+              data-perps-json={file.id}
+              className="text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            >
+              {file.label.replace(" JSON", "")} JSON
             </a>
           ))}
         </div>
@@ -325,6 +344,11 @@ export function PerpsDesk({ model }: { model: PerpsDeskModel }) {
             </p>
           </div>
         )}
+        <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-perps-history-note>
+          {historyDates.length === 0
+            ? "No closed days are stored yet."
+            : `Stored history is ${historyDates.length} day${historyDates.length === 1 ? "" : "s"}, ${historyDates[0]} through ${historyDates[historyDates.length - 1]}. Ranges longer than that sum only the days that exist. Missing days stay empty.`}
+        </p>
         <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-perps-window-note>
           Venue 24h figures are rolling windows at capture time, except where a venue has no 24h field. Hyperliquid
           hourly candles are base size, not USD, so that row stays on rolling dayNtlVlm. Ostium shows a daily number
@@ -334,12 +358,24 @@ export function PerpsDesk({ model }: { model: PerpsDeskModel }) {
 
       <section className="space-y-3" data-perps-venues>
         <h3 className="font-heading text-lg font-medium">Venues</h3>
+        <QualityNote venues={view.venues} />
         {view.venues.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border bg-card px-6 py-10 text-center">
             <p className="text-sm text-muted-foreground">No venue rows in this snapshot.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className="grid gap-2 md:hidden" data-perps-venue-cards>
+            {view.venues.map((venue, index) => (
+              <VenueCard
+                key={venue.venue}
+                rank={index + 1}
+                venue={venue}
+                inHeadline={venue.credible && (includeLongTail || venue.tier !== "long-tail")}
+              />
+            ))}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
             <div className="grid w-full min-w-[84rem] grid-cols-[2.5rem_minmax(13rem,1.4fr)_6.5rem_minmax(6.5rem,0.8fr)_minmax(6rem,0.7fr)_4.5rem_4rem_minmax(9rem,1.1fr)_minmax(8rem,0.9fr)_minmax(8rem,0.7fr)] gap-x-3 gap-y-2">
               {["#", "Venue", "Tier", "Volume", "Open interest", "Vol/OI", "Markets", "Chain / operator", "Source", "As of"].map((label) => (
                 <div key={label} className="px-1 text-xs text-muted-foreground">
@@ -357,6 +393,7 @@ export function PerpsDesk({ model }: { model: PerpsDeskModel }) {
               ))}
             </div>
           </div>
+          </>
         )}
       </section>
 
@@ -414,7 +451,10 @@ export function PerpsDesk({ model }: { model: PerpsDeskModel }) {
         )}
       </section>
 
+      <OiSection days={model.days} excludeLeveraged={excludeLeveraged} includeLongTail={includeLongTail} />
+      <ListingSection days={model.days} />
       <ShareSection points={view.share} empty={model.days.length === 0} />
+      <HistoryShareSection days={model.days} excludeLeveraged={excludeLeveraged} includeLongTail={includeLongTail} />
       <ChainSection view={view} empty={model.days.length === 0} />
       <CategorySection view={view} empty={model.days.length === 0} />
       <FundingSection view={view} empty={model.days.length === 0} />
@@ -660,7 +700,17 @@ function PlacesSection() {
         Static reference from the Oct 8 2026 venue map. Jurisdiction is what CoinGecko lists unless noted. Oracle sources that were not confirmed in docs stay unverified.
         {PERPS_HELD_OUT.length > 0 ? ` ${PERPS_HELD_OUT.map((row) => `${row.venue}: ${row.reason}`).join(" ")}` : ""}
       </p>
-      <div className="overflow-x-auto">
+      <div className="grid gap-2 md:hidden">
+        {PERP_PLACES.map((place) => (
+          <div key={place.venue} className="rounded-xl bg-card px-3 py-3 text-sm ring-1 ring-foreground/10" data-perps-place={place.venue}>
+            <p className="font-medium">{place.venue}</p>
+            <p className="mt-1 text-[11px] leading-snug text-muted-foreground">{place.chain}</p>
+            <p className="mt-1 text-[11px] leading-snug">{place.operator} · {place.jurisdiction}</p>
+            <p className="mt-1 text-[11px] leading-snug text-muted-foreground">{place.oracle}</p>
+          </div>
+        ))}
+      </div>
+      <div className="hidden overflow-x-auto md:block">
         <div className="grid w-full min-w-[64rem] grid-cols-[minmax(12rem,0.9fr)_minmax(14rem,1.2fr)_minmax(10rem,0.8fr)_minmax(10rem,0.8fr)_minmax(14rem,1.2fr)] gap-x-3 gap-y-2">
           {["Venue", "Chain / exchange", "Operator", "Jurisdiction", "Oracle"].map((label) => (
             <div key={label} className="px-1 text-xs text-muted-foreground">{label}</div>
@@ -677,6 +727,226 @@ function PlacesSection() {
         </div>
       </div>
     </section>
+  );
+}
+
+function QualityNote({ venues }: { venues: readonly PerpsVenueRow[] }) {
+  const counts = { fresh: 0, stale: 0, failed: 0 };
+  for (const venue of venues) counts[perpsVenueQuality(venue)] += 1;
+  return (
+    <p className="max-w-3xl text-[11px] leading-snug text-muted-foreground" data-perps-quality-note>
+      {counts.failed + counts.stale === 0
+        ? `${counts.fresh} venues reported on this capture. A venue that fails stays on this table with a blank volume. It is not counted as zero.`
+        : `${counts.failed} failed and ${counts.stale} stale. Their volume is blank, not zero, and not in the headline. Stale means an earlier capture succeeded.`}
+    </p>
+  );
+}
+
+function QualityPill({ venue }: { venue: PerpsVenueRow }) {
+  const quality = perpsVenueQuality(venue);
+  const className =
+    quality === "failed"
+      ? "bg-destructive/15 text-destructive"
+      : quality === "stale"
+        ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+        : "bg-muted text-muted-foreground";
+  return (
+    <span className={`mb-0.5 inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-medium ${className}`} data-perps-quality={quality}>
+      {quality === "fresh" ? "Fresh" : quality === "stale" ? "Stale" : "Failed"}
+    </span>
+  );
+}
+
+function VenueCard({
+  rank,
+  venue,
+  inHeadline,
+}: {
+  rank: number;
+  venue: PerpsVenueRow;
+  inHeadline: boolean;
+}) {
+  return (
+    <div className="rounded-xl bg-card px-3 py-3 text-sm ring-1 ring-foreground/10" data-perps-venue={venue.venue}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-medium">#{rank} {venue.venue}</p>
+          <p className="text-[10px] text-muted-foreground">{perpsTierLabel(venue.tier)} · {chainLabel(venue.chain)}</p>
+        </div>
+        <QualityPill venue={venue} />
+      </div>
+      <div className="mt-2 grid grid-cols-3 gap-2">
+        <div>
+          <p className="text-[10px] text-muted-foreground">Volume</p>
+          <p className="num text-primary">{formatUsdCompact(venue.volumeUsd)}</p>
+        </div>
+        <div>
+          <p className="text-[10px] text-muted-foreground">Open interest</p>
+          <p className="num">{formatUsdCompact(venue.openInterestUsd)}</p>
+        </div>
+        <div>
+          <p className="text-[10px] text-muted-foreground">Vol/OI</p>
+          <p className="num">{formatVolOi(venue.volumeUsd, venue.openInterestUsd)}</p>
+        </div>
+      </div>
+      <p className="mt-2 text-[10px] text-muted-foreground">
+        {venue.marketCount} markets · {perpsFeedKind(venue.source)} · {venue.capturedAt ? formatPerpsEt(venue.capturedAt) : "—"}
+        {!venue.credible ? " · Excluded" : !inHeadline ? " · Not in headline" : ""}
+        {venue.error ? ` · ${venue.error}` : ""}
+      </p>
+    </div>
+  );
+}
+
+function OiSection({
+  days,
+  excludeLeveraged,
+  includeLongTail,
+}: {
+  days: PerpsDeskModel["days"];
+  excludeLeveraged: boolean;
+  includeLongTail: boolean;
+}) {
+  const series = perpsOiSeries(days, excludeLeveraged, includeLongTail);
+  const latest = series[series.length - 1] ?? null;
+  return (
+    <section className="space-y-3" data-perps-oi>
+      <h3 className="font-heading text-lg font-medium">Open interest</h3>
+      <p className="max-w-3xl text-[11px] leading-snug text-muted-foreground">
+        Headline venues on each closed day. Open interest is a stock, so it is not summed across days. Vol/OI is that day&apos;s volume divided by that day&apos;s open interest. A missing open interest stays blank.
+      </p>
+      {latest ? (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <TierStat label={`OI ${latest.date}`} value={latest.openInterestUsd} />
+          <TierStat label="Volume that day" value={latest.volumeUsd} />
+          <div className="min-w-0 rounded-lg bg-background/60 px-3 py-2 ring-1 ring-foreground/10">
+            <p className="text-[10px] text-muted-foreground">Vol/OI</p>
+            <p className="num mt-0.5 text-sm font-medium">{formatVolOi(latest.volumeUsd, latest.openInterestUsd)}</p>
+          </div>
+        </div>
+      ) : (
+        <EmptyPanel>No closed day with an open-interest total yet.</EmptyPanel>
+      )}
+      {series.length > 0 ? (
+        <div className="overflow-x-auto">
+          <div className="grid min-w-[20rem] gap-2">
+            {series.map((point) => (
+              <div key={point.date} className="grid grid-cols-3 gap-3 rounded-xl bg-card px-3 py-2 text-sm ring-1 ring-foreground/10" data-perps-oi-day={point.date}>
+                <p>{formatChartDay(point.t)}</p>
+                <p className="num text-right">{formatUsdCompact(point.openInterestUsd)}</p>
+                <p className="num text-right text-muted-foreground">{formatVolOi(point.volumeUsd, point.openInterestUsd)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function ListingSection({ days }: { days: PerpsDeskModel["days"] }) {
+  const change = perpsListingChanges(days);
+  if (!change) return null;
+  return (
+    <section className="space-y-3" data-perps-listings>
+      <h3 className="font-heading text-lg font-medium">New and missing names</h3>
+      <p className="max-w-3xl text-[11px] leading-snug text-muted-foreground" data-perps-listings-note>
+        {change.note}
+      </p>
+      {change.scope === "unavailable" ? null : (
+        <div className="grid gap-2 sm:grid-cols-2">
+          <NameList title="New versus the prior day" names={change.listed} empty="No new names in this comparison." />
+          <NameList title="Missing versus the prior day" names={change.delisted} empty="No names dropped out of this comparison." />
+        </div>
+      )}
+    </section>
+  );
+}
+
+function NameList({ title, names, empty }: { title: string; names: readonly string[]; empty: string }) {
+  return (
+    <div className="rounded-xl bg-card px-4 py-3 text-sm ring-1 ring-foreground/10">
+      <p className="font-medium">{title}</p>
+      {names.length === 0 ? (
+        <p className="mt-1 text-[11px] text-muted-foreground">{empty}</p>
+      ) : (
+        <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{names.join(", ")}</p>
+      )}
+    </div>
+  );
+}
+
+function HistoryShareSection({
+  days,
+  excludeLeveraged,
+  includeLongTail,
+}: {
+  days: PerpsDeskModel["days"];
+  excludeLeveraged: boolean;
+  includeLongTail: boolean;
+}) {
+  const venues = perpsVenueShareSeries(days, excludeLeveraged, includeLongTail);
+  const chains = perpsChainShareSeries(days, excludeLeveraged, includeLongTail);
+  const dates = venues.map((column) => column.date);
+  return (
+    <section className="space-y-3" data-perps-share-history>
+      <h3 className="font-heading text-lg font-medium">Share over time</h3>
+      <p className="max-w-3xl text-[11px] leading-snug text-muted-foreground">
+        Percent of that day&apos;s headline. The venue list is the latest day&apos;s top names. A blank cell means that name was absent, not zero. Chain share is onchain volume divided by the same headline. Long-tail is out unless the toggle includes it.
+      </p>
+      {dates.length === 0 ? (
+        <EmptyPanel>Share by venue and chain appears once a closed day is stored.</EmptyPanel>
+      ) : (
+        <>
+          <ShareTable title="Venues" columns={venues} testId="venue" />
+          <ShareTable title="Chains" columns={chains} testId="chain" />
+        </>
+      )}
+    </section>
+  );
+}
+
+function ShareTable({
+  title,
+  columns,
+  testId,
+}: {
+  title: string;
+  columns: ReturnType<typeof perpsVenueShareSeries>;
+  testId: string;
+}) {
+  const names = columns[0]?.rows.map((row) => row.name) ?? [];
+  if (names.length === 0) return null;
+  return (
+    <div className="overflow-x-auto" data-perps-share-table={testId}>
+      <p className="mb-2 text-sm font-medium">{title}</p>
+      <table className="w-full min-w-[36rem] border-separate border-spacing-y-2 text-sm">
+        <thead>
+          <tr className="text-left text-xs text-muted-foreground">
+            <th className="px-3 font-normal">{title.slice(0, -1)}</th>
+            {columns.map((column) => (
+              <th key={column.date} className="px-2 font-normal">{column.date.slice(5)}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {names.map((name) => (
+            <tr key={name} className="bg-card ring-1 ring-foreground/10">
+              <td className="rounded-l-xl px-3 py-2 font-medium">{name}</td>
+              {columns.map((column, index) => {
+                const cell = column.rows.find((row) => row.name === name);
+                const last = index === columns.length - 1;
+                return (
+                  <td key={column.date} className={`num px-2 py-2 text-right ${last ? "rounded-r-xl" : ""}`}>
+                    {cell?.share === null || cell?.share === undefined ? "—" : `${(cell.share * 100).toFixed(cell.share >= 0.1 ? 0 : 1)}%`}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -738,9 +1008,13 @@ function VenueRow({
         <p className="truncate text-xs">{perpsFeedKind(venue.source)}</p>
         <p className="truncate text-[10px] text-muted-foreground">{shortPerpsSource(venue.source)}</p>
       </div>
-      <p className="text-xs leading-snug text-muted-foreground" data-perps-freshness title={venue.windowNote}>
-        {venue.capturedAt ? formatPerpsEt(venue.capturedAt) : "—"}
-      </p>
+      <div className="text-xs leading-snug text-muted-foreground" data-perps-freshness title={venue.windowNote}>
+        <QualityPill venue={venue} />
+        <p>{venue.capturedAt ? formatPerpsEt(venue.capturedAt) : "—"}</p>
+        {perpsVenueQuality(venue) === "stale" && venue.lastGoodAt ? (
+          <p>Last good {formatPerpsEt(venue.lastGoodAt)}</p>
+        ) : null}
+      </div>
     </div>
   );
 }
