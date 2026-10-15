@@ -60,7 +60,19 @@ export interface PerpsFeeds {
   capturedAt: string;
   hyperliquid: { dexs: HyperliquidDexFeed[]; error: string | null };
   bitget: { tickers: unknown; contracts: unknown; error: string | null };
-  okx: { instruments: unknown; tickers: unknown; openInterest: unknown; oiError: string | null; error: string | null };
+  okx: {
+    instruments: unknown;
+    tickers: unknown;
+    openInterest: unknown;
+    oiError: string | null;
+    error: string | null;
+    /**
+     * One bulk funding-rate response (`instId=ANY`). Absent in fixtures.
+     * A funding error does not fail the OKX book; rates stay unannualized.
+     */
+    funding?: unknown;
+    fundingError?: string | null;
+  };
   gate: { tickers: unknown; contracts: unknown; error: string | null };
   mexc: { ticker: unknown; detail: unknown; error: string | null };
   aster: { ticker: unknown; exchangeInfo: unknown; error: string | null };
@@ -68,6 +80,11 @@ export interface PerpsFeeds {
   extended: PerpsFeedResult<unknown>;
   lighter: PerpsFeedResult<unknown>;
   lighterRobinhood: PerpsFeedResult<unknown>;
+  /**
+   * Public Lighter funding-rates list. Absent in fixtures and on the Robinhood host.
+   * Only rows with exchange "lighter" are used, and they carry no interval.
+   */
+  lighterFunding?: PerpsFeedResult<unknown>;
   ondo: PerpsFeedResult<unknown>;
   variational: PerpsFeedResult<unknown>;
   kraken: PerpsFeedResult<unknown>;
@@ -516,6 +533,23 @@ function okxVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSna
     if (!record) continue;
     oi.set(text(record.instId), vol(record.oiUsd));
   }
+  const funding = new Map<string, { rate: number; hours: number | null }>();
+  if (!feeds.okx.fundingError && feeds.okx.funding != null) {
+    for (const row of listFrom(feeds.okx.funding)) {
+      const item = rec(row);
+      if (!item) continue;
+      const instId = text(item.instId);
+      const fundingRate = rate(item.fundingRate);
+      if (!instId || fundingRate === null) continue;
+      const start = asReportedNumber(item.fundingTime);
+      const next = asReportedNumber(item.nextFundingTime);
+      const hours =
+        start !== null && next !== null && next > start
+          ? perpsFundingIntervalHours((next - start) / 1000, "seconds")
+          : null;
+      funding.set(instId, { rate: fundingRate, hours });
+    }
+  }
   const markets: PerpsMarketSnapshot[] = [];
   for (const row of listFrom(feeds.okx.tickers)) {
     const ticker = rec(row);
@@ -526,6 +560,7 @@ function okxVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSna
     const underlying = normPerpSymbol(symbol);
     const classifiedName = classified(underlying);
     const price = px(ticker.last);
+    const fund = funding.get(symbol);
     observe(
       observations,
       markets,
@@ -535,6 +570,9 @@ function okxVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSna
       mul(vol(ticker.volCcy24h), price),
       oi.get(symbol) ?? null,
       price,
+      fund?.rate ?? null,
+      null,
+      fund?.hours ?? null,
     );
   }
   return shell(null, markets);
@@ -710,6 +748,21 @@ function extendedVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVen
   return shell(null, markets);
 }
 
+function lighterFundingRates(feeds: PerpsFeeds): Map<string, number> {
+  const map = new Map<string, number>();
+  const feed = feeds.lighterFunding;
+  if (!feed || feed.error || feed.data == null) return map;
+  for (const row of listFrom(feed.data, "funding_rates")) {
+    const item = rec(row);
+    if (!item || text(item.exchange) !== "lighter") continue;
+    const symbol = text(item.symbol);
+    const fundingRate = rate(item.rate);
+    if (!symbol || fundingRate === null) continue;
+    map.set(symbol, fundingRate);
+  }
+  return map;
+}
+
 function bookVenue(
   feeds: PerpsFeeds,
   reference: ReferenceBook,
@@ -721,20 +774,23 @@ function bookVenue(
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
     shellFromSpec(spec, feeds.capturedAt, error, markets);
   if (feed.error) return shell(feed.error);
+  const lighterRates = robinhood ? new Map<string, number>() : lighterFundingRates(feeds);
   const markets: PerpsMarketSnapshot[] = [];
   const root = rec(feed.data);
   for (const row of asList(root?.order_book_details)) {
     const book = rec(row);
     if (!book || text(book.status) !== "active") continue;
+    const symbol = text(book.symbol);
+    const bookRate = rate(book.funding_rate) ?? rate(book.last_funding_rate);
     const price = px(book.mark_price);
     pushUntagged(
       markets,
       reference,
-      text(book.symbol),
+      symbol,
       price,
       vol(book.daily_quote_token_volume),
       mul(vol(book.open_interest), price),
-      rate(book.funding_rate) ?? rate(book.last_funding_rate),
+      bookRate ?? lighterRates.get(symbol) ?? null,
     );
   }
   return shell(null, markets);

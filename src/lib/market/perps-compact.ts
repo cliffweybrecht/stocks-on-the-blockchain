@@ -3,6 +3,7 @@ import type { PerpsCategory } from "./perps-classify";
 import { perpGroupLabel } from "./perps-classify";
 import { sumNullable } from "./numbers";
 import type {
+  PerpsDataCheck,
   PerpsDaySnapshot,
   PerpsMarketSnapshot,
   PerpsStoredCategory,
@@ -127,6 +128,11 @@ export interface PerpsCompactDay {
   names?: string[];
   /** Binance/Bybit official-archive cross-check. Absent on older rows. */
   archive?: PerpsArchiveCheck;
+  /**
+   * Informational flags versus the previous day. Written as `ck`.
+   * Absent on older rows. An empty array means the watchdog ran and found nothing.
+   */
+  checks?: PerpsDataCheck[];
 }
 
 export function isCompactDay(row: object): row is PerpsCompactDay {
@@ -418,6 +424,7 @@ export function compactPerpsDay(day: PerpsDaySnapshot): PerpsCompactDay {
   const names = equityNames(day);
   if (names.length > 0) compact.names = names;
   if (day.archive) compact.archive = day.archive;
+  if (Array.isArray(day.checks)) compact.checks = day.checks;
   return compact;
 }
 
@@ -612,6 +619,7 @@ function encodeCompactDayBody(day: PerpsCompactDay): {
   arc?: unknown[];
   arcNote?: string;
   names?: string[];
+  ck?: [string, string][];
 } {
   const venueIndex = new Map(day.venues.map((venue, index) => [venue.venue, index]));
   const funded = fundingGroups(day.tickers);
@@ -685,6 +693,7 @@ function encodeCompactDayBody(day: PerpsCompactDay): {
     arc?: unknown[];
     arcNote?: string;
     names?: string[];
+    ck?: [string, string][];
   } = { date: day.date, capturedAt: day.capturedAt, venues, tickers };
   if (day.archive) {
     const archive = encodePerpsArchive(day.archive);
@@ -692,6 +701,12 @@ function encodeCompactDayBody(day: PerpsCompactDay): {
     if (archive.arcNote) encoded.arcNote = archive.arcNote;
   }
   if (day.names && day.names.length > 0) encoded.names = day.names;
+  if (Array.isArray(day.checks)) {
+    encoded.ck = day.checks
+      .filter((row) => row.code.length > 0 && row.text.length > 0)
+      .slice(0, 12)
+      .map((row) => [row.code.slice(0, 40), row.text.slice(0, 120)]);
+  }
   return encoded;
 }
 
@@ -767,6 +782,7 @@ function decodeWireDay(row: {
   arc?: unknown;
   arcNote?: unknown;
   names?: unknown;
+  ck?: unknown;
 }): PerpsCompactDay | null {
   const capturedAt = typeof row.capturedAt === "string" ? row.capturedAt : "";
   const venues: PerpsCompactVenue[] = [];
@@ -879,6 +895,8 @@ function decodeWireDay(row: {
   }
   const archive = decodePerpsArchive(row.arc, row.arcNote);
   if (archive) decoded.archive = archive;
+  const checks = decodeChecks(row.ck);
+  if (checks) decoded.checks = checks;
   return decoded;
 }
 
@@ -896,6 +914,21 @@ function isWireDay(row: { venues?: unknown; tickers?: unknown; arc?: unknown }):
   });
 }
 
+function decodeChecks(value: unknown): PerpsDataCheck[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const checks: PerpsDataCheck[] = [];
+  for (const row of value) {
+    if (!Array.isArray(row) || row.length < 2) continue;
+    if (typeof row[0] !== "string" || typeof row[1] !== "string") continue;
+    const code = row[0].slice(0, 40);
+    const text = row[1].slice(0, 120);
+    if (!code || !text) continue;
+    checks.push({ code, text });
+    if (checks.length >= 12) break;
+  }
+  return checks;
+}
+
 export function parseCompactDay(row: {
   date: string;
   capturedAt?: unknown;
@@ -904,6 +937,7 @@ export function parseCompactDay(row: {
   arc?: unknown;
   arcNote?: unknown;
   names?: unknown;
+  ck?: unknown;
 }): PerpsCompactDay | null {
   if (isWireDay(row)) return decodeWireDay(row);
   const venues = Array.isArray(row.venues)

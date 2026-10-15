@@ -17,6 +17,7 @@ import {
 } from "./perps-classify";
 import { fundingSpreads, type FundingSpreadRow } from "./perps-funding";
 import { hip3Dex, perpPlace } from "./perps-meta";
+import { perpsFeedKind } from "./perps-sources";
 import { compareNullableDesc, sumNullable } from "./numbers";
 import { assertAppendOnlySnapshot } from "./snapshot-land";
 import { easternDayKey, utcInstantForDayKey } from "./volume-snapshots";
@@ -48,6 +49,12 @@ export type PerpsStoredCategory = PerpsCategory | "preipo";
 export type PerpsVolumeWindow = "rolling-24h" | "et-day" | "lifetime" | "unavailable";
 /** fresh: this capture succeeded. stale: this capture failed and an older good row exists. failed: this capture failed and there is no older good row. */
 export type PerpsVenueQuality = "fresh" | "stale" | "failed";
+
+/** One informational flag stored on a new row. Absent on older rows. */
+export interface PerpsDataCheck {
+  code: string;
+  text: string;
+}
 
 /**
  * Volume and open interest for the credibility screen.
@@ -161,6 +168,11 @@ export interface PerpsDaySnapshot {
   archiveSymbols?: { binance: PerpsArchiveSymbol[]; bybit: PerpsArchiveSymbol[] };
   /** Official-archive cross-check. Stored as a short array on the compact day. */
   archive?: PerpsArchiveCheck;
+  /**
+   * Informational flags versus the previous stored day. Absent on older rows
+   * and when the check itself failed. An empty array means the watchdog ran clean.
+   */
+  checks?: PerpsDataCheck[];
 }
 
 /** A capture day (full book) or a compact stored day. */
@@ -281,6 +293,7 @@ export function parsePerpsSnapshotFile(raw: unknown): PerpsSnapshotFile {
       arc: (row as { arc?: unknown }).arc,
       arcNote: (row as { arcNote?: unknown }).arcNote,
       names: (row as { names?: unknown }).names,
+      ck: (row as { ck?: unknown }).ck,
     });
     if (compact) records.push(compact);
   }
@@ -418,6 +431,8 @@ export interface PerpsViewDay {
   /** Full equity name set when the snapshot stored one. */
   names?: string[];
   archive?: PerpsArchiveCheck;
+  /** Informational flags. Absent when this row was written before checks existed. */
+  checks?: PerpsDataCheck[];
 }
 
 export interface PerpsDeskModel {
@@ -593,6 +608,7 @@ function compactDayToView(day: PerpsCompactDay, prior: ReadonlyMap<string, numbe
     tickers,
     ...(day.names && day.names.length > 0 ? { names: day.names } : {}),
     ...(day.archive ? { archive: day.archive } : {}),
+    ...(Array.isArray(day.checks) ? { checks: day.checks } : {}),
   };
 }
 
@@ -650,6 +666,7 @@ function marketDayToView(day: PerpsDaySnapshot, priorLifetime: ReadonlyMap<strin
     closed: perpsDayIsClosed(day.date, nowUnixSeconds),
     venues,
     ...(day.archive ? { archive: day.archive } : {}),
+    ...(Array.isArray(day.checks) ? { checks: day.checks } : {}),
   };
 }
 
@@ -854,6 +871,70 @@ export function formatPerpsEt(iso: string): string {
     minute: "2-digit",
     timeZoneName: "short",
   }).format(new Date(t));
+}
+
+export type PerpsSourceGroup = "Hyperliquid" | "Direct API" | "CoinGecko";
+
+export interface PerpsSourceStamp {
+  name: PerpsSourceGroup;
+  line: string;
+}
+
+const SOURCE_GROUP_ORDER: readonly PerpsSourceGroup[] = ["Hyperliquid", "Direct API", "CoinGecko"];
+
+export function perpsSourceGroup(venue: string, source: string): PerpsSourceGroup {
+  if (venue.startsWith("Hyperliquid")) return "Hyperliquid";
+  return perpsFeedKind(source) === "CoinGecko" ? "CoinGecko" : "Direct API";
+}
+
+function latestIso(values: readonly string[]): string | null {
+  let best = "";
+  let bestT = Number.NEGATIVE_INFINITY;
+  for (const iso of values) {
+    const t = Date.parse(iso);
+    if (Number.isFinite(t) && t >= bestT) {
+      bestT = t;
+      best = iso;
+    }
+  }
+  return best || null;
+}
+
+/** Per-source freshness for one day. A group with no venues is omitted. */
+export function perpsSourceStamps(
+  venues: readonly {
+    venue: string;
+    source: string;
+    capturedAt: string;
+    error: string | null;
+    quality?: PerpsVenueQuality;
+    lastGoodAt?: string | null;
+  }[],
+): PerpsSourceStamp[] {
+  return SOURCE_GROUP_ORDER.flatMap((name) => {
+    const rows = venues.filter((venue) => perpsSourceGroup(venue.venue, venue.source) === name);
+    if (rows.length === 0) return [];
+    const fresh = rows.filter((venue) => perpsVenueQuality(venue) === "fresh");
+    const stale = rows.filter((venue) => perpsVenueQuality(venue) === "stale").length;
+    const failed = rows.filter((venue) => perpsVenueQuality(venue) === "failed").length;
+    const updatedAt = latestIso(fresh.map((venue) => venue.capturedAt));
+    const lastGoodAt = latestIso(rows.flatMap((venue) => (venue.lastGoodAt ? [venue.lastGoodAt] : [])));
+    const bits: string[] = [];
+    if (stale > 0) bits.push(`${stale} stale`);
+    if (failed > 0) bits.push(`${failed} failed`);
+    const tail = bits.length > 0 ? ` · ${bits.join(" · ")}` : "";
+    let line: string;
+    if (fresh.length > 0 && updatedAt) line = `${name} updated ${formatPerpsEt(updatedAt)}${tail}`;
+    else if (lastGoodAt) line = `${name} last good ${formatPerpsEt(lastGoodAt)}${tail}`;
+    else line = `${name}${tail || " · no capture"}`;
+    return [{ name, line }];
+  });
+}
+
+export function perpsAsOfLine(day: { capturedAt: string; date: string; closed: boolean }): string {
+  const when = formatPerpsEt(day.capturedAt);
+  const state = day.closed ? "closed snapshot" : "day still open";
+  return `As of ${when} · Eastern day ${day.date} · ${state}`;
 }
 
 export function selectPerpsRange(
@@ -1338,14 +1419,20 @@ export interface PerpsHomeSummary {
   venueCount: number;
   marketCount: number;
   caption: string;
+  /** Freshness line for the day behind the card numbers. Null when there is no row. */
+  asOf: string | null;
+  /** Hyperliquid, Direct API, and CoinGecko, in that order, when the day has that group. */
+  sources: PerpsSourceStamp[];
 }
 
 export function perpsHomeSummary(model: PerpsDeskModel): PerpsHomeSummary {
   const view = selectPerpsRange(model.days, "24h", false, false);
+  const date = view.chart[0]?.date ?? null;
+  const day = date ? (model.days.find((row) => row.date === date) ?? null) : null;
   return {
     hasSnapshot: model.days.length > 0 && !model.readError,
     readError: model.readError,
-    date: view.chart[0]?.date ?? null,
+    date,
     capturedAt: view.capturedAt,
     closed: view.chart.length > 0 && !view.openDay,
     totalUsd: view.headlineUsd,
@@ -1357,6 +1444,8 @@ export function perpsHomeSummary(model: PerpsDeskModel): PerpsHomeSummary {
     venueCount: view.venueCount,
     marketCount: view.marketCount,
     caption: view.caption,
+    asOf: day ? perpsAsOfLine(day) : null,
+    sources: day ? perpsSourceStamps(day.venues) : [],
   };
 }
 

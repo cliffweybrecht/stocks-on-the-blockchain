@@ -28,6 +28,8 @@ import { PERPS_HELD_OUT, perpsFeedKind } from "@/lib/market/perps-sources";
 import { perpsTickerHref } from "@/lib/market/perps-ticker";
 import {
   formatPerpsEt,
+  perpsAsOfLine,
+  perpsSourceStamps,
   perpsTierLabel,
   perpsVenueQuality,
   selectPerpsRange,
@@ -35,6 +37,7 @@ import {
   type PerpsDeskModel,
   type PerpsSharePoint,
   type PerpsVenueRow,
+  type PerpsViewDay,
 } from "@/lib/market/perps-snapshot";
 
 function roundedTopBar(x: number, top: number, width: number, baseline: number): string {
@@ -44,6 +47,45 @@ function roundedTopBar(x: number, top: number, width: number, baseline: number):
   const right = x + width;
   const n = (value: number) => value.toFixed(2);
   return `M ${n(x)} ${n(baseline)} L ${n(x)} ${n(top + radius)} Q ${n(x)} ${n(top)} ${n(x + radius)} ${n(top)} L ${n(right - radius)} ${n(top)} Q ${n(right)} ${n(top)} ${n(right)} ${n(top + radius)} L ${n(right)} ${n(baseline)} Z`;
+}
+
+function Freshness({ day }: { day: PerpsViewDay }) {
+  const stamps = perpsSourceStamps(day.venues);
+  return (
+    <div className="space-y-0.5 text-[11px] leading-snug text-muted-foreground" data-perps-as-of>
+      <p>{perpsAsOfLine(day)}</p>
+      {stamps.map((stamp) => (
+        <p key={stamp.name}>{stamp.line}</p>
+      ))}
+    </div>
+  );
+}
+
+function DataChecks({ day }: { day: PerpsViewDay | null }) {
+  const checks = day?.checks;
+  return (
+    <section className="rounded-xl border border-border bg-card/80 px-4 py-3 sm:px-5" data-perps-checks>
+      <h3 className="font-heading text-sm font-medium">Data checks</h3>
+      {checks === undefined ? (
+        <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+          No checks stored on this row. The next capture writes them.
+        </p>
+      ) : checks.length === 0 ? (
+        <p className="mt-1 text-[11px] leading-snug text-muted-foreground">No flags versus the prior day.</p>
+      ) : (
+        <ul className="mt-2 space-y-1">
+          {checks.map((check) => (
+            <li key={check.code} className="text-[11px] leading-snug text-foreground" data-perps-check={check.code}>
+              {check.text}
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+        Flags are informational. They do not change the numbers.
+      </p>
+    </section>
+  );
 }
 
 function formatVolOi(volume: number | null, openInterest: number | null): string {
@@ -108,6 +150,7 @@ export function PerpsDesk({ model }: { model: PerpsDeskModel }) {
   const maxUnderlying = maxNullable(underlyings.map((row) => row.volumeUsd));
   const hovered = hover === null ? null : bars.find((bar) => bar.index === hover) ?? null;
   const historyDates = [...model.days].map((day) => day.date).sort((a, b) => a.localeCompare(b));
+  const latestDay = historyDates.length > 0 ? (model.days.find((day) => day.date === historyDates[historyDates.length - 1]) ?? null) : null;
 
   function hoverFromClient(plot: HTMLDivElement, clientX: number) {
     const svg = plot.querySelector("svg");
@@ -139,6 +182,7 @@ export function PerpsDesk({ model }: { model: PerpsDeskModel }) {
           25× open interest, or whose open interest is under $5M with volume over $100M, is recorded and
           left out.
         </p>
+        {latestDay ? <Freshness day={latestDay} /> : null}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm" data-perps-downloads>
           <Link href="/perps/methodology" className="text-primary underline-offset-2 hover:underline" data-perps-methodology-link>
             Methodology
@@ -165,6 +209,8 @@ export function PerpsDesk({ model }: { model: PerpsDeskModel }) {
           ))}
         </div>
       </header>
+
+      <DataChecks day={latestDay} />
 
       <section className="rounded-xl border border-border bg-card/80 px-4 py-4 sm:px-5" data-perps-volume-card>
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3">

@@ -55,4 +55,29 @@ export const PERPS_CHANGELOG: readonly PerpsChangelogEntry[] = [
     title: "Listings versus the capped list",
     body: "When both days store the full name set, listed and delisted come from that set. A name that leaves the capped ticker list but remains in the book is cap movement, not a delisting. A price-band miss can still remove a name from the book. When only the capped list exists, nothing is called a listing or a delisting. When only the newer day has the full set, a capped name absent from that set is gone, and a name that appears only on the new day is not counted as a new listing.",
   },
+  {
+    id: "checks",
+    title: "Row sanity checks",
+    body: "Each new row stores a short checks list against the previous day: headline and tier swings, a large venue swing, venue-count and market-count changes, a fresh venue whose volume or open interest vanished, CoinGecko's share of the headline, and Binance or Bybit CoinGecko versus the official archive. The text is a plain flag such as Binance +60% d/d: verify. Flags do not change the numbers. If the check throws, the day is saved without the list. Older rows omit it. An empty list means the watchdog ran clean.",
+  },
+  {
+    id: "okx-interval",
+    title: "OKX funding interval",
+    body: "Equity swaps on OKX, instCategory 3, take fundingRate and the hours between fundingTime and nextFundingTime from one public funding-rate?instId=ANY call. Crypto swaps in that payload are ignored. The hours are kept only when they snap to a clean quarter-hour from 15 minutes through 24 hours. A timeout or any other error leaves OKX without a rate and without an interval, so it stays not annualized.",
+  },
+  {
+    id: "lighter-rate",
+    title: "Lighter funding rate",
+    body: "Lighter's public funding-rates endpoint returns a rate for exchange lighter, plus rates for other venues. Only the lighter rows are stored, and only when the order book itself has no rate. The list has no interval. The hourly fundings history uses a different scale, so the stored rate is not annualized. Lighter on Robinhood Chain is a different host and is unchanged. If the request fails, Lighter stays as it was.",
+  },
+  {
+    id: "zhipuhkd",
+    title: "ZHIPUHKD left separate",
+    body: "Checked on Gate on 15 Oct 2026. ZHIPU_USDT marked about $65. ZHIPUHKD_USDT marked about $509, roughly the HKD figure for the same H-share, and the contract is still USDT-settled. volume_24h_quote is turnover at that mark, not the USD share value. Aliasing ZHIPUHKD onto ZHIPU would mix the two scales, so the symbols stay separate.",
+  },
+  {
+    id: "freshness",
+    title: "As-of line",
+    body: "The home Perps card and the /perps header state the capture time, the Eastern day, and whether that day is closed. Hyperliquid, direct APIs, and CoinGecko each show the latest fresh capture, or the last good time when that group is stale or failed.",
+  },
 ];

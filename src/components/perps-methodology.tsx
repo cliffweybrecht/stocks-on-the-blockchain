@@ -13,6 +13,21 @@ import {
   type PerpsCategory,
 } from "@/lib/market/perps-classify";
 import { PERPS_CHANGELOG } from "@/lib/market/perps-changelog";
+import {
+  PERPS_CHECK_ARCHIVE_COVERED,
+  PERPS_CHECK_ARCHIVE_VARIANCE,
+  PERPS_CHECK_CG_SHARE,
+  PERPS_CHECK_CG_SHARE_MOVE,
+  PERPS_CHECK_HEADLINE_SWING,
+  PERPS_CHECK_MARKET_ABS,
+  PERPS_CHECK_MARKET_REL,
+  PERPS_CHECK_TIER_SWING,
+  PERPS_CHECK_VANISH_OI_USD,
+  PERPS_CHECK_VANISH_VOLUME_USD,
+  PERPS_CHECK_VENUE_COUNT_DELTA,
+  PERPS_CHECK_VENUE_MIN_USD,
+  PERPS_CHECK_VENUE_SWING,
+} from "@/lib/market/perps-checks";
 import { PERPS_FUNDING_CAP, PERPS_TICKER_CAP } from "@/lib/market/perps-compact";
 import { HIP3_BUILDERS, PERP_PLACES } from "@/lib/market/perps-meta";
 import {
@@ -82,6 +97,10 @@ function place(venue: string) {
   return PERP_PLACES.find((row) => row.venue === venue) ?? null;
 }
 
+function usdMillions(value: number): string {
+  return `$${(value / 1_000_000).toLocaleString("en-US")}M`;
+}
+
 export function PerpsMethodology({
   archive,
 }: {
@@ -148,7 +167,10 @@ export function PerpsMethodology({
           SKHY is the Nasdaq ADR for SK Hynix (10 ADS equal 1 Korea Exchange common share). SKHYNIX, and the
           xyz symbol SKHX, are that common share. They stay separate stocks. MUU, MVLL, INTW, and SKDD are
           single-stock leveraged ETFs and classify as leveraged ETFs on the next capture. ZHIPU is the listed
-          HKEX 2513 H-share and stays a stock. A day already stored keeps the category it was written with.
+          HKEX 2513 H-share and stays a stock. ZHIPUHKD stays its own symbol. On Gate it is a USDT contract
+          whose mark is the HKD share price, about eight times the USD share, and the quote volume is not
+          converted back to the USD share, so aliasing it onto ZHIPU would mix two price scales. A day already
+          stored keeps the category it was written with.
         </p>
       </section>
 
@@ -316,6 +338,42 @@ export function PerpsMethodology({
           and they are not added to the headline. Stale does not reuse yesterday&apos;s numbers. Last good is the
           earlier capture time. Rows written before this field existed are fresh when they have no error, and
           failed when they recorded one.
+        </p>
+      </section>
+
+      <section className="space-y-3" data-perps-method-funding>
+        <h3 className="font-heading text-lg font-medium">Funding intervals</h3>
+        <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
+          OKX equity swaps, the ones with instCategory 3, take the funding rate and the hours between fundingTime
+          and nextFundingTime from one public call, funding-rate?instId=ANY. That payload also includes crypto
+          swaps. Those are ignored. A timeout or any other error leaves OKX on the native rate with no interval,
+          so it is not annualized. Lighter publishes a funding-rates list. Only rows whose exchange is lighter
+          are stored, and that list has no interval. The hourly fundings history uses a different scale, so the
+          stored Lighter rate stays not annualized. Rates for other exchanges in the same list are not copied
+          onto the Lighter book. Lighter on Robinhood Chain is a different host and is left unchanged.
+        </p>
+      </section>
+
+      <section className="space-y-3" data-perps-method-checks>
+        <h3 className="font-heading text-lg font-medium">Data checks</h3>
+        <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
+          After each capture the writer compares the new row with the previous stored day and saves a short list
+          of flags. A headline move of {Math.round(PERPS_CHECK_HEADLINE_SWING * 100)}% or more, a tier move of{" "}
+          {Math.round(PERPS_CHECK_TIER_SWING * 100)}% or more, and a single headline venue move of{" "}
+          {Math.round(PERPS_CHECK_VENUE_SWING * 100)}% when that venue was at least {usdMillions(PERPS_CHECK_VENUE_MIN_USD)}{" "}
+          the day before. A headline venue-count change of {PERPS_CHECK_VENUE_COUNT_DELTA} or more. A headline
+          market-count change of at least {PERPS_CHECK_MARKET_ABS.toLocaleString("en-US")} and{" "}
+          {Math.round(PERPS_CHECK_MARKET_REL * 100)}%. A fresh venue whose volume was at least{" "}
+          {usdMillions(PERPS_CHECK_VANISH_VOLUME_USD)}, or whose open interest was at least{" "}
+          {usdMillions(PERPS_CHECK_VANISH_OI_USD)}, and is missing or zero today. A failed or stale blank is expected
+          and is not flagged. CoinGecko&apos;s share of the headline, when it is at least{" "}
+          {Math.round(PERPS_CHECK_CG_SHARE * 100)}% or moves by {Math.round(PERPS_CHECK_CG_SHARE_MOVE * 100)} percentage
+          points. Binance or Bybit when CoinGecko and the official archive differ by{" "}
+          {Math.round(PERPS_CHECK_ARCHIVE_VARIANCE * 100)}% or more and at least {PERPS_CHECK_ARCHIVE_COVERED} symbols
+          were covered. The archive is the prior UTC day against a rolling 24h print, so the flag says verify and
+          leaves the headline on CoinGecko. Flags do not change stored numbers. If the check throws, that list is
+          dropped and the day still lands. Older rows omit the field. A row with an empty list was checked and had
+          nothing to flag.
         </p>
       </section>
 

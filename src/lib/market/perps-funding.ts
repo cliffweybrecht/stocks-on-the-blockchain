@@ -4,8 +4,9 @@
  *
  * Annualized percent and the 8h equivalent are derived, and only when the
  * quote interval is known. A stored interval wins. Otherwise a documented
- * interval is used only when it does not vary by contract. Binance, Bybit,
- * OKX, and Gate are not given a venue-wide default.
+ * interval is used only when it does not vary by contract. No venue is given
+ * a single catalog interval. OKX equity hours come from that capture's bulk
+ * funding-rate call. Lighter's public rate has no interval.
  */
 
 export type FundingHoursSource = "stored" | "documented" | "unknown";
