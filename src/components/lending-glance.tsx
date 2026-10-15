@@ -18,6 +18,7 @@ import {
   type LendingSimpleBadge,
   type LendingStaleNote,
 } from "@/lib/market/lending-glance";
+import { type LendingFigureFreshness } from "@/lib/market/lending-compare";
 import {
   formatLendingApy,
   formatLendingFractionPct,
@@ -51,7 +52,7 @@ function sourceHost(source: string): string {
   }
 }
 
-function SourceLine({ source }: { source: string }) {
+function SourceLine({ source, timeLabel }: { source: string; timeLabel: string }) {
   let href: string | null = null;
   try {
     const url = new URL(source);
@@ -60,7 +61,7 @@ function SourceLine({ source }: { source: string }) {
     href = null;
   }
   return (
-    <p className="text-sm leading-6 text-muted-foreground">
+    <p className="text-sm leading-6 text-muted-foreground" data-lending-freshness="source">
       Source{" "}
       {href ? (
         <a className="text-foreground underline-offset-2 hover:underline" href={href} target="_blank" rel="noreferrer">
@@ -69,6 +70,8 @@ function SourceLine({ source }: { source: string }) {
       ) : (
         <span className="text-foreground">{source || "—"}</span>
       )}
+      {" · "}
+      {timeLabel}
     </p>
   );
 }
@@ -152,6 +155,51 @@ function MoneyButton({
   );
 }
 
+function SourceLink({ source }: { source: LendingFigureFreshness["sources"][number] }) {
+  if (!source.href) return <span className="text-foreground">{source.host}</span>;
+  return (
+    <a className="text-foreground underline-offset-2 hover:underline" href={source.href} target="_blank" rel="noreferrer">
+      {source.host}
+    </a>
+  );
+}
+
+function FreshLine({ freshness, stat }: { freshness: LendingFigureFreshness; stat: string }) {
+  if (freshness.sourceLabel === "—" && freshness.timeLabel === "—") {
+    return (
+      <p className="mt-1 text-xs leading-5 text-muted-foreground" data-lending-freshness={stat}>
+        —
+      </p>
+    );
+  }
+  const shown = freshness.sources.slice(0, 2);
+  const rest = freshness.sources.slice(2);
+  return (
+    <div className="mt-1 text-xs leading-5 text-muted-foreground" data-lending-freshness={stat}>
+      {shown.map((source, index) => (
+        <span key={source.host}>
+          {index > 0 ? " and " : null}
+          <SourceLink source={source} />
+        </span>
+      ))}
+      {rest.length > 0 ? (
+        <details className="inline">
+          <summary className="inline cursor-pointer"> and {rest.length} more</summary>
+          <span className="mt-1 block">
+            {rest.map((source) => (
+              <span key={source.host} className="mr-3 inline-block">
+                <SourceLink source={source} />
+              </span>
+            ))}
+          </span>
+        </details>
+      ) : null}
+      <span> · {freshness.timeLabel}</span>
+      {freshness.note ? <span className="mt-1 block">{freshness.note}</span> : null}
+    </div>
+  );
+}
+
 export function LendingGlancePanel({
   glance,
   flags,
@@ -165,6 +213,7 @@ export function LendingGlancePanel({
   fullnessNote,
   riskLine,
   readError,
+  figures,
 }: {
   glance: LendingGlanceCopy;
   flags: readonly LendingFillingFlag[];
@@ -178,6 +227,12 @@ export function LendingGlancePanel({
   fullnessNote: string;
   riskLine: string;
   readError: string | null;
+  figures: {
+    collateral: LendingFigureFreshness;
+    borrowed: LendingFigureFreshness;
+    full: LendingFigureFreshness;
+    cost: LendingFigureFreshness;
+  };
 }) {
   const [scopeId, setScopeId] = useState("all");
   const [drop, setDrop] = useState<LendingDropFraction>(0.2);
@@ -244,32 +299,44 @@ export function LendingGlancePanel({
       </header>
 
       <div className="grid max-w-3xl grid-cols-2 gap-6">
-        <MoneyButton
-          label="Stock locked"
-          value={usd(totals.collateralUsd)}
-          stat="collateral"
-          pressed={drill?.kind === "chains" && drill.metric === "collateral"}
-          onClick={() => toggleChains("collateral")}
-        />
-        <MoneyButton
-          label="Borrowed"
-          value={usd(totals.stableBorrowedUsd)}
-          stat="borrowed"
-          pressed={drill?.kind === "chains" && drill.metric === "borrowed"}
-          onClick={() => toggleChains("borrowed")}
-        />
+        <div>
+          <MoneyButton
+            label="Stock locked"
+            value={usd(totals.collateralUsd)}
+            stat="collateral"
+            pressed={drill?.kind === "chains" && drill.metric === "collateral"}
+            onClick={() => toggleChains("collateral")}
+          />
+          <FreshLine freshness={figures.collateral} stat="collateral" />
+        </div>
+        <div>
+          <MoneyButton
+            label="Borrowed"
+            value={usd(totals.stableBorrowedUsd)}
+            stat="borrowed"
+            pressed={drill?.kind === "chains" && drill.metric === "borrowed"}
+            onClick={() => toggleChains("borrowed")}
+          />
+          <FreshLine freshness={figures.borrowed} stat="borrowed" />
+        </div>
       </div>
 
-      <div className="flex max-w-3xl flex-wrap items-center gap-x-6 gap-y-2 text-sm" data-lending-summary>
-        <p className="inline-flex items-center gap-2" data-lending-stat="full">
-          <FullnessRing fraction={totals.utilization} />
-          <span className="text-muted-foreground">How full</span>
-          <span className="num text-foreground">{formatLendingFractionPct(totals.utilization)}</span>
-        </p>
-        <p className="inline-flex items-center gap-2" data-lending-stat="cost">
-          <span className="text-muted-foreground">Yearly cost</span>
-          <span className="num text-foreground">{totals.borrowApy === null ? "—" : formatLendingFractionPct(totals.borrowApy)}</span>
-        </p>
+      <div className="grid max-w-3xl gap-4 sm:grid-cols-2" data-lending-summary>
+        <div>
+          <p className="inline-flex items-center gap-2 text-sm" data-lending-stat="full">
+            <FullnessRing fraction={totals.utilization} />
+            <span className="text-muted-foreground">How full</span>
+            <span className="num text-foreground">{formatLendingFractionPct(totals.utilization)}</span>
+          </p>
+          <FreshLine freshness={figures.full} stat="full" />
+        </div>
+        <div>
+          <p className="inline-flex items-center gap-2 text-sm" data-lending-stat="cost">
+            <span className="text-muted-foreground">Yearly cost</span>
+            <span className="num text-foreground">{totals.borrowApy === null ? "—" : formatLendingFractionPct(totals.borrowApy)}</span>
+          </p>
+          <FreshLine freshness={figures.cost} stat="cost" />
+        </div>
       </div>
       <p className="max-w-3xl text-sm leading-6 text-muted-foreground" data-lending-full-definition>
         {fullnessNote}
@@ -392,6 +459,7 @@ export function LendingGlancePanel({
           depth={depth}
           totals={totals}
           fullnessNote={fullnessNote}
+          timeLabel={figures.collateral.timeLabel}
           onDrill={setDrill}
           onClose={() => setDrill(null)}
         />
@@ -405,6 +473,7 @@ function DrillView({
   depth,
   totals,
   fullnessNote,
+  timeLabel,
   onDrill,
   onClose,
 }: {
@@ -412,6 +481,7 @@ function DrillView({
   depth: LendingDepth;
   totals: LendingTotals;
   fullnessNote: string;
+  timeLabel: string;
   onDrill: (drill: Drill) => void;
   onClose: () => void;
 }) {
@@ -460,8 +530,8 @@ function DrillView({
       {drill.kind === "chain" && chain ? (
         <ChainDetail chain={chain} venues={depth.venues.filter((item) => item.chainId === chain.chainId)} onOpen={(venueId) => onDrill({ kind: "venue", venueId })} />
       ) : null}
-      {drill.kind === "venue" && venue ? <VenueDetail venue={venue} onStock={(ticker) => onDrill({ kind: "stock", ticker, venueId: venue.id })} /> : null}
-      {drill.kind === "stock" ? <StockDetail stock={stock} onVenue={(venueId) => onDrill({ kind: "venue", venueId })} /> : null}
+      {drill.kind === "venue" && venue ? <VenueDetail venue={venue} timeLabel={timeLabel} onStock={(ticker) => onDrill({ kind: "stock", ticker, venueId: venue.id })} /> : null}
+      {drill.kind === "stock" ? <StockDetail stock={stock} timeLabel={timeLabel} onVenue={(venueId) => onDrill({ kind: "venue", venueId })} /> : null}
     </section>
   );
 }
@@ -545,7 +615,7 @@ function ChainDetail({ chain, venues, onOpen }: { chain: LendingDepthChain; venu
   );
 }
 
-function VenueDetail({ venue, onStock }: { venue: LendingDepthVenue; onStock: (ticker: string) => void }) {
+function VenueDetail({ venue, timeLabel, onStock }: { venue: LendingDepthVenue; timeLabel: string; onStock: (ticker: string) => void }) {
   return (
     <div className="space-y-5">
       <div>
@@ -597,7 +667,7 @@ function VenueDetail({ venue, onStock }: { venue: LendingDepthVenue; onStock: (t
           ))}
         </ul>
       </div>
-      <SourceLine source={venue.source} />
+      <SourceLine source={venue.source} timeLabel={timeLabel} />
       <div>
         <h4 className="text-sm font-medium text-foreground">History</h4>
         <HistoryList history={venue.history} empty="No daily snapshot for this venue." />
@@ -606,7 +676,7 @@ function VenueDetail({ venue, onStock }: { venue: LendingDepthVenue; onStock: (t
   );
 }
 
-function StockDetail({ stock, onVenue }: { stock: LendingDepthStock | undefined; onVenue: (venueId: string) => void }) {
+function StockDetail({ stock, timeLabel, onVenue }: { stock: LendingDepthStock | undefined; timeLabel: string; onVenue: (venueId: string) => void }) {
   if (!stock) return <p className="text-sm text-muted-foreground">That stock is not in this snapshot.</p>;
   return (
     <div className="space-y-4">
@@ -628,7 +698,7 @@ function StockDetail({ stock, onVenue }: { stock: LendingDepthStock | undefined;
               </span>
               {place.priceNote ? <span className="text-sm text-muted-foreground">{place.priceNote}</span> : null}
             </button>
-            <SourceLine source={place.source} />
+            <SourceLine source={place.source} timeLabel={timeLabel} />
           </li>
         ))}
       </ul>

@@ -147,6 +147,12 @@ export interface LendingHistoryPoint {
   capturedAt: string;
   collateralUsd: number | null;
   stableBorrowedUsd: number | null;
+  /**
+   * Desk how-full for that day.
+   * Borrowed dollars divided by dollars supplied to lend, only for pools that publish both.
+   * Null when no such pool reported. Shared pools are not filled in.
+   */
+  utilization: number | null;
 }
 
 export interface LendingDeskModel {
@@ -221,6 +227,13 @@ export function lendingUtilization(borrowedUsd: number | null, supplyUsd: number
   if (borrowedUsd === null || supplyUsd === null) return null;
   if (!(supplyUsd > 0) || !Number.isFinite(borrowedUsd) || borrowedUsd < 0) return null;
   return borrowedUsd / supplyUsd;
+}
+
+/** True when this pool publishes its own lend supply, so how-full can be borrowed divided by that supply. */
+export function lendingPublishesOwnSupply(
+  row: Pick<LendingRow, "stableBorrowedUsd" | "lendSupplyUsd">,
+): row is Pick<LendingRow, "stableBorrowedUsd" | "lendSupplyUsd"> & { stableBorrowedUsd: number; lendSupplyUsd: number } {
+  return measurableLendPool(row);
 }
 
 function measurableLendPool(
@@ -359,6 +372,26 @@ export type LendingHistorySeries =
   | { kind: "single"; point: LendingHistoryPoint }
   | { kind: "line"; points: LendingHistoryPoint[] };
 
+export type LendingHistoryRange = "7d" | "30d" | "all";
+
+/** Inclusive calendar-day window ending on the latest stored day. Missing days are not filled in. */
+export function lendingHistoryWindow(history: readonly LendingHistoryPoint[], range: LendingHistoryRange): LendingHistoryPoint[] {
+  const sorted = [...history].sort((a, b) => a.date.localeCompare(b.date) || a.capturedAt.localeCompare(b.capturedAt));
+  if (range === "all" || sorted.length === 0) return sorted;
+  const latest = sorted[sorted.length - 1]?.date;
+  if (!latest) return sorted;
+  const cutoff = shiftCalendarDay(latest, range === "7d" ? -6 : -29);
+  return sorted.filter((point) => point.date >= cutoff && point.date <= latest);
+}
+
+function shiftCalendarDay(date: string, deltaDays: number): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!match) return date;
+  const utc = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  utc.setUTCDate(utc.getUTCDate() + deltaDays);
+  return utc.toISOString().slice(0, 10);
+}
+
 /** One stored day is a sentence. Two or more are a line. Nothing here is filled in. */
 export function lendingHistorySeries(history: readonly LendingHistoryPoint[]): LendingHistorySeries {
   if (history.length === 0) return { kind: "empty" };
@@ -377,6 +410,7 @@ export function lendingHistoryFromDays(days: readonly LendingDaySnapshot[]): Len
         capturedAt: day.capturedAt,
         collateralUsd: totals.collateralUsd,
         stableBorrowedUsd: totals.stableBorrowedUsd,
+        utilization: totals.utilization,
       };
     });
 }
