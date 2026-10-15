@@ -84,8 +84,13 @@ export interface PerpsCompactTicker {
   group: string;
   category: PerpsCategory;
   tiers: Partial<Record<PerpsTier, PerpsCompactTierSlot>>;
-  /** Volume-weighted funding rate by venue. */
+  /** Volume-weighted funding rate by venue. Native decimal. */
   funding?: Record<string, number>;
+  /**
+   * Native quote interval in hours, keyed by venue. Present only when this
+   * capture stored an interval. Older rows omit it.
+   */
+  fundingHours?: Record<string, number>;
   /** Present for the top {@link PERPS_BOOK_CAP} headline names. Absent on older rows. */
   books?: PerpsCompactBook[];
 }
@@ -103,6 +108,8 @@ export interface PerpsCompactVenue {
   lastGoodAt?: string | null;
   credible: boolean;
   excludeReason: string | null;
+  /** Successful onchain book with zero equity markets. Omitted otherwise. */
+  noEquity?: boolean;
   parts: Partial<Record<PerpsStoredCategory, PerpsCompactPart>>;
   /** Ostium symbols. Daily volume is lifetime(today) − lifetime(previous Eastern day). */
   lifetime?: PerpsCompactLifetime[];
@@ -142,7 +149,7 @@ interface TickerAcc {
   categories: Map<PerpsCategory, { weight: number; count: number }>;
   tiers: Map<PerpsTier, TierAcc>;
   books: Map<string, BookAcc>;
-  funding: Map<string, { num: number; den: number; plain: number; n: number }>;
+  funding: Map<string, { num: number; den: number; plain: number; n: number; hours?: number | null }>;
   hasLifetime: boolean;
 }
 
@@ -240,6 +247,7 @@ function compactVenue(venue: PerpsVenueSnapshot): PerpsCompactVenue {
     ...(venue.lastGoodAt ? { lastGoodAt: venue.lastGoodAt } : {}),
     credible: venue.credible !== false,
     excludeReason: venue.excludeReason ?? null,
+    ...(venue.noEquity ? { noEquity: true } : {}),
     parts,
   };
   if (venue.venue === "Ostium") {
@@ -289,11 +297,15 @@ function finishTicker(acc: TickerAcc, withBooks: boolean): PerpsCompactTicker {
     tiers[tier] = stored;
   }
   const funding: Record<string, number> = {};
+  const fundingHours: Record<string, number> = {};
   for (const venue of [...acc.funding.keys()].sort((a, b) => a.localeCompare(b))) {
     const slot = acc.funding.get(venue);
     if (!slot) continue;
     const rate = slot.den > 0 ? slot.num / slot.den : slot.n > 0 ? slot.plain / slot.n : null;
-    if (rate !== null && Number.isFinite(rate)) funding[venue] = rate;
+    if (rate !== null && Number.isFinite(rate)) {
+      funding[venue] = rate;
+      if (typeof slot.hours === "number" && Number.isFinite(slot.hours) && slot.hours > 0) fundingHours[venue] = slot.hours;
+    }
   }
   const ticker: PerpsCompactTicker = {
     group: acc.group,
@@ -301,6 +313,7 @@ function finishTicker(acc: TickerAcc, withBooks: boolean): PerpsCompactTicker {
     tiers,
   };
   if (Object.keys(funding).length > 0) ticker.funding = funding;
+  if (Object.keys(fundingHours).length > 0) ticker.fundingHours = fundingHours;
   if (withBooks) {
     const books = finishBooks(acc);
     if (books.length > 0) ticker.books = books;
@@ -342,6 +355,11 @@ function compactTickers(day: PerpsDaySnapshot): PerpsCompactTicker[] {
         } else {
           fund.plain += market.fundingRate;
           fund.n += 1;
+        }
+        const hours = market.fundingIntervalHours;
+        if (typeof hours === "number" && Number.isFinite(hours) && hours > 0) {
+          if (fund.hours === undefined) fund.hours = hours;
+          else if (fund.hours !== hours) fund.hours = null;
         }
         acc.funding.set(venue.venue, fund);
       }
@@ -458,6 +476,14 @@ function parseTicker(value: unknown): PerpsCompactTicker | null {
     }
     if (Object.keys(funding).length > 0) ticker.funding = funding;
   }
+  if (row.fundingHours && typeof row.fundingHours === "object" && !Array.isArray(row.fundingHours) && ticker.funding) {
+    const fundingHours: Record<string, number> = {};
+    for (const [venue, hours] of Object.entries(row.fundingHours as Record<string, unknown>)) {
+      const parsed = finite(hours);
+      if (parsed !== undefined && parsed > 0 && ticker.funding[venue] !== undefined) fundingHours[venue] = parsed;
+    }
+    if (Object.keys(fundingHours).length > 0) ticker.fundingHours = fundingHours;
+  }
   return ticker;
 }
 
@@ -510,6 +536,7 @@ export function parseCompactVenue(value: unknown): PerpsCompactVenue | null {
         : {}),
     credible: typeof row.credible === "boolean" ? row.credible : true,
     excludeReason: typeof row.excludeReason === "string" && row.excludeReason ? row.excludeReason : null,
+    ...(row.noEquity === true || row.ne === 1 ? { noEquity: true } : {}),
     parts,
   };
   if (Array.isArray(row.lifetime)) {
@@ -610,6 +637,7 @@ function encodeCompactDayBody(day: PerpsCompactDay): {
     if (venue.quality === "stale" && venue.lastGoodAt) wire.ok = venue.lastGoodAt;
     if (!venue.credible) wire.credible = false;
     if (venue.excludeReason) wire.excludeReason = venue.excludeReason;
+    if (venue.noEquity) wire.ne = 1;
     if (venue.lifetime && venue.lifetime.length > 0) {
       wire.lifetime = venue.lifetime.map((row) => [row.symbol, row.underlying, CATEGORY_CODE[row.category], row.lifetimeVolumeUsd]);
     }
@@ -633,8 +661,13 @@ function encodeCompactDayBody(day: PerpsCompactDay): {
       .sort((a, b) => a[0] - b[0]);
     if (ticker.funding && funded.has(ticker.group)) {
       const pairs = Object.entries(ticker.funding)
-        .map(([name, rate]) => [venueIndex.get(name), rate] as const)
-        .filter((pair): pair is readonly [number, number] => pair[0] !== undefined)
+        .flatMap(([name, rate]) => {
+          const index = venueIndex.get(name);
+          if (index === undefined || typeof rate !== "number" || !Number.isFinite(rate)) return [];
+          const hours = ticker.fundingHours?.[name];
+          if (typeof hours === "number" && Number.isFinite(hours) && hours > 0) return [[index, rate, hours]];
+          return [[index, rate]];
+        })
         .sort((a, b) => a[0] - b[0]);
       if (pairs.length > 0) wire.push(pairs);
       else if (bookPairs.length > 0) wire.push([]);
@@ -770,6 +803,7 @@ function decodeWireDay(row: {
         ...(typeof source.ok === "string" && source.ok ? { lastGoodAt: source.ok } : {}),
         credible: source.credible !== false,
         excludeReason: typeof source.excludeReason === "string" && source.excludeReason ? source.excludeReason : null,
+        ...(source.ne === 1 ? { noEquity: true } : {}),
         parts,
       };
       if (Array.isArray(source.lifetime)) {
@@ -816,13 +850,19 @@ function decodeWireDay(row: {
       const ticker: PerpsCompactTicker = { group, category, tiers };
       if (Array.isArray(value[3])) {
         const funding: Record<string, number> = {};
+        const fundingHours: Record<string, number> = {};
         for (const pair of value[3]) {
-          if (!Array.isArray(pair) || pair.length < 2 || pair.length > 2) continue;
+          if (!Array.isArray(pair) || pair.length < 2 || pair.length > 3) continue;
           const name = typeof pair[0] === "number" ? venues[pair[0]]?.venue : undefined;
           const rate = finite(pair[1]);
-          if (name && rate !== undefined) funding[name] = rate;
+          if (name && rate !== undefined) {
+            funding[name] = rate;
+            const hours = pair.length === 3 ? finite(pair[2]) : undefined;
+            if (hours !== undefined && hours > 0) fundingHours[name] = hours;
+          }
         }
         if (Object.keys(funding).length > 0) ticker.funding = funding;
+        if (Object.keys(fundingHours).length > 0) ticker.fundingHours = fundingHours;
       }
       const books = decodeBooks(value[4], venues);
       if (books.length > 0) ticker.books = books;

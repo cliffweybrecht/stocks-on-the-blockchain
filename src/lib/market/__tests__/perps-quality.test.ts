@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { PERPS_CHANGELOG } from "../perps-changelog";
 import { classifyPerpUnderlying, normPerpSymbol, perpGroupLabel } from "../perps-classify";
+import { formatFundingPercent, fundingSpreads, normalizeFunding, perpsFundingIntervalHours } from "../perps-funding";
 import {
   compactPerpsDay,
   encodeCompactDay,
   isCompactDay,
+  parseCompactDay,
   PERPS_ROW_BYTE_BUDGET,
   type PerpsCompactDay,
   type PerpsCompactVenue,
@@ -112,6 +115,15 @@ describe("equity perp aliases and credibility", () => {
     expect(perpGroupLabel("NKY")).toBe("Nikkei/Japan 225 index");
     expect(classifyPerpUnderlying("DAX")).toBe("index");
     expect(classifyPerpUnderlying("DOW")).toBe("stock");
+    expect(classifyPerpUnderlying("SKHY")).toBe("stock");
+    expect(classifyPerpUnderlying("SKHYNIX")).toBe("stock");
+    expect(normPerpSymbol("SKHX")).toBe("SKHYNIX");
+    expect(normPerpSymbol("SKHY")).toBe("SKHY");
+    expect(classifyPerpUnderlying("ZHIPU")).toBe("stock");
+    expect(classifyPerpUnderlying("MUU")).toBe("leveraged-etf");
+    expect(classifyPerpUnderlying("MVLL")).toBe("leveraged-etf");
+    expect(classifyPerpUnderlying("INTW")).toBe("leveraged-etf");
+    expect(classifyPerpUnderlying("SKDD")).toBe("leveraged-etf");
   });
 
   it("screens a covered majority and ignores a thin open-interest fill", () => {
@@ -346,7 +358,138 @@ describe("equity perp quality, books, and downloads", () => {
       viewDay("2026-10-09", [], { tickers: [{ group: "AAPL", category: "stock", tiers: {} }] }),
     ]);
     expect(capped?.scope).toBe("stored-tickers");
+    expect(capped?.listed).toEqual([]);
+    expect(capped?.delisted).toEqual([]);
+    expect(capped?.enteredCap).toEqual(["AAPL"]);
+    expect(capped?.leftCap).toEqual(["NVDA"]);
     expect(capped?.note).toMatch(/not delisted/);
+
+    const stayed = perpsListingChanges([
+      viewDay("2026-10-08", [], {
+        names: ["NVDA", "TSLA"],
+        tickers: [{ group: "NVDA", category: "stock", tiers: {} }],
+      }),
+      viewDay("2026-10-09", [], {
+        names: ["NVDA", "TSLA"],
+        tickers: [{ group: "TSLA", category: "stock", tiers: {} }],
+      }),
+    ]);
+    expect(stayed?.listed).toEqual([]);
+    expect(stayed?.delisted).toEqual([]);
+    expect(stayed?.leftCap).toEqual(["NVDA"]);
+    expect(stayed?.enteredCap).toEqual(["TSLA"]);
+
+    const partial = perpsListingChanges([
+      viewDay("2026-10-08", [], { tickers: [{ group: "NVDA", category: "stock", tiers: {} }] }),
+      viewDay("2026-10-09", [], {
+        names: ["NVDA", "AAPL"],
+        tickers: [{ group: "AAPL", category: "stock", tiers: {} }],
+      }),
+    ]);
+    expect(partial?.scope).toBe("partial");
+    expect(partial?.listed).toEqual([]);
+    expect(partial?.delisted).toEqual([]);
+    expect(partial?.leftCap).toEqual(["NVDA"]);
     expect(perpsListingChanges([viewDay("2026-10-09", [])])?.scope).toBe("unavailable");
+  });
+
+  it("normalizes funding only when the interval is known and records an empty onchain book", () => {
+    expect(perpsFundingIntervalHours(28800, "seconds")).toBe(8);
+    expect(perpsFundingIntervalHours(14400, "seconds")).toBe(4);
+    expect(perpsFundingIntervalHours("8", "hours")).toBe(8);
+    expect(perpsFundingIntervalHours(7.2, "hours")).toBeNull();
+    const hyperliquid = normalizeFunding("Hyperliquid HIP-3 (xyz)", 0.00000625, null);
+    expect(hyperliquid.hoursSource).toBe("documented");
+    expect(hyperliquid.hours).toBe(1);
+    expect(hyperliquid.eightHour).toBeCloseTo(0.00005);
+    expect(hyperliquid.annualizedPct).toBeCloseTo(5.475);
+    expect(formatFundingPercent(0.00000625)).toBe("0.000625%");
+    expect(formatFundingPercent(0.00005)).toBe("0.005%");
+    const gate = normalizeFunding("Gate", 0.0008, 4);
+    expect(gate.hoursSource).toBe("stored");
+    expect(gate.eightHour).toBeCloseTo(0.0016);
+    expect(normalizeFunding("Binance", 0.0001, null).eightHour).toBeNull();
+    expect(
+      fundingSpreads(
+        [
+          {
+            group: "NVDA",
+            category: "stock",
+            funding: { "Hyperliquid HIP-3 (xyz)": 0.00000625, Binance: 0.0001 },
+          },
+        ],
+        false,
+      ),
+    ).toEqual([]);
+    expect(
+      fundingSpreads(
+        [
+          {
+            group: "NVDA",
+            category: "stock",
+            funding: { "Hyperliquid HIP-3 (xyz)": 0.00000625, Gate: 0.0008 },
+            fundingHours: { Gate: 8 },
+          },
+        ],
+        false,
+      )[0]?.group,
+    ).toBe("NVDA");
+
+    const day = parseEquityPerpsFeeds(
+      emptyFeeds({
+        hyperliquid: {
+          error: null,
+          dexs: [
+            { dex: "quiet", book: [{ universe: [] }, []], error: null },
+            { dex: "down", book: null, error: "timeout" },
+            {
+              dex: "xyz",
+              book: [
+                { universe: [{ name: "xyz:NVDA" }] },
+                [{ markPx: "200", openInterest: "2", dayNtlVlm: "1000", funding: "0.00000625" }],
+              ],
+              error: null,
+            },
+          ],
+        },
+        bitget: { tickers: [], contracts: [], error: null },
+        lighter: { data: { order_book_details: [] }, error: null },
+        gate: {
+          error: null,
+          tickers: [{ contract: "NVDA_USDT", mark_price: "200", volume_24h_quote: "500", funding_rate: "0.0008", total_size: "1" }],
+          contracts: [{ name: "NVDA_USDT", contract_type: "stocks", quanto_multiplier: "1", funding_interval: 14400 }],
+        },
+      }),
+    );
+    const quiet = day.venues.find((venue) => venue.venue === "Hyperliquid HIP-3 (quiet)");
+    expect(quiet?.noEquity).toBe(true);
+    expect(quiet?.error).toBeNull();
+    expect(quiet?.markets).toEqual([]);
+    const down = day.venues.find((venue) => venue.venue === "Hyperliquid HIP-3 (down)");
+    expect(down?.error).toBe("timeout");
+    expect(down?.noEquity).toBeUndefined();
+    const nvda = day.venues.find((venue) => venue.venue === "Hyperliquid HIP-3 (xyz)")?.markets.find((market) => market.underlying === "NVDA");
+    expect(nvda?.fundingIntervalHours).toBe(1);
+    const gateMarket = day.venues.find((venue) => venue.venue === "Gate")?.markets[0];
+    expect(gateMarket?.fundingIntervalHours).toBe(4);
+    expect(day.venues.find((venue) => venue.venue === "Bitget")?.noEquity).toBeUndefined();
+    expect(day.venues.find((venue) => venue.venue === "Lighter")?.noEquity).toBe(true);
+
+    const compact = compactPerpsDay(day);
+    const encoded = encodeCompactDay(compact);
+    const quietWire = (encoded.venues as { venue?: string; ne?: number }[]).find((venue) => venue.venue?.includes("quiet"));
+    expect(quietWire?.ne).toBe(1);
+    const xyzWire = (encoded.venues as { venue?: string; ne?: number }[]).find((venue) => venue.venue?.includes("xyz"));
+    expect(xyzWire?.ne).toBeUndefined();
+    const parsed = parseCompactDay(encoded);
+    expect(parsed?.venues.find((venue) => venue.venue.includes("quiet"))?.noEquity).toBe(true);
+    const nvdaTicker = parsed?.tickers.find((ticker) => ticker.group === "NVDA");
+    expect(nvdaTicker?.funding?.["Hyperliquid HIP-3 (xyz)"]).toBeCloseTo(0.00000625);
+    expect(nvdaTicker?.fundingHours?.["Hyperliquid HIP-3 (xyz)"]).toBe(1);
+    expect(nvdaTicker?.fundingHours?.Gate).toBe(4);
+    const again = encodeCompactDay(parsed!);
+    expect(JSON.stringify(again)).toBe(JSON.stringify(encoded));
+    expect(PERPS_CHANGELOG.map((entry) => entry.id)).toContain("funding");
+    expect(PERPS_CHANGELOG.map((entry) => entry.id)).toContain("listings");
   });
 });

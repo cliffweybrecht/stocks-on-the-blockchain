@@ -62,6 +62,7 @@ const VENUE_HEADERS = [
   "capturedAt",
   "quality",
   "lastGoodAt",
+  "noEquity",
 ] as const;
 
 const TICKER_HEADERS = [
@@ -147,6 +148,7 @@ export function buildPerpsVenueCsv(model: PerpsDeskModel): string {
           venue.capturedAt,
           perpsVenueQuality(venue),
           venue.lastGoodAt || (perpsVenueQuality(venue) === "fresh" ? venue.capturedAt : ""),
+          venue.noEquity ? "true" : "",
         ]),
       );
     }
@@ -166,7 +168,10 @@ function tickerFunding(ticker: PerpsCompactTicker): string {
   if (!ticker.funding) return "";
   return Object.entries(ticker.funding)
     .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([venue, rate]) => `${venue}=${rate}`)
+    .map(([venue, rate]) => {
+      const hours = ticker.fundingHours?.[venue];
+      return typeof hours === "number" ? `${venue}=${rate}@${hours}h` : `${venue}=${rate}`;
+    })
     .join("; ");
 }
 

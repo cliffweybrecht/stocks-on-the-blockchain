@@ -22,6 +22,7 @@ import { PERPS_JSON_FILES } from "@/lib/market/perps-json";
 import { formatChartDay, formatUsdCompact, formatUsdFull, volumeShare } from "@/lib/market/format";
 import { maxNullable } from "@/lib/market/numbers";
 import { perpCategoryLabel, type PerpsCategory } from "@/lib/market/perps-classify";
+import { formatAnnualizedPercent, formatFundingPercent } from "@/lib/market/perps-funding";
 import { HIP3_BUILDERS, PERP_PLACES } from "@/lib/market/perps-meta";
 import { PERPS_HELD_OUT, perpsFeedKind } from "@/lib/market/perps-sources";
 import { perpsTickerHref } from "@/lib/market/perps-ticker";
@@ -50,13 +51,6 @@ function formatVolOi(volume: number | null, openInterest: number | null): string
   const ratio = volume / openInterest;
   if (ratio >= 100) return `${ratio.toFixed(0)}×`;
   return `${ratio.toFixed(1)}×`;
-}
-
-function formatFunding(rate: number | null): string {
-  if (rate === null) return "—";
-  const pct = rate * 100;
-  const digits = Math.abs(pct) >= 1 ? 2 : 3;
-  return `${pct >= 0 ? "" : "−"}${Math.abs(pct).toFixed(digits)}%`;
 }
 
 function chainLabel(chain: string): string {
@@ -107,7 +101,9 @@ export function PerpsDesk({ model }: { model: PerpsDeskModel }) {
   const curve =
     bars.length >= 2 ? monotoneLinePath(bars.map((bar) => ({ x: bar.cx, y: bar.y }))) : "";
   const yTicks = [0, 0.5, 1].map((frac) => maxY * frac);
-  const maxVenue = maxNullable(view.venues.map((venue) => venue.volumeUsd));
+  const volumeVenues = view.venues.filter((venue) => !venue.noEquity);
+  const quietVenues = view.venues.filter((venue) => venue.noEquity);
+  const maxVenue = maxNullable(volumeVenues.map((venue) => venue.volumeUsd));
   const underlyings = onchainOnly ? view.onchainUnderlyings : view.underlyings;
   const maxUnderlying = maxNullable(underlyings.map((row) => row.volumeUsd));
   const hovered = hover === null ? null : bars.find((bar) => bar.index === hover) ?? null;
@@ -358,15 +354,15 @@ export function PerpsDesk({ model }: { model: PerpsDeskModel }) {
 
       <section className="space-y-3" data-perps-venues>
         <h3 className="font-heading text-lg font-medium">Venues</h3>
-        <QualityNote venues={view.venues} />
-        {view.venues.length === 0 ? (
+        <QualityNote venues={volumeVenues} />
+        {volumeVenues.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border bg-card px-6 py-10 text-center">
             <p className="text-sm text-muted-foreground">No venue rows in this snapshot.</p>
           </div>
         ) : (
           <>
           <div className="grid gap-2 md:hidden" data-perps-venue-cards>
-            {view.venues.map((venue, index) => (
+            {volumeVenues.map((venue, index) => (
               <VenueCard
                 key={venue.venue}
                 rank={index + 1}
@@ -382,7 +378,7 @@ export function PerpsDesk({ model }: { model: PerpsDeskModel }) {
                   {label}
                 </div>
               ))}
-              {view.venues.map((venue, index) => (
+              {volumeVenues.map((venue, index) => (
                 <VenueRow
                   key={venue.venue}
                   rank={index + 1}
@@ -395,6 +391,11 @@ export function PerpsDesk({ model }: { model: PerpsDeskModel }) {
           </div>
           </>
         )}
+        {quietVenues.length > 0 ? (
+          <p className="max-w-3xl text-[11px] leading-snug text-muted-foreground" data-perps-no-equity>
+            Seen this capture, no equity markets: {quietVenues.map((venue) => venue.venue).join(", ")}. A later equity listing on one of these names is the same venue.
+          </p>
+        ) : null}
       </section>
 
       <section className="space-y-3" data-perps-underlyings>
@@ -654,38 +655,34 @@ function FundingSection({
 }) {
   return (
     <section className="space-y-3" data-perps-funding>
-      <h3 className="font-heading text-lg font-medium">Funding</h3>
+      <h3 className="font-heading text-lg font-medium">Funding spread</h3>
       <p className="max-w-3xl text-[11px] leading-snug text-muted-foreground">
-        Latest capture, volume-weighted when a ticker has more than one print. Intervals differ by venue (hourly on Hyperliquid, often 8h on CEXs). Blank means the feed had no rate.
+        Derived. The gap is the widest minus the narrowest 8h-equivalent rate on the newest day in this range. A venue counts only when its interval was stored, or when Hyperliquid&apos;s hourly payment is the documented quote. Native rates that have no interval are left out of the spread. Ticker pages show each venue.
       </p>
-      {view.funding.length === 0 ? (
+      {view.fundingSpreads.length === 0 ? (
         <EmptyPanel>
-          {empty ? "No equity-perp snapshot yet. Funding appears when a capture includes a rate." : "No funding rates in this snapshot."}
+          {empty
+            ? "No equity-perp snapshot yet. Funding appears when a capture includes a rate."
+            : "No ticker has two venues with a known funding interval, so an 8h spread is not computed."}
         </EmptyPanel>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[40rem] border-separate border-spacing-y-2 text-sm">
-            <thead>
-              <tr className="text-left text-xs text-muted-foreground">
-                <th className="px-3 font-normal">Ticker</th>
-                {view.fundingVenues.map((venue) => (
-                  <th key={venue} className="px-2 font-normal">{venue}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {view.funding.map((row) => (
-                <tr key={row.group} className="rounded-xl bg-card ring-1 ring-foreground/10" data-perps-funding-row={row.group}>
-                  <td className="rounded-l-xl px-3 py-2 font-medium">{row.group}</td>
-                  {row.rates.map((rate, index) => (
-                    <td key={view.fundingVenues[index] ?? index} className={`num px-2 py-2 text-right ${index === row.rates.length - 1 ? "rounded-r-xl" : ""}`}>
-                      {formatFunding(rate)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="grid gap-2">
+          {view.fundingSpreads.map((row) => (
+            <div key={row.group} className="rounded-xl bg-card px-4 py-3 text-sm ring-1 ring-foreground/10" data-perps-funding-spread={row.group}>
+              <div className="flex items-start justify-between gap-3">
+                <Link href={perpsTickerHref(row.group)} className="font-medium hover:text-primary">
+                  {row.group}
+                </Link>
+                <p className="num text-right text-primary">{formatFundingPercent(row.spreadEightHour)}</p>
+              </div>
+              <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+                {row.lowVenue} to {row.highVenue} · 8h equivalent · Derived
+              </p>
+              <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+                Annualized gap {formatAnnualizedPercent(row.spreadAnnualizedPct)} · Derived
+              </p>
+            </div>
+          ))}
         </div>
       )}
     </section>
@@ -847,18 +844,26 @@ function OiSection({
 function ListingSection({ days }: { days: PerpsDeskModel["days"] }) {
   const change = perpsListingChanges(days);
   if (!change) return null;
+  const showBook = change.scope === "book" || change.scope === "partial";
+  const showCap = change.scope !== "unavailable";
   return (
     <section className="space-y-3" data-perps-listings>
-      <h3 className="font-heading text-lg font-medium">New and missing names</h3>
+      <h3 className="font-heading text-lg font-medium">Listings and the stored cap</h3>
       <p className="max-w-3xl text-[11px] leading-snug text-muted-foreground" data-perps-listings-note>
         {change.note}
       </p>
-      {change.scope === "unavailable" ? null : (
+      {showBook ? (
         <div className="grid gap-2 sm:grid-cols-2">
-          <NameList title="New versus the prior day" names={change.listed} empty="No new names in this comparison." />
-          <NameList title="Missing versus the prior day" names={change.delisted} empty="No names dropped out of this comparison." />
+          <NameList title="Listed in the book" names={change.listed} empty="No new names in the full book." />
+          <NameList title="Delisted from the book" names={change.delisted} empty="No names left the full book." />
         </div>
-      )}
+      ) : null}
+      {showCap ? (
+        <div className="grid gap-2 sm:grid-cols-2">
+          <NameList title="Entered the stored ticker cap" names={change.enteredCap} empty="No name entered the capped list." />
+          <NameList title="Left the stored ticker cap" names={change.leftCap} empty="No name left the capped list." />
+        </div>
+      ) : null}
     </section>
   );
 }

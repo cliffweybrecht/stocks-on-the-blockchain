@@ -15,6 +15,7 @@ import {
   perpVenueZeroFee,
   type PerpsCategory,
 } from "./perps-classify";
+import { fundingSpreads, type FundingSpreadRow } from "./perps-funding";
 import { hip3Dex, perpPlace } from "./perps-meta";
 import { compareNullableDesc, sumNullable } from "./numbers";
 import { assertAppendOnlySnapshot } from "./snapshot-land";
@@ -112,6 +113,11 @@ export interface PerpsMarketSnapshot {
   lifetimeVolumeUsd?: number | null;
   /** Venue-reported funding rate as a decimal. Interval differs by venue. Absent when unknown. */
   fundingRate?: number | null;
+  /**
+   * Native quote interval in hours, when this capture's feed included one.
+   * Absent on older rows and when the feed did not say. Not filled from a catalog.
+   */
+  fundingIntervalHours?: number | null;
   priceUsd: number | null;
 }
 
@@ -136,6 +142,11 @@ export interface PerpsVenueSnapshot {
    */
   credible?: boolean;
   excludeReason?: string | null;
+  /**
+   * True when an onchain book succeeded and contained no equity markets.
+   * Absent otherwise, including failed requests and older rows.
+   */
+  noEquity?: boolean;
   markets: PerpsMarketSnapshot[];
 }
 
@@ -199,6 +210,7 @@ function parseMarket(value: unknown): PerpsMarketSnapshot | null {
     market.lifetimeVolumeUsd = finiteOrNull(row.lifetimeVolumeUsd);
   }
   if (row.fundingRate !== undefined) market.fundingRate = finiteOrNull(row.fundingRate);
+  if (row.fundingIntervalHours !== undefined) market.fundingIntervalHours = finiteOrNull(row.fundingIntervalHours);
   return market;
 }
 
@@ -224,6 +236,7 @@ function parseVenue(value: unknown): PerpsVenueSnapshot | null {
     error: typeof row.error === "string" && row.error ? row.error : null,
     credible: typeof row.credible === "boolean" ? row.credible : true,
     excludeReason: typeof row.excludeReason === "string" && row.excludeReason ? row.excludeReason : null,
+    ...(row.noEquity === true ? { noEquity: true } : {}),
     markets,
   };
 }
@@ -384,6 +397,8 @@ export interface PerpsViewVenue {
   zeroFee: boolean;
   credible: boolean;
   excludeReason: string | null;
+  /** Successful onchain book with zero equity markets. Omitted otherwise. */
+  noEquity?: boolean;
   chain: string;
   operator: string;
   onchainChain: string | null;
@@ -563,6 +578,7 @@ function compactDayToView(day: PerpsCompactDay, prior: ReadonlyMap<string, numbe
       ...(venue.quality ? { quality: venue.quality } : {}),
       ...(venue.lastGoodAt ? { lastGoodAt: venue.lastGoodAt } : {}),
       zeroFee: venue.venue === "Ostium" ? false : perpVenueZeroFee(venue.venue),
+      ...(venue.noEquity ? { noEquity: true } : {}),
       ...venuePresentation(venue),
       markets: [],
       parts,
@@ -594,6 +610,7 @@ function marketDayToView(day: PerpsDaySnapshot, priorLifetime: ReadonlyMap<strin
         ...(venue.quality ? { quality: venue.quality } : {}),
         ...(venue.lastGoodAt ? { lastGoodAt: venue.lastGoodAt } : {}),
         zeroFee: perpVenueZeroFee(venue.venue),
+        ...(venue.noEquity ? { noEquity: true } : {}),
         ...venuePresentation(venue),
         markets: venue.markets.map((market) => toViewMarket(market, market.volume24hUsd)),
       } satisfies PerpsViewVenue;
@@ -621,6 +638,7 @@ function marketDayToView(day: PerpsDaySnapshot, priorLifetime: ReadonlyMap<strin
       ...(venue.quality ? { quality: venue.quality } : {}),
       ...(venue.lastGoodAt ? { lastGoodAt: venue.lastGoodAt } : {}),
       zeroFee: false,
+      ...(venue.noEquity ? { noEquity: true } : {}),
       ...venuePresentation(venue),
       markets,
     } satisfies PerpsViewVenue;
@@ -669,6 +687,7 @@ export interface PerpsVenueRow {
   zeroFee: boolean;
   credible: boolean;
   excludeReason: string | null;
+  noEquity?: boolean;
   chain: string;
   operator: string;
   volumeUsd: number | null;
@@ -727,6 +746,8 @@ export interface PerpsRangeView {
   builders: { dex: string; volumeUsd: number | null; openInterestUsd: number | null; marketCount: number }[];
   fundingVenues: string[];
   funding: PerpsFundingRow[];
+  /** Derived 8h spreads for the newest day in the range. Empty when fewer than two venues have a known interval. */
+  fundingSpreads: FundingSpreadRow[];
   /** Closed days inside the window that contributed a number. */
   reportedDays: number;
   windowDays: number;
@@ -947,6 +968,7 @@ export function selectPerpsRange(
         existing.lastGoodAt = venue.lastGoodAt;
         existing.openInterestUsd = sumNullable(ois);
         existing.marketCount = count;
+        existing.noEquity = venue.noEquity === true;
       }
       venueMap.set(venue.venue, existing);
     }
@@ -1011,6 +1033,7 @@ export function selectPerpsRange(
     builders: facts.builders,
     fundingVenues: facts.fundingVenues,
     funding: facts.funding,
+    fundingSpreads: fundingSpreads(newest?.tickers ?? [], excludeLeveraged),
     reportedDays,
     windowDays,
   };

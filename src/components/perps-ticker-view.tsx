@@ -11,15 +11,14 @@ import {
 } from "@/lib/market/daily-volume-view";
 import { formatChartDay, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
 import { maxNullable } from "@/lib/market/numbers";
+import {
+  formatAnnualizedPercent,
+  formatFundingPercent,
+  fundingIntervalLabel,
+  normalizeFunding,
+} from "@/lib/market/perps-funding";
 import type { PerpsTickerPageModel, PerpsTickerPoint, PerpsTickerVenueShare } from "@/lib/market/perps-ticker";
 import type { PerpsTier } from "@/lib/market/perps-snapshot";
-
-function formatFunding(rate: number | null): string {
-  if (rate === null) return "—";
-  const pct = rate * 100;
-  const digits = Math.abs(pct) >= 1 ? 2 : 3;
-  return `${pct >= 0 ? "" : "−"}${Math.abs(pct).toFixed(digits)}%`;
-}
 
 function tierGroups(rows: readonly PerpsTickerVenueShare[], tickerVolume: number | null): {
   tier: PerpsTier;
@@ -275,19 +274,39 @@ export function PerpsTickerView({ model }: { model: PerpsTickerPageModel }) {
         <h3 className="font-heading text-lg font-medium">Funding</h3>
         <p className="max-w-3xl text-[11px] leading-snug text-muted-foreground">
           {model.fundingDate
-            ? `Stored rates on ${model.fundingDate}. Intervals differ by venue. Blank means the feed had no rate.`
+            ? `Stored native rates on ${model.fundingDate}. The 8h equivalent and the annualized percent are derived, and only when the interval is known. An interval marked documented was not stored on this row.`
             : "No funding rate is stored for this name."}
         </p>
         {model.funding.length === 0 ? (
           <Empty>No funding rate is stored for this name.</Empty>
         ) : (
           <div className="grid gap-2">
-            {model.funding.map((row) => (
-              <div key={row.venue} className="grid grid-cols-[minmax(0,1fr)_6rem] items-center gap-3 rounded-xl bg-card px-4 py-2 text-sm ring-1 ring-foreground/10" data-perps-ticker-funding-venue={row.venue}>
-                <p className="truncate font-medium">{row.venue}</p>
-                <p className="num text-right">{formatFunding(row.rate)}</p>
-              </div>
-            ))}
+            {model.funding.map((row) => {
+              const quote = normalizeFunding(row.venue, row.rate, row.intervalHours);
+              return (
+                <div key={row.venue} className="rounded-xl bg-card px-4 py-3 text-sm ring-1 ring-foreground/10" data-perps-ticker-funding-venue={row.venue}>
+                  <p className="truncate font-medium">{row.venue}</p>
+                  <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-4">
+                    <div>
+                      <p className="text-muted-foreground">Native</p>
+                      <p className="num">{formatFundingPercent(quote.rate)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Interval</p>
+                      <p>{fundingIntervalLabel(quote)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">8h equivalent · Derived</p>
+                      <p className="num">{formatFundingPercent(quote.eightHour)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Annualized · Derived</p>
+                      <p className="num">{formatAnnualizedPercent(quote.annualizedPct)}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </section>
