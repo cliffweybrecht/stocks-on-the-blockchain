@@ -37,9 +37,10 @@ Writes data/volume-snapshots/bnb.json.
   Missing liquidity does not blank the day.
 - One America/New_York calendar day per record (12:00:00 AM–11:59:59 PM Eastern).
   The day key is that Eastern date, not UTC. `t` is unix seconds for Eastern
-  midnight. DexScreener pool volume.h24 sampled at end of day is that day's volume.
+  midnight. The closed-day number is the GeckoTerminal hourly candle sum over
+  that window. DexScreener volume.h24 is the fallback and is tagged.
   BNB_SNAPSHOT_DATE or SNAPSHOT_DATE (YYYY-MM-DD) forces the key only; it does
-  not invent volume.
+  not invent volume. SNAPSHOT_GECKO_CANDLES=0 keeps the DexScreener sample.
 - Each night also writes `assets[]` (Base schema) from that same sample:
   address, symbol, issuer, instrumentKind, volume24hUsd,
   displayedLiquidityUsd, pools, and poolCount. Lane totals and issuersByLane stay.
@@ -73,6 +74,7 @@ from bnb_volume_universe import (  # noqa: E402
     issuer_slug,
     load_universe,
 )
+from et_closed_day import overlay_gecko_day  # noqa: E402
 from snapshot_asset_rows import assets_for, pool_row, upsert_day_record  # noqa: E402
 from volume_snapshot_day import snapshot_date_override, snapshot_day_key  # noqa: E402
 
@@ -85,7 +87,7 @@ GECKO_TOKEN_POOLS = "https://api.geckoterminal.com/api/v2/networks/bsc/tokens/{a
 POOLS_FILE_NAME = "bnb-pools.json"
 # DexScreener documents 300 requests/minute. Gecko's public window is tighter.
 DEX_MIN_INTERVAL_S = 0.25
-GECKO_MIN_INTERVAL_S = 2.1
+GECKO_MIN_INTERVAL_S = 3.2
 PAIR_BATCH = 30
 # Wash prints (pPOLY v4 at ~$5 liquidity) stay out. Missing liquidity is not thin.
 MIN_POOL_LIQUIDITY_USD = 1000.0
@@ -916,6 +918,30 @@ def main() -> int:
 
     dry_run = "--dry-run" in sys.argv
     vols, pool_counts, pool_details, vol_warns, pair_h24, known = hydrate_volumes(rows, known)
+    closed = None
+    if os.environ.get("SNAPSHOT_GECKO_CANDLES", "1") != "0":
+        dex_pools = []
+        for addr, pools in pool_details.items():
+            for pool in pools:
+                dex_pools.append(
+                    {
+                        "pair": pool.get("pairAddress"),
+                        "base": addr,
+                        "quote": "",
+                        "dex_volume": pool.get("volume24hUsd"),
+                        "liquidity": pool.get("liquidityUsd"),
+                        "dex": pool.get("dexId"),
+                    }
+                )
+        try:
+            closed = overlay_gecko_day("bnb", date, rows, dex_pools)
+        except Exception as exc:  # noqa: BLE001
+            print(f"warn gecko eastern day failed, keeping DexScreener h24: {exc}", file=sys.stderr)
+            closed = None
+        if closed and closed.get("combined") is not None:
+            vols = closed["vols"]
+            pool_details = closed["details"]
+            pool_counts = {addr: len(pools) for addr, pools in pool_details.items()}
     for warning in vol_warns:
         print(f"warn {warning}", file=sys.stderr)
     drops = volume_drop_warnings(rows, vols, known, pair_h24, previous)
@@ -969,13 +995,17 @@ def main() -> int:
             1 for row in rows if row["kind"] == "equity" and vols.get(row["address"].lower()) is not None
         ),
         "generatedAt": now.isoformat().replace("+00:00", "Z"),
+        "volumeSource": (closed or {}).get("volumeSource") or "dexscreener-h24-fallback",
+        "dexCombined24hUsd": None if closed is None else closed.get("dexCombined"),
+        "geckoCombined24hUsd": None if closed is None else closed.get("geckoCombined"),
         "sources": {
             "universe": "BNB chainId 56 equity/pre-IPO/ETF union by contract address",
             "volume": (
-                "DexScreener token-pairs/v1/bsc volume.h24; cash or wrapped-native quotes only; "
-                "stock-vs-stock pools counted once; known pools refetched via latest/dex/pairs/bsc; "
-                "Uniswap v4 and other pools DexScreener missed come from GeckoTerminal when "
-                "liquidity is at least about $1000; source is dexscreener or geckoterminal per pool"
+                "GeckoTerminal hourly USD candles over the America/New_York midnight-to-midnight "
+                "window when that pool's series covers the day; DexScreener token-pairs plus known "
+                "pools volume.h24 is the fallback. PancakeSwap Infinity and Uniswap v4 pools that "
+                "DexScreener does not list come from GeckoTerminal token pools and are persisted. "
+                "Each pool is counted once. Perps are excluded."
             ),
             "chainId": CHAIN_ID,
             "chainSlug": CHAIN_SLUG,
@@ -992,16 +1022,19 @@ def main() -> int:
             "treasuries, and Paimon Prime stay out; public equity, pre-IPO, and ETF for every issuer; "
             "SpaceX (SPCX) is public equity since the 2026-06-12 Nasdaq listing; "
             "Colb and Paimon wrappers stay private; "
-            "sumNullable of volume.h24 across unique BNB pools quoted in cash or wrapped native; "
-            "a stock-vs-stock pool counts once on the base token; "
+            "closed day prefers GeckoTerminal hourly candles and falls back to DexScreener all-pools h24; "
+            "each pool is counted once on the base desk token; "
             "known pools missing from token-pairs are refetched; "
-            "GeckoTerminal supplies Uniswap v4 pools DexScreener lacks when liquidity is at least about $1000; "
+            "GeckoTerminal token pools add PancakeSwap Infinity and Uniswap v4 addresses DexScreener lacks; "
             "a token down more than 90% while its main pool still has volume is warned and kept; "
             "issuersByLane is that sum partitioned by issuer inside equity, etf, and private; "
             "assets[] includes poolCount; "
             "null means no reported volume (not zero)"
         ),
     }
+    if closed and closed.get("crossCheck"):
+        record["crossCheck"] = closed["crossCheck"]
+        record["gapPct"] = closed.get("gapPct")
     if drops:
         record["volumeDropWarnings"] = drops
 

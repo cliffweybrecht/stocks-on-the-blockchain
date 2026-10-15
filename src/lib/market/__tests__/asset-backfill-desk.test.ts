@@ -253,6 +253,6 @@ describe("recorded desks plus asset backfill", () => {
     expect(closed.filter((point) => point.source === ASSET_BACKFILL_DESK_SOURCE)).toHaveLength(16);
     const newest = closed.slice(-7);
     expect(newest.every((point) => point.source !== ASSET_BACKFILL_DESK_SOURCE)).toBe(true);
-    expect(sumVolumePoints(newest)).toBeCloseTo(700_511_148.9, 0);
+    expect(sumVolumePoints(newest)).toBeCloseTo(793_612_500.81, 0);
   });
 });

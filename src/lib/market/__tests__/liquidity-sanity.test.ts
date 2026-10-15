@@ -183,7 +183,7 @@ describe("stored liquidity corrections", () => {
         after: 1_966_749.25,
         raw: 442_228_509.38,
         poolVolume: 29_053.87,
-        assetVolume: 5_761_469.909999998,
+        assetVolume: 9_314_815.26,
       },
       {
         date: "2026-10-11",
@@ -270,7 +270,7 @@ describe("stored liquidity corrections", () => {
 
     const solana = readSnapshot("solana.json");
     const totals: Record<string, number> = {
-      "2026-09-30": 143_757_138.89999998,
+      "2026-09-30": 168_707_228.1,
       "2026-10-11": 55_718_561.70000001,
       "2026-10-12": 71_041_285.27999999,
     };
@@ -285,7 +285,7 @@ describe("stored liquidity corrections", () => {
       };
       return (rec.assets ?? []).reduce((sum, asset) => sum + (asset.displayedLiquidityUsd ?? 0), 0);
     };
-    expect(sumDisplayed("2026-09-30")).toBeCloseTo(70_664_772.23, 2);
+    expect(sumDisplayed("2026-09-30")).toBeCloseTo(70_581_751.19, 2);
     expect(sumDisplayed("2026-10-11")).toBeCloseTo(64_826_619.61, 2);
     expect(sumDisplayed("2026-10-12")).toBeCloseTo(64_742_226.36, 2);
   });

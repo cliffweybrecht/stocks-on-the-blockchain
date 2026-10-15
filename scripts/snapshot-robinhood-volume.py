@@ -3,20 +3,26 @@
 
 Mirrors Solana desk snapshot shape in data/volume-snapshots/robinhood.json.
 - Universe: official GET https://api.robinhood.com/rhj/assets (chain 4663)
-- 24h volume: DexScreener token-pairs/v1/robinhood unique-pool sum per mint.
+- 24h volume: GeckoTerminal hourly USD candles over the America/New_York
+  midnight-to-midnight window when that pool's series covers the day.
+  Otherwise DexScreener token-pairs/v1/robinhood plus known pools volume.h24.
   tokens/v1 is only a one-pair hint. Known pools beyond that 30-pair cap are
-  re-read from /latest/dex/pairs. A pool whose base and quote are both desk
-  tokens is counted once, on the base token.
+  re-read from /latest/dex/pairs. GeckoTerminal token pools add addresses
+  DexScreener does not list, and those addresses are written back to
+  data/volume-known-pools/robinhood.json. A pool whose base and quote are
+  both desk tokens is counted once, on the base token. Perps are excluded.
+  If the DexScreener and Gecko totals differ by more than 5%, both are stored.
 - Lanes: ETF/index is classified before private/pre-IPO. Private admission is
   fail-closed (ticker SPCX, or an explicit PRE-IPO / private-company signal in
   the official registry name or metadata). Crypto, commodities, generic baskets,
   and copycats are never private. null != 0 (omit legs with no reported volume).
-- No Gecko backfill; one America/New_York calendar day per record (upsert by date).
+- One America/New_York calendar day per record (upsert by date).
   The day is 12:00:00 AM–11:59:59 PM Eastern. The key and Eastern midnight `t`
   come from scripts/volume_snapshot_day.py (`snapshot_day_key`), not a parallel
-  date path. DexScreener pool volume.h24 sampled at end of day is that day's
-  volume. ROBINHOOD_SNAPSHOT_DATE or SNAPSHOT_DATE (YYYY-MM-DD) forces the key
-  only; it does not invent volume.
+  date path. The closed-day number is the Gecko candle sum. DexScreener
+  volume.h24 is the fallback and is tagged. ROBINHOOD_SNAPSHOT_DATE or
+  SNAPSHOT_DATE (YYYY-MM-DD) forces the key only; it does not invent volume.
+  SNAPSHOT_GECKO_CANDLES=0 keeps the DexScreener sample.
 - Each night also writes `assets[]` (Base schema): address, symbol, issuer,
   instrumentKind, volume24hUsd, displayedLiquidityUsd, and pools. Totals stay.
 
@@ -45,6 +51,7 @@ _SCRIPT_DIR = str(Path(__file__).resolve().parent)
 if _SCRIPT_DIR not in sys.path:
     sys.path.insert(0, _SCRIPT_DIR)
 
+from et_closed_day import overlay_gecko_day
 from snapshot_asset_rows import assets_for, pool_row, reported_usd, upsert_day_record
 from volume_snapshot_day import snapshot_date_override, snapshot_day_key
 
@@ -601,6 +608,30 @@ def main() -> int:
         return 1
 
     vols, pool_counts, pool_details, failed_batches = hydrate_volumes(rows, known_pair_addresses(out_file))
+    closed = None
+    if os.environ.get("SNAPSHOT_GECKO_CANDLES", "1") != "0":
+        dex_pools = []
+        for addr, pools in pool_details.items():
+            for pool in pools:
+                dex_pools.append(
+                    {
+                        "pair": pool.get("pairAddress"),
+                        "base": addr,
+                        "quote": "",
+                        "dex_volume": pool.get("volume24hUsd"),
+                        "liquidity": pool.get("liquidityUsd"),
+                        "dex": pool.get("dexId"),
+                    }
+                )
+        try:
+            closed = overlay_gecko_day("robinhood", date, rows, dex_pools)
+        except Exception as exc:  # noqa: BLE001
+            print(f"warn gecko eastern day failed, keeping DexScreener h24: {exc}", file=sys.stderr)
+            closed = None
+        if closed and closed.get("combined") is not None:
+            vols = closed["vols"]
+            pool_details = closed["details"]
+            pool_counts = {addr: len(pools) for addr, pools in pool_details.items()}
     if failed_batches:
         print(
             f"snapshot:robinhood failed: {failed_batches} DexScreener responses failed "
@@ -634,21 +665,29 @@ def main() -> int:
         "sources": {
             "universe": RH_ASSETS,
             "volume": (
-                "DexScreener token-pairs/v1/robinhood volume.h24, plus known pools "
-                "from /latest/dex/pairs; tokens/v1 is not the pair list; "
-                "a pool with two desk tokens is counted once on the base"
+                "GeckoTerminal hourly USD candles over the America/New_York day when the "
+                "pool's series covers that midnight-to-midnight window; otherwise DexScreener "
+                "token-pairs plus known pools volume.h24. tokens/v1 is not the pair list. "
+                "GeckoTerminal token pools add addresses DexScreener does not list. "
+                "A pool with two desk tokens is counted once on the base. Perps are excluded."
             ),
             "chainId": CHAIN_ID,
             "chainSlug": "robinhood",
         },
+        "volumeSource": (closed or {}).get("volumeSource") or "dexscreener-h24-fallback",
+        "dexCombined24hUsd": None if closed is None else closed.get("dexCombined"),
+        "geckoCombined24hUsd": None if closed is None else closed.get("geckoCombined"),
         "assets": assets_for(rows, vols, pool_details),
         "method": (
             "ETF/index before private; private admission is fail-closed; "
             "equity ranking excludes etf+preipo; perps are excluded; "
-            "DexScreener h24 deduped by pool and counted once when both sides are desk tokens; "
-            "assets[] is the same per-mint DexScreener sample (null is not zero)"
+            "each pool is counted once; the closed day prefers GeckoTerminal hourly "
+            "candles on the America/New_York date and falls back to DexScreener all-pools h24"
         ),
     }
+    if closed and closed.get("crossCheck"):
+        record["crossCheck"] = closed["crossCheck"]
+        record["gapPct"] = closed.get("gapPct")
 
     def fmt(v: float | None) -> str:
         return "null" if v is None else f"{v:.2f}"
