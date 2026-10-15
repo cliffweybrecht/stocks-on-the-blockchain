@@ -165,18 +165,47 @@ export function perpsChainShareSeries(
 export interface PerpsListingChange {
   date: string;
   previousDate: string | null;
-  /** book: full stored name set. stored-tickers: only the capped ticker list. */
-  scope: "book" | "stored-tickers" | "unavailable";
+  /**
+   * book: both days store the full name set.
+   * stored-tickers: only the capped ticker list, so nothing is called a listing.
+   * partial: only one day has the full name set.
+   */
+  scope: "book" | "stored-tickers" | "partial" | "unavailable";
+  /** In the newer full book and absent from the older full book. */
   listed: string[];
+  /** In the older full book, or in the older cap when only the newer day has a full book, and absent from that book. */
   delisted: string[];
+  /** Moved into the capped ticker list without being a new listing. */
+  enteredCap: string[];
+  /** Left the capped ticker list and is still in the book, or the cap is all we have. */
+  leftCap: string[];
   note: string;
 }
 
-function nameSet(day: PerpsViewDay): { names: Set<string>; scope: "book" | "stored-tickers" } | null {
-  if (day.names && day.names.length > 0) return { names: new Set(day.names), scope: "book" };
-  const tickers = day.tickers ?? [];
-  if (tickers.length === 0) return null;
-  return { names: new Set(tickers.map((ticker) => ticker.group)), scope: "stored-tickers" };
+function bookNames(day: PerpsViewDay): Set<string> | null {
+  if (day.names && day.names.length > 0) return new Set(day.names);
+  return null;
+}
+
+function tickerNames(day: PerpsViewDay): Set<string> {
+  return new Set((day.tickers ?? []).map((ticker) => ticker.group));
+}
+
+function sortedNames(names: Iterable<string>): string[] {
+  return [...names].sort((a, b) => a.localeCompare(b));
+}
+
+function emptyListing(date: string, previousDate: string | null, note: string): PerpsListingChange {
+  return {
+    date,
+    previousDate,
+    scope: "unavailable",
+    listed: [],
+    delisted: [],
+    enteredCap: [],
+    leftCap: [],
+    note,
+  };
 }
 
 export function perpsListingChanges(days: readonly PerpsViewDay[]): PerpsListingChange | null {
@@ -185,35 +214,64 @@ export function perpsListingChanges(days: readonly PerpsViewDay[]): PerpsListing
   if (!latest) return null;
   const previous = closed[closed.length - 2] ?? null;
   if (!previous) {
-    return {
-      date: latest.date,
-      previousDate: null,
-      scope: "unavailable",
-      listed: [],
-      delisted: [],
-      note: "Listing changes need two consecutive stored days. This is the first closed day.",
-    };
+    return emptyListing(latest.date, null, "Listing changes need two consecutive stored days. This is the first closed day.");
   }
-  const nextSet = nameSet(latest);
-  const prevSet = nameSet(previous);
-  if (!nextSet || !prevSet) {
+  const nextBook = bookNames(latest);
+  const prevBook = bookNames(previous);
+  const nextTickers = tickerNames(latest);
+  const prevTickers = tickerNames(previous);
+  if (!nextBook && nextTickers.size === 0) {
+    return emptyListing(latest.date, previous.date, "This pair of days does not store a name set or a ticker list, so listings are not invented.");
+  }
+  if (!prevBook && prevTickers.size === 0) {
+    return emptyListing(latest.date, previous.date, "This pair of days does not store a name set or a ticker list, so listings are not invented.");
+  }
+  if (nextBook && prevBook) {
     return {
       date: latest.date,
       previousDate: previous.date,
-      scope: "unavailable",
-      listed: [],
-      delisted: [],
-      note: "This pair of days does not store a name set or a ticker list, so listings are not invented.",
+      scope: "book",
+      listed: sortedNames([...nextBook].filter((name) => !prevBook.has(name))),
+      delisted: sortedNames([...prevBook].filter((name) => !nextBook.has(name))),
+      enteredCap: sortedNames([...nextTickers].filter((name) => prevBook.has(name) && !prevTickers.has(name))),
+      leftCap: sortedNames([...prevTickers].filter((name) => nextBook.has(name) && !nextTickers.has(name))),
+      note: `Names in the ${latest.date} book that were absent on ${previous.date}, and the reverse. A name can disappear because the price band missed it, not only because the venue delisted it. A name that leaves the capped ticker list but stays in the book is not a delisting.`,
     };
   }
-  const scope = nextSet.scope === "book" && prevSet.scope === "book" ? "book" : "stored-tickers";
-  const listed = [...nextSet.names].filter((name) => !prevSet.names.has(name)).sort((a, b) => a.localeCompare(b));
-  const delisted = [...prevSet.names].filter((name) => !nextSet.names.has(name)).sort((a, b) => a.localeCompare(b));
-  const note =
-    scope === "book"
-      ? `Names in the ${latest.date} book that were absent on ${previous.date}, and the reverse. A name can disappear because the price band missed it, not only because the venue delisted it.`
-      : `Compared on the capped ticker list only. A name outside that list is omitted, not delisted. Earlier days do not store the full book.`;
-  return { date: latest.date, previousDate: previous.date, scope, listed, delisted, note };
+  if (!nextBook && !prevBook) {
+    return {
+      date: latest.date,
+      previousDate: previous.date,
+      scope: "stored-tickers",
+      listed: [],
+      delisted: [],
+      enteredCap: sortedNames([...nextTickers].filter((name) => !prevTickers.has(name))),
+      leftCap: sortedNames([...prevTickers].filter((name) => !nextTickers.has(name))),
+      note: "Compared on the capped ticker list only. A name that leaves this list is omitted from the stored rows, not delisted. Earlier days do not store the full book.",
+    };
+  }
+  if (nextBook && !prevBook) {
+    return {
+      date: latest.date,
+      previousDate: previous.date,
+      scope: "partial",
+      listed: [],
+      delisted: sortedNames([...prevTickers].filter((name) => !nextBook.has(name))),
+      enteredCap: [],
+      leftCap: sortedNames([...prevTickers].filter((name) => nextBook.has(name) && !nextTickers.has(name))),
+      note: `The ${latest.date} book is the full name set. ${previous.date} only has the capped ticker list, so a name that shows up on ${latest.date} is not counted as a new listing. A capped name absent from the ${latest.date} book is treated as gone. A capped name still in that book but outside the new cap left the stored list.`,
+    };
+  }
+  return {
+    date: latest.date,
+    previousDate: previous.date,
+    scope: "partial",
+    listed: [],
+    delisted: [],
+    enteredCap: sortedNames([...nextTickers].filter((name) => prevBook?.has(name) && !prevTickers.has(name))),
+    leftCap: sortedNames([...prevTickers].filter((name) => !nextTickers.has(name))),
+    note: `The ${latest.date} row only has the capped ticker list, so a name missing from that list is not a delisting. A name that enters the cap and was already in the ${previous.date} book is cap movement.`,
+  };
 }
 
 export function perpsQualityCounts(day: PerpsViewDay | null): { fresh: number; stale: number; failed: number } {

@@ -12,6 +12,7 @@ import {
   perpCategoryLabel,
   type PerpsCategory,
 } from "@/lib/market/perps-classify";
+import { PERPS_CHANGELOG } from "@/lib/market/perps-changelog";
 import { PERPS_FUNDING_CAP, PERPS_TICKER_CAP } from "@/lib/market/perps-compact";
 import { HIP3_BUILDERS, PERP_PLACES } from "@/lib/market/perps-meta";
 import {
@@ -142,6 +143,12 @@ export function PerpsMethodology({
           {PERPS_PRICE_BAND_MAX}× the median price from the tagged venues. Index aliases match on the ticker.
           Index levels are not compared across contract multipliers. {indexes.length} aliases collapse to one
           label, so US500 and SPX500 are both {PERPS_INDEX_LABELS.US500}.
+        </p>
+        <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground" data-perps-method-names>
+          SKHY is the Nasdaq ADR for SK Hynix (10 ADS equal 1 Korea Exchange common share). SKHYNIX, and the
+          xyz symbol SKHX, are that common share. They stay separate stocks. MUU, MVLL, INTW, and SKDD are
+          single-stock leveraged ETFs and classify as leveraged ETFs on the next capture. ZHIPU is the listed
+          HKEX 2513 H-share and stays a stock. A day already stored keeps the category it was written with.
         </p>
       </section>
 
@@ -310,6 +317,22 @@ export function PerpsMethodology({
           earlier capture time. Rows written before this field existed are fresh when they have no error, and
           failed when they recorded one.
         </p>
+      </section>
+
+      <section className="space-y-3" data-perps-method-changelog>
+        <h3 className="font-heading text-lg font-medium">Data quality and changelog</h3>
+        <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
+          Schema changes and fixes shipped on this desk. A new rule applies on the next capture. Stored rows
+          are not rewritten, and a field that older rows omit stays omitted when those rows are read back.
+        </p>
+        <div className="grid gap-2">
+          {PERPS_CHANGELOG.map((entry) => (
+            <div key={entry.id} className="rounded-xl bg-card px-4 py-3 text-sm ring-1 ring-foreground/10" data-perps-changelog={entry.id}>
+              <p className="font-medium">{entry.title}</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{entry.body}</p>
+            </div>
+          ))}
+        </div>
       </section>
 
       <section className="space-y-3" data-perps-method-downloads>

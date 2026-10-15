@@ -146,7 +146,7 @@ describe("equity perp csv and ticker pages", () => {
     expect(daily.startsWith("date,headlineUsd,onchainUsd,binanceBybitUsd,majorCexUsd,longTailUsd,excludedUsd,leveragedEtfUsd,preipoUsd,closed\n")).toBe(true);
     expect(daily).toContain("2026-01-15,100,,20,80,,,,,true");
     const venues = buildPerpsCsv("venues", model);
-    expect(venues.split("\n")[0]).toBe("date,venue,tier,credible,volumeUsd,openInterestUsd,marketCount,feed,source,volumeWindow,capturedAt,quality,lastGoodAt");
+    expect(venues.split("\n")[0]).toBe("date,venue,tier,credible,volumeUsd,openInterestUsd,marketCount,feed,source,volumeWindow,capturedAt,quality,lastGoodAt,noEquity");
     expect(venues).toContain("OKX,cex-direct,true,80,40,1,Direct API");
     expect(venues).toContain("Binance,cex-coingecko,true,20,10,1,CoinGecko");
     const tickers = buildPerpsCsv("tickers", model);

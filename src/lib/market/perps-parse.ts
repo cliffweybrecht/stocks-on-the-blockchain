@@ -6,6 +6,7 @@ import {
   type PerpsCategory,
   type PerpsClass,
 } from "./perps-classify";
+import { perpsFundingIntervalHours } from "./perps-funding";
 import { asNonNegativeNumber, asReportedNumber } from "./numbers";
 import { perpsExcludeReason, perpsScreenInputs, type PerpsDaySnapshot, type PerpsMarketSnapshot, type PerpsTier, type PerpsVenueSnapshot, type PerpsVolumeWindow } from "./perps-snapshot";
 import {
@@ -153,6 +154,7 @@ function market(
   priceUsd: number | null,
   lifetimeVolumeUsd?: number | null,
   fundingRate?: number | null,
+  fundingIntervalHours?: number | null,
 ): PerpsMarketSnapshot {
   const row: PerpsMarketSnapshot = {
     symbol,
@@ -164,6 +166,9 @@ function market(
   };
   if (typeof lifetimeVolumeUsd === "number") row.lifetimeVolumeUsd = lifetimeVolumeUsd;
   if (typeof fundingRate === "number") row.fundingRate = fundingRate;
+  if (typeof fundingRate === "number" && typeof fundingIntervalHours === "number" && fundingIntervalHours > 0) {
+    row.fundingIntervalHours = fundingIntervalHours;
+  }
   return row;
 }
 
@@ -242,10 +247,13 @@ function observe(
   priceUsd: number | null,
   fundingRate?: number | null,
   lifetimeVolumeUsd?: number | null,
+  fundingIntervalHours?: number | null,
 ): void {
   observations.push({ underlying, category, price: priceUsd });
   if (!isStoredEquityCategory(category) && category !== "preipo") return;
-  markets.push(market(symbol, underlying, category, volume24hUsd, openInterestUsd, priceUsd, lifetimeVolumeUsd, fundingRate));
+  markets.push(
+    market(symbol, underlying, category, volume24hUsd, openInterestUsd, priceUsd, lifetimeVolumeUsd, fundingRate, fundingIntervalHours),
+  );
 }
 
 function median(values: readonly number[]): number | null {
@@ -369,11 +377,22 @@ function pushUntagged(
   volume24hUsd: number | null,
   openInterestUsd: number | null,
   fundingRate?: number | null,
+  fundingIntervalHours?: number | null,
 ): void {
   const matched = matchUntaggedPerp(symbol, price, reference);
   if (!matched) return;
   markets.push(
-    market(symbol, matched.underlying, matched.category, volume24hUsd, openInterestUsd, price, null, fundingRate),
+    market(
+      symbol,
+      matched.underlying,
+      matched.category,
+      volume24hUsd,
+      openInterestUsd,
+      price,
+      null,
+      fundingRate,
+      fundingIntervalHours,
+    ),
   );
 }
 
@@ -394,7 +413,7 @@ function hyperliquidVenues(feeds: PerpsFeeds, observations: Observation[]): Perp
     const meta = rec(pair[0]);
     const ctxs = asList(pair[1]);
     const universe = asList(meta?.universe);
-    if (!meta || universe.length === 0 || ctxs.length === 0) {
+    if (!meta || !Array.isArray(meta.universe) || !Array.isArray(pair[1]) || (universe.length > 0 && ctxs.length === 0)) {
       venues.push(emptyVenue(name, spec.tier, source, spec.volumeWindow, spec.note, feeds.capturedAt, "Empty HIP-3 book."));
       continue;
     }
@@ -412,6 +431,7 @@ function hyperliquidVenues(feeds: PerpsFeeds, observations: Observation[]): Perp
       const classifiedName = classified(underlying, { forceNonequity, forcePreipo });
       const price = px(ctx.markPx);
       const oi = mul(vol(ctx.openInterest), price);
+      const funding = rate(ctx.funding);
       observe(
         observations,
         markets,
@@ -421,10 +441,18 @@ function hyperliquidVenues(feeds: PerpsFeeds, observations: Observation[]): Perp
         vol(ctx.dayNtlVlm),
         oi,
         price,
-        rate(ctx.funding),
+        funding,
+        null,
+        funding === null ? null : 1,
       );
     }
-    if (markets.length === 0) continue;
+    if (markets.length === 0) {
+      const quiet = venueShell(name, spec.tier, source, spec.volumeWindow, spec.note, feeds.capturedAt, null, markets);
+      quiet.noEquity = true;
+      quiet.windowNote = `${spec.note} Book returned and contained no equity markets.`;
+      venues.push(quiet);
+      continue;
+    }
     venues.push(venueShell(name, spec.tier, source, spec.volumeWindow, spec.note, feeds.capturedAt, null, markets));
   }
   return venues;
@@ -466,6 +494,8 @@ function bitgetVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenue
       mul(vol(ticker.holdingAmount), price),
       price,
       rate(ticker.fundingRate),
+      null,
+      perpsFundingIntervalHours(meta.fundInterval, "hours"),
     );
   }
   return shell(null, markets);
@@ -541,6 +571,8 @@ function gateVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSn
       oi,
       price,
       rate(ticker.funding_rate),
+      null,
+      perpsFundingIntervalHours(meta.funding_interval, "seconds"),
     );
   }
   return shell(null, markets);
@@ -1376,6 +1408,15 @@ function annotateCredibility(venue: PerpsVenueSnapshot): PerpsVenueSnapshot {
   return { ...venue, credible: excludeReason === null, excludeReason };
 }
 
+/** A successful onchain book with no equity markets stays in the file under the same venue name. */
+function markQuietOnchainBook(venue: PerpsVenueSnapshot): PerpsVenueSnapshot {
+  if (venue.noEquity) return venue;
+  if (venue.tier !== "onchain" || venue.error || venue.markets.length > 0) return venue;
+  const sentence = "Book returned and contained no equity markets.";
+  const windowNote = venue.windowNote.includes(sentence) ? venue.windowNote : `${venue.windowNote} ${sentence}`.trim();
+  return { ...venue, noEquity: true, windowNote };
+}
+
 function ostiumVenue(feeds: PerpsFeeds): PerpsVenueSnapshot {
   const spec = perpsDirectSpec("Ostium");
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
@@ -1588,7 +1629,7 @@ export function parseEquityPerpsFeeds(feeds: PerpsFeeds): PerpsDaySnapshot {
     if (venue) venues.push(venue);
   }
   fillMissingOpenInterest(venues, coingecko.points);
-  const annotated = venues.map(annotateCredibility).sort((a, b) => a.venue.localeCompare(b.venue));
+  const annotated = venues.map(annotateCredibility).map(markQuietOnchainBook).sort((a, b) => a.venue.localeCompare(b.venue));
 
   return {
     date,

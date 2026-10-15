@@ -22,7 +22,7 @@ export interface PerpsTickerPoint {
   cexCoingeckoUsd: number | null;
   longTailUsd: number | null;
   cexUsd: number | null;
-  funding: { venue: string; rate: number }[];
+  funding: { venue: string; rate: number; intervalHours: number | null }[];
   books: { venue: string; volumeUsd: number | null; openInterestUsd: number | null }[];
   tiers: {
     tier: PerpsTier;
@@ -55,7 +55,7 @@ export interface PerpsTickerPageModel {
   points: PerpsTickerPoint[];
   latest: PerpsTickerPoint | null;
   venueShares: PerpsTickerVenueShare[];
-  funding: { venue: string; rate: number }[];
+  funding: { venue: string; rate: number; intervalHours: number | null }[];
   fundingDate: string | null;
 }
 
@@ -86,7 +86,11 @@ function pointFromTicker(
   const cexCoingeckoUsd = finite(ticker.tiers["cex-coingecko"]?.volumeUsd);
   const longTailUsd = finite(ticker.tiers["long-tail"]?.volumeUsd);
   const funding = Object.entries(ticker.funding ?? {})
-    .map(([venue, rate]) => ({ venue, rate }))
+    .map(([venue, rate]) => ({
+      venue,
+      rate,
+      intervalHours: typeof ticker.fundingHours?.[venue] === "number" ? ticker.fundingHours[venue] : null,
+    }))
     .filter((row) => Number.isFinite(row.rate))
     .sort((a, b) => a.venue.localeCompare(b.venue));
   return {
