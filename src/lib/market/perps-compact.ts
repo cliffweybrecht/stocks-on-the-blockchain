@@ -7,6 +7,7 @@ import type {
   PerpsMarketSnapshot,
   PerpsStoredCategory,
   PerpsTier,
+  PerpsVenueQuality,
   PerpsVenueSnapshot,
   PerpsVolumeWindow,
 } from "./perps-snapshot";
@@ -26,6 +27,13 @@ import type {
 export const PERPS_TICKER_CAP = 48;
 /** Funding is stored for names that can reach the 10-row table under any toggle. */
 export const PERPS_FUNDING_CAP = 16;
+/** Per-venue volume and open interest, kept for the default-headline top names only. */
+export const PERPS_BOOK_CAP = 20;
+/**
+ * Encoded day size before per-venue books, then the name set, are dropped.
+ * The desk still has tier totals if a day would otherwise blow past this.
+ */
+export const PERPS_ROW_BYTE_BUDGET = 140_000;
 
 const CATEGORY_ORDER = ["stock", "etf", "leveraged-etf", "index", "preipo"] as const;
 
@@ -66,12 +74,20 @@ export interface PerpsCompactLifetime {
   lifetimeVolumeUsd: number;
 }
 
+export interface PerpsCompactBook {
+  venue: string;
+  volumeUsd?: number;
+  openInterestUsd?: number;
+}
+
 export interface PerpsCompactTicker {
   group: string;
   category: PerpsCategory;
   tiers: Partial<Record<PerpsTier, PerpsCompactTierSlot>>;
   /** Volume-weighted funding rate by venue. */
   funding?: Record<string, number>;
+  /** Present for the top {@link PERPS_BOOK_CAP} headline names. Absent on older rows. */
+  books?: PerpsCompactBook[];
 }
 
 export interface PerpsCompactVenue {
@@ -82,6 +98,9 @@ export interface PerpsCompactVenue {
   windowNote: string;
   capturedAt: string;
   error: string | null;
+  /** Omitted on rows from before quality was stored. */
+  quality?: PerpsVenueQuality;
+  lastGoodAt?: string | null;
   credible: boolean;
   excludeReason: string | null;
   parts: Partial<Record<PerpsStoredCategory, PerpsCompactPart>>;
@@ -94,6 +113,11 @@ export interface PerpsCompactDay {
   capturedAt: string;
   venues: PerpsCompactVenue[];
   tickers: PerpsCompactTicker[];
+  /**
+   * Every equity underlying in the book, not only the capped ticker list.
+   * Absent on older rows. Listing diffs that use it say so.
+   */
+  names?: string[];
   /** Binance/Bybit official-archive cross-check. Absent on older rows. */
   archive?: PerpsArchiveCheck;
 }
@@ -108,10 +132,16 @@ interface TierAcc {
   venues: Set<string>;
 }
 
+interface BookAcc {
+  volumes: number[];
+  ois: number[];
+}
+
 interface TickerAcc {
   group: string;
   categories: Map<PerpsCategory, { weight: number; count: number }>;
   tiers: Map<PerpsTier, TierAcc>;
+  books: Map<string, BookAcc>;
   funding: Map<string, { num: number; den: number; plain: number; n: number }>;
   hasLifetime: boolean;
 }
@@ -125,6 +155,7 @@ function blankTicker(group: string): TickerAcc {
     group,
     categories: new Map(),
     tiers: new Map(),
+    books: new Map(),
     funding: new Map(),
     hasLifetime: false,
   };
@@ -205,6 +236,8 @@ function compactVenue(venue: PerpsVenueSnapshot): PerpsCompactVenue {
     windowNote: venue.windowNote,
     capturedAt: venue.capturedAt,
     error: venue.error,
+    ...(venue.quality ? { quality: venue.quality } : {}),
+    ...(venue.lastGoodAt ? { lastGoodAt: venue.lastGoodAt } : {}),
     credible: venue.credible !== false,
     excludeReason: venue.excludeReason ?? null,
     parts,
@@ -226,7 +259,23 @@ function compactVenue(venue: PerpsVenueSnapshot): PerpsCompactVenue {
   return stored;
 }
 
-function finishTicker(acc: TickerAcc): PerpsCompactTicker {
+function finishBooks(acc: TickerAcc): PerpsCompactBook[] {
+  const books: PerpsCompactBook[] = [];
+  for (const venue of [...acc.books.keys()].sort((a, b) => a.localeCompare(b))) {
+    const slot = acc.books.get(venue);
+    if (!slot) continue;
+    const book: PerpsCompactBook = { venue };
+    const volumeUsd = sumNullable(slot.volumes);
+    const openInterestUsd = sumNullable(slot.ois);
+    if (volumeUsd !== null) book.volumeUsd = volumeUsd;
+    if (openInterestUsd !== null) book.openInterestUsd = openInterestUsd;
+    if (book.volumeUsd === undefined && book.openInterestUsd === undefined) continue;
+    books.push(book);
+  }
+  return books;
+}
+
+function finishTicker(acc: TickerAcc, withBooks: boolean): PerpsCompactTicker {
   const tiers: PerpsCompactTicker["tiers"] = {};
   for (const tier of TIER_ORDER) {
     const slot = acc.tiers.get(tier);
@@ -252,6 +301,10 @@ function finishTicker(acc: TickerAcc): PerpsCompactTicker {
     tiers,
   };
   if (Object.keys(funding).length > 0) ticker.funding = funding;
+  if (withBooks) {
+    const books = finishBooks(acc);
+    if (books.length > 0) ticker.books = books;
+  }
   return ticker;
 }
 
@@ -276,6 +329,10 @@ function compactTickers(day: PerpsDaySnapshot): PerpsCompactTicker[] {
         tier.ois.push(market.openInterestUsd);
       }
       acc.tiers.set(venue.tier, tier);
+      const book = acc.books.get(venue.venue) ?? { volumes: [], ois: [] };
+      if (typeof market.volume24hUsd === "number" && Number.isFinite(market.volume24hUsd)) book.volumes.push(market.volume24hUsd);
+      if (typeof market.openInterestUsd === "number" && Number.isFinite(market.openInterestUsd)) book.ois.push(market.openInterestUsd);
+      if (book.volumes.length > 0 || book.ois.length > 0) acc.books.set(venue.venue, book);
       if (typeof market.lifetimeVolumeUsd === "number" && Number.isFinite(market.lifetimeVolumeUsd)) acc.hasLifetime = true;
       if (typeof market.fundingRate === "number" && Number.isFinite(market.fundingRate)) {
         const fund = acc.funding.get(venue.venue) ?? { num: 0, den: 0, plain: 0, n: 0 };
@@ -306,10 +363,31 @@ function compactTickers(day: PerpsDaySnapshot): PerpsCompactTicker[] {
     if (acc.hasLifetime) keep.add(acc.group);
   }
 
+  const bookGroups = new Set(
+    [...byGroup.values()]
+      .filter((acc) => acc.categories.size > 0)
+      .map((acc) => ({ group: acc.group, volume: tierVolume(acc, ["onchain", "cex-direct", "cex-coingecko"]) }))
+      .sort(compareTickerRank)
+      .slice(0, PERPS_BOOK_CAP)
+      .map((row) => row.group),
+  );
+
   return [...byGroup.values()]
     .filter((acc) => keep.has(acc.group) && acc.categories.size > 0)
-    .map(finishTicker)
+    .map((acc) => finishTicker(acc, bookGroups.has(acc.group)))
     .sort((a, b) => a.group.localeCompare(b.group) || a.category.localeCompare(b.category));
+}
+
+function equityNames(day: PerpsDaySnapshot): string[] {
+  const names = new Set<string>();
+  for (const venue of day.venues) {
+    if (venue.credible === false) continue;
+    for (const market of venue.markets) {
+      if (market.category === "preipo") continue;
+      names.add(perpGroupLabel(market.underlying));
+    }
+  }
+  return [...names].sort((a, b) => a.localeCompare(b));
 }
 
 export function compactPerpsDay(day: PerpsDaySnapshot): PerpsCompactDay {
@@ -319,6 +397,8 @@ export function compactPerpsDay(day: PerpsDaySnapshot): PerpsCompactDay {
     venues: day.venues.map(compactVenue),
     tickers: compactTickers(day),
   };
+  const names = equityNames(day);
+  if (names.length > 0) compact.names = names;
   if (day.archive) compact.archive = day.archive;
   return compact;
 }
@@ -422,6 +502,12 @@ export function parseCompactVenue(value: unknown): PerpsCompactVenue | null {
     windowNote: typeof row.windowNote === "string" ? row.windowNote : "",
     capturedAt: typeof row.capturedAt === "string" ? row.capturedAt : "",
     error: typeof row.error === "string" && row.error ? row.error : null,
+    ...(decodeQuality(row.q ?? row.quality) ? { quality: decodeQuality(row.q ?? row.quality) } : {}),
+    ...(typeof row.ok === "string" && row.ok
+      ? { lastGoodAt: row.ok }
+      : typeof row.lastGoodAt === "string" && row.lastGoodAt
+        ? { lastGoodAt: row.lastGoodAt }
+        : {}),
     credible: typeof row.credible === "boolean" ? row.credible : true,
     excludeReason: typeof row.excludeReason === "string" && row.excludeReason ? row.excludeReason : null,
     parts,
@@ -491,13 +577,14 @@ function encodePart(part: PerpsCompactPart): [number | null, number | null, numb
 }
 
 /** Dense on-disk day. Venue names in ticker rows are indexes into `venues`. */
-export function encodeCompactDay(day: PerpsCompactDay): {
+function encodeCompactDayBody(day: PerpsCompactDay): {
   date: string;
   capturedAt: string;
   venues: unknown[];
   tickers: unknown[];
   arc?: unknown[];
   arcNote?: string;
+  names?: string[];
 } {
   const venueIndex = new Map(day.venues.map((venue, index) => [venue.venue, index]));
   const funded = fundingGroups(day.tickers);
@@ -518,6 +605,9 @@ export function encodeCompactDay(day: PerpsCompactDay): {
     };
     if (venue.capturedAt && venue.capturedAt !== day.capturedAt) wire.capturedAt = venue.capturedAt;
     if (venue.error) wire.error = venue.error;
+    if (venue.quality === "stale") wire.q = "s";
+    else if (venue.quality === "failed") wire.q = "x";
+    if (venue.quality === "stale" && venue.lastGoodAt) wire.ok = venue.lastGoodAt;
     if (!venue.credible) wire.credible = false;
     if (venue.excludeReason) wire.excludeReason = venue.excludeReason;
     if (venue.lifetime && venue.lifetime.length > 0) {
@@ -537,13 +627,21 @@ export function encodeCompactDay(day: PerpsCompactDay): {
       tiers[TIER_CODE[tier]] = [numOrNull(slot.volumeUsd), numOrNull(slot.openInterestUsd), indexes];
     }
     const wire: unknown[] = [ticker.group, CATEGORY_CODE[ticker.category], tiers];
+    const bookPairs = (ticker.books ?? [])
+      .map((book) => [venueIndex.get(book.venue), numOrNull(book.volumeUsd), numOrNull(book.openInterestUsd)] as const)
+      .filter((row): row is readonly [number, number | null, number | null] => row[0] !== undefined)
+      .sort((a, b) => a[0] - b[0]);
     if (ticker.funding && funded.has(ticker.group)) {
       const pairs = Object.entries(ticker.funding)
         .map(([name, rate]) => [venueIndex.get(name), rate] as const)
         .filter((pair): pair is readonly [number, number] => pair[0] !== undefined)
         .sort((a, b) => a[0] - b[0]);
       if (pairs.length > 0) wire.push(pairs);
+      else if (bookPairs.length > 0) wire.push([]);
+    } else if (bookPairs.length > 0) {
+      wire.push([]);
     }
+    if (bookPairs.length > 0) wire.push(bookPairs);
     return wire;
   });
   const encoded: {
@@ -553,13 +651,40 @@ export function encodeCompactDay(day: PerpsCompactDay): {
     tickers: unknown[];
     arc?: unknown[];
     arcNote?: string;
+    names?: string[];
   } = { date: day.date, capturedAt: day.capturedAt, venues, tickers };
   if (day.archive) {
     const archive = encodePerpsArchive(day.archive);
     encoded.arc = archive.arc;
     if (archive.arcNote) encoded.arcNote = archive.arcNote;
   }
+  if (day.names && day.names.length > 0) encoded.names = day.names;
   return encoded;
+}
+
+function encodedSize(value: unknown): number {
+  return Buffer.byteLength(JSON.stringify(value));
+}
+
+function withoutBooks(day: PerpsCompactDay): PerpsCompactDay {
+  return {
+    ...day,
+    tickers: day.tickers.map((ticker) => {
+      if (!ticker.books) return ticker;
+      const { books: _books, ...rest } = ticker;
+      return rest;
+    }),
+  };
+}
+
+/** Drop per-venue books, then the name set, if a day would pass the row budget. */
+export function encodeCompactDay(day: PerpsCompactDay): ReturnType<typeof encodeCompactDayBody> {
+  const full = encodeCompactDayBody(day);
+  if (encodedSize(full) <= PERPS_ROW_BYTE_BUDGET) return full;
+  const booksDropped = encodeCompactDayBody(withoutBooks(day));
+  if (encodedSize(booksDropped) <= PERPS_ROW_BYTE_BUDGET) return booksDropped;
+  const { names: _names, ...rest } = withoutBooks(day);
+  return encodeCompactDayBody(rest);
 }
 
 function decodePart(value: unknown): PerpsCompactPart | null {
@@ -576,6 +701,31 @@ function decodePart(value: unknown): PerpsCompactPart | null {
   return part;
 }
 
+function decodeQuality(value: unknown): PerpsVenueQuality | undefined {
+  if (value === "s" || value === "stale") return "stale";
+  if (value === "x" || value === "failed") return "failed";
+  if (value === "f" || value === "fresh") return "fresh";
+  return undefined;
+}
+
+function decodeBooks(value: unknown, venues: readonly PerpsCompactVenue[]): PerpsCompactBook[] {
+  if (!Array.isArray(value)) return [];
+  const books: PerpsCompactBook[] = [];
+  for (const row of value) {
+    if (!Array.isArray(row) || row.length < 3) continue;
+    const venue = typeof row[0] === "number" ? venues[row[0]]?.venue : undefined;
+    if (!venue) continue;
+    const book: PerpsCompactBook = { venue };
+    const volumeUsd = finite(row[1]);
+    const openInterestUsd = finite(row[2]);
+    if (volumeUsd !== undefined) book.volumeUsd = volumeUsd;
+    if (openInterestUsd !== undefined) book.openInterestUsd = openInterestUsd;
+    if (book.volumeUsd === undefined && book.openInterestUsd === undefined) continue;
+    books.push(book);
+  }
+  return books.sort((a, b) => a.venue.localeCompare(b.venue));
+}
+
 function decodeWireDay(row: {
   date: string;
   capturedAt?: unknown;
@@ -583,6 +733,7 @@ function decodeWireDay(row: {
   tickers?: unknown;
   arc?: unknown;
   arcNote?: unknown;
+  names?: unknown;
 }): PerpsCompactDay | null {
   const capturedAt = typeof row.capturedAt === "string" ? row.capturedAt : "";
   const venues: PerpsCompactVenue[] = [];
@@ -615,6 +766,8 @@ function decodeWireDay(row: {
         windowNote: typeof source.windowNote === "string" ? source.windowNote : "",
         capturedAt: typeof source.capturedAt === "string" ? source.capturedAt : capturedAt,
         error: typeof source.error === "string" && source.error ? source.error : null,
+        ...(decodeQuality(source.q) ? { quality: decodeQuality(source.q) } : {}),
+        ...(typeof source.ok === "string" && source.ok ? { lastGoodAt: source.ok } : {}),
         credible: source.credible !== false,
         excludeReason: typeof source.excludeReason === "string" && source.excludeReason ? source.excludeReason : null,
         parts,
@@ -664,18 +817,26 @@ function decodeWireDay(row: {
       if (Array.isArray(value[3])) {
         const funding: Record<string, number> = {};
         for (const pair of value[3]) {
-          if (!Array.isArray(pair) || pair.length < 2) continue;
+          if (!Array.isArray(pair) || pair.length < 2 || pair.length > 2) continue;
           const name = typeof pair[0] === "number" ? venues[pair[0]]?.venue : undefined;
           const rate = finite(pair[1]);
           if (name && rate !== undefined) funding[name] = rate;
         }
         if (Object.keys(funding).length > 0) ticker.funding = funding;
       }
+      const books = decodeBooks(value[4], venues);
+      if (books.length > 0) ticker.books = books;
       tickers.push(ticker);
     }
   }
   tickers.sort((a, b) => a.group.localeCompare(b.group) || a.category.localeCompare(b.category));
   const decoded: PerpsCompactDay = { date: row.date, capturedAt, venues, tickers };
+  if (Array.isArray(row.names)) {
+    const names = [...new Set(row.names.filter((name): name is string => typeof name === "string" && name.length > 0))].sort((a, b) =>
+      a.localeCompare(b),
+    );
+    if (names.length > 0) decoded.names = names;
+  }
   const archive = decodePerpsArchive(row.arc, row.arcNote);
   if (archive) decoded.archive = archive;
   return decoded;
@@ -687,7 +848,9 @@ function isWireDay(row: { venues?: unknown; tickers?: unknown; arc?: unknown }):
   if (!Array.isArray(row.venues)) return false;
   return row.venues.some((venue) => {
     if (!venue || typeof venue !== "object" || Array.isArray(venue)) return false;
-    const parts = (venue as { parts?: unknown }).parts;
+    const source = venue as { parts?: unknown; q?: unknown; ok?: unknown };
+    if (source.q !== undefined || source.ok !== undefined) return true;
+    const parts = source.parts;
     if (!parts || typeof parts !== "object" || Array.isArray(parts)) return false;
     return Object.values(parts as Record<string, unknown>).some((part) => Array.isArray(part));
   });
@@ -700,6 +863,7 @@ export function parseCompactDay(row: {
   tickers?: unknown;
   arc?: unknown;
   arcNote?: unknown;
+  names?: unknown;
 }): PerpsCompactDay | null {
   if (isWireDay(row)) return decodeWireDay(row);
   const venues = Array.isArray(row.venues)
@@ -709,10 +873,17 @@ export function parseCompactDay(row: {
     ? row.tickers.map(parseTicker).filter((ticker): ticker is PerpsCompactTicker => ticker !== null)
     : [];
   tickers.sort((a, b) => a.group.localeCompare(b.group) || a.category.localeCompare(b.category));
-  return {
+  const decoded: PerpsCompactDay = {
     date: row.date,
     capturedAt: typeof row.capturedAt === "string" ? row.capturedAt : "",
     venues,
     tickers,
   };
+  if (Array.isArray(row.names)) {
+    const names = [...new Set(row.names.filter((name): name is string => typeof name === "string" && name.length > 0))].sort((a, b) =>
+      a.localeCompare(b),
+    );
+    if (names.length > 0) decoded.names = names;
+  }
+  return decoded;
 }

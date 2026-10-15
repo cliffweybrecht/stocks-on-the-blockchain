@@ -45,6 +45,49 @@ export const PERPS_THIN_VOLUME_USD = 100_000_000;
 export type PerpsTier = "onchain" | "cex-direct" | "cex-coingecko" | "long-tail";
 export type PerpsStoredCategory = PerpsCategory | "preipo";
 export type PerpsVolumeWindow = "rolling-24h" | "et-day" | "lifetime" | "unavailable";
+/** fresh: this capture succeeded. stale: this capture failed and an older good row exists. failed: this capture failed and there is no older good row. */
+export type PerpsVenueQuality = "fresh" | "stale" | "failed";
+
+/**
+ * Volume and open interest for the credibility screen.
+ * A market with no volume does not have to report open interest.
+ * When only some positive-volume markets report it, the screen uses that
+ * covered subset if it is at least half the venue volume. A thinner fill is
+ * treated as missing, so a handful of open-interest prints cannot exclude
+ * the rest of the book.
+ */
+export function perpsScreenInputs(
+  markets: readonly Pick<PerpsMarketSnapshot, "category" | "volume24hUsd" | "openInterestUsd">[],
+): { volumeUsd: number | null; openInterestUsd: number | null } {
+  const volumes: (number | null)[] = [];
+  const ois: (number | null)[] = [];
+  let positive = 0;
+  let covered = 0;
+  let coveredVolume = 0;
+  let coveredOpenInterest = 0;
+  for (const market of markets) {
+    if (market.category === "preipo") continue;
+    volumes.push(market.volume24hUsd);
+    ois.push(market.openInterestUsd);
+    const volume = market.volume24hUsd;
+    const openInterest = market.openInterestUsd;
+    if (typeof volume === "number" && Number.isFinite(volume) && volume > 0) {
+      positive += 1;
+      if (typeof openInterest === "number" && Number.isFinite(openInterest)) {
+        covered += 1;
+        coveredVolume += volume;
+        coveredOpenInterest += openInterest;
+      }
+    }
+  }
+  const volumeUsd = sumNullable(volumes);
+  if (positive === 0) return { volumeUsd, openInterestUsd: null };
+  if (covered === positive) return { volumeUsd, openInterestUsd: sumNullable(ois) };
+  if (volumeUsd !== null && volumeUsd > 0 && coveredVolume / volumeUsd >= 0.5) {
+    return { volumeUsd: coveredVolume, openInterestUsd: coveredOpenInterest };
+  }
+  return { volumeUsd, openInterestUsd: null };
+}
 
 export function perpsExcludeReason(volumeUsd: number | null, openInterestUsd: number | null): string | null {
   if (volumeUsd === null || openInterestUsd === null || !(volumeUsd > 0)) return null;
@@ -80,6 +123,13 @@ export interface PerpsVenueSnapshot {
   windowNote: string;
   capturedAt: string;
   error: string | null;
+  /**
+   * Absent on rows written before quality was stored. Readers treat a missing
+   * value as fresh when error is null, and failed when error is set.
+   */
+  quality?: PerpsVenueQuality;
+  /** Last capture that returned a book. Absent when this row has never succeeded. */
+  lastGoodAt?: string | null;
   /**
    * False when the venue fails the volume/OI screen. Absent on older rows,
    * which stay in the headline.
@@ -217,6 +267,7 @@ export function parsePerpsSnapshotFile(raw: unknown): PerpsSnapshotFile {
       tickers: (row as { tickers?: unknown }).tickers,
       arc: (row as { arc?: unknown }).arc,
       arcNote: (row as { arcNote?: unknown }).arcNote,
+      names: (row as { names?: unknown }).names,
     });
     if (compact) records.push(compact);
   }
@@ -328,6 +379,8 @@ export interface PerpsViewVenue {
   windowNote: string;
   capturedAt: string;
   error: string | null;
+  quality?: PerpsVenueQuality;
+  lastGoodAt?: string | null;
   zeroFee: boolean;
   credible: boolean;
   excludeReason: string | null;
@@ -347,6 +400,8 @@ export interface PerpsViewDay {
   venues: PerpsViewVenue[];
   /** Set on compact days. Underlying and funding lists read this instead of markets. */
   tickers?: PerpsCompactTicker[];
+  /** Full equity name set when the snapshot stored one. */
+  names?: string[];
   archive?: PerpsArchiveCheck;
 }
 
@@ -462,8 +517,18 @@ function compactDayToView(day: PerpsCompactDay, prior: ReadonlyMap<string, numbe
     if (extra === undefined) return ticker;
     const onchain = ticker.tiers.onchain ?? {};
     const venues = onchain.venues?.includes("Ostium") ? onchain.venues : [...(onchain.venues ?? []), "Ostium"];
+    const books = ticker.books
+      ? ticker.books.some((book) => book.venue === "Ostium")
+        ? ticker.books.map((book) =>
+            book.venue === "Ostium"
+              ? { ...book, volumeUsd: sumNullable([book.volumeUsd ?? null, extra]) ?? undefined }
+              : book,
+          )
+        : [...ticker.books, { venue: "Ostium", volumeUsd: extra }].sort((a, b) => a.venue.localeCompare(b.venue))
+      : undefined;
     return {
       ...ticker,
+      ...(books ? { books } : {}),
       tiers: {
         ...ticker.tiers,
         onchain: {
@@ -495,6 +560,8 @@ function compactDayToView(day: PerpsCompactDay, prior: ReadonlyMap<string, numbe
       windowNote,
       capturedAt: venue.capturedAt,
       error: venue.error,
+      ...(venue.quality ? { quality: venue.quality } : {}),
+      ...(venue.lastGoodAt ? { lastGoodAt: venue.lastGoodAt } : {}),
       zeroFee: venue.venue === "Ostium" ? false : perpVenueZeroFee(venue.venue),
       ...venuePresentation(venue),
       markets: [],
@@ -508,6 +575,7 @@ function compactDayToView(day: PerpsCompactDay, prior: ReadonlyMap<string, numbe
     closed: perpsDayIsClosed(day.date, nowUnixSeconds),
     venues,
     tickers,
+    ...(day.names && day.names.length > 0 ? { names: day.names } : {}),
     ...(day.archive ? { archive: day.archive } : {}),
   };
 }
@@ -523,6 +591,8 @@ function marketDayToView(day: PerpsDaySnapshot, priorLifetime: ReadonlyMap<strin
         windowNote: venue.windowNote,
         capturedAt: venue.capturedAt,
         error: venue.error,
+        ...(venue.quality ? { quality: venue.quality } : {}),
+        ...(venue.lastGoodAt ? { lastGoodAt: venue.lastGoodAt } : {}),
         zeroFee: perpVenueZeroFee(venue.venue),
         ...venuePresentation(venue),
         markets: venue.markets.map((market) => toViewMarket(market, market.volume24hUsd)),
@@ -548,6 +618,8 @@ function marketDayToView(day: PerpsDaySnapshot, priorLifetime: ReadonlyMap<strin
       windowNote: window.windowNote,
       capturedAt: venue.capturedAt,
       error: venue.error,
+      ...(venue.quality ? { quality: venue.quality } : {}),
+      ...(venue.lastGoodAt ? { lastGoodAt: venue.lastGoodAt } : {}),
       zeroFee: false,
       ...venuePresentation(venue),
       markets,
@@ -592,6 +664,8 @@ export interface PerpsVenueRow {
   /** Capture instant for this venue. Falls back to the day when the row omitted its own. */
   capturedAt: string;
   error: string | null;
+  quality?: PerpsVenueQuality;
+  lastGoodAt?: string | null;
   zeroFee: boolean;
   credible: boolean;
   excludeReason: string | null;
@@ -835,6 +909,8 @@ export function selectPerpsRange(
         chain: venue.chain,
         operator: venue.operator,
         capturedAt: venue.capturedAt,
+        ...(venue.quality ? { quality: venue.quality } : {}),
+        ...(venue.lastGoodAt ? { lastGoodAt: venue.lastGoodAt } : {}),
         volumeUsd: null,
         openInterestUsd: null,
         marketCount: 0,
@@ -867,6 +943,8 @@ export function selectPerpsRange(
       existing.tier = venue.tier;
       if (newest && day.date === newest.date) {
         existing.capturedAt = venue.capturedAt || existing.capturedAt;
+        existing.quality = venue.quality;
+        existing.lastGoodAt = venue.lastGoodAt;
         existing.openInterestUsd = sumNullable(ois);
         existing.marketCount = count;
       }
@@ -1256,6 +1334,38 @@ export function perpsHomeSummary(model: PerpsDeskModel): PerpsHomeSummary {
     venueCount: view.venueCount,
     marketCount: view.marketCount,
     caption: view.caption,
+  };
+}
+
+/** Missing quality on an older row: failed when that row recorded an error, otherwise fresh. */
+export function perpsVenueQuality(venue: { quality?: PerpsVenueQuality; error: string | null }): PerpsVenueQuality {
+  if (venue.quality === "fresh" || venue.quality === "stale" || venue.quality === "failed") return venue.quality;
+  return venue.error ? "failed" : "fresh";
+}
+
+/**
+ * A failed venue keeps a null book. When the previous day had a good row,
+ * the status is stale and lastGoodAt is that earlier capture. Yesterday's
+ * volume is not copied forward.
+ */
+export function stampPerpsQuality(day: PerpsDaySnapshot, previous: PerpsCompactDay | null): PerpsDaySnapshot {
+  const prior = new Map((previous?.venues ?? []).map((venue) => [venue.venue, venue]));
+  return {
+    ...day,
+    venues: day.venues.map((venue) => {
+      if (!venue.error) {
+        return { ...venue, quality: "fresh", lastGoodAt: venue.capturedAt };
+      }
+      const earlier = prior.get(venue.venue);
+      const lastGoodAt =
+        earlier && !earlier.error
+          ? earlier.capturedAt || previous?.capturedAt || null
+          : earlier?.quality === "stale" && earlier.lastGoodAt
+            ? earlier.lastGoodAt
+            : null;
+      if (lastGoodAt) return { ...venue, quality: "stale", lastGoodAt };
+      return { ...venue, quality: "failed", lastGoodAt: null };
+    }),
   };
 }
 

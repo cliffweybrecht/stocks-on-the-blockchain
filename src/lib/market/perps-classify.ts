@@ -54,7 +54,16 @@ const INDEX_ALIASES: Record<string, string> = {
   HSI: "Hang Seng index",
   HSCHKD: "HS China Ent. index",
   GER40: "DAX index",
+  DAX: "DAX index",
+  GDAXI: "DAX index",
+  DE40: "DAX index",
   UK100: "FTSE 100 index",
+  FTSE: "FTSE 100 index",
+  UKX: "FTSE 100 index",
+  DJI: "Dow 30 index",
+  DJIA: "Dow 30 index",
+  NIK: "Nikkei/Japan 225 index",
+  NKY: "Nikkei/Japan 225 index",
   AUS200: "ASX 200 index",
   TW88: "Taiwan index",
   TWIS: "Taiwan index",
@@ -103,6 +112,8 @@ const ALIAS: Record<string, string> = {
   "SK HYNIX": "SKHYNIX",
   TCNT: "TENCENT",
   VISA: "V",
+  /** Exchange suffix on an Alphabet contract. Same share class as GOOGL. */
+  GOOGLX: "GOOGL",
 };
 
 const STRIP_SUFFIXES = [

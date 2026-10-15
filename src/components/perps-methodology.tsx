@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { perpsArchiveVariance, type PerpsArchiveCheck, type PerpsArchiveVenueCheck } from "@/lib/market/perps-archive";
 import { PERPS_CSV_FILES } from "@/lib/market/perps-csv";
+import { PERPS_JSON_ATTRIBUTION, PERPS_JSON_FILES, PERPS_JSON_SCHEMA } from "@/lib/market/perps-json";
 import { formatUsdCompact } from "@/lib/market/format";
 import {
   PERPS_INDEX_LABELS,
@@ -161,9 +162,11 @@ export function PerpsMethodology({
       <section className="space-y-3" data-perps-method-screen>
         <h3 className="font-heading text-lg font-medium">Volume / open-interest screen</h3>
         <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
-          A venue that trips either rule is stored with credible set to false and left out of the headline. A
-          missing open interest does not trip the screen. Older rows that have no credible field stay in the
-          headline.
+          A venue that trips either rule is stored with credible set to false and left out of the headline. Open
+          interest is used when every market with volume also reported it. If only some did, and those markets
+          are at least half of the venue&apos;s volume, the screen uses that covered subset. A thinner fill is
+          treated as missing, so a few open-interest prints cannot exclude the rest of the book. Older rows keep
+          the credible flag they were stored with. Rows with no credible field stay in the headline.
         </p>
         <ul className="max-w-3xl list-disc space-y-1 pl-5 text-sm text-muted-foreground">
           <li>Volume is more than {PERPS_VOL_OI_LIMIT}× open interest.</li>
@@ -297,13 +300,37 @@ export function PerpsMethodology({
         )}
       </section>
 
+      <section className="space-y-3" data-perps-method-quality>
+        <h3 className="font-heading text-lg font-medium">Fresh, stale, and failed</h3>
+        <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
+          Each venue row is fresh when that capture returned a book, failed when the request errored and no
+          earlier good row exists, and stale when the request errored but an earlier day succeeded. A failed or
+          stale venue stays on the table. Its volume and open interest are blank. They are not stored as zero
+          and they are not added to the headline. Stale does not reuse yesterday&apos;s numbers. Last good is the
+          earlier capture time. Rows written before this field existed are fresh when they have no error, and
+          failed when they recorded one.
+        </p>
+      </section>
+
       <section className="space-y-3" data-perps-method-downloads>
         <h3 className="font-heading text-lg font-medium">Downloads</h3>
         <p className="max-w-3xl text-[11px] leading-snug text-muted-foreground">
-          Static CSV from the stored equity-perps-v2 file. Headline is onchain plus major CEX plus Binance and
-          Bybit, with leveraged ETFs included and long-tail left out. Null cells are unreported.
+          CSV and JSON from the stored equity-perps-v2 file. JSON schema {PERPS_JSON_SCHEMA}. {PERPS_JSON_ATTRIBUTION}{" "}
+          Headline is onchain plus major CEX plus Binance and Bybit, with leveraged ETFs included and long-tail
+          left out. Null cells are unreported. Venue rows include quality and last good time. Ticker rows include
+          a per-venue book only when that day stored one. The top names keep that split. Older days leave it blank.
         </p>
         <div className="flex flex-wrap gap-2">
+          {PERPS_JSON_FILES.map((file) => (
+            <a
+              key={file.id}
+              href={file.href}
+              data-perps-json={file.id}
+              className="rounded-full px-2.5 py-0.5 text-xs font-medium text-muted-foreground ring-1 ring-border hover:text-foreground"
+            >
+              {file.label}
+            </a>
+          ))}
           {PERPS_CSV_FILES.map((file) => (
             <a
               key={file.id}

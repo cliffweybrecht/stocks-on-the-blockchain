@@ -1,7 +1,7 @@
 import { sumNullable } from "./numbers";
 import type { PerpsCompactTicker } from "./perps-compact";
 import { perpsFeedKind } from "./perps-sources";
-import { selectPerpsRange, type PerpsDeskModel, type PerpsTier, type PerpsViewDay } from "./perps-snapshot";
+import { perpsVenueQuality, selectPerpsRange, type PerpsDeskModel, type PerpsTier, type PerpsViewDay } from "./perps-snapshot";
 
 /**
  * CSV downloads for the equity-perp desk. Built from the parsed snapshot,
@@ -60,6 +60,8 @@ const VENUE_HEADERS = [
   "source",
   "volumeWindow",
   "capturedAt",
+  "quality",
+  "lastGoodAt",
 ] as const;
 
 const TICKER_HEADERS = [
@@ -75,6 +77,7 @@ const TICKER_HEADERS = [
   "headlineUsd",
   "venues",
   "funding",
+  "books",
 ] as const;
 
 function csvEscape(value: string): string {
@@ -142,6 +145,8 @@ export function buildPerpsVenueCsv(model: PerpsDeskModel): string {
           venue.source,
           venue.volumeWindow,
           venue.capturedAt,
+          perpsVenueQuality(venue),
+          venue.lastGoodAt || (perpsVenueQuality(venue) === "fresh" ? venue.capturedAt : ""),
         ]),
       );
     }
@@ -162,6 +167,12 @@ function tickerFunding(ticker: PerpsCompactTicker): string {
   return Object.entries(ticker.funding)
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([venue, rate]) => `${venue}=${rate}`)
+    .join("; ");
+}
+
+function tickerBooks(ticker: PerpsCompactTicker): string {
+  return (ticker.books ?? [])
+    .map((book) => `${book.venue}=${typeof book.volumeUsd === "number" ? book.volumeUsd : ""}`)
     .join("; ");
 }
 
@@ -193,6 +204,7 @@ function tickerLines(day: PerpsViewDay): string[] {
       csvNumber(headline),
       tickerVenues(ticker),
       tickerFunding(ticker),
+      tickerBooks(ticker),
     ]);
   });
 }
