@@ -50,29 +50,43 @@ export type PerpsVenueQuality = "fresh" | "stale" | "failed";
 
 /**
  * Volume and open interest for the credibility screen.
- * Open interest is usable only when every equity market that reported volume
- * also reported open interest. A partial open-interest feed is treated as
- * missing, so it does not trip the screen.
+ * A market with no volume does not have to report open interest.
+ * When only some positive-volume markets report it, the screen uses that
+ * covered subset if it is at least half the venue volume. A thinner fill is
+ * treated as missing, so a handful of open-interest prints cannot exclude
+ * the rest of the book.
  */
 export function perpsScreenInputs(
   markets: readonly Pick<PerpsMarketSnapshot, "category" | "volume24hUsd" | "openInterestUsd">[],
 ): { volumeUsd: number | null; openInterestUsd: number | null } {
   const volumes: (number | null)[] = [];
   const ois: (number | null)[] = [];
-  let volumeMarkets = 0;
+  let positive = 0;
   let covered = 0;
+  let coveredVolume = 0;
+  let coveredOpenInterest = 0;
   for (const market of markets) {
     if (market.category === "preipo") continue;
     volumes.push(market.volume24hUsd);
     ois.push(market.openInterestUsd);
-    if (typeof market.volume24hUsd === "number" && Number.isFinite(market.volume24hUsd)) {
-      volumeMarkets += 1;
-      if (typeof market.openInterestUsd === "number" && Number.isFinite(market.openInterestUsd)) covered += 1;
+    const volume = market.volume24hUsd;
+    const openInterest = market.openInterestUsd;
+    if (typeof volume === "number" && Number.isFinite(volume) && volume > 0) {
+      positive += 1;
+      if (typeof openInterest === "number" && Number.isFinite(openInterest)) {
+        covered += 1;
+        coveredVolume += volume;
+        coveredOpenInterest += openInterest;
+      }
     }
   }
   const volumeUsd = sumNullable(volumes);
-  if (volumeMarkets === 0 || covered !== volumeMarkets) return { volumeUsd, openInterestUsd: null };
-  return { volumeUsd, openInterestUsd: sumNullable(ois) };
+  if (positive === 0) return { volumeUsd, openInterestUsd: null };
+  if (covered === positive) return { volumeUsd, openInterestUsd: sumNullable(ois) };
+  if (volumeUsd !== null && volumeUsd > 0 && coveredVolume / volumeUsd >= 0.5) {
+    return { volumeUsd: coveredVolume, openInterestUsd: coveredOpenInterest };
+  }
+  return { volumeUsd, openInterestUsd: null };
 }
 
 export function perpsExcludeReason(volumeUsd: number | null, openInterestUsd: number | null): string | null {

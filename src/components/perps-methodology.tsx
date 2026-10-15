@@ -163,9 +163,10 @@ export function PerpsMethodology({
         <h3 className="font-heading text-lg font-medium">Volume / open-interest screen</h3>
         <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
           A venue that trips either rule is stored with credible set to false and left out of the headline. Open
-          interest counts only when every equity market that reported volume also reported open interest. A
-          partial open-interest feed is treated as missing, so it does not trip the screen. Older rows keep the
-          credible flag they were stored with. Rows with no credible field stay in the headline.
+          interest is used when every market with volume also reported it. If only some did, and those markets
+          are at least half of the venue&apos;s volume, the screen uses that covered subset. A thinner fill is
+          treated as missing, so a few open-interest prints cannot exclude the rest of the book. Older rows keep
+          the credible flag they were stored with. Rows with no credible field stay in the headline.
         </p>
         <ul className="max-w-3xl list-disc space-y-1 pl-5 text-sm text-muted-foreground">
           <li>Volume is more than {PERPS_VOL_OI_LIMIT}× open interest.</li>

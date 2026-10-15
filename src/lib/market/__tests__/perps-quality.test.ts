@@ -114,17 +114,25 @@ describe("equity perp aliases and credibility", () => {
     expect(classifyPerpUnderlying("DOW")).toBe("stock");
   });
 
-  it("treats a partial open-interest book as missing so it cannot trip the screen", () => {
-    const partial = perpsScreenInputs([
-      { category: "stock", volume24hUsd: 200_000_000, openInterestUsd: 1_000_000 },
-      { category: "stock", volume24hUsd: 50, openInterestUsd: null },
+  it("screens a covered majority and ignores a thin open-interest fill", () => {
+    const thin = perpsScreenInputs([
+      { category: "stock", volume24hUsd: 200_000_000, openInterestUsd: null },
+      { category: "stock", volume24hUsd: 1_000_000, openInterestUsd: 1_000 },
       { category: "preipo", volume24hUsd: 9_000_000_000, openInterestUsd: null },
     ]);
-    expect(partial).toEqual({ volumeUsd: 200_000_050, openInterestUsd: null });
-    expect(perpsExcludeReason(partial.volumeUsd, partial.openInterestUsd)).toBeNull();
+    expect(thin).toEqual({ volumeUsd: 201_000_000, openInterestUsd: null });
+    expect(perpsExcludeReason(thin.volumeUsd, thin.openInterestUsd)).toBeNull();
+
+    const majority = perpsScreenInputs([
+      { category: "stock", volume24hUsd: 200_000_000, openInterestUsd: 1_000_000 },
+      { category: "stock", volume24hUsd: 50, openInterestUsd: null },
+    ]);
+    expect(majority).toEqual({ volumeUsd: 200_000_000, openInterestUsd: 1_000_000 });
+    expect(perpsExcludeReason(majority.volumeUsd, majority.openInterestUsd)).toMatch(/Volume is/);
 
     const full = perpsScreenInputs([
       { category: "stock", volume24hUsd: 200_000_000, openInterestUsd: 1_000_000 },
+      { category: "stock", volume24hUsd: 0, openInterestUsd: null },
     ]);
     expect(full.openInterestUsd).toBe(1_000_000);
     expect(perpsExcludeReason(full.volumeUsd, full.openInterestUsd)).toMatch(/Volume is/);
