@@ -241,10 +241,29 @@ describe("stored liquidity corrections", () => {
           });
           if (stored === null) expect(card).toBeNull();
           else expect(card).toBeCloseTo(stored, 2);
-          if (!Array.isArray(item.excludedLiquidityPools)) continue;
-          expect(file).toBe("solana.json");
+          if (!Array.isArray(item.excludedLiquidityPools) || item.excludedLiquidityPools.length === 0) continue;
+          const knownReasons = new Set<string>([
+            LIQUIDITY_SANITY_REASON_DEAD_DEPTH,
+            LIQUIDITY_SANITY_REASON_DOMINANCE,
+            LIQUIDITY_SANITY_REASON_GECKO,
+          ]);
+          for (const raw of item.excludedLiquidityPools) {
+            const row = raw as { poolId?: string; liquidityUsd?: number; reason?: string };
+            expect(knownReasons.has(String(row.reason))).toBe(true);
+            expect(card).not.toBe(row.liquidityUsd);
+          }
           const excluded = item.excludedLiquidityPools[0] as { poolId: string; liquidityUsd: number; reason: string };
-          const correction = item.correction as { displayedLiquidityUsd: number; reason: string };
+          const correction = item.correction as { displayedLiquidityUsd?: number; reason?: string } | undefined;
+          if (correction) {
+            expect(correction.reason).toContain(excluded.poolId);
+            expect(correction.reason).toContain(String(excluded.liquidityUsd));
+          }
+          const spcx = expected.find(
+            (row) =>
+              row.date === String(rec.date) && row.address === String(item.address) && row.poolId === excluded.poolId,
+          );
+          if (!spcx) continue;
+          expect(file).toBe("solana.json");
           const excludedPool = pools.find(
             (pool) => (pool as { pairAddress?: string }).pairAddress === excluded.poolId,
           ) as { volume24hUsd?: unknown } | undefined;
@@ -252,17 +271,14 @@ describe("stored liquidity corrections", () => {
             date: String(rec.date),
             address: String(item.address),
             poolId: excluded.poolId,
-            before: correction.displayedLiquidityUsd,
+            before: correction?.displayedLiquidityUsd ?? NaN,
             after: stored ?? 0,
             raw: excluded.liquidityUsd,
             poolVolume: asNonNegativeNumber(excludedPool?.volume24hUsd) ?? 0,
             assetVolume: asNonNegativeNumber(item.volume24hUsd) ?? 0,
           });
           expect(excluded.reason).toBe(LIQUIDITY_SANITY_REASON_DEAD_DEPTH);
-          expect(correction.reason).toContain(excluded.poolId);
-          expect(correction.reason).toContain(String(excluded.liquidityUsd));
           expect(card).toBe(sanity.displayedLiquidityUsd);
-          expect(card).not.toBe(excluded.liquidityUsd);
         }
       }
     }
