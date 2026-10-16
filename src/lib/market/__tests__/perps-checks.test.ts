@@ -225,7 +225,10 @@ describe("perps row checks", () => {
     const text = readFileSync(join(process.cwd(), "data", "perps-snapshots", "perps.json"), "utf8");
     const parsed = parsePerpsSnapshotFile(JSON.parse(text));
     expect(serializePerpsSnapshot(parsed)).toBe(text);
-    expect(parsed.records.every((row) => row.checks === undefined)).toBe(true);
+    // Rows written before the watchdog omit checks. A later save stores the list,
+    // including an empty list when the watchdog ran clean.
+    expect(parsed.records.filter((row) => row.date < "2026-10-15").every((row) => row.checks === undefined)).toBe(true);
+    expect(parsed.records.find((row) => row.date === "2026-10-15")?.checks).toEqual([]);
   });
 
   it("drops the check list when the comparison throws and still returns the day", () => {
