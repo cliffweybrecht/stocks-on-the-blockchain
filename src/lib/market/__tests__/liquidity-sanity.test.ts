@@ -221,12 +221,16 @@ describe("stored liquidity corrections", () => {
           const sanity = applyLiquiditySanity({
             pools: pools.map((pool) => {
               const entry = pool as Record<string, unknown>;
+              const poolId = typeof entry.pairAddress === "string" ? entry.pairAddress : typeof entry.poolId === "string" ? entry.poolId : "";
+              const geckoRaw = entry.geckoReserveUsd !== undefined ? entry.geckoReserveUsd : entry.reserveUsd;
               return {
-                poolId: String(entry.pairAddress ?? ""),
+                poolId,
                 liquidityUsd: asNonNegativeNumber(entry.liquidityUsd),
                 volume24hUsd: asNonNegativeNumber(entry.volume24hUsd),
+                geckoReserveUsd: asNonNegativeNumber(geckoRaw),
               };
             }),
+            marketValueUsd: asNonNegativeNumber(item.marketValueUsd),
           });
           const stored = item.displayedLiquidityUsd === null ? null : asNonNegativeNumber(item.displayedLiquidityUsd);
           if (stored === null || sanity.displayedLiquidityUsd === null) {
@@ -238,16 +242,24 @@ describe("stored liquidity corrections", () => {
           const card = readStoredAssetLiquidityUsd({
             displayedLiquidityUsd: stored,
             pools: pools as { pairAddress?: string; liquidityUsd?: number | null }[],
+            excludedLiquidityPools: Array.isArray(item.excludedLiquidityPools) ? item.excludedLiquidityPools : undefined,
           });
           if (stored === null) expect(card).toBeNull();
           else expect(card).toBeCloseTo(stored, 2);
-          if (!Array.isArray(item.excludedLiquidityPools)) continue;
-          expect(file).toBe("solana.json");
-          const excluded = item.excludedLiquidityPools[0] as { poolId: string; liquidityUsd: number; reason: string };
+          // The guard applies on every chain. A nightly writer records the exclusion
+          // at capture time. A later rewrite also keeps the previous total on `correction`.
+          const storedExcluded = Array.isArray(item.excludedLiquidityPools) ? item.excludedLiquidityPools : [];
+          expect(storedExcluded).toEqual(sanity.excludedLiquidityPools);
+          for (const excluded of storedExcluded as { liquidityUsd: number }[]) {
+            expect(card).not.toBe(excluded.liquidityUsd);
+          }
+          if (storedExcluded.length === 0 || !item.correction || typeof item.correction !== "object") continue;
+          const excluded = storedExcluded[0] as { poolId: string; liquidityUsd: number; reason: string };
           const correction = item.correction as { displayedLiquidityUsd: number; reason: string };
-          const excludedPool = pools.find(
-            (pool) => (pool as { pairAddress?: string }).pairAddress === excluded.poolId,
-          ) as { volume24hUsd?: unknown } | undefined;
+          const excludedPool = pools.find((pool) => {
+            const entry = pool as { pairAddress?: string; poolId?: string };
+            return (entry.pairAddress || entry.poolId) === excluded.poolId;
+          }) as { volume24hUsd?: unknown } | undefined;
           found.push({
             date: String(rec.date),
             address: String(item.address),
@@ -262,7 +274,6 @@ describe("stored liquidity corrections", () => {
           expect(correction.reason).toContain(excluded.poolId);
           expect(correction.reason).toContain(String(excluded.liquidityUsd));
           expect(card).toBe(sanity.displayedLiquidityUsd);
-          expect(card).not.toBe(excluded.liquidityUsd);
         }
       }
     }
