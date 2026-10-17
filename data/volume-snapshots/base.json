@@ -77496,6 +77496,4317 @@
           "reason": "no-geckoterminal-candles"
         }
       ]
+    },
+    {
+      "date": "2026-10-16",
+      "t": 1792123200,
+      "publicEquity24hUsd": 93827058.65,
+      "private24hUsd": 5616140.24,
+      "etfIndex24hUsd": 674131.33,
+      "combined24hUsd": 100117330.22,
+      "publicMintCount": 525,
+      "publicPoolCount": 370,
+      "etfMintCount": 101,
+      "etfPoolCount": 13,
+      "preipoMintCount": 4,
+      "preipoPoolCount": 31,
+      "withVolumeEquityCount": 73,
+      "uncheckedMintCount": 0,
+      "generatedAt": "2026-10-17T04:09:09.733263Z",
+      "dayKeySource": "override",
+      "issuers": [
+        {
+          "issuer": "anchored",
+          "publicEquity24hUsd": null,
+          "private24hUsd": null,
+          "etfIndex24hUsd": null,
+          "publicMintCount": 49,
+          "preipoMintCount": 1,
+          "etfMintCount": 23,
+          "withVolumeEquityCount": 0,
+          "withVolumeCount": 0
+        },
+        {
+          "issuer": "backed",
+          "publicEquity24hUsd": null,
+          "private24hUsd": null,
+          "etfIndex24hUsd": null,
+          "publicMintCount": 11,
+          "preipoMintCount": 0,
+          "etfMintCount": 1,
+          "withVolumeEquityCount": 0,
+          "withVolumeCount": 0
+        },
+        {
+          "issuer": "centrifuge",
+          "publicEquity24hUsd": null,
+          "private24hUsd": null,
+          "etfIndex24hUsd": 622741.19,
+          "publicMintCount": 0,
+          "preipoMintCount": 0,
+          "etfMintCount": 2,
+          "withVolumeEquityCount": 0,
+          "withVolumeCount": 1
+        },
+        {
+          "issuer": "coinbase",
+          "publicEquity24hUsd": 93596352.79,
+          "private24hUsd": 5616083.84,
+          "etfIndex24hUsd": null,
+          "publicMintCount": 173,
+          "preipoMintCount": 1,
+          "etfMintCount": 0,
+          "withVolumeEquityCount": 56,
+          "withVolumeCount": 57
+        },
+        {
+          "issuer": "dinari",
+          "publicEquity24hUsd": null,
+          "private24hUsd": null,
+          "etfIndex24hUsd": null,
+          "publicMintCount": 255,
+          "preipoMintCount": 1,
+          "etfMintCount": 68,
+          "withVolumeEquityCount": 0,
+          "withVolumeCount": 0
+        },
+        {
+          "issuer": "st0x",
+          "publicEquity24hUsd": 230705.86,
+          "private24hUsd": 56.4,
+          "etfIndex24hUsd": 51390.14,
+          "publicMintCount": 37,
+          "preipoMintCount": 1,
+          "etfMintCount": 7,
+          "withVolumeEquityCount": 17,
+          "withVolumeCount": 22
+        }
+      ],
+      "symbolsWithVolume": [
+        {
+          "symbol": "MSTRc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb2000000000000000000004884b426556b92883d",
+          "volume24hUsd": 13802855.2
+        },
+        {
+          "symbol": "NVDAc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb20000000000000000000078ee7ce2fE4908108C",
+          "volume24hUsd": 12501116.92
+        },
+        {
+          "symbol": "SNDKc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb200000000000000000000397293Cb8cda9a10c5",
+          "volume24hUsd": 10278830.62
+        },
+        {
+          "symbol": "METAc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb2000000000000000000008bC8786B856E61707C",
+          "volume24hUsd": 9058121.83
+        },
+        {
+          "symbol": "TSLAc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb2000000000000000000001e800a7f5189430cD0",
+          "volume24hUsd": 8810537.0
+        },
+        {
+          "symbol": "GOOGLc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb2000000000000000000002D0BA3164cc74f58B7",
+          "volume24hUsd": 8492103.46
+        },
+        {
+          "symbol": "AMZNc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb200000000000000000000d9192b6B456483C2E8",
+          "volume24hUsd": 8435228.07
+        },
+        {
+          "symbol": "AAPLc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb200000000000000000000C2e324d24d7eEcd1fb",
+          "volume24hUsd": 6714357.48
+        },
+        {
+          "symbol": "MUc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb200000000000000000000Fd2f87532B90095211",
+          "volume24hUsd": 6269326.22
+        },
+        {
+          "symbol": "SPCXc",
+          "issuer": "coinbase",
+          "kind": "preipo",
+          "address": "0xb2000000000000000000007b9fcbd005511aCBd5",
+          "volume24hUsd": 5616083.84
+        },
+        {
+          "symbol": "MSFTc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xB200000000000000000000Ab99cFa739E253872B",
+          "volume24hUsd": 5202776.07
+        },
+        {
+          "symbol": "PLTRc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb2000000000000000000007d16372840dF4dAbbe",
+          "volume24hUsd": 3213733.87
+        },
+        {
+          "symbol": "deSPXA",
+          "issuer": "centrifuge",
+          "kind": "etf",
+          "address": "0x9c5C365e764829876243d0b289733B9D2b729685",
+          "volume24hUsd": 622741.19
+        },
+        {
+          "symbol": "wtCOIN",
+          "issuer": "st0x",
+          "kind": "equity",
+          "address": "0x5cDa0E1CA4ce2af96315f7F8963C85399c172204",
+          "volume24hUsd": 194257.33
+        },
+        {
+          "symbol": "ARMc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xB20000000000000000000026215D755356E5043f",
+          "volume24hUsd": 64119.18
+        },
+        {
+          "symbol": "LLYc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xB200000000000000000000f1a0F91e34892E4718",
+          "volume24hUsd": 63529.86
+        },
+        {
+          "symbol": "SKHYc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb200000000000000000000187f7071D6E321a7d2",
+          "volume24hUsd": 61762.76
+        },
+        {
+          "symbol": "NOKc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xB2000000000000000000005ac674f707E357409c",
+          "volume24hUsd": 54565.13
+        },
+        {
+          "symbol": "PDDc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xB200000000000000000000c8A7223510467D8563",
+          "volume24hUsd": 52685.72
+        },
+        {
+          "symbol": "wtSPYM",
+          "issuer": "st0x",
+          "kind": "etf",
+          "address": "0x31C2C14134e6E3B7ef9478297F199331133Fc2d8",
+          "volume24hUsd": 49119.88
+        },
+        {
+          "symbol": "SAPc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb200000000000000000000da6F64c306234127E0",
+          "volume24hUsd": 45693.67
+        },
+        {
+          "symbol": "INFYc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb200000000000000000000F6b0417af5F52341FC",
+          "volume24hUsd": 40570.83
+        },
+        {
+          "symbol": "ULc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xB200000000000000000000349ef3Aa93a0897476",
+          "volume24hUsd": 36824.82
+        },
+        {
+          "symbol": "BIDUc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb200000000000000000000d2b7D9aeE52F6C6BEf",
+          "volume24hUsd": 36197.13
+        },
+        {
+          "symbol": "SONYc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb200000000000000000000a26326a922FFA87f6C",
+          "volume24hUsd": 35290.09
+        },
+        {
+          "symbol": "SANc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xB20000000000000000000017BB66E9301E913A99",
+          "volume24hUsd": 30801.48
+        },
+        {
+          "symbol": "SEc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xB2000000000000000000003088798F6d0722AaAC",
+          "volume24hUsd": 29120.68
+        },
+        {
+          "symbol": "HSAIc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb200000000000000000000f3049F4aa834b23b64",
+          "volume24hUsd": 27732.38
+        },
+        {
+          "symbol": "LIc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb200000000000000000000D61eFD9F54A23ef9eB",
+          "volume24hUsd": 25088.25
+        },
+        {
+          "symbol": "BILIc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb200000000000000000000ca7C6D1438e7245eb6",
+          "volume24hUsd": 23454.09
+        },
+        {
+          "symbol": "NIOc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb2000000000000000000002D2B5dc53c61f1bA06",
+          "volume24hUsd": 22035.33
+        },
+        {
+          "symbol": "BUDc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xB200000000000000000000c36ce081Dd09e86cA2",
+          "volume24hUsd": 21751.15
+        },
+        {
+          "symbol": "wtNVDA",
+          "issuer": "st0x",
+          "kind": "equity",
+          "address": "0xFb5B41acdbA20a3230F84BE995173CFb98b8D6E7",
+          "volume24hUsd": 20926.72
+        },
+        {
+          "symbol": "NVOc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb2000000000000000000008D5328e9208773dC58",
+          "volume24hUsd": 20723.09
+        },
+        {
+          "symbol": "WRDc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb200000000000000000000e88EFe88D8aDE3f0dA",
+          "volume24hUsd": 19867.45
+        },
+        {
+          "symbol": "HIMSc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xB20000000000000000000043a599976181Bcf336",
+          "volume24hUsd": 18504.76
+        },
+        {
+          "symbol": "VALEc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xB20000000000000000000063376b142C0764B489",
+          "volume24hUsd": 18361.91
+        },
+        {
+          "symbol": "RDDTc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb20000000000000000000066242d4067724cB7A1",
+          "volume24hUsd": 16901.42
+        },
+        {
+          "symbol": "NFLXc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb20000000000000000000058B8c947e44011dFE6",
+          "volume24hUsd": 16065.46
+        },
+        {
+          "symbol": "wtFGI",
+          "issuer": "st0x",
+          "kind": "equity",
+          "address": "0x6aed8b1aCfb04F4e0e6db580F12fF41438a394e5",
+          "volume24hUsd": 7965.41
+        },
+        {
+          "symbol": "RBLXc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xB2000000000000000000005bd7AE89b9E6189Bb5",
+          "volume24hUsd": 6752.43
+        },
+        {
+          "symbol": "wtMSTR",
+          "issuer": "st0x",
+          "kind": "equity",
+          "address": "0xFF05E1bD696900dc6A52CA35Ca61Bb1024eDa8e2",
+          "volume24hUsd": 6445.49
+        },
+        {
+          "symbol": "AMDc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xB2000000000000000000000d8Ce462E99ee7A47B",
+          "volume24hUsd": 5646.14
+        },
+        {
+          "symbol": "PYPLc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb200000000000000000000450ad3abE5d4846c6E",
+          "volume24hUsd": 4918.68
+        },
+        {
+          "symbol": "wtNKE",
+          "issuer": "st0x",
+          "kind": "equity",
+          "address": "0x0883f32d23Ed5535057a4B5E3eB1970FE08606AF",
+          "volume24hUsd": 3486.19
+        },
+        {
+          "symbol": "wtGOOGL",
+          "issuer": "st0x",
+          "kind": "equity",
+          "address": "0x6a2357Df4975C667B171bE53dA6FFe6deBf7030c",
+          "volume24hUsd": 2785.37
+        },
+        {
+          "symbol": "BEc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb20000000000000000000016f9dfe862feBA122b",
+          "volume24hUsd": 2718.71
+        },
+        {
+          "symbol": "QUBTc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb200000000000000000000CA425ab42e07C35bC3",
+          "volume24hUsd": 2661.32
+        },
+        {
+          "symbol": "wtGRND",
+          "issuer": "st0x",
+          "kind": "equity",
+          "address": "0x1197E6FA778c4D13E47875bD1761c68C22c928e0",
+          "volume24hUsd": 2648.37
+        },
+        {
+          "symbol": "DJTc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb200000000000000000000428E3a3eebBb20692B",
+          "volume24hUsd": 2358.07
+        },
+        {
+          "symbol": "wtSKHY",
+          "issuer": "st0x",
+          "kind": "equity",
+          "address": "0xFcD17aC4c4BF6a72c93018096F3fC09e66573Ff9",
+          "volume24hUsd": 2157.03
+        },
+        {
+          "symbol": "PMc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xB2000000000000000000008FC2A8C23cf5937b66",
+          "volume24hUsd": 1706.32
+        },
+        {
+          "symbol": "wtPLBY",
+          "issuer": "st0x",
+          "kind": "equity",
+          "address": "0x35fDe767dBFAa610D12cf99914bCd6CFEda73B7B",
+          "volume24hUsd": 1500.21
+        },
+        {
+          "symbol": "GMEc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb2000000000000000000007790ed6E48e06eD935",
+          "volume24hUsd": 1426.09
+        },
+        {
+          "symbol": "CAKEc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb200000000000000000000f215E4C890CFb7176B",
+          "volume24hUsd": 1400.33
+        },
+        {
+          "symbol": "DUOLc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb200000000000000000000A613D12dEAfBBb1Db7",
+          "volume24hUsd": 1396.11
+        },
+        {
+          "symbol": "wtDNUT",
+          "issuer": "st0x",
+          "kind": "equity",
+          "address": "0x1db49Ff8BEe88ec73F82F395B0BEAd372BdcAdb7",
+          "volume24hUsd": 1391.7
+        },
+        {
+          "symbol": "wtQQQM",
+          "issuer": "st0x",
+          "kind": "etf",
+          "address": "0x823FF7Bbde2869aAe73A6CD53e7f614442836757",
+          "volume24hUsd": 1332.73
+        },
+        {
+          "symbol": "AVGOc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xB200000000000000000000Fc737aeA6196aB5a4c",
+          "volume24hUsd": 1294.56
+        },
+        {
+          "symbol": "MRNAc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xB200000000000000000000e215e9B76ecBA02468",
+          "volume24hUsd": 1261.07
+        },
+        {
+          "symbol": "TTWOc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xB200000000000000000000f720C26062Bc3067Da",
+          "volume24hUsd": 1119.38
+        },
+        {
+          "symbol": "PTONc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xB2000000000000000000009272A491812842Aa84",
+          "volume24hUsd": 881.89
+        },
+        {
+          "symbol": "ORCLc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb200000000000000000000347AFbA223D7B6b63C",
+          "volume24hUsd": 673.69
+        },
+        {
+          "symbol": "ASTSc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xB200000000000000000000B1a29cF17A1819288a",
+          "volume24hUsd": 648.78
+        },
+        {
+          "symbol": "wtDRAM",
+          "issuer": "st0x",
+          "kind": "etf",
+          "address": "0x1A91Df4a970EBaB1bB4AF32Eb6d10509028eE4b8",
+          "volume24hUsd": 629.1
+        },
+        {
+          "symbol": "wtTR",
+          "issuer": "st0x",
+          "kind": "equity",
+          "address": "0x433fd2Fc0964B07E9820e4cd01774eDE59D1F002",
+          "volume24hUsd": 510.55
+        },
+        {
+          "symbol": "wtTSM",
+          "issuer": "st0x",
+          "kind": "equity",
+          "address": "0x71C66449d2528E23514A9c197BFD55Ae9DB3B714",
+          "volume24hUsd": 487.87
+        },
+        {
+          "symbol": "PFEc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xB20000000000000000000018FE7eC7d6DfeeB528",
+          "volume24hUsd": 439.49
+        },
+        {
+          "symbol": "NVAXc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xB200000000000000000000C597c476FCf9Aed3a8",
+          "volume24hUsd": 335.2
+        },
+        {
+          "symbol": "wtSPY",
+          "issuer": "st0x",
+          "kind": "etf",
+          "address": "0x9Aa9c5a24e976096A6A7aB44986DAE8230fa5b27",
+          "volume24hUsd": 308.43
+        },
+        {
+          "symbol": "SOUNc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xB2000000000000000000002137743D4a01Fe4e88",
+          "volume24hUsd": 264.88
+        },
+        {
+          "symbol": "WENc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xB20000000000000000000044E3CD7a0E1028E57a",
+          "volume24hUsd": 264.45
+        },
+        {
+          "symbol": "MRVLc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xB200000000000000000000eC3c4c7395Cc609813",
+          "volume24hUsd": 237.38
+        },
+        {
+          "symbol": "wtMCD",
+          "issuer": "st0x",
+          "kind": "equity",
+          "address": "0x7ecAE30Ed8ee4F72653ada7b0941bDE7a0a8eE8d",
+          "volume24hUsd": 235.84
+        },
+        {
+          "symbol": "wtBABA",
+          "issuer": "st0x",
+          "kind": "equity",
+          "address": "0x7e5cc7eAe0455A07Ab4abf354E0f5657BA2888BD",
+          "volume24hUsd": 131.14
+        },
+        {
+          "symbol": "HTZc",
+          "issuer": "coinbase",
+          "kind": "equity",
+          "address": "0xb2000000000000000000002601C5C94F435da168",
+          "volume24hUsd": 117.21
+        },
+        {
+          "symbol": "wtWEN",
+          "issuer": "st0x",
+          "kind": "equity",
+          "address": "0x31Fa821F8B1BDea7Db357ec9622d1A2f6aFE903d",
+          "volume24hUsd": 90.96
+        },
+        {
+          "symbol": "wtSPCX",
+          "issuer": "st0x",
+          "kind": "preipo",
+          "address": "0x19F89aaEf8a93f38A974beca9776f09aB844887F",
+          "volume24hUsd": 56.4
+        },
+        {
+          "symbol": "wtAAPL",
+          "issuer": "st0x",
+          "kind": "equity",
+          "address": "0x1020EC8Aa3f709a1f3D8705cdBa89b950451bd88",
+          "volume24hUsd": 35.14
+        },
+        {
+          "symbol": "wtTSLA",
+          "issuer": "st0x",
+          "kind": "equity",
+          "address": "0x219A8d384a10BF19b9f24cB5cC53F79Dd0e5A03D",
+          "volume24hUsd": 0.22
+        }
+      ],
+      "assets": [
+        {
+          "address": "0xb200000000000000000000C2e324d24d7eEcd1fb",
+          "symbol": "AAPLc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 6714357.48,
+          "displayedLiquidityUsd": 1796774.57,
+          "pools": [
+            {
+              "pairAddress": "0x051dc7a92fb547754eee51e6ef9c20b2e8e4b91f056ea7477f5abd121e83f907",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 7392.92
+            },
+            {
+              "pairAddress": "0x21dedf1fa8705ee89fa07aa26ee216c552e92e3da28a562816c56d666720d3d0",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 124.23,
+              "liquidityUsd": 1715.93
+            },
+            {
+              "pairAddress": "0x2C5A682487C0f68D8AE15BdF7B93850eD9196B24",
+              "dexId": "aerodrome",
+              "volume24hUsd": 1.6,
+              "liquidityUsd": 4174.82
+            },
+            {
+              "pairAddress": "0x2c73F211dcfb2e98E2C08E3Ea8AD75f328381219",
+              "dexId": "aerodrome",
+              "volume24hUsd": 8597.06,
+              "liquidityUsd": 941.86
+            },
+            {
+              "pairAddress": "0x383e9df6cba05083605374e9cb414e49af22b6da5344c2ee3b0553621c27bb3f",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1255.04
+            },
+            {
+              "pairAddress": "0x4a5fc0d81ade0fcc8d04ae2154d492a86b70bb2dddb0bf27131621fcf1034e4e",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 4.96,
+              "liquidityUsd": 5400.89
+            },
+            {
+              "pairAddress": "0x4af3b7a1bf6a288aa903b8d294bdd4e649093e5ecac94a95cd7f1865ae4a53da",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 140.24,
+              "liquidityUsd": 2766.32
+            },
+            {
+              "pairAddress": "0x51d70c7873838054a54d219ba801bba92f585230c28dfe33abeddabdc930c0cd",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 2.1,
+              "liquidityUsd": 43.22
+            },
+            {
+              "pairAddress": "0x529ecd2ea776e995ebdd22bf7dd0bfdf6307001ee3e32a0716e6646f75135812",
+              "dexId": "o1-launchpad",
+              "volume24hUsd": 0.42,
+              "liquidityUsd": 8900.07
+            },
+            {
+              "pairAddress": "0x5600b2a8a21e22b9a74ac0d535289740d8d7b51962141d8e123a88b93dbad822",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.22,
+              "liquidityUsd": 38.04
+            },
+            {
+              "pairAddress": "0x5D8a9bf50e2270C0C051Ef4A79a6Aa376A611E72",
+              "dexId": "hydrex",
+              "volume24hUsd": 155.25,
+              "liquidityUsd": 1770.3
+            },
+            {
+              "pairAddress": "0x6f3741139e087324fb023a1d5a1e038a343de15edba4409d6bf9c4b54db443ed",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 166.99,
+              "liquidityUsd": 1108.48
+            },
+            {
+              "pairAddress": "0x851f65bcdf6485f15047d4dea1cf8cb60ad1a815bbed7d2e8373a32b954045e4",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 3241.65,
+              "liquidityUsd": 341681.1
+            },
+            {
+              "pairAddress": "0x85919091d8aeef02a3085ca6d71625d583ca30e8f89304cbb8268f8af80b7e95",
+              "dexId": "o1-launchpad",
+              "volume24hUsd": 34.99,
+              "liquidityUsd": 10603.64
+            },
+            {
+              "pairAddress": "0x85f401B9543E69ab1eB1dCF4F98cF58fC9A8C97d",
+              "dexId": "aerodrome",
+              "volume24hUsd": 5.47,
+              "liquidityUsd": 4489.62
+            },
+            {
+              "pairAddress": "0x97F35d1E92795327614BE000cd18cba1Be2c1931",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 25944.12,
+              "liquidityUsd": 31972.78
+            },
+            {
+              "pairAddress": "0x9f8353f61574DA73218206Ad3f70d9455bfed9c4",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 107.3,
+              "liquidityUsd": 13269.43
+            },
+            {
+              "pairAddress": "0xA3b1E3f9747065e2073722Ff4c9027d3eA4994F0",
+              "dexId": "aerodrome",
+              "volume24hUsd": 6568780.03,
+              "liquidityUsd": 1270434.3
+            },
+            {
+              "pairAddress": "0xad7a44ce86a24b415eb32093d60a7756de205d1f",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 4.77,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xb0b0dd5480874688f210b934c1a5d3f10c2402bfe0c511a293cb77f392113848",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 2465.04,
+              "liquidityUsd": 47831.92
+            },
+            {
+              "pairAddress": "0xb572145670691bb84497145566e1bbb9eedbb1b560d3f83037cb259104d95dd7",
+              "dexId": "uniswap",
+              "volume24hUsd": 11.74,
+              "liquidityUsd": 6193.73
+            },
+            {
+              "pairAddress": "0xb75C6AEa6560eb5A649284eEa5CfF67F12639bB5",
+              "dexId": "equalizer",
+              "volume24hUsd": 0.01,
+              "liquidityUsd": 47.11
+            },
+            {
+              "pairAddress": "0xBe06592c81997Edc0874BDe44Ef2DB70F51F4F70",
+              "dexId": "aerodrome",
+              "volume24hUsd": 0.23,
+              "liquidityUsd": 4231.13
+            },
+            {
+              "pairAddress": "0xc2c2ed70b75192076b640094a2c5a1b88c020d9c61d98a608e281019e4fd5c9c",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.03,
+              "liquidityUsd": 18.63
+            },
+            {
+              "pairAddress": "0xCb4bC943314405c01907Ae910E57AFC2D0549706",
+              "dexId": "aerodrome",
+              "volume24hUsd": 104484.46,
+              "liquidityUsd": 19626.41
+            },
+            {
+              "pairAddress": "0xCcb9d8152Fe783FaDa0f86e87551a1423eA69577",
+              "dexId": "aerodrome",
+              "volume24hUsd": 2.18,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xd53b44c2005319df49d43418154ad22100fac49fa13e66b84ca4e91174401646",
+              "dexId": "o1-launchpad",
+              "volume24hUsd": 47.25,
+              "liquidityUsd": 6890.53
+            },
+            {
+              "pairAddress": "0xd944fE0B26aCFc28fD425390d96af83E14f95844",
+              "dexId": "hydrex",
+              "volume24hUsd": 35.14,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xe0b7fbe3d12486b8dd4d6501fd4156198b083a128ddae5ddc4cf817903dbefaf",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 3976.35
+            }
+          ]
+        },
+        {
+          "address": "0xB2000000000000000000000d8Ce462E99ee7A47B",
+          "symbol": "AMDc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 5646.14,
+          "displayedLiquidityUsd": 19909.85,
+          "pools": [
+            {
+              "pairAddress": "0x0f9392c6C3fde1066F2e1c32b5536FB63897b64D",
+              "dexId": "aerodrome",
+              "volume24hUsd": 5646.02,
+              "liquidityUsd": 10392.68
+            },
+            {
+              "pairAddress": "0x7f26263f794ffd6467885715b3c379ac97d9507e2a71e7b8007c254963fec467",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.12,
+              "liquidityUsd": 9517.17
+            }
+          ]
+        },
+        {
+          "address": "0xb200000000000000000000d9192b6B456483C2E8",
+          "symbol": "AMZNc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 8435228.07,
+          "displayedLiquidityUsd": 2884584.35,
+          "pools": [
+            {
+              "pairAddress": "0x060acec380a49cd0f6ebd34ad1263052f95a84679a1127801daf3d0dd8e567ac",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 309.39,
+              "liquidityUsd": 1008.27
+            },
+            {
+              "pairAddress": "0x16516abcf7de7d8c4a60d03203f04937ed96574c57fd6cd7b2d8b75447348d00",
+              "dexId": "uniswap",
+              "volume24hUsd": 745.4,
+              "liquidityUsd": 36345.97
+            },
+            {
+              "pairAddress": "0x22Cf9B71933caC55b69f7cD9C6beB45A6Dde5c76",
+              "dexId": "aerodrome",
+              "volume24hUsd": 1.32,
+              "liquidityUsd": 1.38
+            },
+            {
+              "pairAddress": "0x4bE684f77419999AA3E1162D25D9aE6FF64C05a0",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 28078.1,
+              "liquidityUsd": 110351.37
+            },
+            {
+              "pairAddress": "0x5ceac6fd9363c099416d01b7c50e863f2061f8b801e056f5d3c574e701bd7948",
+              "dexId": "o1-launchpad",
+              "volume24hUsd": 18.06,
+              "liquidityUsd": 6043.7
+            },
+            {
+              "pairAddress": "0x795cd8715cc2c939b1a921327f43befa5f7fc2c4",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 2.06,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x7F030e5fD657795C0937a3e8af2929Fd90DA91C7",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 3262.43,
+              "liquidityUsd": 25644.05
+            },
+            {
+              "pairAddress": "0xc5d5e54f8c19147208dc7908efa46482230cf6275e7eba2c950fd019e1521e69",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 1042.62,
+              "liquidityUsd": 2912.16
+            },
+            {
+              "pairAddress": "0xd03Bc8C7F2FAedCe2aac81bF0444AEA08Ea06E9b",
+              "dexId": "aerodrome",
+              "volume24hUsd": 8396536.46,
+              "liquidityUsd": 2700872.34
+            },
+            {
+              "pairAddress": "0xd9482AE6b65734F8A2a059e128ce0E890bF85aEa",
+              "dexId": "aerodrome",
+              "volume24hUsd": 5230.26,
+              "liquidityUsd": 1337.31
+            },
+            {
+              "pairAddress": "0xEA9dE231579B977b953109efADde4658748aceBE",
+              "dexId": "aerodrome",
+              "volume24hUsd": 1.97,
+              "liquidityUsd": 67.8
+            }
+          ]
+        },
+        {
+          "address": "0xB20000000000000000000026215D755356E5043f",
+          "symbol": "ARMc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 64119.18,
+          "displayedLiquidityUsd": 68819.84,
+          "pools": [
+            {
+              "pairAddress": "0x09542aa7df2c10a0897fe6c00b5f0283169fbc453237a58278bc10de41b0e3f7",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 1295.86,
+              "liquidityUsd": 3975.53
+            },
+            {
+              "pairAddress": "0x129f52d8ffc79387b306be0ab1a92c8bcb038e136044d935297aa28907306dfe",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x6655475d17b652d566528d2916ec16c3fcb4c686e9ce759b85b0e6600e9fbe28",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 1611.11,
+              "liquidityUsd": 5511.28
+            },
+            {
+              "pairAddress": "0x94291F03bf83a453028cC0E22a9a060d822D359c",
+              "dexId": "aerodrome",
+              "volume24hUsd": 30621.5,
+              "liquidityUsd": 13653.88
+            },
+            {
+              "pairAddress": "0x9A0F4Fd0766Ccdb792bA58fE631aA7720097623c",
+              "dexId": "aerodrome",
+              "volume24hUsd": 30590.71,
+              "liquidityUsd": 45679.15
+            }
+          ]
+        },
+        {
+          "address": "0xB200000000000000000000B1a29cF17A1819288a",
+          "symbol": "ASTSc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 648.78,
+          "displayedLiquidityUsd": 2861.12,
+          "pools": [
+            {
+              "pairAddress": "0x32E1a7f7721bE09440526E28a0bB825bcD0415C4",
+              "dexId": "aerodrome",
+              "volume24hUsd": 648.78,
+              "liquidityUsd": 2534.08
+            },
+            {
+              "pairAddress": "0x3c4219c9da7abe1ca95e3c7d2d4a9ccfdddf7c70c115b2909aa4b558a6d683b8",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 327.04
+            }
+          ]
+        },
+        {
+          "address": "0xB200000000000000000000Fc737aeA6196aB5a4c",
+          "symbol": "AVGOc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1294.56,
+          "displayedLiquidityUsd": 4035.66,
+          "pools": [
+            {
+              "pairAddress": "0xBd4Dece7A36BF778f4B6bde86a39fCB7A72dEcAe",
+              "dexId": "aerodrome",
+              "volume24hUsd": 1294.56,
+              "liquidityUsd": 4035.66
+            }
+          ]
+        },
+        {
+          "address": "0xb20000000000000000000016f9dfe862feBA122b",
+          "symbol": "BEc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 2718.71,
+          "displayedLiquidityUsd": 2069.33,
+          "pools": [
+            {
+              "pairAddress": "0x7bfCF7e58EAC7199ED84e483A1FA048d25cC1B54",
+              "dexId": "aerodrome",
+              "volume24hUsd": 2448.79,
+              "liquidityUsd": 1449.73
+            },
+            {
+              "pairAddress": "0xa68987c1412e623c3e2a09d0b5d1f5d34ed5c475c798b0d9bbd005ff6fd21c1f",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 269.92,
+              "liquidityUsd": 619.6
+            }
+          ]
+        },
+        {
+          "address": "0xb200000000000000000000d2b7D9aeE52F6C6BEf",
+          "symbol": "BIDUc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 36197.13,
+          "displayedLiquidityUsd": 62950.01,
+          "pools": [
+            {
+              "pairAddress": "0x6707a3524360C50d7ef8B6849A3Bb4Ed16dfc58d",
+              "dexId": "aerodrome",
+              "volume24hUsd": 22569.84,
+              "liquidityUsd": 11859.43
+            },
+            {
+              "pairAddress": "0x725956c89e20de48675262c2d26866da19a1811988b00c039e686f1d9693afcd",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.09,
+              "liquidityUsd": 252.27
+            },
+            {
+              "pairAddress": "0xD47b8F13ffC3198148B138D3f07CC89C92042950",
+              "dexId": "aerodrome",
+              "volume24hUsd": 13627.2,
+              "liquidityUsd": 50838.31
+            }
+          ]
+        },
+        {
+          "address": "0xb200000000000000000000ca7C6D1438e7245eb6",
+          "symbol": "BILIc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 23454.09,
+          "displayedLiquidityUsd": 61163.89,
+          "pools": [
+            {
+              "pairAddress": "0x0d2c73b6cf3e0684b2fb9dc2f52f53a03ad26104a28c7ee564b975a57a21ba64",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 2.33,
+              "liquidityUsd": 730.35
+            },
+            {
+              "pairAddress": "0x32A3cE6C3a8D6c24C4A51A5cF2869410CbF4D637",
+              "dexId": "aerodrome",
+              "volume24hUsd": 11828.04,
+              "liquidityUsd": 45667.77
+            },
+            {
+              "pairAddress": "0x4D33BDa06d69DA50CcE094aEC14b94D23073Efc6",
+              "dexId": "aerodrome",
+              "volume24hUsd": 32.31,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xfB9bdB41f412A49d68C0eD7C1EFFC2418593CAC4",
+              "dexId": "aerodrome",
+              "volume24hUsd": 11591.41,
+              "liquidityUsd": 14765.77
+            }
+          ]
+        },
+        {
+          "address": "0xB200000000000000000000c36ce081Dd09e86cA2",
+          "symbol": "BUDc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 21751.15,
+          "displayedLiquidityUsd": 64662.02,
+          "pools": [
+            {
+              "pairAddress": "0x5ee52963d3d33196a47Fad722ABB897E0FA395d9",
+              "dexId": "aerodrome",
+              "volume24hUsd": 4607.91,
+              "liquidityUsd": 51562.9
+            },
+            {
+              "pairAddress": "0x8Db1D11064499eE14Da9867e1422e1A13d30D078",
+              "dexId": "aerodrome",
+              "volume24hUsd": 17143.24,
+              "liquidityUsd": 13099.12
+            }
+          ]
+        },
+        {
+          "address": "0xb200000000000000000000f215E4C890CFb7176B",
+          "symbol": "CAKEc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1400.33,
+          "displayedLiquidityUsd": 881.27,
+          "pools": [
+            {
+              "pairAddress": "0x8db0488fbcff93252cb2184888ea82ede3b784a39d3f28e95e53bdfdf788a5f0",
+              "dexId": "uniswap",
+              "volume24hUsd": 215.93,
+              "liquidityUsd": 63.78
+            },
+            {
+              "pairAddress": "0xbc2894c5cdcD3709eC1f2d9DbCfdc3C92Ba875d0",
+              "dexId": "aerodrome",
+              "volume24hUsd": 1184.4,
+              "liquidityUsd": 817.49
+            }
+          ]
+        },
+        {
+          "address": "0x9c5C365e764829876243d0b289733B9D2b729685",
+          "symbol": "deSPXA",
+          "issuer": "centrifuge",
+          "instrumentKind": "etf",
+          "volume24hUsd": 622741.19,
+          "displayedLiquidityUsd": 1687534.71,
+          "pools": [
+            {
+              "pairAddress": "0x7AE311B9cB94635dD4De5f42220469F6f5501d54",
+              "dexId": "aerodrome",
+              "volume24hUsd": 704.95,
+              "liquidityUsd": 760.77
+            },
+            {
+              "pairAddress": "0xc2a6057b770bbc98ac73c01ac1d44fd5a0bc1346",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 0.01,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xD08f1fb797BfaCdeD23323178672557034c64CfA",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 622025.4,
+              "liquidityUsd": 1686369.65
+            },
+            {
+              "pairAddress": "0xebdc9ef5ce1413e9bc5b0244d24ea65f28e7cb334976cd125432e647caf9c00f",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xf840346faFEdc1c0466216F3A899A599E6D03E75",
+              "dexId": "aerodrome",
+              "volume24hUsd": 10.83,
+              "liquidityUsd": 404.29
+            }
+          ]
+        },
+        {
+          "address": "0xb200000000000000000000428E3a3eebBb20692B",
+          "symbol": "DJTc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 2358.07,
+          "displayedLiquidityUsd": 1645.37,
+          "pools": [
+            {
+              "pairAddress": "0x08357c323c3b3f635c16df4a9f850e4582e0470fca4d59a8f563116e8ecd27f0",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 8.84,
+              "liquidityUsd": 589.45
+            },
+            {
+              "pairAddress": "0xa606A9Db777ec40Ae05A6C5DFfFA8dDe7FA89249",
+              "dexId": "aerodrome",
+              "volume24hUsd": 2349.23,
+              "liquidityUsd": 1055.92
+            }
+          ]
+        },
+        {
+          "address": "0xb200000000000000000000A613D12dEAfBBb1Db7",
+          "symbol": "DUOLc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1396.11,
+          "displayedLiquidityUsd": 1439.11,
+          "pools": [
+            {
+              "pairAddress": "0xCd6caba6Dbc490f2A4CCdB33836030E1600F46c0",
+              "dexId": "aerodrome",
+              "volume24hUsd": 1396.11,
+              "liquidityUsd": 1439.11
+            }
+          ]
+        },
+        {
+          "address": "0xb2000000000000000000007790ed6E48e06eD935",
+          "symbol": "GMEc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1426.09,
+          "displayedLiquidityUsd": 8763.85,
+          "pools": [
+            {
+              "pairAddress": "0x3E36246fD9F897B108bE0ECA0ce88df817367E79",
+              "dexId": "aerodrome",
+              "volume24hUsd": 1425.88,
+              "liquidityUsd": 7947.95
+            },
+            {
+              "pairAddress": "0x723e3c6bf63baa05f38ac34b1801aca48bad08ee053ba87d302443ea33a11df5",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.21,
+              "liquidityUsd": 815.9
+            }
+          ]
+        },
+        {
+          "address": "0xb2000000000000000000002D0BA3164cc74f58B7",
+          "symbol": "GOOGLc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 8492103.46,
+          "displayedLiquidityUsd": 2676401.74,
+          "pools": [
+            {
+              "pairAddress": "0x0d1518a9b2243F034a119A629B8F5170D59965b3",
+              "dexId": "hydrex",
+              "volume24hUsd": 0.17,
+              "liquidityUsd": 25.7
+            },
+            {
+              "pairAddress": "0x1f52F46BaC657564c31122b12b43A459E09273C8",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 8403.07,
+              "liquidityUsd": 65326.37
+            },
+            {
+              "pairAddress": "0x21101c06A39803eB7A348f94Ad111Ded261c19B6",
+              "dexId": "aerodrome",
+              "volume24hUsd": 9622.42,
+              "liquidityUsd": 3917.38
+            },
+            {
+              "pairAddress": "0x25F63549b2Bb9ffF114cDc39e8cfb16B450E2f9b",
+              "dexId": "aerodrome",
+              "volume24hUsd": 299638.49,
+              "liquidityUsd": 54047.61
+            },
+            {
+              "pairAddress": "0x69bbadafdb28b6952c2910bed1d49fb1b11a222cbf36143fc1aca3c26b35c28e",
+              "dexId": "o1-launchpad",
+              "volume24hUsd": 1469.21,
+              "liquidityUsd": 37469.26
+            },
+            {
+              "pairAddress": "0x69dec50977fC57eCEcA472105c26F188FF2012ec",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 36236.3,
+              "liquidityUsd": 19829.21
+            },
+            {
+              "pairAddress": "0x6c6d2723bff45647b74932218ca10422f472bcfb626d31545c7ceb68b4e580bb",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 157.96,
+              "liquidityUsd": 432.51
+            },
+            {
+              "pairAddress": "0x7628788ec0e1befb150a8c4e20df959d305fc562",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 4.9,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x76f67310e5d6227702fed15d09afb86235bebc706db077a89cdaea4afa8d64b1",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 2.04,
+              "liquidityUsd": 744.73
+            },
+            {
+              "pairAddress": "0x7A99473b07D8641e94f3761862f0280E7BA1A0FF",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 3.95,
+              "liquidityUsd": 7735.98
+            },
+            {
+              "pairAddress": "0x85436af1c80b789f7916a2ae15e203042b1960d8713f5785f90b3b7098aa2793",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.25,
+              "liquidityUsd": 5595.9
+            },
+            {
+              "pairAddress": "0x8634EE4145A63E40E44e12A6Bb1B905Fcb8856a6",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 4279.12,
+              "liquidityUsd": 11313.14
+            },
+            {
+              "pairAddress": "0xa35fe018e5226815a3071ae6905de09a73d80834659556fa8b42acf524c88000",
+              "dexId": "o1-launchpad",
+              "volume24hUsd": 31.64,
+              "liquidityUsd": 4566.77
+            },
+            {
+              "pairAddress": "0xa42281c322963f3a842d7ef4df857fd7b19ae53d820bf2e5d9749edaa9e0949a",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.34,
+              "liquidityUsd": 86.5
+            },
+            {
+              "pairAddress": "0xae51c0fcb0f1efeda60f4121f66b2302952c46d2e9bb22beb134fe6c618be9ed",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 1027.55,
+              "liquidityUsd": 68921.92
+            },
+            {
+              "pairAddress": "0xB1987CAD1682841b4b641d50E520777eC5Ab5542",
+              "dexId": "aerodrome",
+              "volume24hUsd": 8128097.47,
+              "liquidityUsd": 2304533.75
+            },
+            {
+              "pairAddress": "0xb2c7279b77e67fe4d01c98b9a375d5b25eb3463612fb2e889ec0c2282029e6cb",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 61.32,
+              "liquidityUsd": 63722.13
+            },
+            {
+              "pairAddress": "0xb76af4fdc8074be2a3dbd74355a6eb3552e35501a9b521c89a2e23151fd37faf",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 9.33,
+              "liquidityUsd": 94.96
+            },
+            {
+              "pairAddress": "0xb8d915726cbfac627d236fe58e0af8d2d128c02afee278d54644a61cb13e6f2e",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 103.8,
+              "liquidityUsd": 2158.17
+            },
+            {
+              "pairAddress": "0xb9d74746709d4fc11879097476c4a2d4def0eb5f277ffd3887b4444bff8056b0",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 122.07,
+              "liquidityUsd": 1011.08
+            },
+            {
+              "pairAddress": "0xc035d43d901b39ba990b450491a0642f03cc84e9edb6fb71eb3e33d16c3e8e10",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 46.51,
+              "liquidityUsd": 5666.93
+            },
+            {
+              "pairAddress": "0xC0fD714A5CF89780846DcD75Fd3a01906Dac2E3e",
+              "dexId": "hydrex",
+              "volume24hUsd": 2765.45,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xc8d9aaba82bd4e42f10d05d5e0f6afe896fcba9dd11875c7f86727c689728691",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 3.12,
+              "liquidityUsd": 17.14
+            },
+            {
+              "pairAddress": "0xd0d30a7a97298daadceb636889e3d99e40466f59222c67b2ce9fa5b6f032e8c1",
+              "dexId": "o1-launchpad",
+              "volume24hUsd": 5.46,
+              "liquidityUsd": 5300.87
+            },
+            {
+              "pairAddress": "0xf2869ce8b0a5e9531e31797fc836425707c2fd1aec0ee03e3048f18b40621376",
+              "dexId": "bankr",
+              "volume24hUsd": 0.1,
+              "liquidityUsd": 13526.24
+            },
+            {
+              "pairAddress": "0xf40fb25eba2cf7e173b49c39e698e8c332011e8a0edad7da1243f50dc1647981",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 11.42,
+              "liquidityUsd": 357.49
+            }
+          ]
+        },
+        {
+          "address": "0xB20000000000000000000043a599976181Bcf336",
+          "symbol": "HIMSc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 18504.76,
+          "displayedLiquidityUsd": 40030.43,
+          "pools": [
+            {
+              "pairAddress": "0x11fF0240142d7F9daaD70C1da578cf0e3Fb85182",
+              "dexId": "aerodrome",
+              "volume24hUsd": 14462.9,
+              "liquidityUsd": 5827.25
+            },
+            {
+              "pairAddress": "0x2CeA9b9346Fd06F1F65a970F281846155c694374",
+              "dexId": "aerodrome",
+              "volume24hUsd": 533.05,
+              "liquidityUsd": 3568.78
+            },
+            {
+              "pairAddress": "0x3223aabae53b40210c3bf578772fa47b778c45af7642a94d826fc8a96679204e",
+              "dexId": "o1-launchpad",
+              "volume24hUsd": 0.06,
+              "liquidityUsd": 7550.09
+            },
+            {
+              "pairAddress": "0x94d06e6c12d16e248118f2f591f4e661b4f4236debfbde5398afedbbfd87da4f",
+              "dexId": "uniswap",
+              "volume24hUsd": 2755.4,
+              "liquidityUsd": 3930.37
+            },
+            {
+              "pairAddress": "0xa5d57d3527dbc5333b4e828400d0dc200d4eec29c8a45eda889ef238869c6d59",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.17,
+              "liquidityUsd": 375.84
+            },
+            {
+              "pairAddress": "0xd570EBAe8f9CCC8d3b8b3f333DEC4eBa21e46110",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 211.16,
+              "liquidityUsd": 10576.78
+            },
+            {
+              "pairAddress": "0xd7b07bbeded35cb0007670e4f925dae8f59dd75ca4f59e7657e3aca927a95956",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 535.46,
+              "liquidityUsd": 3911.77
+            },
+            {
+              "pairAddress": "0xe45751368f1314e4d28796d745b980cfc635ad6a024094ca6f069b11396793a0",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 6.56,
+              "liquidityUsd": 4289.55
+            }
+          ]
+        },
+        {
+          "address": "0xb200000000000000000000f3049F4aa834b23b64",
+          "symbol": "HSAIc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 27732.38,
+          "displayedLiquidityUsd": 45817.86,
+          "pools": [
+            {
+              "pairAddress": "0xcceBF4b71faD11f0f4156760E580B3140288e95b",
+              "dexId": "aerodrome",
+              "volume24hUsd": 16680.06,
+              "liquidityUsd": 3336.55
+            },
+            {
+              "pairAddress": "0xDc8D2C31de17bf4dF00C05E4E132BCEA22F24c3b",
+              "dexId": "aerodrome",
+              "volume24hUsd": 11052.32,
+              "liquidityUsd": 42481.31
+            }
+          ]
+        },
+        {
+          "address": "0xb2000000000000000000002601C5C94F435da168",
+          "symbol": "HTZc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 117.21,
+          "displayedLiquidityUsd": 1231.51,
+          "pools": [
+            {
+              "pairAddress": "0x4DFfb33A4e4059De45C7Bc82212A6d25F62c6f30",
+              "dexId": "aerodrome",
+              "volume24hUsd": 117.21,
+              "liquidityUsd": 1231.51
+            }
+          ]
+        },
+        {
+          "address": "0xb200000000000000000000F6b0417af5F52341FC",
+          "symbol": "INFYc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 40570.83,
+          "displayedLiquidityUsd": 65107.27,
+          "pools": [
+            {
+              "pairAddress": "0x356cC16Fe38A6ad0eB25e655759dD963F8D674BF",
+              "dexId": "aerodrome",
+              "volume24hUsd": 18578.69,
+              "liquidityUsd": 51817.42
+            },
+            {
+              "pairAddress": "0x5040c73e6C047B07Dd583a0Aa67A48918C6307eC",
+              "dexId": "aerodrome",
+              "volume24hUsd": 21992.14,
+              "liquidityUsd": 13289.85
+            }
+          ]
+        },
+        {
+          "address": "0xb200000000000000000000D61eFD9F54A23ef9eB",
+          "symbol": "LIc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 25088.25,
+          "displayedLiquidityUsd": 64634.14,
+          "pools": [
+            {
+              "pairAddress": "0xD71b2D9cB3532477Df77AE26e780963CCe784a0c",
+              "dexId": "aerodrome",
+              "volume24hUsd": 9196.47,
+              "liquidityUsd": 50775.12
+            },
+            {
+              "pairAddress": "0xE769C06dE929eE2cE8988c7BbF768eefD6C6e7c5",
+              "dexId": "aerodrome",
+              "volume24hUsd": 15891.78,
+              "liquidityUsd": 13859.02
+            }
+          ]
+        },
+        {
+          "address": "0xB200000000000000000000f1a0F91e34892E4718",
+          "symbol": "LLYc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 63529.86,
+          "displayedLiquidityUsd": 239074.84,
+          "pools": [
+            {
+              "pairAddress": "0x41bd4E64e15AC4Df8Ca7634B1705A7f044D9C639",
+              "dexId": "aerodrome",
+              "volume24hUsd": 63529.82,
+              "liquidityUsd": 238426.59
+            },
+            {
+              "pairAddress": "0x931f66f6ac56c69bc5ef90a7a9ad4b3cc35bd7599609571d1e29b6355a57d86a",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.04,
+              "liquidityUsd": 648.25
+            }
+          ]
+        },
+        {
+          "address": "0xb2000000000000000000008bC8786B856E61707C",
+          "symbol": "METAc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 9058121.83,
+          "displayedLiquidityUsd": 2436431.69,
+          "pools": [
+            {
+              "pairAddress": "0x0c23b727b1a3b0b3748f97ecfabbf086b86a09c4dc7a3fd17f4efd904759ad13",
+              "dexId": "uniswap",
+              "volume24hUsd": 10595.97,
+              "liquidityUsd": 43423.75
+            },
+            {
+              "pairAddress": "0x0e7b0302cc223f1a57ea8de93959a36c8ba4f510c73a5f5b2eba5795625586f1",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.96,
+              "liquidityUsd": 96.34
+            },
+            {
+              "pairAddress": "0x16033ad801b4e39157b8857ded4c7e3a6677603a8742e771f53202a88a0922e5",
+              "dexId": "uniswap",
+              "volume24hUsd": 4.07,
+              "liquidityUsd": 10809.63
+            },
+            {
+              "pairAddress": "0x1c9fcd793f44bd69d6c941b2ea53af502338b20a",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 0.41,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x357339183802d1f4342e7d033cb9b898a6dca298ec73dcf23e5014b8858ddbdc",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.13,
+              "liquidityUsd": 14.45
+            },
+            {
+              "pairAddress": "0x4129375c35fcc45f1106d617df5feecfe9bc41d2c0fcfbba55c45cef3c5d1675",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.05,
+              "liquidityUsd": 10385.98
+            },
+            {
+              "pairAddress": "0x4347f42d5e65d9f78a1010b7b2851a7ff76db542",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 0.04,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x583919ec1975a1238C50e1940911894ee6912476",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 1189.7,
+              "liquidityUsd": 2920.44
+            },
+            {
+              "pairAddress": "0x5a9f8b78252222a5812abe2522d90d99f9b61db4004d831e2daf927cd29f49aa",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 215.53,
+              "liquidityUsd": 3157.77
+            },
+            {
+              "pairAddress": "0x5d4a800e79de977d5f540deee346c81e5061dd4741c0d23ed47924a025e5b897",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 5.8,
+              "liquidityUsd": 58.91
+            },
+            {
+              "pairAddress": "0x5d51983c78f577d8880939c3446c663d6a0cdd835caa4961d0c3224424cc7c20",
+              "dexId": "o1-launchpad",
+              "volume24hUsd": 59.16,
+              "liquidityUsd": 9019.92
+            },
+            {
+              "pairAddress": "0x65188f5aea66a683e37a7745a3377b4e288da1632e4bf7e76b897cc6d4132eee",
+              "dexId": "uniswap",
+              "volume24hUsd": 1.05,
+              "liquidityUsd": 13583.36
+            },
+            {
+              "pairAddress": "0x7307383626852f9f4852849734882ef7bd858d7c20b7a4003e777b169d18ce8c",
+              "dexId": "uniswap",
+              "volume24hUsd": 182.62,
+              "liquidityUsd": 4233.86
+            },
+            {
+              "pairAddress": "0x805b5cFcaCd85628104b3f1Dc34A7e63492D3d1C",
+              "dexId": "equalizer",
+              "volume24hUsd": 0.03,
+              "liquidityUsd": 21.83
+            },
+            {
+              "pairAddress": "0x8c7Bc60639A2732e452127Dd724a03b0E9e6cA36",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 0.98,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x939793794fd5996d55b48d3ebb4d9664b598ec2123a3cf7cfff7deb815a4e2f4",
+              "dexId": "o1-launchpad",
+              "volume24hUsd": 21.48,
+              "liquidityUsd": 9402.37
+            },
+            {
+              "pairAddress": "0x9B6EA8352AC4010a779Ad780c22ee2F42Af39D84",
+              "dexId": "aerodrome",
+              "volume24hUsd": 2.43,
+              "liquidityUsd": 4.91
+            },
+            {
+              "pairAddress": "0xa77bc0dde4e763772f07c466950d2bf3dc2c3adf5d106a919139d44709ecd220",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.26,
+              "liquidityUsd": 314.93
+            },
+            {
+              "pairAddress": "0xac81669dc9d0a3e6229eb4ce17552b38d9e5d4649baa3ffadafa9a4a21789f23",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 230.51,
+              "liquidityUsd": 1067.9
+            },
+            {
+              "pairAddress": "0xc26a49e4c91c799117959640059d0e7240e3956df710dd6e5eef4371110f05c9",
+              "dexId": "bankr",
+              "volume24hUsd": 1239.81,
+              "liquidityUsd": 92881.39
+            },
+            {
+              "pairAddress": "0xccabcd197ee30ff776fb5239790dfff83228a909c4c6486627828039f124d332",
+              "dexId": "o1-launchpad",
+              "volume24hUsd": 41.3,
+              "liquidityUsd": 5844.38
+            },
+            {
+              "pairAddress": "0xe445744b00C2Ca873Eae1DCb1Ebe9B18B1330b54",
+              "dexId": "aerodrome",
+              "volume24hUsd": 6070.94,
+              "liquidityUsd": 1434.76
+            },
+            {
+              "pairAddress": "0xEAF57753BC382E0324a1D43F72E7027705a2273E",
+              "dexId": "aerodrome",
+              "volume24hUsd": 9038195.57,
+              "liquidityUsd": 2227606.64
+            },
+            {
+              "pairAddress": "0xEC2800d4A96B40D1A387a49aa9c9861d2cE3454F",
+              "dexId": "hydrex",
+              "volume24hUsd": 63.03,
+              "liquidityUsd": 148.17
+            }
+          ]
+        },
+        {
+          "address": "0xB200000000000000000000e215e9B76ecBA02468",
+          "symbol": "MRNAc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1261.07,
+          "displayedLiquidityUsd": 6140.36,
+          "pools": [
+            {
+              "pairAddress": "0x48Ce615C4fCa451BbE07DE395896307A04c97bC9",
+              "dexId": "aerodrome",
+              "volume24hUsd": 1261.07,
+              "liquidityUsd": 6140.36
+            }
+          ]
+        },
+        {
+          "address": "0xB200000000000000000000eC3c4c7395Cc609813",
+          "symbol": "MRVLc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 237.38,
+          "displayedLiquidityUsd": 3775.53,
+          "pools": [
+            {
+              "pairAddress": "0x539a0eec22fa9f760acee8406db3685e3dbb844c7c8b5cecafd940c8fb597d49",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.02,
+              "liquidityUsd": 1087.1
+            },
+            {
+              "pairAddress": "0xCc9078dad779656cE0174aC5B8BA466bE80b598a",
+              "dexId": "aerodrome",
+              "volume24hUsd": 237.36,
+              "liquidityUsd": 2688.43
+            }
+          ]
+        },
+        {
+          "address": "0xB200000000000000000000Ab99cFa739E253872B",
+          "symbol": "MSFTc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 5202776.07,
+          "displayedLiquidityUsd": 1361265.94,
+          "pools": [
+            {
+              "pairAddress": "0x163c9d517BB963E441c63efB285BC6616e05CE43",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 33.56,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x4cA5700B8094c5605d23CEC7e6E7946ee02B0D00",
+              "dexId": "equalizer",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 20.41
+            },
+            {
+              "pairAddress": "0x7103eB3c9590d1281f7dc03b2A9EE27C39dF5D54",
+              "dexId": "aerodrome",
+              "volume24hUsd": 5197237.16,
+              "liquidityUsd": 1349546.74
+            },
+            {
+              "pairAddress": "0x74586ad8218cf78f91f8628051cf9dea93a7e2bfdb8299d339239b3638071e74",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.02,
+              "liquidityUsd": 14.45
+            },
+            {
+              "pairAddress": "0xbD631890830557350f93390851b02B8B2610555c",
+              "dexId": "solidlycom",
+              "volume24hUsd": 578.59,
+              "liquidityUsd": 2051.25
+            },
+            {
+              "pairAddress": "0xCEDB7667A3dDa8222DdE10FECdb4633cBe3627B8",
+              "dexId": "aerodrome",
+              "volume24hUsd": 4336.72,
+              "liquidityUsd": 1000.57
+            },
+            {
+              "pairAddress": "0xD73cBeCC0F62C7C1704332ED119514d6d84DC607",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 473.88,
+              "liquidityUsd": 7440.89
+            },
+            {
+              "pairAddress": "0xdc9b8a6853815d823ae32b624aebb7579170ca49ed6045bb7c71a80f3962ed5b",
+              "dexId": "o1-launchpad",
+              "volume24hUsd": 4.52,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xe1cf04f5ee41823a17b3a85fec4cdd444c602f86e80c7a3914a44bac3c02c980",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.43,
+              "liquidityUsd": 84.38
+            },
+            {
+              "pairAddress": "0xe61a2016e4128a5212bf2de9fc72a1b70a329efece51ab87142d0d44074e7064",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 106.57,
+              "liquidityUsd": 1107.25
+            },
+            {
+              "pairAddress": "0xe72a08373781c0b44f0cabe6ece14907a3d7fb4aaba92ec30d794ac51fb42c28",
+              "dexId": "o1-launchpad",
+              "volume24hUsd": 4.62,
+              "liquidityUsd": null
+            }
+          ]
+        },
+        {
+          "address": "0xb2000000000000000000004884b426556b92883d",
+          "symbol": "MSTRc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 13802855.2,
+          "displayedLiquidityUsd": 2333359.95,
+          "pools": [
+            {
+              "pairAddress": "0x07b6ef3d4275dc2ecbb87c74237d7c8b7efc7bc63891b8201394d5cc90734cd3",
+              "dexId": "uniswap",
+              "volume24hUsd": 439.95,
+              "liquidityUsd": 3522.27
+            },
+            {
+              "pairAddress": "0x0e48c892aa5f99ea62c1122a9661ffbab856bb9a7bf8b5a1242ad46f0017d180",
+              "dexId": "o1-launchpad",
+              "volume24hUsd": 1139.24,
+              "liquidityUsd": 29403.83
+            },
+            {
+              "pairAddress": "0x0ecc74c47acad38f5b000f1c35ec6da167db8a20f5531c95b8586b2ad56dd5af",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 7047.58,
+              "liquidityUsd": 11171.03
+            },
+            {
+              "pairAddress": "0x1377c449b982bc2bf6bf9062715652a0d4ed02b089a9d62fadb31b5b73e28aa5",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 181.77,
+              "liquidityUsd": 4306.83
+            },
+            {
+              "pairAddress": "0x17ecfe141bada18d94b2c41a2bbaffde8726309a6b4340e1ad7a6910bc7cdf8d",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 136.37,
+              "liquidityUsd": 2812.25
+            },
+            {
+              "pairAddress": "0x1fd40c91777d0b9a07be63ea06116a9077acd6da7b5434702591e5eb2bc17455",
+              "dexId": "uniswap",
+              "volume24hUsd": 101.88,
+              "liquidityUsd": 10183.08
+            },
+            {
+              "pairAddress": "0x309d573ecae974a55fdee889eb7c5332d8074b150671916847bf7c687dc7bf88",
+              "dexId": "o1-launchpad",
+              "volume24hUsd": 12.41,
+              "liquidityUsd": 7410.86
+            },
+            {
+              "pairAddress": "0x4b9c8bd3aca114f1377986438fb8470e5f452ed8bb1d35157a6e1dafa17daedd",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 2082.68,
+              "liquidityUsd": 4893.23
+            },
+            {
+              "pairAddress": "0x5a9400426114A95F03322f67f2A3f22f906026c2",
+              "dexId": "aerodrome",
+              "volume24hUsd": 342.71,
+              "liquidityUsd": 5821.66
+            },
+            {
+              "pairAddress": "0x5ac23af8616dc1e84073730d771a42e3aa00dce1a47dc586b78a893568ab3863",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 1.35,
+              "liquidityUsd": 80.01
+            },
+            {
+              "pairAddress": "0x60ec1d12372335fcf67c89272d1d3d86c997b198c0ef4023d9f6daf026b44716",
+              "dexId": "uniswap",
+              "volume24hUsd": 190.08,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x8898e83f1e8468ff186ed33cc7e51f16bc192608ceba99432eb9ce1a9e69ddd5",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.2,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x8b27f626ab668197000BC722A1012022CAeD10E2",
+              "dexId": "aerodrome",
+              "volume24hUsd": 13690129.79,
+              "liquidityUsd": 2201750.43
+            },
+            {
+              "pairAddress": "0x9091db7c6bcbbb4c6893365f596d119fecd14ada65d1c8e2336c23dec84bbb12",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 1249.03,
+              "liquidityUsd": 9975.22
+            },
+            {
+              "pairAddress": "0x984ba82e88a91ae7b8d5bc8bfe042abdc06f2f73ab082730009764081c636616",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1.64
+            },
+            {
+              "pairAddress": "0x9898bE1859e3f192a61061bBf18A2e71E951E180",
+              "dexId": "aerodrome",
+              "volume24hUsd": 92371.98,
+              "liquidityUsd": 39767.12
+            },
+            {
+              "pairAddress": "0x9b36959CaE9943cc4859d34Ec5d918d195A73267",
+              "dexId": "aerodrome",
+              "volume24hUsd": 2.38,
+              "liquidityUsd": 57.75
+            },
+            {
+              "pairAddress": "0xc66227927984cfede9c9382bcd0ff2d3787a5d095f5679f3b7e00af66adc5daa",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 4.42,
+              "liquidityUsd": 34.28
+            },
+            {
+              "pairAddress": "0xCC2cb77d25EFAF5f4516eb1cfC01d876bef27Ca2",
+              "dexId": "equalizer",
+              "volume24hUsd": 0.46,
+              "liquidityUsd": 21.53
+            },
+            {
+              "pairAddress": "0xce867ddb0f6f654244d19e404a35b1ce32f0fda1e7d5aacde843a52b8ce6c39f",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 2.45,
+              "liquidityUsd": 169.95
+            },
+            {
+              "pairAddress": "0xcfdcf11013c7ac3369eb01902d750f690a465ac5927bf387c5ed5dd19a236dc2",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 148.68,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xdaf20e256ba987b6d3d91e356eacdb9b156b66ec559a715351c996db54ddab8a",
+              "dexId": "uniswap",
+              "volume24hUsd": 4.72,
+              "liquidityUsd": 97.48
+            },
+            {
+              "pairAddress": "0xE8aa998d7a0578aBE80210EeD39B599b5F14b522",
+              "dexId": "aerodrome",
+              "volume24hUsd": 6987.39,
+              "liquidityUsd": 1048.86
+            },
+            {
+              "pairAddress": "0xe9397b926bd4f8c559c7f2433599761be2344e6dc5ac6cce95da63efa63248ce",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 265.27,
+              "liquidityUsd": 733.05
+            },
+            {
+              "pairAddress": "0xfeec6a1558bbbcb29ad2cae1f5e2f6b53489a482ad18ff90d82458f7e4aae5ba",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 12.41,
+              "liquidityUsd": 97.59
+            }
+          ]
+        },
+        {
+          "address": "0xb200000000000000000000Fd2f87532B90095211",
+          "symbol": "MUc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 6269326.22,
+          "displayedLiquidityUsd": 1049666.19,
+          "pools": [
+            {
+              "pairAddress": "0x17e1bEB2cD65493Da73ed4BbbC7BEcAAa0F91C73",
+              "dexId": "aerodrome",
+              "volume24hUsd": 6248639.97,
+              "liquidityUsd": 994590.22
+            },
+            {
+              "pairAddress": "0x8d6Ad9946B9220E666690E77cE49f933e1FF15c9",
+              "dexId": "aerodrome",
+              "volume24hUsd": 20310.48,
+              "liquidityUsd": 48648.48
+            },
+            {
+              "pairAddress": "0x8fAc72F692B6fA8ebc54806563883fB3265130aA",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 357.0,
+              "liquidityUsd": 2670.08
+            },
+            {
+              "pairAddress": "0x90EEc3025C3E003f12255bE3d9765b28974A567a",
+              "dexId": "aerodrome",
+              "volume24hUsd": 18.77,
+              "liquidityUsd": 3757.41
+            }
+          ]
+        },
+        {
+          "address": "0xb20000000000000000000058B8c947e44011dFE6",
+          "symbol": "NFLXc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 16065.46,
+          "displayedLiquidityUsd": 18951.62,
+          "pools": [
+            {
+              "pairAddress": "0x40e8D293cA4e0ccE3221EB13A78BFF1D0d2B70a7",
+              "dexId": "aerodrome",
+              "volume24hUsd": 16065.46,
+              "liquidityUsd": 18774.85
+            },
+            {
+              "pairAddress": "0x718533ada9e46d664d12c02d6f2fc07efb0dead042fd5d8492acaf596937e004",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xce99bd8a18015f379cd7630bef780e6653367a8d355cfcb8ffec33d5c53c2b1b",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 176.77
+            }
+          ]
+        },
+        {
+          "address": "0xb2000000000000000000002D2B5dc53c61f1bA06",
+          "symbol": "NIOc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 22035.33,
+          "displayedLiquidityUsd": 60196.61,
+          "pools": [
+            {
+              "pairAddress": "0x484cc2CA594ced3fE38362FE950C60cE66f53F6D",
+              "dexId": "aerodrome",
+              "volume24hUsd": 10105.03,
+              "liquidityUsd": 50773.33
+            },
+            {
+              "pairAddress": "0x99ed4626A8f7a7237B450A63a6A053fCa9dC62e7",
+              "dexId": "aerodrome",
+              "volume24hUsd": 11930.3,
+              "liquidityUsd": 9423.28
+            }
+          ]
+        },
+        {
+          "address": "0xB2000000000000000000005ac674f707E357409c",
+          "symbol": "NOKc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 54565.13,
+          "displayedLiquidityUsd": 81678.61,
+          "pools": [
+            {
+              "pairAddress": "0x6953934FEB82786b294ff6e4698C6e4381E5c1B7",
+              "dexId": "aerodrome",
+              "volume24hUsd": 32341.7,
+              "liquidityUsd": 16901.02
+            },
+            {
+              "pairAddress": "0x6b6114f5e3d12e068574bbfc623316848a75dac143ce615c7c5eaef63d2a24f4",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 49.45,
+              "liquidityUsd": 937.99
+            },
+            {
+              "pairAddress": "0xa43c223ee5283fc2199eb921e3b521097c28a5d0b699ebf208318d7e83e91515",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 311.49,
+              "liquidityUsd": 747.49
+            },
+            {
+              "pairAddress": "0xb51A37a046f7DF48a9a81534e9217aF0d4399e11",
+              "dexId": "aerodrome",
+              "volume24hUsd": 1140.49,
+              "liquidityUsd": 10172.78
+            },
+            {
+              "pairAddress": "0xb5d67f608251edc9286b27833c11e539261f0806a0ada66b725a7e15df34b283",
+              "dexId": "uniswap",
+              "volume24hUsd": 4.1,
+              "liquidityUsd": 10542.75
+            },
+            {
+              "pairAddress": "0xc541eAc49f32D46C1E2f88952f22215Ef0f2Db71",
+              "dexId": "aerodrome",
+              "volume24hUsd": 19236.55,
+              "liquidityUsd": 38971.8
+            },
+            {
+              "pairAddress": "0xd639b73f487f1E8F67f81550464667190Cf30507",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 1420.07,
+              "liquidityUsd": 1090.89
+            },
+            {
+              "pairAddress": "0xf8f8106d78e5dc753ada910cd1356b5b9ae7ae4f96a5763c291bc670b9ac3539",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 61.28,
+              "liquidityUsd": 2313.89
+            }
+          ]
+        },
+        {
+          "address": "0xB200000000000000000000C597c476FCf9Aed3a8",
+          "symbol": "NVAXc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 335.2,
+          "displayedLiquidityUsd": 1167.01,
+          "pools": [
+            {
+              "pairAddress": "0x707d263E69CF72fE570aaB3E497440dd21eDC4ac",
+              "dexId": "aerodrome",
+              "volume24hUsd": 335.2,
+              "liquidityUsd": 1167.01
+            }
+          ]
+        },
+        {
+          "address": "0xb20000000000000000000078ee7ce2fE4908108C",
+          "symbol": "NVDAc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 12501116.92,
+          "displayedLiquidityUsd": 3386853.81,
+          "pools": [
+            {
+              "pairAddress": "0x029007b068d70e30205eDb95621E7a820507ACA2",
+              "dexId": "aerodrome",
+              "volume24hUsd": 1.12,
+              "liquidityUsd": 40.34
+            },
+            {
+              "pairAddress": "0x145f8e0f2bf9df71e0b7e739ba20520d1c8b713b808400efb816f409c594b15a",
+              "dexId": "o1-launchpad",
+              "volume24hUsd": 99.14,
+              "liquidityUsd": 7394.38
+            },
+            {
+              "pairAddress": "0x1aa5ecaf9595ab209ef6886707cd8a6afc2cbed8c9e99153b54fa3b26d0f4370",
+              "dexId": "o1-launchpad",
+              "volume24hUsd": 170.0,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x1ddeb61dfebf1c2b85d68a68f95843e3c6cf4691161aeb9b192912b671b7c014",
+              "dexId": "bankr",
+              "volume24hUsd": 0.39,
+              "liquidityUsd": 24641.94
+            },
+            {
+              "pairAddress": "0x20E5fAd2661Ee9Eb0c04824524030AF31943B62D",
+              "dexId": "aerodrome",
+              "volume24hUsd": 764529.88,
+              "liquidityUsd": 110079.14
+            },
+            {
+              "pairAddress": "0x21517bd1fa0fe4d647b3b6267dc0e5e3a2ef0b2e",
+              "dexId": "aerodrome-slipstream-3",
+              "volume24hUsd": 0.24,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x22abbc321f923123895bb155c5243c05fbd45c2dde5f727a37147cdb7d16d090",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 18.26,
+              "liquidityUsd": 2159.25
+            },
+            {
+              "pairAddress": "0x2a53b9864409314d120744d99767bb9175a5738258c717aa264c841b2fc227de",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 1.75,
+              "liquidityUsd": 99.52
+            },
+            {
+              "pairAddress": "0x2ca153de5d8bec67fc590bc8fd860d0b3e065efbb82612e81dace2e5717bc8c5",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 1373.57,
+              "liquidityUsd": 2141.54
+            },
+            {
+              "pairAddress": "0x393c3df71a9cb64f63aa9120eb7584ddc2dc38712df320999dc5b9a1ad56ee13",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.66,
+              "liquidityUsd": 67.03
+            },
+            {
+              "pairAddress": "0x3a9BA3Db0DBe1F46b562f3138687d9E6333b894d",
+              "dexId": "hydrex",
+              "volume24hUsd": 2.49,
+              "liquidityUsd": 41.72
+            },
+            {
+              "pairAddress": "0x3e8126A4a5DF68DD9cCA675E8dc925B5FED70CA9",
+              "dexId": "hydrex",
+              "volume24hUsd": 14349.68,
+              "liquidityUsd": 7964.1
+            },
+            {
+              "pairAddress": "0x3f440169d591ec40ae9cc66cb841906742f0594c",
+              "dexId": "aerodrome-slipstream-3",
+              "volume24hUsd": 0.24,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x41084f2d35b54dc0d070fbf76aa52c46f5d9c7e36c163252064b6b184d9429d9",
+              "dexId": "o1-launchpad",
+              "volume24hUsd": 51853.14,
+              "liquidityUsd": 306332.03
+            },
+            {
+              "pairAddress": "0x4c3b9468826488691c7ffabdadccf1d3fe2641605959616e39e50669b7dd89ed",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 141.88,
+              "liquidityUsd": 1039.87
+            },
+            {
+              "pairAddress": "0x4e64490be754dfd33dc7a490461b7778028177680f959b34b0338f7c12fb2d72",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 1.32,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x542711461a4774d0cb76e7b93bd19af3607d17aa69e024c0e1e75ce1e1d27614",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 2.48,
+              "liquidityUsd": 645.62
+            },
+            {
+              "pairAddress": "0x5731a0a02031488a6a83d9463c709fa5c64480cf",
+              "dexId": "aerodrome-slipstream-3",
+              "volume24hUsd": 168.8,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x58ac468ebebf53906ac4ee3fe9e5b988fc904813d9ee41fc4a9c86394b6b276e",
+              "dexId": "bankr",
+              "volume24hUsd": 2.39,
+              "liquidityUsd": 46827.72
+            },
+            {
+              "pairAddress": "0x60608b2277a5958a50bd727fa53a35f87310e9d1e3d5a5bf8a3da9db47ed4a99",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 4.66,
+              "liquidityUsd": 4172.44
+            },
+            {
+              "pairAddress": "0x60661b315553EB81872deEA9a66d567Cf0CCd33B",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 6320.09,
+              "liquidityUsd": 9094.87
+            },
+            {
+              "pairAddress": "0x61ccc84e302c1a95fb66435a285e95581134bfc2a11d4fbb88ed07e68ca2e4c0",
+              "dexId": "bankr",
+              "volume24hUsd": 18.78,
+              "liquidityUsd": 28620.27
+            },
+            {
+              "pairAddress": "0x641e61a908e18ddc579dbce1cb57b942deb30e95",
+              "dexId": "aerodrome-slipstream-3",
+              "volume24hUsd": 0.24,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x6f7e7296a906891997cf069c155d2f734da11a21aa0721a0389eb9588ce486ce",
+              "dexId": "o1-launchpad",
+              "volume24hUsd": 48.13,
+              "liquidityUsd": 5022.47
+            },
+            {
+              "pairAddress": "0x71c82ea30f9b98348ffb63bce5959230731a8d47",
+              "dexId": "aerodrome-slipstream-3",
+              "volume24hUsd": 0.24,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x79e2e3d4934a32fae6bbc4f82cfa5136f7e9ca75",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 0.99,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x7d0d8d09255773ccdb9b434a1569d745b06c0d5d",
+              "dexId": "aerodrome-slipstream-3",
+              "volume24hUsd": 12451.56,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x82dcf8096400db392d5206090793dd221726fc80babe5db8ce6ce84e4d15d64b",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.07,
+              "liquidityUsd": 9538.32
+            },
+            {
+              "pairAddress": "0x853F5f1B92b16714Fe6CDA67CAad0856B83C7ab9",
+              "dexId": "aerodrome",
+              "volume24hUsd": 11514583.81,
+              "liquidityUsd": 2409210.3
+            },
+            {
+              "pairAddress": "0x859acafe777abeea6dac096313f7140064ffabab",
+              "dexId": "aerodrome-slipstream-3",
+              "volume24hUsd": 0.24,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x8e4cdc84672f6985c092a4af1b475bce17ef2dfad14d4da3c105b24ef52e6600",
+              "dexId": "bankr",
+              "volume24hUsd": 4.39,
+              "liquidityUsd": 33786.58
+            },
+            {
+              "pairAddress": "0x8e740D5Fa742B763cD82159894b9919eD57E4f70",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 18002.6,
+              "liquidityUsd": 15558.77
+            },
+            {
+              "pairAddress": "0x91a34c94c5a2f34fbc7e2c0b2f1c6419dffea5c631289a35ce0a4be1759c52b6",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 10040.02
+            },
+            {
+              "pairAddress": "0x94db12d3b710c8cf4f69b90fe8b549d12d820318c6ee1730aed585c4b09ae8db",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 2.52,
+              "liquidityUsd": 624.88
+            },
+            {
+              "pairAddress": "0x9849c9b8e9dc57a7966bb5d5267b9b2a1192e3c12d7b90e828918a89e5cff7f3",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 547.53,
+              "liquidityUsd": 30859.5
+            },
+            {
+              "pairAddress": "0x9b2f469552ae407e55f273c54bb0a6bebfdcc071",
+              "dexId": "aerodrome-slipstream-3",
+              "volume24hUsd": 0.24,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xa079011895452e7fd1E4dC4B5546124d10a47203",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 0.18,
+              "liquidityUsd": 0.98
+            },
+            {
+              "pairAddress": "0xA6350E8d7988b97CE9Ef991349083d6C503e2061",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 24.59,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xa63a09967085553e77e004de7a2ca0b5f77140f531662cb5c4c8e13bb088b2cb",
+              "dexId": "o1-launchpad",
+              "volume24hUsd": 17.62,
+              "liquidityUsd": 8625.0
+            },
+            {
+              "pairAddress": "0xae2288b2dcfc9f99e9cb2f89c0af6059670a31974e14a33f3b28e70dff66600b",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 575.25,
+              "liquidityUsd": 949.23
+            },
+            {
+              "pairAddress": "0xae47f9b40f865c470ff2f4a5428e7bd14979fef5ba17f80ee568734b1a5fdd5e",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 1418.93,
+              "liquidityUsd": 2450.05
+            },
+            {
+              "pairAddress": "0xaf37c58BAaD0dF59bBAe19B7Ee17afC93Db8bDF5",
+              "dexId": "equalizer",
+              "volume24hUsd": 1.13,
+              "liquidityUsd": 23.66
+            },
+            {
+              "pairAddress": "0xb0a484ea123801ab30d486f192812bd9f283d3f0dc968cd7d7200ccc6fb23333",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 95514.92,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xb13f16b43f7e581949cf97a36fdc7a6405fc7a2cf259b4e54b02957d9e8fbeea",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xb21769526e3a0814752628ec6c6e08efc883a025a18c64ee3ad376aa67728a18",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 14039.81,
+              "liquidityUsd": 86445.39
+            },
+            {
+              "pairAddress": "0xb9f42cb6b82192550f9b543ce9abfb5006495692",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 0.01,
+              "liquidityUsd": 6.59
+            },
+            {
+              "pairAddress": "0xC108eEd68a790377ba69F0292EE4e3626fa4c483",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 2.24,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xc6e56d1024bd405bc8c2086e56ccc3a403401e0e",
+              "dexId": "aerodrome-slipstream-3",
+              "volume24hUsd": 0.24,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xCcb9d8152Fe783FaDa0f86e87551a1423eA69577",
+              "dexId": "aerodrome",
+              "volume24hUsd": 2.18,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xd5756f4d124e47186ae975718465108cec4fb60203b8d22638304a88b5c8ba25",
+              "dexId": "o1-launchpad",
+              "volume24hUsd": 791.21,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xd6f791d7473a123bdcf9b7450839512fd12ea8c02fc352bd608fbe53e217b9cb",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 19.4,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xd7f9a81d05f5443bf90f0108b58634a541e82cff5bb531cea0352d41aafe601b",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.07,
+              "liquidityUsd": 8021.87
+            },
+            {
+              "pairAddress": "0xe82fa069a5e01a6dc36c6736b5de4f721d726291b080c69b48e21b9c5a11a2ad",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 4005.38,
+              "liquidityUsd": 214328.42
+            },
+            {
+              "pairAddress": "0xfd4dbb4f67e81a17fd3843fcc90a9bc99508b207",
+              "dexId": "aerodrome-slipstream-3",
+              "volume24hUsd": 0.24,
+              "liquidityUsd": null
+            }
+          ]
+        },
+        {
+          "address": "0xb2000000000000000000008D5328e9208773dC58",
+          "symbol": "NVOc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 20723.09,
+          "displayedLiquidityUsd": 63581.72,
+          "pools": [
+            {
+              "pairAddress": "0x1160E2E589A32F830FccfD0ff559C17183ee36bc",
+              "dexId": "aerodrome",
+              "volume24hUsd": 15493.74,
+              "liquidityUsd": 12756.36
+            },
+            {
+              "pairAddress": "0xc1ba39D668F14Eee2462CA5877402e4a7c4d1f34",
+              "dexId": "aerodrome",
+              "volume24hUsd": 5229.35,
+              "liquidityUsd": 50825.36
+            }
+          ]
+        },
+        {
+          "address": "0xb200000000000000000000347AFbA223D7B6b63C",
+          "symbol": "ORCLc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 673.69,
+          "displayedLiquidityUsd": 4770.95,
+          "pools": [
+            {
+              "pairAddress": "0xeaCb32CA34Df9c7Df14dFcb689A0D08A7f2706B6",
+              "dexId": "aerodrome",
+              "volume24hUsd": 673.69,
+              "liquidityUsd": 4770.95
+            }
+          ]
+        },
+        {
+          "address": "0xB200000000000000000000c8A7223510467D8563",
+          "symbol": "PDDc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 52685.72,
+          "displayedLiquidityUsd": 78718.07,
+          "pools": [
+            {
+              "pairAddress": "0x84608BE6d655ee05032303FE7f0D6F3A51c2CF51",
+              "dexId": "aerodrome",
+              "volume24hUsd": 17925.65,
+              "liquidityUsd": 50795.54
+            },
+            {
+              "pairAddress": "0x90e374c25c4c7e4074ae461f746c07b95fc7b65b2c85862547812111059fbbf3",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xcaa69f5d571cc333fe3fe88d69c9833bf35ebac96e87fec63f36542e06214be6",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.84,
+              "liquidityUsd": 658.24
+            },
+            {
+              "pairAddress": "0xD5ab4e868aD6455143F8F8EC6D5C51A018935627",
+              "dexId": "aerodrome",
+              "volume24hUsd": 34759.23,
+              "liquidityUsd": 27264.29
+            }
+          ]
+        },
+        {
+          "address": "0xB20000000000000000000018FE7eC7d6DfeeB528",
+          "symbol": "PFEc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 439.49,
+          "displayedLiquidityUsd": 4816.89,
+          "pools": [
+            {
+              "pairAddress": "0xfB010D54338fa37b16247Bc9Ca2E591e19e6af06",
+              "dexId": "aerodrome",
+              "volume24hUsd": 439.49,
+              "liquidityUsd": 4816.89
+            }
+          ]
+        },
+        {
+          "address": "0xb2000000000000000000007d16372840dF4dAbbe",
+          "symbol": "PLTRc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 3213733.87,
+          "displayedLiquidityUsd": 776375.88,
+          "pools": [
+            {
+              "pairAddress": "0x1949cc5872e678bad9f3e359e263ac753d54aebb8453669a498a9d95f9a55d94",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x650cc267AA248191978013d5Ae421e5Dc2A6e242",
+              "dexId": "aerodrome",
+              "volume24hUsd": 3213733.87,
+              "liquidityUsd": 776375.88
+            },
+            {
+              "pairAddress": "0x78a43ad43ea1ec5af2efffef71b9958f4479bf505c7727e33cd78e86b0deb14a",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ]
+        },
+        {
+          "address": "0xB2000000000000000000008FC2A8C23cf5937b66",
+          "symbol": "PMc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1706.32,
+          "displayedLiquidityUsd": 973.31,
+          "pools": [
+            {
+              "pairAddress": "0x904800b9BeBAb0B2934640F68b9A3113fE29e938",
+              "dexId": "aerodrome",
+              "volume24hUsd": 1706.26,
+              "liquidityUsd": 871.26
+            },
+            {
+              "pairAddress": "0xf11fe3e9ecc1049864e3adb1578c37f0588a766001eb5ef11c5d56d3c1e92947",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.06,
+              "liquidityUsd": 102.05
+            }
+          ]
+        },
+        {
+          "address": "0xB2000000000000000000009272A491812842Aa84",
+          "symbol": "PTONc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 881.89,
+          "displayedLiquidityUsd": 1703.48,
+          "pools": [
+            {
+              "pairAddress": "0x10B3775429169386728a44bb5BC9e2458c75A72a",
+              "dexId": "aerodrome",
+              "volume24hUsd": 881.89,
+              "liquidityUsd": 1703.48
+            }
+          ]
+        },
+        {
+          "address": "0xb200000000000000000000450ad3abE5d4846c6E",
+          "symbol": "PYPLc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 4918.68,
+          "displayedLiquidityUsd": 27645.82,
+          "pools": [
+            {
+              "pairAddress": "0x0A63679f5F15AEE25EAeE62Ca299D6802Ff163C0",
+              "dexId": "aerodrome",
+              "volume24hUsd": 4918.68,
+              "liquidityUsd": 27645.82
+            }
+          ]
+        },
+        {
+          "address": "0xb200000000000000000000CA425ab42e07C35bC3",
+          "symbol": "QUBTc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 2661.32,
+          "displayedLiquidityUsd": 2655.1,
+          "pools": [
+            {
+              "pairAddress": "0x688096fEa5031BCb0367160872c0243b554Cd861",
+              "dexId": "aerodrome",
+              "volume24hUsd": 2661.32,
+              "liquidityUsd": 2655.1
+            }
+          ]
+        },
+        {
+          "address": "0xB2000000000000000000005bd7AE89b9E6189Bb5",
+          "symbol": "RBLXc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 6752.43,
+          "displayedLiquidityUsd": 22273.33,
+          "pools": [
+            {
+              "pairAddress": "0x51642769e591Fe72275219750E0FB469adD35441",
+              "dexId": "aerodrome",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 24.16
+            },
+            {
+              "pairAddress": "0x54dC3FdAeD298cA9a945771aE994f558a8f61e83",
+              "dexId": "aerodrome",
+              "volume24hUsd": 6749.78,
+              "liquidityUsd": 15198.21
+            },
+            {
+              "pairAddress": "0x5d2b9e278efab88aae800ea54dabf8230547985d",
+              "dexId": "aerodrome-slipstream-3",
+              "volume24hUsd": 2.65,
+              "liquidityUsd": 7050.96
+            }
+          ]
+        },
+        {
+          "address": "0xb20000000000000000000066242d4067724cB7A1",
+          "symbol": "RDDTc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 16901.42,
+          "displayedLiquidityUsd": 17173.1,
+          "pools": [
+            {
+              "pairAddress": "0x40FbDd107d0582763FE42d4371D059B5eb48be87",
+              "dexId": "aerodrome",
+              "volume24hUsd": 16898.05,
+              "liquidityUsd": 17121.86
+            },
+            {
+              "pairAddress": "0x63c669a07967107027856d8c36eed06427669d6be5674794da232c6ce27e236e",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 3.37,
+              "liquidityUsd": 51.24
+            }
+          ]
+        },
+        {
+          "address": "0xB20000000000000000000017BB66E9301E913A99",
+          "symbol": "SANc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 30801.48,
+          "displayedLiquidityUsd": 59110.08,
+          "pools": [
+            {
+              "pairAddress": "0xd9548bdfb223cd6b6fae207220d573a8d99691a95cdc2818f78936ad01a8b57f",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 5.92,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xdE658ACeB5c988fc07bEf09c75bAA0D2D66ed5c5",
+              "dexId": "aerodrome",
+              "volume24hUsd": 22239.39,
+              "liquidityUsd": 8259.04
+            },
+            {
+              "pairAddress": "0xE531069DF73530bf59c954F3718945D5fAA2e7dF",
+              "dexId": "aerodrome",
+              "volume24hUsd": 8556.17,
+              "liquidityUsd": 50851.04
+            }
+          ]
+        },
+        {
+          "address": "0xb200000000000000000000da6F64c306234127E0",
+          "symbol": "SAPc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 45693.67,
+          "displayedLiquidityUsd": 77009.81,
+          "pools": [
+            {
+              "pairAddress": "0x21313A06B7f8ed38D8bC1fb8Be2fBD847634A6ec",
+              "dexId": "aerodrome",
+              "volume24hUsd": 16632.36,
+              "liquidityUsd": 45669.44
+            },
+            {
+              "pairAddress": "0x5F85D0A6cF143284a9efE4c35116D109b73054f0",
+              "dexId": "aerodrome",
+              "volume24hUsd": 29061.31,
+              "liquidityUsd": 31340.37
+            }
+          ]
+        },
+        {
+          "address": "0xB2000000000000000000003088798F6d0722AaAC",
+          "symbol": "SEc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 29120.68,
+          "displayedLiquidityUsd": 61679.2,
+          "pools": [
+            {
+              "pairAddress": "0x0274e5078033cB3fE788cf76bb97150FD9bc4547",
+              "dexId": "aerodrome",
+              "volume24hUsd": 11336.98,
+              "liquidityUsd": 50833.05
+            },
+            {
+              "pairAddress": "0xFc6a8cC0496Df46b4253EFf2938CaA61D154b025",
+              "dexId": "aerodrome",
+              "volume24hUsd": 17783.7,
+              "liquidityUsd": 10846.15
+            }
+          ]
+        },
+        {
+          "address": "0xb200000000000000000000187f7071D6E321a7d2",
+          "symbol": "SKHYc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 61762.76,
+          "displayedLiquidityUsd": 93399.04,
+          "pools": [
+            {
+              "pairAddress": "0x21EcDa9a537f831361D1c336eadD7F3F9a82Ea43",
+              "dexId": "aerodrome",
+              "volume24hUsd": 31709.41,
+              "liquidityUsd": 27831.51
+            },
+            {
+              "pairAddress": "0x6678992e0a166F4E78Bf6cAd5dd7E61Ca041711c",
+              "dexId": "aerodrome",
+              "volume24hUsd": 30053.35,
+              "liquidityUsd": 65567.53
+            }
+          ]
+        },
+        {
+          "address": "0xb200000000000000000000397293Cb8cda9a10c5",
+          "symbol": "SNDKc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 10278830.62,
+          "displayedLiquidityUsd": 1415542.26,
+          "pools": [
+            {
+              "pairAddress": "0x26fa54cdfc64fAacb5364c09De7Ac2F72308052D",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 243.56,
+              "liquidityUsd": 2422.52
+            },
+            {
+              "pairAddress": "0x37457355dbf0bf99ff4a3176a94ef69254a8aceacaeff50b910d97df132bc995",
+              "dexId": "o1-launchpad",
+              "volume24hUsd": 5.55,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x3a88da052290814c276bda948ad7a261bef014f72239724d138ffe506fc78f9b",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.09,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x507b27040e73D67B72Bb6620A4feD123CD866c8a",
+              "dexId": "equalizer",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 17.42
+            },
+            {
+              "pairAddress": "0x5A8236f575471e7BfCA2C8462a200c28f737246E",
+              "dexId": "aerodrome",
+              "volume24hUsd": 10278529.22,
+              "liquidityUsd": 1412623.05
+            },
+            {
+              "pairAddress": "0x695c4a3600d015fe3e74c26d81e8c05ad7c9e99dc8ef5bf5607cd59cc2370f19",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 51.88,
+              "liquidityUsd": 406.72
+            },
+            {
+              "pairAddress": "0x8cd68a6bc2a926550deb3e29e5ce8f23d6b4fb72b38dab8affa9e9dc44ac922a",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.32,
+              "liquidityUsd": 72.55
+            },
+            {
+              "pairAddress": "0xfb26f18a1e73256e913a7721bf99693673625955e76f42932d3d296981875eb7",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ]
+        },
+        {
+          "address": "0xb200000000000000000000a26326a922FFA87f6C",
+          "symbol": "SONYc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 35290.09,
+          "displayedLiquidityUsd": 24515.37,
+          "pools": [
+            {
+              "pairAddress": "0x1464e3f2b3673dbc05601d405035af6706aff0fcd8573afaa6c91696cfc13a53",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.1,
+              "liquidityUsd": 1598.25
+            },
+            {
+              "pairAddress": "0x26Dd2AC81eA9a212afC84848893EdC21c5A76FDC",
+              "dexId": "aerodrome",
+              "volume24hUsd": 13960.53,
+              "liquidityUsd": 6773.76
+            },
+            {
+              "pairAddress": "0x82077fBAE3613c06E05A9dd4f75e1686bf1Ec20b",
+              "dexId": "aerodrome",
+              "volume24hUsd": 21329.46,
+              "liquidityUsd": 16143.36
+            }
+          ]
+        },
+        {
+          "address": "0xB2000000000000000000002137743D4a01Fe4e88",
+          "symbol": "SOUNc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 264.88,
+          "displayedLiquidityUsd": 623.89,
+          "pools": [
+            {
+              "pairAddress": "0x37CFE76fad9FA2D7398Cc3A5915ed93662c71C94",
+              "dexId": "aerodrome",
+              "volume24hUsd": 264.88,
+              "liquidityUsd": 623.89
+            }
+          ]
+        },
+        {
+          "address": "0xb2000000000000000000007b9fcbd005511aCBd5",
+          "symbol": "SPCXc",
+          "issuer": "coinbase",
+          "instrumentKind": "private",
+          "volume24hUsd": 5616083.84,
+          "displayedLiquidityUsd": 1422070.84,
+          "pools": [
+            {
+              "pairAddress": "0x0acd73ca6184fabad8fffc9dd4c9133356801d61fb70b1c9175d4f0cb349d4c2",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.49,
+              "liquidityUsd": 133.39
+            },
+            {
+              "pairAddress": "0x0bf58fe0FAc935Ac69595c19B12Ba0d75E3F8c0E",
+              "dexId": "aerodrome",
+              "volume24hUsd": 5591118.72,
+              "liquidityUsd": 1164143.05
+            },
+            {
+              "pairAddress": "0x0f5a06d759778a1310DB32b6656123F6691E56AD",
+              "dexId": "hydrex",
+              "volume24hUsd": 1326.38,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x127a12FC0953ab2ab89558c67Ba6D597D7140431",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 1247.48,
+              "liquidityUsd": 12233.91
+            },
+            {
+              "pairAddress": "0x41ffd69e2ca674fb9cb692d0893635f41c81f79fee4cdd2785d07dd7e1328647",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 1.14,
+              "liquidityUsd": 315.31
+            },
+            {
+              "pairAddress": "0x4fc0021BdD59f5DbAE07fA6F070677fc202cf161",
+              "dexId": "aerodrome",
+              "volume24hUsd": 1.0,
+              "liquidityUsd": 260.6
+            },
+            {
+              "pairAddress": "0x5a61789d9156b46602b5eac6827722e21d314edb",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 0.07,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x6375a01c9fcf4172c19ba7bc29daa60b37305df9a0686587915a590d632d75ad",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.16,
+              "liquidityUsd": 14.35
+            },
+            {
+              "pairAddress": "0x63d8d458d63d18a7a5941575105f5c6521170854d85c141de96afdeaaa803776",
+              "dexId": "o1-launchpad",
+              "volume24hUsd": 8079.94,
+              "liquidityUsd": 20522.46
+            },
+            {
+              "pairAddress": "0x65206fdc2323af155a01c9be845fa500e6d1058c207d2f2d83e9c48b706d0170",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 0.01
+            },
+            {
+              "pairAddress": "0x6a53e7c3d2bfc08e39ec24f512b4bbe2677f679545ceeecef7417890c700542c",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.1,
+              "liquidityUsd": 100338.67
+            },
+            {
+              "pairAddress": "0x7bda51ce3c596230c21d4dfec0268c0d8bcb1b2ca38c41fb18fd3d295ef09a48",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 4427.23,
+              "liquidityUsd": 2005.64
+            },
+            {
+              "pairAddress": "0x7bdE436cC2Cb4d9C909607576C8DBfeFcdCE2f8d",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 164.58,
+              "liquidityUsd": 1170.71
+            },
+            {
+              "pairAddress": "0x840de1733A6843a85C578aa05A319b7391A946FF",
+              "dexId": "aerodrome",
+              "volume24hUsd": 2.19,
+              "liquidityUsd": 57.68
+            },
+            {
+              "pairAddress": "0x8743318591c0aECb9C013abb86702A5d4127529a",
+              "dexId": "equalizer",
+              "volume24hUsd": 4.4,
+              "liquidityUsd": 1043.77
+            },
+            {
+              "pairAddress": "0x8a99035514832be5a5d9747e3bf28c50b5b68f124effd1a4695e519bad448ed4",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.14,
+              "liquidityUsd": 7.25
+            },
+            {
+              "pairAddress": "0x92dacb03f5422696c8a1b24fe89b9d42f45efea35c1dc043b24558c73c4d5567",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 59.97,
+              "liquidityUsd": 159.47
+            },
+            {
+              "pairAddress": "0x955590753d5c19ab840d2901900625a8dcee8aa54f4184c84a79e015673b10ae",
+              "dexId": "bankr",
+              "volume24hUsd": 66.22,
+              "liquidityUsd": 29766.88
+            },
+            {
+              "pairAddress": "0x97baa57e7869f374abedae3ec90a5d63d6de5538cecdbfa509a3565e7bb674ed",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.28,
+              "liquidityUsd": 9.74
+            },
+            {
+              "pairAddress": "0x97d83833912e1933333d6882e686ef52943cf2399cba0c8d7733d011c2e3a919",
+              "dexId": "uniswap",
+              "volume24hUsd": 34.15,
+              "liquidityUsd": 4278.62
+            },
+            {
+              "pairAddress": "0xA044B7dD71993F47171A402dB8853c30A822f8D5",
+              "dexId": "aerodrome",
+              "volume24hUsd": 15.72,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xb0ffB2A01AbbDD54c0b227543260aa65e2b84909",
+              "dexId": "aerodrome",
+              "volume24hUsd": 1337.53,
+              "liquidityUsd": 1438.21
+            },
+            {
+              "pairAddress": "0xbcaddd5cd374dd6f31c8a11c6e255cc1d0a9e510a9bb9cd0b3f8fcc2222419f7",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 2384.75,
+              "liquidityUsd": 38084.17
+            },
+            {
+              "pairAddress": "0xbff93728ac507c40699cc877be1e0f06f515daacdd36e4efa63664e986b705a4",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 188.68,
+              "liquidityUsd": 949.48
+            },
+            {
+              "pairAddress": "0xc99EF872C8fDbd781D16675132F75Add81AF07BB",
+              "dexId": "aerodrome",
+              "volume24hUsd": 1726.36,
+              "liquidityUsd": 8525.74
+            },
+            {
+              "pairAddress": "0xcf5c5eb7533db5377a0d69e3a2599d90793e7fd97e6fa84c9420a387c605a476",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 8.75,
+              "liquidityUsd": 372.0
+            },
+            {
+              "pairAddress": "0xe17da12a125181121ce03d4d3c0d37f0e2a1f06a0e7f644c3bdf6338d6a03247",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.81,
+              "liquidityUsd": 81.97
+            },
+            {
+              "pairAddress": "0xF9F7688E3f8617d7E5E506F9Cba8f7Fd0185fEc1",
+              "dexId": "equalizer",
+              "volume24hUsd": 0.15,
+              "liquidityUsd": 20.29
+            },
+            {
+              "pairAddress": "0xfd616e10311Ac827FA953cA04f62Fb2B054d8Da6",
+              "dexId": "aerodrome",
+              "volume24hUsd": 3886.45,
+              "liquidityUsd": 36137.47
+            }
+          ]
+        },
+        {
+          "address": "0xb2000000000000000000001e800a7f5189430cD0",
+          "symbol": "TSLAc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 8810537.0,
+          "displayedLiquidityUsd": 951991.76,
+          "pools": [
+            {
+              "pairAddress": "0x07061c39d9c5c734b5bba03f05e3c23c509253c209674c371935c1a052b9cfa1",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 22.7,
+              "liquidityUsd": 99.4
+            },
+            {
+              "pairAddress": "0x0cb88179790a381ba823261c8b593e87b114b4687307201821ae97b6942f9390",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x149ed8f4b5a96b4767cc901e03e03ae39d7cbccb9ea09126cd0c9eed7b6fd764",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x1aa7042b0b78e3f6d63d53da671bf0bade22ca53c00740da4a3828bddc35f3bc",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x1f9775c5e062cfbcfc67eb93090beb9dfe5d0d03573025ef9ce1a7d0df193f81",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 17.92,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x26ae84cd32e7db61a1eca9941cd768c964a05d135fcff6de004cc3e4840480e2",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x3428a3f6cc74050aca827e9253a2691ee0ba4f88b68b525184956deeda3087c0",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x363b905064f6359600f2dcd37a94538b48787f19ae5e3aed56085ef7043d6bff",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x452e3ec1c6c023a1cf02c9434dbbd09adeaf8601999d9a3acef0601296b7476d",
+              "dexId": "o1-launchpad",
+              "volume24hUsd": 3003.84,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x469337fDcc5E8f38e2E4B670B04F57865D13a7BB",
+              "dexId": "aerodrome",
+              "volume24hUsd": 8803312.43,
+              "liquidityUsd": 930030.1
+            },
+            {
+              "pairAddress": "0x518cb12537ee7b3dae44f5118ba424c6c83928a70b9ae838129b55bb038bc80a",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x519974ceBa3437aB1cEd0B77570CA65A25A9AB78",
+              "dexId": "equalizer",
+              "volume24hUsd": 0.44,
+              "liquidityUsd": 20.07
+            },
+            {
+              "pairAddress": "0x53923698aed2fa7c609736c96dad26625270421f57af19b1c81b69865d46c55a",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 561.02,
+              "liquidityUsd": 973.63
+            },
+            {
+              "pairAddress": "0x63Fd5509055E194C7c0028a34e7568FC7fC2628F",
+              "dexId": "aerodrome",
+              "volume24hUsd": 0.24,
+              "liquidityUsd": 3977.19
+            },
+            {
+              "pairAddress": "0x7d80b7f91db20056458defb5b0cea7acb62286581751d4546407bcd77f513c55",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x8300085e1099bc02c079c5e45a6b187085df4e6fdd22679e643e6924af209844",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 3128.62,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x8B68875019677b1b151D886825365ED976af3b82",
+              "dexId": "aerodrome",
+              "volume24hUsd": 1.19,
+              "liquidityUsd": 3976.74
+            },
+            {
+              "pairAddress": "0xa8a821935114fa692fd277f3a02d7c907f24accbe6b6a7789f29213f2e07f303",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.81,
+              "liquidityUsd": 83.47
+            },
+            {
+              "pairAddress": "0xacccf1c74d0f2a706d9f8231a027ab121053da0289ec7348e8e0ba3bf8c5ef3d",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xb728f297901e03759edd8b8b783ac19528db23c127cd81c7e1007971ceae5917",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 149.15,
+              "liquidityUsd": 339.33
+            },
+            {
+              "pairAddress": "0xBd033279731D6B0bc5145999cFcBb157B9a9f661",
+              "dexId": "aerodrome",
+              "volume24hUsd": 0.24,
+              "liquidityUsd": 3933.56
+            },
+            {
+              "pairAddress": "0xC2a19E25feC7fB2fC8bFe566278ea97991bB130B",
+              "dexId": "aerodrome",
+              "volume24hUsd": 0.69,
+              "liquidityUsd": 2.26
+            },
+            {
+              "pairAddress": "0xc30b48a7bc075bb6968199dea1a467a70f0d2c48e93222b80cc538de0c25cfde",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xC352d0f837dADE11BD103CF9Bb0E73F39BDbC298",
+              "dexId": "aerodrome",
+              "volume24hUsd": 0.24,
+              "liquidityUsd": 3972.3
+            },
+            {
+              "pairAddress": "0xc8e87cd59b9adb679a25e4ce1f698f5bb7cc25478981d8807804878ae80d77de",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xd7025173eb284bb7c695299d2bc31eb5cfcd7616a48afa82ad4395da9d2578d7",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xde9ac3fc95c869fea714cc9ae18f241d9cc1ea3567bcd2afa13aff243e031cca",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 336.06,
+              "liquidityUsd": 577.93
+            },
+            {
+              "pairAddress": "0xebfd1a6d56815641c8adde71c82577eb73a626b1dd08708783da8f844567c0df",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xFa23E59467c199C8b83Be756CDC73C6dEF3f9B96",
+              "dexId": "aerodrome",
+              "volume24hUsd": 0.24,
+              "liquidityUsd": 3961.52
+            },
+            {
+              "pairAddress": "0xfF85eDcD1794d814ABD87489EEA6f641048e7ba7",
+              "dexId": "aerodrome",
+              "volume24hUsd": 1.17,
+              "liquidityUsd": 44.26
+            }
+          ]
+        },
+        {
+          "address": "0xB200000000000000000000f720C26062Bc3067Da",
+          "symbol": "TTWOc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1119.38,
+          "displayedLiquidityUsd": 3553.97,
+          "pools": [
+            {
+              "pairAddress": "0x63b9bf28200f3cdbf04f2b265db6a2416b9c2d408a249319bfe0ce730115eecc",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.1,
+              "liquidityUsd": 68.02
+            },
+            {
+              "pairAddress": "0xa589bcc0d793a9a04ab28fc7b2f1f607bb3b1d1186d10195378361b3c95b886b",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xa6e756e377c5438698229efd0963c01f88466edefcba6d23dc8a5e48685f7388",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.02,
+              "liquidityUsd": 473.68
+            },
+            {
+              "pairAddress": "0xB61A76509fA69FaC5b6269c34cFFc1BBD2e71E91",
+              "dexId": "aerodrome",
+              "volume24hUsd": 1119.26,
+              "liquidityUsd": 3012.27
+            }
+          ]
+        },
+        {
+          "address": "0xB200000000000000000000349ef3Aa93a0897476",
+          "symbol": "ULc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 36824.82,
+          "displayedLiquidityUsd": 70300.11,
+          "pools": [
+            {
+              "pairAddress": "0x013FCB940735d17c81D3B91557aCC62Da723d9D5",
+              "dexId": "aerodrome",
+              "volume24hUsd": 14631.37,
+              "liquidityUsd": 50771.1
+            },
+            {
+              "pairAddress": "0x518639e37e01849f8b9710e7444b199c1175d16D",
+              "dexId": "aerodrome",
+              "volume24hUsd": 22193.45,
+              "liquidityUsd": 19529.01
+            }
+          ]
+        },
+        {
+          "address": "0xB20000000000000000000063376b142C0764B489",
+          "symbol": "VALEc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 18361.91,
+          "displayedLiquidityUsd": 72531.74,
+          "pools": [
+            {
+              "pairAddress": "0x0F48336b76ee52Fa6bb19edf5AF358529Df57574",
+              "dexId": "aerodrome",
+              "volume24hUsd": 4451.65,
+              "liquidityUsd": 51563.62
+            },
+            {
+              "pairAddress": "0x41D45D7b57d33573792Cc374001a82afbf0e6710",
+              "dexId": "aerodrome",
+              "volume24hUsd": 13910.26,
+              "liquidityUsd": 20968.12
+            }
+          ]
+        },
+        {
+          "address": "0xB20000000000000000000044E3CD7a0E1028E57a",
+          "symbol": "WENc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 264.45,
+          "displayedLiquidityUsd": 1981.39,
+          "pools": [
+            {
+              "pairAddress": "0x5532189374De3a831cf0C6DB6cE4090C186904B8",
+              "dexId": "aerodrome",
+              "volume24hUsd": 264.45,
+              "liquidityUsd": 1981.39
+            }
+          ]
+        },
+        {
+          "address": "0xb200000000000000000000e88EFe88D8aDE3f0dA",
+          "symbol": "WRDc",
+          "issuer": "coinbase",
+          "instrumentKind": "equity",
+          "volume24hUsd": 19867.45,
+          "displayedLiquidityUsd": 70893.35,
+          "pools": [
+            {
+              "pairAddress": "0xbc440AFf9A79cCed69d5B21c7B71e60BD0278EFB",
+              "dexId": "aerodrome",
+              "volume24hUsd": 7953.9,
+              "liquidityUsd": 50732.3
+            },
+            {
+              "pairAddress": "0xc7e365dDAd8837369e035838841a9f5569840455",
+              "dexId": "aerodrome",
+              "volume24hUsd": 11913.13,
+              "liquidityUsd": 20161.05
+            },
+            {
+              "pairAddress": "0xd838fa382e5d38a33a5ae076efb66dddbf8bfb08bdaf64b7e86efb2518de1dcb",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.42,
+              "liquidityUsd": null
+            }
+          ]
+        },
+        {
+          "address": "0x1020EC8Aa3f709a1f3D8705cdBa89b950451bd88",
+          "symbol": "wtAAPL",
+          "issuer": "st0x",
+          "instrumentKind": "equity",
+          "volume24hUsd": 35.14,
+          "displayedLiquidityUsd": null,
+          "pools": [
+            {
+              "pairAddress": "0xd944fE0B26aCFc28fD425390d96af83E14f95844",
+              "dexId": "hydrex",
+              "volume24hUsd": 35.14,
+              "liquidityUsd": null
+            }
+          ]
+        },
+        {
+          "address": "0x7e5cc7eAe0455A07Ab4abf354E0f5657BA2888BD",
+          "symbol": "wtBABA",
+          "issuer": "st0x",
+          "instrumentKind": "equity",
+          "volume24hUsd": 131.14,
+          "displayedLiquidityUsd": 927.63,
+          "pools": [
+            {
+              "pairAddress": "0x7942A4dBf0C599edB3466a85627Ed276eF748256",
+              "dexId": "hydrex",
+              "volume24hUsd": 131.14,
+              "liquidityUsd": 927.63
+            }
+          ]
+        },
+        {
+          "address": "0x5cDa0E1CA4ce2af96315f7F8963C85399c172204",
+          "symbol": "wtCOIN",
+          "issuer": "st0x",
+          "instrumentKind": "equity",
+          "volume24hUsd": 194257.33,
+          "displayedLiquidityUsd": 409477.77,
+          "pools": [
+            {
+              "pairAddress": "0x1fcd0ece16ef8b009157aa272ccc4bb9660bd13921a82651906cd0ffa3cdfc36",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 47.64,
+              "liquidityUsd": 5062.35
+            },
+            {
+              "pairAddress": "0x27d25ff91f0a5e2ff246c52f9b232005c36893d1814cd2bd5099ec6114558b4e",
+              "dexId": "uniswap",
+              "volume24hUsd": 7.66,
+              "liquidityUsd": 3020.04
+            },
+            {
+              "pairAddress": "0x28296adbbd6dc14d63c08fb5b79a4ce560e38e069e2c87c03393c744c6665e6b",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 626.56,
+              "liquidityUsd": 3599.21
+            },
+            {
+              "pairAddress": "0x29aab777bAF3d40edd6F72fd24d4426Dc83Dd8b3",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 2104.26,
+              "liquidityUsd": 6503.03
+            },
+            {
+              "pairAddress": "0x2f98956fa751dd51517912961833aa169f4f274465e080b7a08788d50313f913",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 39.24,
+              "liquidityUsd": 1581.05
+            },
+            {
+              "pairAddress": "0x3bf7c28ed75855d4384796cb13e869e2309b27c15f06afe28cac8264db4f8286",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 513.59,
+              "liquidityUsd": 16286.28
+            },
+            {
+              "pairAddress": "0x4618dFcbC52d9fbCd45Ec4A65fc61B5DA57Ad205",
+              "dexId": "aerodrome",
+              "volume24hUsd": 180504.78,
+              "liquidityUsd": 303013.85
+            },
+            {
+              "pairAddress": "0x54d8f2d5f3723b009bd49234fb73e600c0488c2435d5de138bb5b9c8e7ca91b2",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 6.06,
+              "liquidityUsd": 3918.73
+            },
+            {
+              "pairAddress": "0x55197035c3dbdd96a983fe64c95bdc8fe5fa09e89e9912197e845e699619ab21",
+              "dexId": "uniswap",
+              "volume24hUsd": 9.73,
+              "liquidityUsd": 5065.62
+            },
+            {
+              "pairAddress": "0x61c1365f67a09754e1da339e5ce0f36102a52c8050c39fe4eeba909aae0e586a",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 36.19,
+              "liquidityUsd": 6627.48
+            },
+            {
+              "pairAddress": "0x6975083f76c89c1353f439f7e6172bbfb82db1d610e7fa6b94059155bfbad55f",
+              "dexId": "uniswap",
+              "volume24hUsd": 7.66,
+              "liquidityUsd": 3030.63
+            },
+            {
+              "pairAddress": "0x8495444b5f3699D223baa01E67Bf534475620aff",
+              "dexId": "uniswap-v3-base",
+              "volume24hUsd": 1755.08,
+              "liquidityUsd": 12091.96
+            },
+            {
+              "pairAddress": "0xab5d32fF95b58bD5e77De08738a391973eE88C81",
+              "dexId": "hydrex",
+              "volume24hUsd": 8131.0,
+              "liquidityUsd": 24824.45
+            },
+            {
+              "pairAddress": "0xc2d01d8af98f4cc485660e2eb9ed2eae6e6b42ac698269ba41f7ead5bd658bdf",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 3.49,
+              "liquidityUsd": 387.8
+            },
+            {
+              "pairAddress": "0xdb366ce311055bc3e275de10dbc320b4ade74c3ebc0179dd3fbb8efbcdb1b096",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 205.34,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xe17e95043475ab700ebb64b5ca35dfecca3a529dc0194096cc114d46930a3c43",
+              "dexId": "uniswap",
+              "volume24hUsd": 249.27,
+              "liquidityUsd": 7285.75
+            },
+            {
+              "pairAddress": "0xfe498cad9b89bd89c15e4d0ce5c223ec746560680620b98fcee1c1e2eef5718f",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 9.78,
+              "liquidityUsd": 7179.54
+            }
+          ]
+        },
+        {
+          "address": "0x1db49Ff8BEe88ec73F82F395B0BEAd372BdcAdb7",
+          "symbol": "wtDNUT",
+          "issuer": "st0x",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1391.7,
+          "displayedLiquidityUsd": 28684.96,
+          "pools": [
+            {
+              "pairAddress": "0x50669903fbd516dA07aCeb99276995B7eB00e6E0",
+              "dexId": "hydrex",
+              "volume24hUsd": 1391.7,
+              "liquidityUsd": 28684.96
+            }
+          ]
+        },
+        {
+          "address": "0x1A91Df4a970EBaB1bB4AF32Eb6d10509028eE4b8",
+          "symbol": "wtDRAM",
+          "issuer": "st0x",
+          "instrumentKind": "etf",
+          "volume24hUsd": 629.1,
+          "displayedLiquidityUsd": 6209.49,
+          "pools": [
+            {
+              "pairAddress": "0x98c83E7B5348373E5866F4fdb3ae1682353b8574",
+              "dexId": "aerodrome",
+              "volume24hUsd": 29.26,
+              "liquidityUsd": 1074.23
+            },
+            {
+              "pairAddress": "0xa17dB5cf2f25213356f088a92245B9704bC4310f",
+              "dexId": "hydrex",
+              "volume24hUsd": 599.84,
+              "liquidityUsd": 5135.26
+            }
+          ]
+        },
+        {
+          "address": "0x6aed8b1aCfb04F4e0e6db580F12fF41438a394e5",
+          "symbol": "wtFGI",
+          "issuer": "st0x",
+          "instrumentKind": "equity",
+          "volume24hUsd": 7965.41,
+          "displayedLiquidityUsd": 116687.98,
+          "pools": [
+            {
+              "pairAddress": "0x0Bb9dF0a03d133f60fb37feF90D83D28C8b566Bf",
+              "dexId": "aerodrome",
+              "volume24hUsd": 1443.69,
+              "liquidityUsd": 34044.47
+            },
+            {
+              "pairAddress": "0xcE4838e3287d66ce20Fa296704f2B77DE9D2a92d",
+              "dexId": "hydrex",
+              "volume24hUsd": 6521.72,
+              "liquidityUsd": 82643.51
+            }
+          ]
+        },
+        {
+          "address": "0x6a2357Df4975C667B171bE53dA6FFe6deBf7030c",
+          "symbol": "wtGOOGL",
+          "issuer": "st0x",
+          "instrumentKind": "equity",
+          "volume24hUsd": 2785.37,
+          "displayedLiquidityUsd": 95.78,
+          "pools": [
+            {
+              "pairAddress": "0xaA98B6191Ba4a0385E4123979171DfFC4Deb6aEf",
+              "dexId": "hydrex",
+              "volume24hUsd": 19.92,
+              "liquidityUsd": 95.78
+            },
+            {
+              "pairAddress": "0xC0fD714A5CF89780846DcD75Fd3a01906Dac2E3e",
+              "dexId": "hydrex",
+              "volume24hUsd": 2765.45,
+              "liquidityUsd": null
+            }
+          ]
+        },
+        {
+          "address": "0x1197E6FA778c4D13E47875bD1761c68C22c928e0",
+          "symbol": "wtGRND",
+          "issuer": "st0x",
+          "instrumentKind": "equity",
+          "volume24hUsd": 2648.37,
+          "displayedLiquidityUsd": 27644.1,
+          "pools": [
+            {
+              "pairAddress": "0x9849E92f29a9d3b89fe09694746E7AcF52bBc37D",
+              "dexId": "hydrex",
+              "volume24hUsd": 2648.37,
+              "liquidityUsd": 27644.1
+            }
+          ]
+        },
+        {
+          "address": "0x7ecAE30Ed8ee4F72653ada7b0941bDE7a0a8eE8d",
+          "symbol": "wtMCD",
+          "issuer": "st0x",
+          "instrumentKind": "equity",
+          "volume24hUsd": 235.84,
+          "displayedLiquidityUsd": 28940.85,
+          "pools": [
+            {
+              "pairAddress": "0x4c25f293da40d8ebf6faed9e50e186b647881278533903c6ce6ceb5c3acc2e1e",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x519Ad6af575388f48Fc9F4eE876b70fA55f5D4EC",
+              "dexId": "hydrex",
+              "volume24hUsd": 235.84,
+              "liquidityUsd": 28940.85
+            }
+          ]
+        },
+        {
+          "address": "0xFF05E1bD696900dc6A52CA35Ca61Bb1024eDa8e2",
+          "symbol": "wtMSTR",
+          "issuer": "st0x",
+          "instrumentKind": "equity",
+          "volume24hUsd": 6445.49,
+          "displayedLiquidityUsd": 15513.91,
+          "pools": [
+            {
+              "pairAddress": "0x37077D100b369Ab48c9e6B7b21c15eee4fDF9923",
+              "dexId": "hydrex",
+              "volume24hUsd": 5586.91,
+              "liquidityUsd": 15513.88
+            },
+            {
+              "pairAddress": "0x9dD227375Fbe6BeB2b52C75c0ee9D515f4870f80",
+              "dexId": "hydrex",
+              "volume24hUsd": 858.58,
+              "liquidityUsd": 0.03
+            }
+          ]
+        },
+        {
+          "address": "0x0883f32d23Ed5535057a4B5E3eB1970FE08606AF",
+          "symbol": "wtNKE",
+          "issuer": "st0x",
+          "instrumentKind": "equity",
+          "volume24hUsd": 3486.19,
+          "displayedLiquidityUsd": 30136.95,
+          "pools": [
+            {
+              "pairAddress": "0xDB57AA8369AE753D2C8a57cd17845cE4D691bc11",
+              "dexId": "hydrex",
+              "volume24hUsd": 3486.19,
+              "liquidityUsd": 30136.95
+            }
+          ]
+        },
+        {
+          "address": "0xFb5B41acdbA20a3230F84BE995173CFb98b8D6E7",
+          "symbol": "wtNVDA",
+          "issuer": "st0x",
+          "instrumentKind": "equity",
+          "volume24hUsd": 20926.72,
+          "displayedLiquidityUsd": 23309.65,
+          "pools": [
+            {
+              "pairAddress": "0x2d8CAf2D736B59b764208ad521669ae1DFcdD9d2",
+              "dexId": "hydrex",
+              "volume24hUsd": 1543.34,
+              "liquidityUsd": 3927.97
+            },
+            {
+              "pairAddress": "0x3e8126A4a5DF68DD9cCA675E8dc925B5FED70CA9",
+              "dexId": "hydrex",
+              "volume24hUsd": 14349.68,
+              "liquidityUsd": 7964.1
+            },
+            {
+              "pairAddress": "0xf10777066a2d1dcdd2cfdcf5534aab7feabbf2446f4e8f24cb1a925dcccbba18",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xfC67Fb1dd64fE7681CD75095E618818435546a21",
+              "dexId": "aerodrome",
+              "volume24hUsd": 5033.7,
+              "liquidityUsd": 11417.58
+            }
+          ]
+        },
+        {
+          "address": "0x35fDe767dBFAa610D12cf99914bCd6CFEda73B7B",
+          "symbol": "wtPLBY",
+          "issuer": "st0x",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1500.21,
+          "displayedLiquidityUsd": 28233.41,
+          "pools": [
+            {
+              "pairAddress": "0x7d0e3b33b69f801175aa62b63621500ea63fa0365cc37c0c700a46dd4a57d83d",
+              "dexId": "bankr",
+              "volume24hUsd": 4.57,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0xE70C5d2c76Fe261BA6b0CC1F80ec0628b85e891D",
+              "dexId": "hydrex",
+              "volume24hUsd": 1495.64,
+              "liquidityUsd": 28233.41
+            }
+          ]
+        },
+        {
+          "address": "0x823FF7Bbde2869aAe73A6CD53e7f614442836757",
+          "symbol": "wtQQQM",
+          "issuer": "st0x",
+          "instrumentKind": "etf",
+          "volume24hUsd": 1332.73,
+          "displayedLiquidityUsd": 7782.34,
+          "pools": [
+            {
+              "pairAddress": "0xece0d1e0615feB34e78129d1996B75f1ff082324",
+              "dexId": "hydrex",
+              "volume24hUsd": 1332.73,
+              "liquidityUsd": 7782.34
+            }
+          ]
+        },
+        {
+          "address": "0xFcD17aC4c4BF6a72c93018096F3fC09e66573Ff9",
+          "symbol": "wtSKHY",
+          "issuer": "st0x",
+          "instrumentKind": "equity",
+          "volume24hUsd": 2157.03,
+          "displayedLiquidityUsd": 13609.85,
+          "pools": [
+            {
+              "pairAddress": "0x7313B413727eD86b01CcE08c2e2F9E0A8462f5C0",
+              "dexId": "aerodrome",
+              "volume24hUsd": 2146.14,
+              "liquidityUsd": 12790.66
+            },
+            {
+              "pairAddress": "0x759409935F8b17B6588B1Fbd81b19F400709bcB3",
+              "dexId": "hydrex",
+              "volume24hUsd": 10.89,
+              "liquidityUsd": 819.19
+            }
+          ]
+        },
+        {
+          "address": "0x19F89aaEf8a93f38A974beca9776f09aB844887F",
+          "symbol": "wtSPCX",
+          "issuer": "st0x",
+          "instrumentKind": "private",
+          "volume24hUsd": 56.4,
+          "displayedLiquidityUsd": 1149.3,
+          "pools": [
+            {
+              "pairAddress": "0x8b82b41d705e54eb7f4d36fa99e3a4fcb22a3c4afc75b36de4c68e73991253fb",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 5.98,
+              "liquidityUsd": 203.47
+            },
+            {
+              "pairAddress": "0xD4f76a51151Be3D58AA1813eaA647E9F97AFc44f",
+              "dexId": "hydrex",
+              "volume24hUsd": 50.42,
+              "liquidityUsd": 945.83
+            }
+          ]
+        },
+        {
+          "address": "0x9Aa9c5a24e976096A6A7aB44986DAE8230fa5b27",
+          "symbol": "wtSPY",
+          "issuer": "st0x",
+          "instrumentKind": "etf",
+          "volume24hUsd": 308.43,
+          "displayedLiquidityUsd": 2037.18,
+          "pools": [
+            {
+              "pairAddress": "0x5B3FB9B15CE1AcE8925DA48F718ab696B1bFe70F",
+              "dexId": "aerodrome",
+              "volume24hUsd": 308.43,
+              "liquidityUsd": 2037.18
+            }
+          ]
+        },
+        {
+          "address": "0x31C2C14134e6E3B7ef9478297F199331133Fc2d8",
+          "symbol": "wtSPYM",
+          "issuer": "st0x",
+          "instrumentKind": "etf",
+          "volume24hUsd": 49119.88,
+          "displayedLiquidityUsd": 149169.04,
+          "pools": [
+            {
+              "pairAddress": "0x057e01090332c39e2c918127bb0e20250a2493ff7165df7d9fbc764ae305f62f",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 2.42,
+              "liquidityUsd": 89.78
+            },
+            {
+              "pairAddress": "0x36622e47536a93b03DE0e235c377f13c613b8f8D",
+              "dexId": "aerodrome",
+              "volume24hUsd": 23353.78,
+              "liquidityUsd": 90697.3
+            },
+            {
+              "pairAddress": "0x7796fc53B75960A9762Ba267c19F5da9868B7853",
+              "dexId": "hydrex",
+              "volume24hUsd": 9094.14,
+              "liquidityUsd": 58381.96
+            },
+            {
+              "pairAddress": "0xc2dd131e210679afff1749c7f5d219bf87e9dd436b0bdd48a6bd27075b205ac3",
+              "dexId": "bankr",
+              "volume24hUsd": 16669.54,
+              "liquidityUsd": null
+            }
+          ]
+        },
+        {
+          "address": "0x433fd2Fc0964B07E9820e4cd01774eDE59D1F002",
+          "symbol": "wtTR",
+          "issuer": "st0x",
+          "instrumentKind": "equity",
+          "volume24hUsd": 510.55,
+          "displayedLiquidityUsd": 30065.46,
+          "pools": [
+            {
+              "pairAddress": "0xFe2D6fa62051EDaCf2f49596A0c79f8d215E719e",
+              "dexId": "hydrex",
+              "volume24hUsd": 510.55,
+              "liquidityUsd": 30065.46
+            }
+          ]
+        },
+        {
+          "address": "0x219A8d384a10BF19b9f24cB5cC53F79Dd0e5A03D",
+          "symbol": "wtTSLA",
+          "issuer": "st0x",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.22,
+          "displayedLiquidityUsd": 173.3,
+          "pools": [
+            {
+              "pairAddress": "0x56702dabefe2aa467e84b837f89b88bcc9c628eb54e25a0789bf4ce29850f9c0",
+              "dexId": "uniswap",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            },
+            {
+              "pairAddress": "0x7fa8b2b218394fb64bdd74171903023eb0e2f65ae228d925c6835bbf3b7c45bc",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.22,
+              "liquidityUsd": 173.3
+            }
+          ]
+        },
+        {
+          "address": "0x71C66449d2528E23514A9c197BFD55Ae9DB3B714",
+          "symbol": "wtTSM",
+          "issuer": "st0x",
+          "instrumentKind": "equity",
+          "volume24hUsd": 487.87,
+          "displayedLiquidityUsd": 4487.8,
+          "pools": [
+            {
+              "pairAddress": "0x603258C5072a01609c4c7269031232695D14f21b",
+              "dexId": "hydrex",
+              "volume24hUsd": 487.87,
+              "liquidityUsd": 4487.8
+            },
+            {
+              "pairAddress": "0x81e2e83b93d750f9aec27bad860d07248f0f49c008e82502d38e631aa7473427",
+              "dexId": "uniswap-v4-base",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null
+            }
+          ]
+        },
+        {
+          "address": "0x31Fa821F8B1BDea7Db357ec9622d1A2f6aFE903d",
+          "symbol": "wtWEN",
+          "issuer": "st0x",
+          "instrumentKind": "equity",
+          "volume24hUsd": 90.96,
+          "displayedLiquidityUsd": 25444.02,
+          "pools": [
+            {
+              "pairAddress": "0x442b29B177cda78537Dd58A7aee7071729E96885",
+              "dexId": "hydrex",
+              "volume24hUsd": 90.96,
+              "liquidityUsd": 25444.02
+            }
+          ]
+        }
+      ],
+      "notes": [
+        "base docs contract table: None",
+        "stocksonchain Base tokens omitted (commodity/treasury/bond/credit, not equity/preipo/etf): BOXX, CEF, CLOA, FBND, GLD, IAU, JAAA, PALL, PPLT, SIVR, SLV, SPPP, SPSK, TLT, USFR, USHY, USO, USOY, WEAT",
+        "centrifuge Base tokens omitted (not equity/preipo/etf): JTRSY, JAAA, ACRDX, deJTRSY, deJAAA",
+        "backed Base tokens omitted (treasury/bond/credit, not equity/preipo/etf): bC3M, bCSBGC3, bERNA, bERNX, bHIGH, bIB01, bIBTA, bZPR1",
+        "ondo addresses (Base included when listed): fetch failed https://api.gm.ondo.finance/v1/assets/all/addresses: HTTP Error 403: Forbidden",
+        "anchored Base tokens omitted (commodity/treasury, not equity/preipo/etf): aBIL, aBNO, aGLD, aSLV, aTBT, aTLT, aUSO",
+        "dexscreener lookalikes omitted (not an official Base listing): BACKED (backed), QQQX (backed)",
+        "Eastern-day volume is the sum of GeckoTerminal hourly USD candles from 00:00:00 through 23:59:59 America/New_York. A pool with no GeckoTerminal candles keeps that pool's DexScreener h24 and is listed on dexscreenerH24Fallbacks. A pool on two tracked tokens counts once. Pools DexScreener does not list are included."
+      ],
+      "sources": {
+        "universe": "All Base (chainId 8453) public equity, pre-IPO, and ETF issuers",
+        "universeCoinbase": "https://api.coinbase.com/v1/tokenized-stocks",
+        "universeDocs": "https://docs.base.org/base-chain/asset-issuance/tokenized-stocks-on-base",
+        "universeStocksonchain": "https://stocksonchain.io/api/tokens.json",
+        "universeOndo": "https://api.gm.ondo.finance/v1/assets/all/addresses",
+        "universeDinari": "https://api-enterprise.sbt.dinari.com/api/v2/market_data/stocks/?limit=100",
+        "universeSt0x": "https://raw.githubusercontent.com/ST0x-Technology/st0x.registry/main/token-lists/base.json",
+        "universeCentrifuge": "https://docs.centrifuge.io/developer/protocol/deployments/",
+        "universeXstocks": "https://api.xstocks.fi/api/v2/public/assets?network=Base",
+        "universeBacked": "https://api.backed.fi/api/v1/token",
+        "universeAnchored": "https://docs.anchored.finance/getting-started/anchored-tokens.md",
+        "universeDexScreenerSearch": "https://api.dexscreener.com/latest/dex/search?q=ST0x",
+        "volume": "GeckoTerminal hourly USD candles summed from 00:00:00 through 23:59:59 America/New_York across every known Base pool; DexScreener token-pairs/v1/base discovers pools and known pools missing from that response are refetched via latest/dex/pairs/base; GeckoTerminal token pools that DexScreener does not list are included; a pool with no GeckoTerminal candles falls back to that pool's DexScreener h24; a pool with two tracked tokens counts once, on the base token",
+        "liquidity": "DexScreener liquidity.usd per unique pool; displayedLiquidityUsd is the sum of reported pool liquidity. Missing liquidity.usd is null, not $0",
+        "chainId": 8453,
+        "chainSlug": "base",
+        "discoveredFrom": [
+          "seed",
+          "coinbase-api",
+          "stocksonchain",
+          "st0x",
+          "centrifuge",
+          "backed-api",
+          "xstocks",
+          "backed-verified",
+          "anchored-docs",
+          "dexscreener-search"
+        ]
+      },
+      "method": "Desk totals are every Base issuer in equity, preipo, and etf; Ondo is included only when a Base address is confirmed; Dinari is in the universe when listed and a mint with no DexScreener pools stays null; Dinari commodity, treasury, bond, and credit products are omitted from the equity and ETF lanes; ST0x wrapped Base tokens are included (commodity and treasury products omitted); Centrifuge S&P 500 share tokens are included and credit/treasury tokens are not; Anchored aStocks on Base are included (commodity and treasury/bond funds omitted); ETF is classified before pre-IPO; Robinhood Chain excluded; SPCXc and other SpaceX shares stay preipo; missing DexScreener h24 stays null (not $0); missing liquidity.usd stays null and does not blank the day; token-pairs/v1/base sums every returned pool and known pools outside that page are refetched; a pool whose base and quote are both tracked counts once on the base token; a token down more than 90% while its known main pool is still above $50k is stored on volumeDropWarnings; volume is GeckoTerminal hourly candles on the America/New_York day; a pool with no candles uses that pool's DexScreener h24; date is the America/New_York calendar day",
+      "windowSource": "geckoterminal-hourly-et-day",
+      "windowHours": 24,
+      "dexscreenerH24Fallbacks": [
+        {
+          "pairAddress": "0x07b6ef3d4275dc2ecbb87c74237d7c8b7efc7bc63891b8201394d5cc90734cd3",
+          "dexId": "uniswap",
+          "volume24hUsd": 439.95,
+          "symbol": "MSTRc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x0c23b727b1a3b0b3748f97ecfabbf086b86a09c4dc7a3fd17f4efd904759ad13",
+          "dexId": "uniswap",
+          "volume24hUsd": 10595.97,
+          "symbol": "METAc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x129f52d8ffc79387b306be0ab1a92c8bcb038e136044d935297aa28907306dfe",
+          "dexId": "uniswap",
+          "volume24hUsd": 0.0,
+          "symbol": "ARMc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x149ed8f4b5a96b4767cc901e03e03ae39d7cbccb9ea09126cd0c9eed7b6fd764",
+          "dexId": "uniswap",
+          "volume24hUsd": 0.0,
+          "symbol": "TSLAc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x16033ad801b4e39157b8857ded4c7e3a6677603a8742e771f53202a88a0922e5",
+          "dexId": "uniswap",
+          "volume24hUsd": 4.07,
+          "symbol": "METAc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x1949cc5872e678bad9f3e359e263ac753d54aebb8453669a498a9d95f9a55d94",
+          "dexId": "uniswap",
+          "volume24hUsd": 0.0,
+          "symbol": "PLTRc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x1aa7042b0b78e3f6d63d53da671bf0bade22ca53c00740da4a3828bddc35f3bc",
+          "dexId": "uniswap",
+          "volume24hUsd": 0.0,
+          "symbol": "TSLAc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x1fd40c91777d0b9a07be63ea06116a9077acd6da7b5434702591e5eb2bc17455",
+          "dexId": "uniswap",
+          "volume24hUsd": 101.88,
+          "symbol": "MSTRc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x26ae84cd32e7db61a1eca9941cd768c964a05d135fcff6de004cc3e4840480e2",
+          "dexId": "uniswap",
+          "volume24hUsd": 0.0,
+          "symbol": "TSLAc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x27d25ff91f0a5e2ff246c52f9b232005c36893d1814cd2bd5099ec6114558b4e",
+          "dexId": "uniswap",
+          "volume24hUsd": 7.66,
+          "symbol": "wtCOIN",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x3428a3f6cc74050aca827e9253a2691ee0ba4f88b68b525184956deeda3087c0",
+          "dexId": "uniswap",
+          "volume24hUsd": 0.0,
+          "symbol": "TSLAc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x363b905064f6359600f2dcd37a94538b48787f19ae5e3aed56085ef7043d6bff",
+          "dexId": "uniswap",
+          "volume24hUsd": 0.0,
+          "symbol": "TSLAc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x4129375c35fcc45f1106d617df5feecfe9bc41d2c0fcfbba55c45cef3c5d1675",
+          "dexId": "uniswap",
+          "volume24hUsd": 0.05,
+          "symbol": "METAc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x4c25f293da40d8ebf6faed9e50e186b647881278533903c6ce6ceb5c3acc2e1e",
+          "dexId": "uniswap",
+          "volume24hUsd": 0.0,
+          "symbol": "wtMCD",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x518cb12537ee7b3dae44f5118ba424c6c83928a70b9ae838129b55bb038bc80a",
+          "dexId": "uniswap",
+          "volume24hUsd": 0.0,
+          "symbol": "TSLAc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x55197035c3dbdd96a983fe64c95bdc8fe5fa09e89e9912197e845e699619ab21",
+          "dexId": "uniswap",
+          "volume24hUsd": 9.73,
+          "symbol": "wtCOIN",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x56702dabefe2aa467e84b837f89b88bcc9c628eb54e25a0789bf4ce29850f9c0",
+          "dexId": "uniswap",
+          "volume24hUsd": 0.0,
+          "symbol": "wtTSLA",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x65188f5aea66a683e37a7745a3377b4e288da1632e4bf7e76b897cc6d4132eee",
+          "dexId": "uniswap",
+          "volume24hUsd": 1.05,
+          "symbol": "METAc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x6975083f76c89c1353f439f7e6172bbfb82db1d610e7fa6b94059155bfbad55f",
+          "dexId": "uniswap",
+          "volume24hUsd": 7.66,
+          "symbol": "wtCOIN",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x6a53e7c3d2bfc08e39ec24f512b4bbe2677f679545ceeecef7417890c700542c",
+          "dexId": "uniswap",
+          "volume24hUsd": 0.1,
+          "symbol": "SPCXc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x718533ada9e46d664d12c02d6f2fc07efb0dead042fd5d8492acaf596937e004",
+          "dexId": "uniswap",
+          "volume24hUsd": 0.0,
+          "symbol": "NFLXc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x7307383626852f9f4852849734882ef7bd858d7c20b7a4003e777b169d18ce8c",
+          "dexId": "uniswap",
+          "volume24hUsd": 182.62,
+          "symbol": "METAc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x78a43ad43ea1ec5af2efffef71b9958f4479bf505c7727e33cd78e86b0deb14a",
+          "dexId": "uniswap",
+          "volume24hUsd": 0.0,
+          "symbol": "PLTRc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x7d80b7f91db20056458defb5b0cea7acb62286581751d4546407bcd77f513c55",
+          "dexId": "uniswap",
+          "volume24hUsd": 0.0,
+          "symbol": "TSLAc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x7f26263f794ffd6467885715b3c379ac97d9507e2a71e7b8007c254963fec467",
+          "dexId": "uniswap",
+          "volume24hUsd": 0.12,
+          "symbol": "AMDc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x82dcf8096400db392d5206090793dd221726fc80babe5db8ce6ce84e4d15d64b",
+          "dexId": "uniswap",
+          "volume24hUsd": 0.07,
+          "symbol": "NVDAc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x8898e83f1e8468ff186ed33cc7e51f16bc192608ceba99432eb9ce1a9e69ddd5",
+          "dexId": "uniswap",
+          "volume24hUsd": 0.2,
+          "symbol": "MSTRc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x8db0488fbcff93252cb2184888ea82ede3b784a39d3f28e95e53bdfdf788a5f0",
+          "dexId": "uniswap",
+          "volume24hUsd": 215.93,
+          "symbol": "CAKEc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x90e374c25c4c7e4074ae461f746c07b95fc7b65b2c85862547812111059fbbf3",
+          "dexId": "uniswap",
+          "volume24hUsd": 0.0,
+          "symbol": "PDDc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x94d06e6c12d16e248118f2f591f4e661b4f4236debfbde5398afedbbfd87da4f",
+          "dexId": "uniswap",
+          "volume24hUsd": 2755.4,
+          "symbol": "HIMSc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0x97d83833912e1933333d6882e686ef52943cf2399cba0c8d7733d011c2e3a919",
+          "dexId": "uniswap",
+          "volume24hUsd": 34.15,
+          "symbol": "SPCXc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0xa589bcc0d793a9a04ab28fc7b2f1f607bb3b1d1186d10195378361b3c95b886b",
+          "dexId": "uniswap",
+          "volume24hUsd": 0.0,
+          "symbol": "TTWOc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0xacccf1c74d0f2a706d9f8231a027ab121053da0289ec7348e8e0ba3bf8c5ef3d",
+          "dexId": "uniswap",
+          "volume24hUsd": 0.0,
+          "symbol": "TSLAc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0xb572145670691bb84497145566e1bbb9eedbb1b560d3f83037cb259104d95dd7",
+          "dexId": "uniswap",
+          "volume24hUsd": 11.74,
+          "symbol": "AAPLc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0xb5d67f608251edc9286b27833c11e539261f0806a0ada66b725a7e15df34b283",
+          "dexId": "uniswap",
+          "volume24hUsd": 4.1,
+          "symbol": "NOKc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0xc30b48a7bc075bb6968199dea1a467a70f0d2c48e93222b80cc538de0c25cfde",
+          "dexId": "uniswap",
+          "volume24hUsd": 0.0,
+          "symbol": "TSLAc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0xc8e87cd59b9adb679a25e4ce1f698f5bb7cc25478981d8807804878ae80d77de",
+          "dexId": "uniswap",
+          "volume24hUsd": 0.0,
+          "symbol": "TSLAc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0xd7025173eb284bb7c695299d2bc31eb5cfcd7616a48afa82ad4395da9d2578d7",
+          "dexId": "uniswap",
+          "volume24hUsd": 0.0,
+          "symbol": "TSLAc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0xe0b7fbe3d12486b8dd4d6501fd4156198b083a128ddae5ddc4cf817903dbefaf",
+          "dexId": "uniswap",
+          "volume24hUsd": 0.0,
+          "symbol": "AAPLc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0xe17e95043475ab700ebb64b5ca35dfecca3a529dc0194096cc114d46930a3c43",
+          "dexId": "uniswap",
+          "volume24hUsd": 249.27,
+          "symbol": "wtCOIN",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0xebdc9ef5ce1413e9bc5b0244d24ea65f28e7cb334976cd125432e647caf9c00f",
+          "dexId": "uniswap",
+          "volume24hUsd": 0.0,
+          "symbol": "deSPXA",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0xebfd1a6d56815641c8adde71c82577eb73a626b1dd08708783da8f844567c0df",
+          "dexId": "uniswap",
+          "volume24hUsd": 0.0,
+          "symbol": "TSLAc",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0xf10777066a2d1dcdd2cfdcf5534aab7feabbf2446f4e8f24cb1a925dcccbba18",
+          "dexId": "uniswap",
+          "volume24hUsd": 0.0,
+          "symbol": "wtNVDA",
+          "reason": "no-geckoterminal-candles"
+        },
+        {
+          "pairAddress": "0xfb26f18a1e73256e913a7721bf99693673625955e76f42932d3d296981875eb7",
+          "dexId": "uniswap",
+          "volume24hUsd": 0.0,
+          "symbol": "SNDKc",
+          "reason": "no-geckoterminal-candles"
+        }
+      ]
     }
   ]
 }
