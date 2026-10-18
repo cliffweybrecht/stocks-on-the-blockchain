@@ -447,10 +447,23 @@ describe("committed Solana desk snapshots", () => {
     expect(dates[0]).toBe("2026-09-23");
     expect(dates.at(-1)! >= "2026-10-13").toBe(true);
     expect(new Set(dates).size).toBe(dates.length);
+    // 2026-10-15 was never captured. Do not invent it. The next stored day is 2026-10-16.
+    expect(dates).not.toContain("2026-10-15");
     for (let index = 1; index < dates.length; index += 1) {
       expect(dates[index]! > dates[index - 1]!).toBe(true);
-      expect(easternDayKey(utcInstantForDayKey(dates[index - 1]!) + 26 * 3600)).toBe(dates[index]);
+      const nextEastern = easternDayKey(utcInstantForDayKey(dates[index - 1]!) + 26 * 3600);
+      if (dates[index - 1] === "2026-10-14" && dates[index] === "2026-10-16") {
+        expect(nextEastern).toBe("2026-10-15");
+        continue;
+      }
+      expect(nextEastern).toBe(dates[index]);
     }
+    const oct16 = snapshots.find((row) => row.date === "2026-10-16");
+    expect(oct16?.t).toBe(utcInstantForDayKey("2026-10-16"));
+    expect(oct16?.combined24hUsd).toBeGreaterThan(0);
+    expect(oct16?.publicEquity24hUsd).toBeGreaterThan(0);
+    expect(oct16?.private24hUsd).toBeGreaterThan(0);
+    expect(oct16?.etfIndex24hUsd).toBeGreaterThan(0);
     const recordedCombined: Record<string, number> = {
       "2026-09-23": 133612028.33,
       "2026-09-24": 129580787.39,
