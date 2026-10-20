@@ -2,6 +2,7 @@ import { stat, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { BASE_DESK } from "./base-desk-volume";
 import { BNB_DESK } from "./bnb-desk-volume";
+import { bnbBackfillWithoutNightlyDates } from "./bnb-snapshot-cards";
 import {
   equityCardLiquidityHistoryFromSnapshot,
   EMPTY_EQUITY_CARD_LIQUIDITY,
@@ -139,8 +140,12 @@ export async function loadEquityCardRangeMetrics(
   } catch {
     return cloneMetrics(EMPTY_RANGE_METRICS);
   }
-  const volumes = equityCardRangeVolumesFromSnapshot(payload, nowT, backfill);
-  const liquidity = equityCardLiquidityHistoryFromSnapshot(payload, nowT, backfill);
+  // BNB lane totals on a nightly row already include that day's assets. Backfill on the
+  // same date would add contracts the chart did not put in the lane. Days missing from
+  // bnb.json stay, so 30D still matches the chart's derived bars.
+  const cardBackfill = chainId === BNB_CHAIN_ID ? bnbBackfillWithoutNightlyDates(payload, backfill) : backfill;
+  const volumes = equityCardRangeVolumesFromSnapshot(payload, nowT, cardBackfill);
+  const liquidity = equityCardLiquidityHistoryFromSnapshot(payload, nowT, cardBackfill);
   // Hand out a copy. The cached maps must stay intact if a later render mutates props.
   const stored = cloneMetrics({ volumes, liquidity });
   cache.set(path, { mtimeMs, backfillMtimeMs, dayKey, volumes: stored.volumes, liquidity: stored.liquidity });
