@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { ChainVolumeTable, type ChainVolumeRow } from "@/components/chain-volume-card";
 import { useDeskVolumeRange } from "@/components/desk-volume-range";
 import { chainCombinedVolume24h } from "@/lib/market/aggregate";
+import { isChainEnabled } from "@/lib/market/chain-config";
 import { isRollingVolumeChartRange, type VolumeChartRangeId } from "@/lib/market/daily-volume-view";
 import { homeChainRangeCoverageHint, type HomeClosedRangeBoard, type HomeChainRangeLegs } from "@/lib/market/home-chain-range";
 import { compareNullableDesc, maxNullable } from "@/lib/market/numbers";
@@ -41,7 +42,7 @@ export function HomeChainVolume({
 }) {
   const { range } = useDeskVolumeRange("7d");
   const rows = useMemo<ChainVolumeRow[]>(() => {
-    const scored = chains.map((chain) => legsFor(chain, range, ranges));
+    const scored = chains.filter((chain) => isChainEnabled(chain.id)).map((chain) => legsFor(chain, range, ranges));
     scored.sort((a, b) => {
       const byVolume = compareNullableDesc(a.combinedUsd, b.combinedUsd);
       if (byVolume !== 0) return byVolume;

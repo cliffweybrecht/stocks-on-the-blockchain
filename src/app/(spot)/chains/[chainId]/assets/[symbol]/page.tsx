@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { notFound } from "next/navigation";
 import { AssetBreadcrumb, AssetIdentityHeader } from "@/components/asset-identity-header";
 import { AssetMarketPanel } from "@/components/asset-price-chart";
 import { AssetStatsCard } from "@/components/asset-stats-card";
@@ -35,6 +36,7 @@ import { emptyAssetPriceHistory } from "@/lib/market/asset-price-history";
 import { deskSpotPriceUsd, selectEquityPriceTicker } from "@/lib/desk/price-ticker";
 import { sortPoolsByVolume } from "@/lib/desk/pool-sort";
 import { withDocumentBudget } from "@/lib/market/document-budget";
+import { isChainEnabled } from "@/lib/market/chain-config";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { toJumpAsset } from "@/lib/market/asset-search";
 import { lookupRobinhoodChainAsset } from "@/lib/market/robinhood-chain-markets";
@@ -67,6 +69,7 @@ export default async function AssetPage({
   params: Promise<{ chainId: string; symbol: string }>;
 }) {
   const { chainId, symbol } = await params;
+  if (!isChainEnabled(chainId)) notFound();
   const source = createMarketDataSource();
   const decoded = decodeURIComponent(symbol);
   const solanaFastPath = chainId === SOLANA_CHAIN_ID;

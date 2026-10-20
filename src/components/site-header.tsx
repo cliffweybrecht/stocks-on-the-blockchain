@@ -5,6 +5,7 @@ import { SolanaJumpSearch } from "@/components/solana-jump-search";
 import { Badge } from "@/components/ui/badge";
 import { headerStatusLabel } from "@/lib/desk/header-status";
 import type { SearchableAsset } from "@/lib/market/asset-search";
+import { isChainEnabled } from "@/lib/market/chain-config";
 import type { DataProvenance } from "@/lib/market/types";
 import { hiddenDesks } from "@/lib/site/visibility";
 
@@ -29,7 +30,7 @@ export function SiteHeader({
           <DeskNav hidden={hiddenDesks()} />
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
-          {solanaJump && solanaJump.assets.length > 0 ? (
+          {solanaJump && isChainEnabled(solanaJump.chainId) && solanaJump.assets.length > 0 ? (
             <SolanaJumpSearch chainId={solanaJump.chainId} assets={solanaJump.assets} />
           ) : null}
           <DeskHeaderActionsSlot />
