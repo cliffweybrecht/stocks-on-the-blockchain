@@ -1,4 +1,4 @@
-import { bscBatchRotating, padAddress, readBeacons, readSymbols } from "./lending-bsc";
+import { bscBatchRotating, bscCallRpc, padAddress, readBeacons, readSymbols } from "./lending-bsc";
 import { buildEquityAddressBook, bookHasChain, type EquityAddressBook, xstocksPageHasNext } from "./lending-addresses";
 import {
   BSTOCK_BEACON,
@@ -15,11 +15,13 @@ import {
   type ListaCollateralQuote,
 } from "./lending-parse";
 import { loansFromAavePositions, loansFromMorphoPositions, poolLoanHealth, positionLoanHealth } from "./lending-health";
+import { fetchJupiterStockLoans } from "./lending-jupiter-positions";
 import {
   fetchKaminoMarketObligations,
   kaminoReserveMints,
   loansFromKaminoObligations,
 } from "./lending-kamino-obligations";
+import { fetchListaStockLoans, type ListaMarketBook } from "./lending-lista-positions";
 import { EULER_CHAINS, EULER_METADATA, EULER_VAULTS, parseEulerChain } from "./lending-euler";
 import { FRANKNCOIN_POSITIONS, FRANKNCOIN_STATS, parseFrankencoin } from "./lending-frankencoin";
 import { asNonEmptyString, asReportedNumber, tokenCountFromBaseUnits } from "./numbers";
@@ -425,19 +427,19 @@ export async function captureLendingSnapshot(
 
   const morphoChains = rest.slice(0, MORPHO_CHAINS.length);
   const eulerChains = rest.slice(MORPHO_CHAINS.length);
-  const listaRowPromise = captureLista(listaOverall, listaMarkets);
+  const listaRowPromise = captureLista(listaOverall, listaMarkets, asOf);
   const venusEstimate = await venusEstimatePromise;
   const morphoRows = await Promise.all(
     MORPHO_CHAINS.map((chainId, index) => captureMorpho(chainId, morphoChains[index], book, asOf)),
   );
   const rows: LendingRow[] = [
     ...(await captureKamino(kaminoList.data, book, asOf)),
-    captureJupiter(jupiterVaults, jupiterLiquidity, book),
+    await captureJupiter(jupiterVaults, jupiterLiquidity, book, asOf),
     captureAave(aave, book),
     ...morphoRows,
     captureFrankencoin(frankencoinStats, frankencoinPositions, book),
     ...EULER_CHAINS.map((chainId, index) => captureEuler(chainId, eulerChains[index], book)),
-    await captureVenus(venus, venusEstimate, options?.previousVenusEstimate ?? null),
+    await captureVenus(venus, venusEstimate, options?.previousVenusEstimate ?? null, asOf),
     await listaRowPromise,
   ].map((row) => (row.loanHealth ? row : { ...row, loanHealth: poolLoanHealth({ asOf, source: row.source, fallback: poolFallback(row) }) }));
 
@@ -482,23 +484,25 @@ async function captureKamino(list: unknown, book: EquityAddressBook, asOf: strin
   });
   return Promise.all(
     rows.map(async (row, index) => {
-      if (row.id !== "kamino-sentora" || row.error) return row;
-      return attachSentoraLoans(row, metrics[index]?.data, book.solana, asOf);
+      const market = targets[index]?.market;
+      if (!market || row.error) return row;
+      return attachKaminoLoans(row, market, metrics[index]?.data, book.solana, asOf);
     }),
   );
 }
 
-const SENTORA_LOAN_SOURCE_NOTE =
+const KAMINO_LOAN_SOURCE_NOTE =
   "Kamino's HTTP API lists a loan only when the wallet is known. The market-wide routes do not exist, so loans are read from Solana.";
 
-async function attachSentoraLoans(
+async function attachKaminoLoans(
   row: LendingRow,
+  market: string,
   metrics: unknown,
   equityMints: ReadonlySet<string>,
   asOf: string,
 ): Promise<LendingRow> {
   try {
-    const read = await fetchKaminoMarketObligations(KAMINO_SENTORA);
+    const read = await fetchKaminoMarketObligations(market);
     const loans = loansFromKaminoObligations({
       accounts: read.accounts,
       reserveMints: kaminoReserveMints(metrics),
@@ -510,7 +514,7 @@ async function attachSentoraLoans(
         loanHealth: poolLoanHealth({
           asOf,
           source: read.source,
-          fallback: `${SENTORA_LOAN_SOURCE_NOTE} No priced stock loan came back, so this is the pool estimate.`,
+          fallback: `${KAMINO_LOAN_SOURCE_NOTE} No priced stock loan came back, so this is the pool estimate.`,
         }),
       };
     }
@@ -529,17 +533,19 @@ async function attachSentoraLoans(
       loanHealth: poolLoanHealth({
         asOf,
         source: KAMINO_MARKETS,
-        fallback: `${SENTORA_LOAN_SOURCE_NOTE} The Solana read failed (${errorMessage(error)}), so this is the pool estimate.`,
+        stale: true,
+        fallback: `${KAMINO_LOAN_SOURCE_NOTE} The Solana read failed (${errorMessage(error)}), so this is the pool estimate.`,
       }),
     };
   }
 }
 
-function captureJupiter(
+async function captureJupiter(
   vaults: { data: unknown; error: string | null },
   liquidity: { data: unknown; error: string | null },
   book: EquityAddressBook,
-): LendingRow {
+  asOf: string,
+): Promise<LendingRow> {
   if (vaults.error) {
     const row = parseJupiterLend({
       vaults: null,
@@ -555,10 +561,44 @@ function captureJupiter(
     equityMints: book.solana,
     source: JUPITER_VAULTS,
   });
-  if (liquidity.error && row.utilization === null && row.collateralUsd !== null) {
-    return { ...row, error: row.error ?? `Jupiter lend-side utilization did not load (${liquidity.error}).` };
+  if (book.solana.size === 0) return row;
+  try {
+    const read = await fetchJupiterStockLoans(vaults.data, book.solana);
+    const borrowed = row.stableBorrowedUsd ?? 0;
+    if (read.loans.length === 0 && borrowed > 1) {
+      return {
+        ...row,
+        error: liquidity.error && row.utilization === null ? row.error ?? `Jupiter lend-side utilization did not load (${liquidity.error}).` : row.error,
+        loanHealth: poolLoanHealth({
+          asOf,
+          source: read.source,
+          stale: true,
+          fallback: "Jupiter stock loans were read but none were priced, so this is the pool estimate.",
+        }),
+      };
+    }
+    return {
+      ...row,
+      error: liquidity.error && row.utilization === null ? row.error ?? `Jupiter lend-side utilization did not load (${liquidity.error}).` : row.error,
+      loanHealth: positionLoanHealth({
+        asOf,
+        source: read.source,
+        loans: read.loans,
+        unpricedLoanCount: read.unpricedLoanCount,
+      }),
+    };
+  } catch (error) {
+    return {
+      ...row,
+      error: liquidity.error && row.utilization === null ? row.error ?? `Jupiter lend-side utilization did not load (${liquidity.error}).` : row.error,
+      loanHealth: poolLoanHealth({
+        asOf,
+        source: JUPITER_VAULTS,
+        stale: true,
+        fallback: `Jupiter loans did not load (${errorMessage(error)}), so this is the pool estimate.`,
+      }),
+    };
   }
-  return row;
 }
 
 function captureAave(result: { data: unknown; error: string | null }, book: EquityAddressBook): LendingRow {
@@ -679,13 +719,11 @@ async function fetchMorphoPositions(chainId: number, marketIds: readonly string[
 }
 
 function poolFallback(row: LendingRow): string {
-  if (row.id.startsWith("kamino")) {
-    return "Kamino publishes a loan only when the wallet is known, not a list of every loan, so this is the pool estimate.";
-  }
-  if (row.id.startsWith("jupiter")) return "Jupiter does not publish each loan here, so this is the pool estimate.";
-  if (row.id.startsWith("lista")) return "Lista does not publish each loan here, so this is the pool estimate.";
+  if (row.id.startsWith("kamino")) return "Kamino loans were not read for this row, so this is the pool estimate.";
+  if (row.id.startsWith("jupiter")) return "Jupiter loans were not read for this row, so this is the pool estimate.";
+  if (row.id.startsWith("lista")) return "Lista loans were not read for this row, so this is the pool estimate.";
   if (row.id.startsWith("venus")) {
-    return "Venus does not publish each loan here, and borrowed dollars are an estimate, so this is the pool estimate.";
+    return "Venus loans were not read for this row, and borrowed dollars are an estimate, so this is the pool estimate.";
   }
   if (row.id.startsWith("morpho")) return "Morpho loans did not load, so this is the pool estimate.";
   if (row.id.startsWith("aave")) return "Aave loans did not load, so this is the pool estimate.";
@@ -787,17 +825,53 @@ async function fetchEulerChain(chainId: number): Promise<{ vaults: unknown[]; me
   return { vaults, metadata, collaterals };
 }
 
+function withVenusLoans(row: LendingRow, estimate: VenusBorrowEstimate, asOf: string): LendingRow {
+  const loans = estimate.loans;
+  const unpriced = estimate.unpricedLoanCount ?? 0;
+  if (!estimate.stale && Array.isArray(loans) && (loans.length > 0 || unpriced === 0)) {
+    return {
+      ...row,
+      loanHealth: positionLoanHealth({
+        asOf: estimate.asOf || asOf,
+        source: bscCallRpc(),
+        loans,
+        unpricedLoanCount: unpriced,
+      }),
+    };
+  }
+  if (estimate.stale || !Array.isArray(loans)) {
+    return {
+      ...row,
+      loanHealth: poolLoanHealth({
+        asOf,
+        source: VENUS_MARKETS,
+        stale: true,
+        fallback: "The Venus loan read did not finish, so this is the pool estimate.",
+      }),
+    };
+  }
+  return {
+    ...row,
+    loanHealth: poolLoanHealth({
+      asOf,
+      source: bscCallRpc(),
+      fallback: "Venus read the accounts but could not price the stock loans, so this is the pool estimate.",
+    }),
+  };
+}
+
 async function captureVenus(
   result: { data: unknown; error: string | null },
   estimate: { data: unknown; error: string | null },
   previous: VenusBorrowEstimate | null,
+  asOf: string,
 ): Promise<LendingRow> {
   const measured = estimate.data && typeof estimate.data === "object" && "usd" in estimate.data ? (estimate.data as VenusBorrowEstimate) : null;
   const live = measured && typeof measured.usd === "number" ? measured : null;
   const borrowEstimate = chooseVenusEstimate(live, previous, VENUS_CHECKED_ESTIMATE);
   if (result.error) {
     const row = parseVenusMarkets(null, VENUS_MARKETS, { estimate: borrowEstimate });
-    return { ...row, error: result.error };
+    return withVenusLoans({ ...row, error: result.error }, borrowEstimate, asOf);
   }
   const listed = venusBstockAddresses(result.data);
   let equityAddresses: Set<string> | null = null;
@@ -816,10 +890,14 @@ async function captureVenus(
       equityAddresses = null;
     }
   }
-  return parseVenusMarkets(result.data, VENUS_MARKETS, {
-    equityAddresses,
-    estimate: borrowEstimate,
-  });
+  return withVenusLoans(
+    parseVenusMarkets(result.data, VENUS_MARKETS, {
+      equityAddresses,
+      estimate: borrowEstimate,
+    }),
+    borrowEstimate,
+    asOf,
+  );
 }
 
 function venusBstockAddresses(payload: unknown): Set<string> {
@@ -835,9 +913,39 @@ function venusBstockAddresses(payload: unknown): Set<string> {
   return addresses;
 }
 
+function listaLltv(value: unknown): bigint | null {
+  if (typeof value !== "string" || !/^\d+$/.test(value)) return null;
+  const parsed = BigInt(value);
+  return parsed > BigInt(0) ? parsed : null;
+}
+
+function listaStockBooks(items: readonly unknown[], rejected: ReadonlySet<string>): ListaMarketBook[] {
+  const books: ListaMarketBook[] = [];
+  for (const item of items) {
+    if (!item || typeof item !== "object") continue;
+    const row = item as { id?: unknown; collateralToken?: unknown; loanToken?: unknown; lltv?: unknown; totalBorrowAssets?: unknown };
+    const id = typeof row.id === "string" ? row.id.toLowerCase() : "";
+    const collateralToken = typeof row.collateralToken === "string" ? row.collateralToken.toLowerCase() : "";
+    const loanToken = typeof row.loanToken === "string" ? row.loanToken.toLowerCase() : "";
+    const raw = Number(row.totalBorrowAssets);
+    if (!id || !collateralToken || !loanToken || rejected.has(collateralToken) || !Number.isFinite(raw) || !(raw > 0)) continue;
+    const lltv = listaLltv(row.lltv);
+    if (lltv === null) continue;
+    books.push({ id, collateralToken, loanToken, lltv });
+  }
+  return books;
+}
+
+function listaUnitPrice(quote: ListaCollateralQuote | undefined): number | null {
+  if (!quote || quote.tokens === null || quote.usd === null || !(quote.tokens > 0)) return null;
+  const price = quote.usd / quote.tokens;
+  return Number.isFinite(price) && price > 0 ? price : null;
+}
+
 async function captureLista(
   overall: { data: unknown; error: string | null },
   markets: { data: unknown; error: string | null },
+  asOf: string,
 ): Promise<LendingRow> {
   if (overall.error) {
     const row = parseListaBook({ overall: null, markets: markets.data, source: LISTA_OVERALL });
@@ -941,7 +1049,7 @@ async function captureLista(
   const quotes = await fetchListaCollateralQuotes(
     quoteTokens.map((address) => ({ address, marketIds: marketsByCollateral.get(address) ?? [] })),
   );
-  return parseListaBook({
+  const row = parseListaBook({
     overall: overall.data,
     markets: markets.data,
     rejectedCollateral: rejected,
@@ -951,6 +1059,53 @@ async function captureLista(
     rates: ratesComplete ? rates : undefined,
     source: LISTA_OVERALL,
   });
+  const books = listaStockBooks(zone5, rejected);
+  if (books.length === 0) return row;
+  const prices = new Map<string, { collateralPriceUsd: number | null; loanPriceUsd: number | null }>();
+  await mapPool(books, 8, async (book) => {
+    let collateralPriceUsd = listaUnitPrice(quotes.get(book.collateralToken));
+    if (collateralPriceUsd === null) {
+      try {
+        collateralPriceUsd = listaVaultPrice(await getJsonRetry(`https://api.lista.org/api/moolah/market/vault/${book.id}`));
+      } catch {
+        collateralPriceUsd = null;
+      }
+    }
+    prices.set(book.id, { collateralPriceUsd, loanPriceUsd: detailById.get(book.id)?.loanPrice ?? null });
+  });
+  try {
+    const read = await fetchListaStockLoans({ markets: books, prices });
+    if (!read.complete) {
+      return {
+        ...row,
+        loanHealth: poolLoanHealth({
+          asOf,
+          source: read.source,
+          stale: true,
+          fallback: "Lista did not finish reading every borrower, so this is the pool estimate.",
+        }),
+      };
+    }
+    return {
+      ...row,
+      loanHealth: positionLoanHealth({
+        asOf,
+        source: read.source,
+        loans: read.loans,
+        unpricedLoanCount: read.unpricedLoanCount,
+      }),
+    };
+  } catch (error) {
+    return {
+      ...row,
+      loanHealth: poolLoanHealth({
+        asOf,
+        source: LISTA_ALL_MARKETS,
+        stale: true,
+        fallback: `Lista loans did not load (${errorMessage(error)}), so this is the pool estimate.`,
+      }),
+    };
+  }
 }
 
 const LISTA_MOOLAH = "0x8F73b65B4caAf64FBA2aF91cC5D4a2A1318E5D8C";
