@@ -194,6 +194,31 @@ class PoolDedupeAndNullTotalsTest(unittest.TestCase):
         self.assertIn("latest/dex/pairs/robinhood", text)
         self.assertIn("volume_recipients", text)
 
+    def test_issuer_breakdown_keeps_lanes(self) -> None:
+        rows = [
+            {"address": "0xA", "kind": "equity", "issuer": "rhj"},
+            {"address": "0xB", "kind": "etf", "issuer": "rhj"},
+            {"address": "0xC", "kind": "preipo", "issuer": "rhj"},
+            {"address": "0xD", "kind": "equity", "issuer": "rhj"},
+        ]
+        vols = {"0xa": 10.0, "0xb": 3.5, "0xc": None, "0xd": None}
+        table = rh.issuer_breakdown(rows, vols)
+        self.assertEqual(len(table), 1)
+        self.assertEqual(table[0]["issuer"], "rhj")
+        self.assertEqual(table[0]["publicEquity24hUsd"], 10.0)
+        self.assertEqual(table[0]["etfIndex24hUsd"], 3.5)
+        self.assertIsNone(table[0]["private24hUsd"])
+        self.assertEqual(table[0]["combined24hUsd"], 13.5)
+        self.assertEqual(table[0]["publicMintCount"], 2)
+        self.assertEqual(table[0]["withVolumeEquityCount"], 1)
+        self.assertEqual(table[0]["preipoMintCount"], 1)
+
+    def test_writer_budgets_the_candle_walk(self) -> None:
+        text = Path(__file__).resolve().parent.joinpath("snapshot-robinhood-volume.py").read_text()
+        self.assertIn("SNAPSHOT_GECKO_BUDGET_S", text)
+        self.assertIn("budget_s=candle_budget", text)
+        self.assertIn("not a true closed", text)
+
     def test_other_chains_are_ignored(self) -> None:
         mint = "0xmint"
         vols = {mint: None}
