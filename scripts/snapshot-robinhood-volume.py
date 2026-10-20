@@ -19,10 +19,16 @@ Mirrors Solana desk snapshot shape in data/volume-snapshots/robinhood.json.
 - One America/New_York calendar day per record (upsert by date).
   The day is 12:00:00 AM–11:59:59 PM Eastern. The key and Eastern midnight `t`
   come from scripts/volume_snapshot_day.py (`snapshot_day_key`), not a parallel
-  date path. The closed-day number is the Gecko candle sum. DexScreener
-  volume.h24 is the fallback and is tagged. ROBINHOOD_SNAPSHOT_DATE or
+  date path.   The closed-day number prefers the Gecko candle sum. DexScreener
+  volume.h24 is the fallback and is tagged. The candle walk is highest-volume
+  first and stops at a wall-clock budget (SNAPSHOT_GECKO_BUDGET_S, default
+  1500s). Pools not covered in time keep DexScreener h24. The row is tagged
+  gecko, dex, or mixed with coverage and any dex-gecko overlap gap. A partial
+  walk is not a true closed Eastern window. ROBINHOOD_SNAPSHOT_DATE or
   SNAPSHOT_DATE (YYYY-MM-DD) forces the key only; it does not invent volume.
   SNAPSHOT_GECKO_CANDLES=0 keeps the DexScreener sample.
+  SNAPSHOT_GECKO_DISCOVERY_BUDGET_S (default 720s) caps Gecko token-pool
+  discovery the same way. Admission is by registry token address, never symbol.
 - Each night also writes `assets[]` (Base schema): address, symbol, issuer,
   instrumentKind, volume24hUsd, displayedLiquidityUsd, and pools. Totals stay.
 
@@ -534,17 +540,25 @@ def hydrate_volumes(
             return
         accumulate_pair_volumes(pairs, universe, vols, pool_counts, seen_pools, pool_details)
 
+    print(f"snapshot:robinhood dex tokens/v1 mints={len(by_addr)}", flush=True)
     for batch in chunks(list(by_addr.keys()), 20):
         addrs = ",".join(by_addr[a]["address"] for a in batch)
         consume(_fetch_pairs(DEX_BATCH.format(addrs=addrs)))
         time.sleep(0.35)
 
-    for addr in sorted(by_addr):
+    print(f"snapshot:robinhood dex token-pairs mints={len(by_addr)}", flush=True)
+    for index, addr in enumerate(sorted(by_addr), start=1):
         consume(_fetch_pairs(DEX_TOKEN_PAIRS.format(addr=by_addr[addr]["address"])))
+        if index % 40 == 0:
+            print(f"snapshot:robinhood dex token-pairs {index}/{len(by_addr)}", flush=True)
         time.sleep(0.25)
 
-    for batch in chunks(list(known_pairs or []), 30):
+    known = list(known_pairs or [])
+    print(f"snapshot:robinhood dex known pairs={len(known)}", flush=True)
+    for index, batch in enumerate(chunks(known, 30), start=1):
         consume(_fetch_pairs(DEX_KNOWN_PAIRS.format(addrs=",".join(batch))))
+        if index % 20 == 0:
+            print(f"snapshot:robinhood dex known batches {index}", flush=True)
         time.sleep(0.35)
 
     if failed_batches:
@@ -562,6 +576,62 @@ def sum_nullable(values: list[float | None]) -> float | None:
         any_reported = True
         total += value
     return total if any_reported else None
+
+
+def _budget_seconds(name: str, default: float) -> float:
+    raw = (os.environ.get(name) or "").strip()
+    if not raw:
+        return default
+    try:
+        return max(0.0, float(raw))
+    except ValueError:
+        return default
+
+
+def issuer_breakdown(rows: list[dict], vols: dict[str, float | None]) -> list[dict]:
+    """One row per issuer. Lanes match the desk totals: equity, etf, private."""
+    grouped: dict[str, dict] = {}
+    for row in rows:
+        issuer = str(row.get("issuer") or "unknown")
+        slot = grouped.setdefault(
+            issuer,
+            {
+                "issuer": issuer,
+                "publicEquity24hUsd": None,
+                "etfIndex24hUsd": None,
+                "private24hUsd": None,
+                "publicMintCount": 0,
+                "etfMintCount": 0,
+                "preipoMintCount": 0,
+                "withVolumeEquityCount": 0,
+            },
+        )
+        kind = row.get("kind")
+        addr = str(row.get("address") or "").lower()
+        vol = vols.get(addr)
+        if kind == "equity":
+            slot["publicMintCount"] += 1
+            if vol is not None:
+                slot["withVolumeEquityCount"] += 1
+                slot["publicEquity24hUsd"] = vol if slot["publicEquity24hUsd"] is None else slot["publicEquity24hUsd"] + vol
+        elif kind == "etf":
+            slot["etfMintCount"] += 1
+            if vol is not None:
+                slot["etfIndex24hUsd"] = vol if slot["etfIndex24hUsd"] is None else slot["etfIndex24hUsd"] + vol
+        elif kind == "preipo":
+            slot["preipoMintCount"] += 1
+            if vol is not None:
+                slot["private24hUsd"] = vol if slot["private24hUsd"] is None else slot["private24hUsd"] + vol
+    found: list[dict] = []
+    for slot in grouped.values():
+        parts = [slot["publicEquity24hUsd"], slot["private24hUsd"], slot["etfIndex24hUsd"]]
+        slot["combined24hUsd"] = None if all(part is None for part in parts) else round(sum(part or 0.0 for part in parts), 2)
+        for key in ("publicEquity24hUsd", "etfIndex24hUsd", "private24hUsd"):
+            if slot[key] is not None:
+                slot[key] = round(slot[key], 2)
+        found.append(slot)
+    found.sort(key=lambda item: item["issuer"])
+    return found
 
 
 def lane_totals(
@@ -623,8 +693,22 @@ def main() -> int:
                         "dex": pool.get("dexId"),
                     }
                 )
+        candle_budget = _budget_seconds("SNAPSHOT_GECKO_BUDGET_S", 1500)
+        discovery_budget = _budget_seconds("SNAPSHOT_GECKO_DISCOVERY_BUDGET_S", 720)
+        print(
+            f"snapshot:robinhood gecko budget candles={candle_budget:.0f}s "
+            f"discovery={discovery_budget:.0f}s highest-volume first",
+            flush=True,
+        )
         try:
-            closed = overlay_gecko_day("robinhood", date, rows, dex_pools)
+            closed = overlay_gecko_day(
+                "robinhood",
+                date,
+                rows,
+                dex_pools,
+                budget_s=candle_budget,
+                discovery_budget_s=discovery_budget,
+            )
         except Exception as exc:  # noqa: BLE001
             print(f"warn gecko eastern day failed, keeping DexScreener h24: {exc}", file=sys.stderr)
             closed = None
@@ -644,6 +728,34 @@ def main() -> int:
     etf_vol, etf_mints, etf_pools = lane_totals(rows, vols, pool_counts, "etf")
     pre_vol, pre_mints, pre_pools = lane_totals(rows, vols, pool_counts, "preipo")
     combined = sum_nullable([eq_vol, pre_vol, etf_vol])
+    issuers = issuer_breakdown(rows, vols)
+    bar_method = (closed or {}).get("barMethod") or "dex"
+    gecko_coverage = None if closed is None else closed.get("geckoCoveragePct")
+    pool_coverage = None if closed is None else closed.get("poolCoveragePct")
+    gap_pct = None if closed is None else closed.get("gapPct")
+    candle_stats = None if closed is None else closed.get("candleStats")
+    coverage_note = (
+        f"barMethod={bar_method}; gecko volume coverage="
+        f"{'n/a' if gecko_coverage is None else f'{gecko_coverage:.2f}%'}; "
+        f"pool candle coverage={'n/a' if pool_coverage is None else f'{pool_coverage:.2f}%'}; "
+        f"dex-gecko gap={'n/a' if gap_pct is None else f'{gap_pct:.2f}%'}"
+        f"{'' if closed is None or not closed.get('gapBasis') else ' (' + str(closed.get('gapBasis')) + ')'}. "
+    )
+    if isinstance(candle_stats, dict):
+        coverage_note += (
+            f"Candle budget {candle_stats.get('budgetS')}s, "
+            f"network fetches {candle_stats.get('networkFetches')}, "
+            f"cache hits {candle_stats.get('cacheHits')}, "
+            f"budget-skipped pools {candle_stats.get('budgetSkipped')}, "
+            f"candidates {candle_stats.get('candidates')}, "
+            f"hourly series covering the day {candle_stats.get('geckoOk')}. "
+        )
+    window_note = (
+        "Highest-volume pools are read first under a wall-clock budget; "
+        "pools not covered in time keep DexScreener h24 (GeckoTerminal rolling h24 "
+        "when DexScreener does not list the pool). This is not a true closed "
+        "America/New_York window. "
+    )
 
     record = {
         "date": date,
@@ -665,28 +777,49 @@ def main() -> int:
         "sources": {
             "universe": RH_ASSETS,
             "volume": (
-                "GeckoTerminal hourly USD candles over the America/New_York day when the "
-                "pool's series covers that midnight-to-midnight window; otherwise DexScreener "
-                "token-pairs plus known pools volume.h24. tokens/v1 is not the pair list. "
-                "GeckoTerminal token pools add addresses DexScreener does not list. "
-                "A pool with two desk tokens is counted once on the base. Perps are excluded."
+                "Registry token addresses only (chain 4663). "
+                + window_note
+                + coverage_note
+                + "GeckoTerminal hourly USD candles whose open falls in the America/New_York "
+                "day when that pool is read before the budget and the series covers the day; "
+                "otherwise DexScreener token-pairs plus known pools volume.h24. "
+                "tokens/v1 is not the pair list. GeckoTerminal token pools add addresses "
+                "DexScreener does not list. A pool with two desk tokens is counted once on the base. "
+                "Perps are excluded. Spoofs are excluded because their addresses are not in the registry."
             ),
             "chainId": CHAIN_ID,
             "chainSlug": "robinhood",
         },
         "volumeSource": (closed or {}).get("volumeSource") or "dexscreener-h24-fallback",
+        "barMethod": bar_method,
+        "geckoCoveragePct": gecko_coverage,
+        "poolCoveragePct": pool_coverage,
         "dexCombined24hUsd": None if closed is None else closed.get("dexCombined"),
         "geckoCombined24hUsd": None if closed is None else closed.get("geckoCombined"),
+        "issuers": issuers,
         "assets": assets_for(rows, vols, pool_details),
         "method": (
             "ETF/index before private; private admission is fail-closed; "
             "equity ranking excludes etf+preipo; perps are excluded; "
-            "each pool is counted once; the closed day prefers GeckoTerminal hourly "
-            "candles on the America/New_York date and falls back to DexScreener all-pools h24"
+            "each pool is counted once; admission is by registry token address, not symbol or name; "
+            + window_note
+            + coverage_note
         ),
     }
+    if closed and closed.get("candleStats"):
+        record["candleStats"] = closed["candleStats"]
+    if closed and closed.get("gapBasis"):
+        record["gapBasis"] = closed["gapBasis"]
+    if closed and closed.get("fullGapPct") is not None:
+        record["fullGapPct"] = closed["fullGapPct"]
+    if closed and closed.get("overlapGapPct") is not None:
+        record["overlapGapPct"] = closed["overlapGapPct"]
+        record["overlapDexUsd"] = closed.get("overlapDexUsd")
+        record["overlapGeckoUsd"] = closed.get("overlapGeckoUsd")
+        record["overlapPools"] = closed.get("overlapPools")
     if closed and closed.get("crossCheck"):
         record["crossCheck"] = closed["crossCheck"]
+    if closed and closed.get("gapPct") is not None:
         record["gapPct"] = closed.get("gapPct")
 
     def fmt(v: float | None) -> str:
@@ -710,7 +843,8 @@ def main() -> int:
         f"snapshot:robinhood wrote {date} combined={fmt(combined)} "
         f"equity={fmt(eq_vol)} etf={fmt(etf_vol)} preipo={fmt(pre_vol)} "
         f"equityMints={eq_mints} withVol={record['withVolumeEquityCount']} "
-        f"assets={len(record['assets'])} -> {out_file}",
+        f"bar={bar_method} geckoCoverage={gecko_coverage} poolCoverage={pool_coverage} "
+        f"assets={len(record['assets'])} issuers={len(issuers)} -> {out_file}",
         flush=True,
     )
     print("Next: npm run snapshot:land -- --chain robinhood --push-main", flush=True)

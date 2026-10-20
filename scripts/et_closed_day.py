@@ -12,6 +12,12 @@ base desk token when both sides are tracked. A failed candle read keeps that
 pool's DexScreener h24 and tags the row. A day is not blanked when either
 source reported a number.
 
+A candle walk may pass budget_s. Pools are fetched highest-volume first.
+When the wall clock is exhausted, remaining pools keep DexScreener h24 (or
+GeckoTerminal rolling h24 for pools DexScreener does not list). That mix is
+tagged gecko, dex, or mixed. It is not a true closed Eastern window unless
+every counted dollar came from an hourly series that covers the day.
+
 When the DexScreener and Gecko totals both exist and differ by more than 5%,
 both are stored and the row is tagged.
 """
@@ -153,6 +159,13 @@ def build_closed_totals(
     gecko_parts: list[float] = []
     sources: set[str] = set()
     uncovered = 0
+    gecko_candle_usd = 0.0
+    fallback_usd = 0.0
+    saw_gecko = False
+    saw_fallback = False
+    overlap_dex = 0.0
+    overlap_gecko = 0.0
+    overlap_n = 0
     for pool in pools:
         pair = canon(str(pool.get("pair") or ""))
         if not pair or pair in seen:
@@ -179,6 +192,16 @@ def build_closed_totals(
         if source == "dexscreener-h24-fallback" and pool.get("from_gecko"):
             source = "geckoterminal-h24-fallback"
         sources.add(source)
+        if source == "geckoterminal-hourly-et":
+            gecko_candle_usd += chosen
+            saw_gecko = True
+        else:
+            fallback_usd += chosen
+            saw_fallback = True
+        if gecko_ok and isinstance(gecko_volume, (int, float)) and dex_volume is not None and not pool.get("from_gecko"):
+            overlap_dex += dex_volume
+            overlap_gecko += float(gecko_volume)
+            overlap_n += 1
         prev = vols.get(owner)
         vols[owner] = chosen if prev is None else prev + chosen
         details[owner].append(
@@ -218,6 +241,15 @@ def build_closed_totals(
         "dexscreener-h24-fallback",
     )
     volume_source = "+".join(source for source in source_order if source in sources) or "uncovered"
+    if saw_gecko and saw_fallback:
+        bar_method = "mixed"
+    elif saw_gecko:
+        bar_method = "gecko"
+    else:
+        bar_method = "dex"
+    chosen_total = gecko_candle_usd + fallback_usd
+    gecko_coverage = round(100.0 * gecko_candle_usd / chosen_total, 2) if chosen_total > 0 else None
+    overlap_gap = gap_fraction(overlap_dex, overlap_gecko) if overlap_n else None
     return {
         "vols": vols,
         "details": details,
@@ -229,6 +261,12 @@ def build_closed_totals(
         "crossCheck": cross_check_tag(dex_combined, gecko_combined),
         "gapPct": None if gap_fraction(dex_combined, gecko_combined) is None else round(gap_fraction(dex_combined, gecko_combined) * 100, 2),
         "uncoveredPools": uncovered,
+        "barMethod": bar_method,
+        "geckoCoveragePct": gecko_coverage,
+        "overlapDexUsd": round(overlap_dex, 2) if overlap_n else None,
+        "overlapGeckoUsd": round(overlap_gecko, 2) if overlap_n else None,
+        "overlapGapPct": None if overlap_gap is None else round(overlap_gap * 100, 2),
+        "overlapPools": overlap_n,
     }
 
 
@@ -281,12 +319,28 @@ def _get_json(url: str, *, gecko: bool = False) -> Any:
     return None
 
 
-def gecko_ohlcv_cached(chain: str, pool: str) -> list[list[float]]:
+def ohlcv_cache_path(chain: str, pool: str) -> Path:
     network = CHAIN_NETWORK[chain]
-    path = CACHE / "ohlcv" / network / f"{pool.replace('/', '_')}.json"
-    cached = _cache_read(path)
-    if isinstance(cached, dict) and cached.get("candles"):
+    return CACHE / "ohlcv" / network / f"{pool.replace('/', '_')}.json"
+
+
+def read_cached_ohlcv(chain: str, pool: str) -> list[list[float]] | None:
+    """Cached hourly candles, including a stored empty series.
+
+    None means there is no cache entry. An empty list is a finished read
+    (GeckoTerminal has no candles) and must not be fetched again.
+    """
+    cached = _cache_read(ohlcv_cache_path(chain, pool))
+    if isinstance(cached, dict) and isinstance(cached.get("candles"), list):
         return cached["candles"]
+    return None
+
+
+def gecko_ohlcv_cached(chain: str, pool: str) -> list[list[float]]:
+    cached = read_cached_ohlcv(chain, pool)
+    if cached is not None:
+        return cached
+    network = CHAIN_NETWORK[chain]
     url = (
         f"https://api.geckoterminal.com/api/v2/networks/{network}/pools/"
         f"{pool}/ohlcv/hour?aggregate=1&limit=1000&currency=usd"
@@ -302,7 +356,7 @@ def gecko_ohlcv_cached(chain: str, pool: str) -> list[list[float]]:
                 except (TypeError, ValueError):
                     continue
     if data is not None:
-        _cache_write(path, {"ok": bool(candles), "candles": candles})
+        _cache_write(ohlcv_cache_path(chain, pool), {"ok": bool(candles), "candles": candles})
     return candles
 
 
@@ -401,12 +455,141 @@ def gecko_pool_identity(row: dict) -> tuple[str, str, str, float, float | None, 
     return address, side("base_token"), side("quote_token"), h24, reserve, str(dex_data.get("id") or "geckoterminal")
 
 
-def discover_gecko_pools(chain: str, rows: list[dict], already: set[str]) -> list[dict]:
-    """Pools on GeckoTerminal that DexScreener did not return. Cached when present."""
+def _stamp_coverage(totals: dict[str, Any], stats: dict[str, Any]) -> None:
+    """Attach candle-walk coverage. A budgeted walk reports the overlap gap.
+
+    The full DexScreener total versus a partial candle sum is mostly uncovered
+    pools. gapPct then uses pools that have both an hourly series and a
+    DexScreener h24. fullGapPct keeps the unadjusted comparison.
+    """
+    totals["candleStats"] = stats
+    candidates = int(stats.get("candidates") or 0)
+    covered = int(stats.get("geckoOk") or 0)
+    totals["poolCoveragePct"] = round(100.0 * covered / candidates, 2) if candidates else None
+    skipped = int(stats.get("budgetSkipped") or 0)
+    if skipped and totals.get("overlapGapPct") is not None:
+        totals["fullGapPct"] = totals.get("gapPct")
+        totals["gapPct"] = totals.get("overlapGapPct")
+        totals["crossCheck"] = cross_check_tag(totals.get("overlapDexUsd"), totals.get("overlapGeckoUsd"))
+        totals["gapBasis"] = "overlap-pools-measured-both-ways"
+    elif skipped:
+        totals["gapBasis"] = "dex-total-vs-partial-gecko-candles"
+    else:
+        totals["gapBasis"] = "dex-total-vs-gecko-candles"
+
+
+def pool_rank(pool: dict) -> tuple[float, float]:
+    """Highest rolling volume first, then liquidity. Missing numbers sort last."""
+    return (_num(pool.get("dex_volume")) or 0.0, _num(pool.get("liquidity")) or 0.0)
+
+
+def rank_pools(pools: list[dict]) -> list[dict]:
+    return sorted(pools, key=pool_rank, reverse=True)
+
+
+def _token_signal(pools: list[dict]) -> dict[str, float]:
+    signal: dict[str, float] = {}
+    for pool in pools:
+        vol = _num(pool.get("dex_volume")) or 0.0
+        for side in (pool.get("base"), pool.get("quote")):
+            key = canon(str(side or ""))
+            if key:
+                signal[key] = signal.get(key, 0.0) + vol
+    return signal
+
+
+def attach_gecko_candles(
+    chain: str,
+    day: str,
+    pools: list[dict],
+    *,
+    budget_s: float | None = None,
+    fetch_ohlcv=None,
+    monotonic=None,
+    read_cache=None,
+) -> dict[str, Any]:
+    """Fill gecko_volume / gecko_ok. Highest-volume pools consume the budget first.
+
+    Cached series are free. A pool still waiting when the wall clock expires
+    keeps its DexScreener (or Gecko rolling) h24 and is marked budget_skipped.
+    """
+    clock = monotonic or time.monotonic
+    fetch = fetch_ohlcv or (lambda network, pool: gecko_ohlcv_cached(network, pool))
+    cache_read = read_cache or (lambda network, pool: read_cached_ohlcv(network, pool))
+    started = clock()
+    enriched: list[dict] = []
+    stats: dict[str, Any] = {
+        "budgetS": budget_s,
+        "candidates": 0,
+        "geckoOk": 0,
+        "budgetSkipped": 0,
+        "cacheHits": 0,
+        "networkFetches": 0,
+    }
+    for pool in rank_pools(pools):
+        pair = str(pool.get("pair") or "")
+        signal = max(_num(pool.get("dex_volume")) or 0.0, _num(pool.get("liquidity")) or 0.0)
+        item = dict(pool)
+        fetch_candles = bool(pair) and (signal >= MIN_POOL_H24 or bool(pool.get("from_gecko")))
+        item["candle_candidate"] = fetch_candles
+        if not fetch_candles:
+            item["gecko_volume"] = None
+            item["gecko_ok"] = False
+            enriched.append(item)
+            continue
+        stats["candidates"] += 1
+        cached = cache_read(chain, pair)
+        if cached is not None:
+            candles = cached
+            stats["cacheHits"] += 1
+        elif budget_s is not None and (clock() - started) >= budget_s:
+            candles = []
+            item["budget_skipped"] = True
+            stats["budgetSkipped"] += 1
+        else:
+            candles = fetch(chain, pair) or []
+            stats["networkFetches"] += 1
+            if stats["networkFetches"] % 25 == 0:
+                print(
+                    f"gecko candles fetches={stats['networkFetches']} "
+                    f"elapsed={clock() - started:.0f}s budget={budget_s}",
+                    flush=True,
+                )
+        volume, ok = sum_candles_for_day(candles, day) if candles else (None, False)
+        item["gecko_volume"] = volume
+        item["gecko_ok"] = ok
+        if ok:
+            stats["geckoOk"] += 1
+        enriched.append(item)
+    stats["elapsedS"] = round(clock() - started, 3)
+    return {"pools": enriched, "stats": stats}
+
+
+def discover_gecko_pools(
+    chain: str,
+    rows: list[dict],
+    already: set[str],
+    *,
+    deadline: float | None = None,
+    token_signal: dict[str, float] | None = None,
+    monotonic=None,
+) -> list[dict]:
+    """Pools on GeckoTerminal that DexScreener did not return. Cached when present.
+
+    Tokens with more DexScreener volume are read first. `deadline` is a
+    time.monotonic() instant; past it, only cached token pages are used.
+    """
+    clock = monotonic or time.monotonic
     network = CHAIN_NETWORK[chain]
     found: list[dict] = []
     seen = {canon(item) for item in already}
-    for row in rows:
+    signal = token_signal or {}
+    ordered = sorted(
+        rows,
+        key=lambda row: signal.get(canon(str(row.get("address") or "")), 0.0),
+        reverse=True,
+    )
+    for row in ordered:
         address = str(row.get("address") or "")
         key = canon(address)
         if not key:
@@ -415,9 +598,14 @@ def discover_gecko_pools(chain: str, rows: list[dict], already: set[str]) -> lis
         cached = _cache_read(path)
         pools = cached.get("pools") if isinstance(cached, dict) else None
         if not isinstance(pools, list):
+            if deadline is not None and clock() >= deadline:
+                continue
             pools = []
             failed = False
             for page in range(1, 4):
+                if deadline is not None and clock() >= deadline:
+                    failed = True
+                    break
                 url = (
                     f"https://api.geckoterminal.com/api/v2/networks/{network}/tokens/"
                     f"{address}/pools?page={page}"
@@ -499,16 +687,33 @@ def overlay_gecko_day(
     dex_pools: list[dict],
     *,
     discover: bool = True,
+    budget_s: float | None = None,
+    discovery_budget_s: float | None = None,
+    fetch_ohlcv=None,
+    monotonic=None,
 ) -> dict[str, Any]:
     """Replace rolling h24 with the Eastern candle sum when Gecko covers the pool.
 
     dex_pools items: pair, base, quote, dex_volume, liquidity, dex.
-    Network failures keep the DexScreener number.
+    Network failures keep the DexScreener number. `budget_s` caps the uncached
+    candle walk (highest volume first). Pools left over keep h24. `budget_s`
+    None walks every candidate, which is how an unbounded run used to die.
     """
+    clock = monotonic or time.monotonic
     combined_pools = list(dex_pools)
     if discover:
         already = {canon(str(pool.get("pair") or "")) for pool in dex_pools}
-        combined_pools.extend(discover_gecko_pools(chain, rows, already))
+        deadline = None if discovery_budget_s is None else clock() + discovery_budget_s
+        combined_pools.extend(
+            discover_gecko_pools(
+                chain,
+                rows,
+                already,
+                deadline=deadline,
+                token_signal=_token_signal(dex_pools),
+                monotonic=clock,
+            )
+        )
     seen_pairs = {canon(str(pool.get("pair") or "")) for pool in combined_pools}
     remembered_sides: dict[str, dict[str, str]] = {}
     for key, side in load_pool_sides(chain).items():
@@ -528,23 +733,18 @@ def overlay_gecko_day(
                 "from_gecko": True,
             }
         )
-    enriched: list[dict] = []
+    attached = attach_gecko_candles(
+        chain,
+        day,
+        combined_pools,
+        budget_s=budget_s,
+        fetch_ohlcv=fetch_ohlcv,
+        monotonic=clock,
+    )
+    enriched = attached["pools"]
     remembered: list[str] = []
-    for pool in combined_pools:
+    for pool in enriched:
         pair = str(pool.get("pair") or "")
-        signal = max(_num(pool.get("dex_volume")) or 0.0, _num(pool.get("liquidity")) or 0.0)
-        item = dict(pool)
-        # Dust under $100 stays on the Dex sample. Known Gecko-only pools still get candles.
-        fetch_candles = bool(pair) and (signal >= MIN_POOL_H24 or bool(pool.get("from_gecko")))
-        if fetch_candles:
-            candles = gecko_ohlcv_cached(chain, pair)
-            volume, ok = sum_candles_for_day(candles, day) if candles else (None, False)
-            item["gecko_volume"] = volume
-            item["gecko_ok"] = ok
-        else:
-            item["gecko_volume"] = None
-            item["gecko_ok"] = False
-        enriched.append(item)
         if pair:
             remembered.append(pair)
             if pool.get("base") or pool.get("quote"):
@@ -556,6 +756,7 @@ def overlay_gecko_day(
     if remembered:
         remember_known_pairs(chain, remembered, remembered_sides)
     totals = build_closed_totals(rows, enriched)
+    _stamp_coverage(totals, attached["stats"])
     if totals["combined"] is None:
         # Never blank a day the Dex sample already measured.
         fallback = []
@@ -566,4 +767,6 @@ def overlay_gecko_day(
             fallback.append(item)
         totals = build_closed_totals(rows, fallback)
         totals["volumeSource"] = "dexscreener-h24-fallback"
+        totals["barMethod"] = "dex"
+        _stamp_coverage(totals, attached["stats"])
     return totals
