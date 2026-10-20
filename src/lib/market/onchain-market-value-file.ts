@@ -77,8 +77,9 @@ function defaultHolderPath(chainId: HolderSnapshotChainId): string {
 
 /**
  * Read-only market value history for one chain desk.
- * Volume files supply the closed Eastern day window. Holder files supply
- * supply × price. A missing file is an empty history, not a fetch and not a write.
+ * Volume files supply closed Eastern days. A holder close on a closed day
+ * the volume file skipped is included. Holder files supply supply × price.
+ * A missing file is an empty history, not a fetch and not a write.
  */
 export async function loadOnchainMarketValueHistory(
   chainId: string,

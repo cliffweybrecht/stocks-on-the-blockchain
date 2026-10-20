@@ -5,6 +5,7 @@ import {
   DEFAULT_HOLDER_SNAPSHOT_DIR,
   HOLDER_SNAPSHOT_CHAINS,
   parseHolderSnapshotFile,
+  parseStoredHolderSnapshotFile,
   serializeHolderSnapshotFile,
   upsertHolderSnapshotDay,
   type HolderSnapshotChainId,
@@ -15,6 +16,19 @@ import {
 export function holderSnapshotPath(chainId: HolderSnapshotChainId, dir = DEFAULT_HOLDER_SNAPSHOT_DIR): string {
   const chain = HOLDER_SNAPSHOT_CHAINS.find((row) => row.id === chainId);
   return join(dir, chain?.file ?? `${chainId}.json`);
+}
+
+/** Writer read. Does not fill lanes, so a new day does not rewrite older records. */
+async function loadStoredHolderSnapshotFile(
+  chainId: HolderSnapshotChainId,
+  dir = DEFAULT_HOLDER_SNAPSHOT_DIR,
+): Promise<HolderSnapshotFile> {
+  try {
+    const raw = await readFile(holderSnapshotPath(chainId, dir), "utf8");
+    return parseStoredHolderSnapshotFile(JSON.parse(raw), chainId);
+  } catch {
+    return { version: 1, chainId, records: [] };
+  }
 }
 
 export async function loadHolderSnapshotFile(
@@ -34,7 +48,7 @@ export async function saveHolderSnapshotDay(
   day: HolderSnapshotDay,
   dir = DEFAULT_HOLDER_SNAPSHOT_DIR,
 ): Promise<HolderSnapshotFile> {
-  const existing = await loadHolderSnapshotFile(chainId, dir);
+  const existing = await loadStoredHolderSnapshotFile(chainId, dir);
   const file: HolderSnapshotFile = {
     version: 1,
     chainId,

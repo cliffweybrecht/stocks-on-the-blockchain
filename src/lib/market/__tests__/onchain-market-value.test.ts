@@ -138,6 +138,54 @@ describe("onchain market value ranges", () => {
     expect(marketValueCaption(week)).toContain("avg 7D · 2 of 7 days");
   });
 
+  it("counts a holder close on a closed day the volume file skipped", () => {
+    const skipped = {
+      records: [volumeDay("2026-10-04"), volumeDay("2026-10-05")],
+    };
+    const holders = holderFile([
+      {
+        date: "2026-10-06",
+        t: 3,
+        capturedAt: "2026-10-07T03:59:00.000Z",
+        holderCount: 1,
+        supplyUsd: 70,
+        publicMarketValueUsd: 70,
+        privateMarketValueUsd: null,
+        etfMarketValueUsd: null,
+        assetCount: 1,
+        assetsWithHolders: 1,
+        assetsWithSupplyUsd: 1,
+        limits: [],
+        assets: [holderAsset("mint-a", "equity", 7, 10)],
+      },
+      {
+        date: "2026-10-07",
+        t: 4,
+        capturedAt: "2026-10-08T03:59:00.000Z",
+        holderCount: 1,
+        supplyUsd: 999,
+        publicMarketValueUsd: 999,
+        privateMarketValueUsd: null,
+        etfMarketValueUsd: null,
+        assetCount: 1,
+        assetsWithHolders: 1,
+        assetsWithSupplyUsd: 1,
+        limits: [],
+        assets: [holderAsset("mint-a", "equity", 99, 10)],
+      },
+    ]);
+    const history = onchainMarketValueHistoryFromPayloads(skipped, holders, NOW);
+    expect(history.snapshotDays).toEqual(["2026-10-04", "2026-10-05", "2026-10-06"]);
+    expect(history.chainDays.map((day) => day.date)).toEqual(["2026-10-06"]);
+    expect(marketValueRangeView(history, "24h").totalUsd).toBe(70);
+    const week = marketValueRangeView(history, "7d");
+    expect(week.totalUsd).toBe(70);
+    expect(week.days).toBe(1);
+    expect(week.hint).toBe("avg 7D · 1 of 7 days");
+    expect(equityCardMarketValueForRange(history, "mint-a", "24h")?.marketValueUsd).toBe(70);
+    expect(equityCardMarketValueForRange(history, "mint-a", "7d")?.marketValueUsd).toBe(70);
+  });
+
   it("does not treat a missing close or a missing price as zero", () => {
     const history = onchainMarketValueHistoryFromPayloads(payload, file, NOW);
     const mintA = equityCardMarketValueForRange(history, "mint-a", "7d");

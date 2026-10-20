@@ -19,17 +19,22 @@ import { priceTimesSupply } from "./solana-supply";
 import { easternDayKey, utcInstantForDayKey } from "./volume-snapshots";
 
 /**
- * Onchain market value is decimal-adjusted token supply × the desk price
- * captured at the same America/New_York close as volume.
+ * Onchain market value is circulating supply × the desk price captured at
+ * the same America/New_York close as volume.
  *
- * Solana supply is the SPL mint `uiAmountString`. Base, BNB, and Robinhood
- * Chain supply is ERC-20 `totalSupply`. The nightly holder writer stores that
- * product as `supplyUsd`, plus public / private / ETF-index sums.
+ * Solana circulating supply is `getTokenSupply` amount/10^decimals. The mint
+ * census `uiAmountString` can include a Token-2022 scaled UI multiplier that
+ * DexScreener priceUsd does not apply, so that UI amount is not the price unit.
+ * Base, BNB, and Robinhood Chain circulating supply is ERC-20 `totalSupply`
+ * divided by decimals. The nightly holder writer stores that product as
+ * `supplyUsd`, plus public / private / ETF-index sums. A displayed pool
+ * reserve under $1 leaves the price unused. Missing supply stays null.
  *
  * 24H is the close on the last closed Eastern day, not an average and not a
- * live figure. 7D, 14D, and 30D average the recorded closes inside the same
- * newest closed snapshot days the volume cards use. A missing day is left out
- * of the average. Nothing is invented.
+ * live figure. 7D, 14D, and 30D average the recorded closes inside the newest
+ * closed market-value days. Those days are the volume snapshot's closed
+ * Eastern days, plus a holder close on a closed day that volume file skipped.
+ * A missing day is left out of the average. Nothing is invented.
  */
 
 export interface AssetMarketValuePoint {
@@ -50,7 +55,10 @@ export interface MarketValueClose {
 export interface OnchainMarketValueHistory {
   /** Yesterday in America/New_York. Empty when `nowT` is not a real instant. */
   lastClosedDay: string;
-  /** Closed volume-snapshot days, oldest first. Same dates the volume ranges use. */
+  /**
+   * Closed market-value days, oldest first.
+   * Volume snapshot days, plus a holder close on a closed Eastern day the volume file skipped.
+   */
   snapshotDays: string[];
   byAsset: Record<string, AssetMarketValuePoint[]>;
   /** One row per snapshot day that stored a market value. Missing days are omitted. */
@@ -240,7 +248,8 @@ export function equityCardMarketValueForRange(
 
 /**
  * Live card figure. Circulating supply × price when the desk has both.
- * Otherwise onchain total supply × price, which is what the nightly writer stores.
+ * Otherwise onchain total supply × price. The chain headline does not use this.
+ * It reads the nightly `supplyUsd` capture.
  * A missing side stays missing. Liquidity and volume are not substitutes.
  */
 export function liveAssetMarketValueUsd(asset: {
@@ -304,10 +313,24 @@ function closeFromHolderDay(day: HolderSnapshotDay): MarketValueClose | null {
   return { date: normalized.date, t, totalUsd, publicUsd, privateUsd, etfUsd };
 }
 
+const CLOSED_DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Holder dates on or before the last closed Eastern day. The in-progress day is left out. */
+function closedHolderDates(holderFile: HolderSnapshotFile | null, lastClosedDay: string): string[] {
+  if (!lastClosedDay) return [];
+  const dates = new Set<string>();
+  for (const day of holderFile?.records ?? []) {
+    if (!CLOSED_DAY.test(day.date) || day.date > lastClosedDay) continue;
+    dates.add(day.date);
+  }
+  return [...dates].sort((a, b) => a.localeCompare(b));
+}
+
 /**
- * Market value closes aligned to the volume snapshot's closed Eastern days.
- * A holder row on a day the volume file does not count is left out.
- * A volume day with no holder row is left out of the average, not stored as $0.
+ * Market value closes on closed Eastern days. The calendar is the volume
+ * snapshot's closed days plus a holder close on a closed day that file skipped.
+ * The in-progress Eastern day is left out. A calendar day with no holder row
+ * is left out of the average, not stored as $0. Volume numbers are not written.
  */
 export function onchainMarketValueHistoryFromPayloads(
   volumePayload: unknown,
@@ -315,7 +338,13 @@ export function onchainMarketValueHistoryFromPayloads(
   nowT: number,
   backfill: unknown = null,
 ): OnchainMarketValueHistory {
-  const snapshotDays = equityCardClosedSnapshotDates(volumePayload, nowT, backfill);
+  const lastClosedDay = lastClosedEasternDay(nowT);
+  const snapshotDays = [
+    ...new Set([
+      ...equityCardClosedSnapshotDates(volumePayload, nowT, backfill),
+      ...closedHolderDates(holderFile, lastClosedDay),
+    ]),
+  ].sort((a, b) => a.localeCompare(b));
   const allowed = new Set(snapshotDays);
   const byAsset: Record<string, AssetMarketValuePoint[]> = {};
   const chainDays: MarketValueClose[] = [];
@@ -337,7 +366,7 @@ export function onchainMarketValueHistoryFromPayloads(
   chainDays.sort((a, b) => a.date.localeCompare(b.date));
   for (const series of Object.values(byAsset)) series.sort((a, b) => a.date.localeCompare(b.date));
   return {
-    lastClosedDay: lastClosedEasternDay(nowT),
+    lastClosedDay,
     snapshotDays,
     byAsset,
     chainDays,

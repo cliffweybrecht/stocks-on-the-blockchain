@@ -17,13 +17,17 @@ Commands and landing are listed in `docs/volume-snapshots.md`.
 
 `address`, `symbol`, `issuer`, `instrumentKind`, `totalSupplyRaw`, `totalSupplyDecimals`, `totalSupply` (decimal-adjusted), `priceUsd`, `supplyUsd`, `holderCount`, `sources` for supply, supplyUsd, holders, and price, `notes` when a field is null, and `capturedAt`.
 
-`priceUsd` is the desk DexScreener price (`dexMedianPriceUsd`). `supplyUsd` is that price times decimal-adjusted supply. That product is the onchain market value. A missing price or supply leaves both `supplyUsd` and the matching lane total null.
+`priceUsd` is the desk DexScreener price (`dexMedianPriceUsd`). `supplyUsd` is that price times `circulatingSupply`. That product is the onchain market value. A missing price or supply leaves both `supplyUsd` and the matching lane total null.
+
+`circulatingSupply` is the outstanding supply in the unit that price quotes. It is not a guessed treasury float. On Solana it is `amount / 10^decimals`. On Base, BNB, and Robinhood Chain it is ERC-20 `totalSupply() / 10^decimals`, which is the whole outstanding mint. Unminted supply is not inside `totalSupply`. Burned supply is already out of it. This capture does not subtract issuer-treasury, escrow, or bridge balances it cannot read. Those assets are not given an invented float. A displayed pool reserve under $1 USD means the desk price is not a market price, and `supplyUsd` stays null. A missing reserve is not treated as $0.
 
 The day also stores `publicMarketValueUsd` (equity), `privateMarketValueUsd`, and `etfMarketValueUsd`. Each is the sum of `supplyUsd` in that lane. A lane with no priced supply is null, not zero. `supplyUsd` on the day is the sum across lanes.
 
 Chain `holderCount` is the sum of per-token holder counts. It is not unique wallets. A null token is omitted from the sum, not stored as zero. The same rule applies to `supplyUsd`.
 
 A day that was not captured is an empty chart slot. The change over 24H, 7D, 14D, or 30D adds only pairs of consecutive Eastern days that both have a real snapshot. A gap adds nothing.
+
+The market-value calendar is the volume file's closed Eastern days plus a holder close on a closed Eastern day that volume file does not have. The in-progress day stays out. A volume row is not invented to make the holder day visible.
 
 ## Sources
 
@@ -36,7 +40,17 @@ A day that was not captured is an empty chart slot. The change over 24H, 7D, 14D
 
 ### Solana supply
 
-`totalSupplyRaw` is the mint `amount`. `totalSupplyDecimals` is `decimals`. `totalSupply` is `uiAmountString`. That string includes a Token-2022 scaled UI multiplier. DexScreener prices that UI unit, so `amount / 10^decimals` is not used when the string is present. An unreadable string leaves `totalSupply` null.
+`totalSupplyRaw` is the mint `amount`. `totalSupplyDecimals` is `decimals`. `totalSupply` is `uiAmountString`. That string includes a Token-2022 scaled UI multiplier and stays the mint census. `circulatingSupply` is `amount / 10^decimals`. DexScreener `priceUsd` quotes that unscaled unit. Multiplying the UI amount by that price counts the multiplier twice.
+
+Checked against the 2026-10-08 capture and live reads on 2026-10-20:
+
+- NFLXx (`XsEH7w…KmzVpL`) had raw decimal supply about 155,057 and UI supply about 1,550,568. The mint's scaled UI config moved from multiplier 1 to 10 at 2025-11-16 23:55 UTC. Netflix closed at $71.57 on 2026-10-08. The stored desk price was about $707, about 10× the share. UI × that price was about $1.096B. Unscaled supply × that price is about $109.6M, which matches a share-priced token. Jupiter's market cap the same week was about $104M on the UI supply at about $67 a UI token. rwa.xyz lists Solana token supply 155,057 (the unscaled figure) and a much smaller "distributed" circulating supply (about 868 on the public NFLXx page). That distributed figure is not reproducible from the mint account here, so it is not substituted. xStocks' public asset API does not publish supply.
+- TQQQx's multiplier was about 2.01 and SPACEX's (PreStocks) was 5. Dividing the desk price by that multiplier lands on Jupiter's price. The same unscaled formula covers them.
+- NVDAx's multiplier is about 1.0017. Unscaled and UI differ by that fraction. The old "UI amount is what DexScreener prices" note came from this mint, where the two units are almost the same.
+- tOpenAI, BLK, SPCX, and NKE mints ending in `jups`, plus the same ~780,000,000-token Meteora DBC clones ending in `moon` or `bonk` (`3KsvGerr…moon`, `54nTMg3b…moon`, `FiR8RG4J…bonk`), had Jupiter `launchpad: met-dbc` and liquidity under $1. The five `jups` mints plus `3KsvGerr…moon` were about $3.67B of the stored $6.58B. They are not the official Tessera or Backpack mints (the Backpack BLK mint `BLKK…Z8Nf` was about 115 tokens). A reserve under $1 leaves `supplyUsd` null. The 2026-10-08 row is kept as captured. It is not rewritten. Holder counts still include pool token accounts. Those accounts are not added into supply.
+- rwa.xyz's xStocks page listed about $417.7M distributed on Solana, against about $1.85B of outstanding xStocks supply × price on 2026-10-19. Redeemed xStocks stay in issuer wallets and still sit in `getTokenSupply`, so that distributed figure is smaller than the mint. This capture does not read those wallets (public `getTokenLargestAccounts` did not answer), and it does not copy the rwa.xyz number. On NFLXx, Jupiter's market cap matched unscaled supply × the DexScreener price. On the DBC clones, Jupiter's circulating supply matched the full mint and liquidity was under $1.
+
+An unreadable UI string leaves `totalSupply` null. An unreadable raw amount or decimals leaves `circulatingSupply` and `supplyUsd` null. The UI amount is not used as a fallback.
 
 ### Solana holders
 
@@ -46,7 +60,7 @@ Limits: this is token accounts for that mint, including program-owned accounts, 
 
 ### EVM supply
 
-`totalSupplyRaw` is the `totalSupply()` integer. `totalSupply` is that integer divided by `10^decimals`. If `decimals()` is missing, the raw integer is kept and the adjusted supply is null, so `supplyUsd` is null.
+`totalSupplyRaw` is the `totalSupply()` integer. `totalSupply` and `circulatingSupply` are that integer divided by `10^decimals`. There is no Token-2022 UI multiplier on these chains. If `decimals()` is missing, the raw integer is kept and both adjusted supplies are null, so `supplyUsd` is null. Base, BNB, and Robinhood outstanding supplies on 2026-10-08 were share-sized (Coinbase NVDAc about 25,878 tokens, bStocks CRCLB about 1.75M, RHJ SPY about 24,818), not the Solana UI-multiplier or 780M-clone pattern. No public per-token treasury list was available for those chains, so treasury tokens were not subtracted.
 
 ### EVM holders
 

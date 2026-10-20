@@ -19,8 +19,10 @@ import {
 } from "./holder-snapshot-fetch";
 import {
   buildHolderSnapshotAsset,
+  decimalAdjustedSupply,
   easternSnapshotDate,
   holderSnapshotTotals,
+  marketValuePrice,
   sortHolderAssets,
   type HolderSnapshotAsset,
   type HolderSnapshotChainId,
@@ -47,11 +49,12 @@ const EVM_GECKO_NETWORK: Record<Exclude<HolderSnapshotChainId, "solana">, string
 
 export function holderChainLimits(chainId: HolderSnapshotChainId): string[] {
   const price =
-    "supplyUsd is decimal-adjusted total supply times the desk DexScreener price already on the asset. A missing price or supply leaves supplyUsd null. It is not volume.";
+    "supplyUsd is circulating supply times the desk DexScreener price already on the asset. Circulating supply is the outstanding amount in the unit that price quotes. A missing price, a displayed pool reserve under $1, or an unreadable supply leaves supplyUsd null. It is not volume, and it is not a pool's reported market cap. Issuer treasury, escrow, and bridge balances are not subtracted unless this capture read them. Unreadable balances stay null rather than a guessed float.";
   if (chainId === "solana") {
     return [
-      "Supply is public Solana RPC getTokenSupply. totalSupplyRaw is the raw amount, totalSupplyDecimals is the mint decimals, and totalSupply is uiAmountString so a Token-2022 scaled UI multiplier is kept. DexScreener prices that UI unit. amount/10^decimals is not substituted when uiAmountString is present.",
-      "Holders are public Solana RPC getProgramAccounts on the mint owner (SPL Token or Token-2022), filtered by memcmp of the mint at offset 0, with dataSlice of the u64 amount at offset 64. Non-zero balances are counted. Token-2022 accounts are not dropped for extension size because dataSize is not filtered. A failed call stays null. The chain total sums those per-mint counts and is not unique wallets.",
+      "Supply is public Solana RPC getTokenSupply. totalSupplyRaw is the mint amount. totalSupplyDecimals is the mint decimals. totalSupply is uiAmountString, so a Token-2022 scaled UI multiplier stays on the mint census. circulatingSupply is amount/10^decimals. DexScreener priceUsd quotes that unscaled unit: NFLXx's multiplier of 10 made uiAmount about 1,550,568 while the raw decimal supply was about 155,057, and the pair price was about 10× the Netflix share. Market value uses the unscaled supply. amount/10^decimals is not replaced by uiAmountString.",
+      "Holders are public Solana RPC getProgramAccounts on the mint owner (SPL Token or Token-2022), filtered by memcmp of the mint at offset 0, with dataSlice of the u64 amount at offset 64. Non-zero balances are counted. Token-2022 accounts are not dropped for extension size because dataSize is not filtered. A failed call stays null. The chain total sums those per-mint counts and is not unique wallets. Pool accounts are included in the holder count. They are not added again into supply.",
+      "The price is the deepest pool that quotes this mint as the base token and holds at least $1. A thinner pool is not averaged into a median. CSCOx on 2026-10-20 had a Raydium USDC pool near $115 with about $441 of reserve and a Fluxbeam pool near $38,210 with about $57; the median of those two was about $19,163 and is not used. A reserve under $1 is not a market price. Meteora DBC clones (tOpenAI, BLK, SPCX, NKE mints ending in jups on the 2026-10-08 capture) printed about $1 of reserve against a ~780,000,000 mint and are left null. A missing reserve is not treated as $0.",
       price,
     ];
   }
@@ -59,7 +62,7 @@ export function holderChainLimits(chainId: HolderSnapshotChainId): string[] {
   const rpc =
     chainId === "base" ? DEFAULT_BASE_RPC_URL : chainId === "bnb" ? DEFAULT_BNB_RPC_URL : DEFAULT_ROBINHOOD_RPC_URL;
   return [
-    `Supply is eth_call totalSupply() and decimals() on ${rpc}. totalSupplyRaw is the integer. totalSupply is raw / 10^decimals. A missing decimals() leaves the adjusted supply null.`,
+    `Supply is eth_call totalSupply() and decimals() on ${rpc}. totalSupplyRaw is the integer. totalSupply and circulatingSupply are raw / 10^decimals. ERC-20 totalSupply is the outstanding mint; this capture does not see a separate unminted cap. A missing decimals() leaves both supplies null. Issuer treasury and bridge vaults are not subtracted, because this host has no published per-token treasury list for the chain. Those balances stay inside outstanding supply rather than a guessed circulating float.`,
     `Holders are GeckoTerminal token-info holders.count (network ${EVM_GECKO_NETWORK[chainId]}), the same integer this desk already shows on the asset page. Calls are one at a time, at least 6.5 seconds apart, because a faster pace receives HTTP 429 on this host. HTTP 429 is retried and is not stored as a count. Blockscout's public API for this chain returned a Cloudflare challenge from the snapshot host, and Routescan tokenholdercount does not index chain ${native} (response: chain not supported). A 404 or a payload with no holders.count stays null. The chain total sums per-token counts and is not unique wallets.`,
     price,
   ];
@@ -70,7 +73,7 @@ function fromSummary(asset: AssetSummary): HolderUniverseAsset | null {
   const symbol = asset.symbol.trim();
   if (!address || !symbol) return null;
   const kind: InstrumentKind = asset.instrumentKind;
-  return {
+  const quote = marketValuePrice({
     address,
     symbol,
     issuer: asset.issuer?.trim() || null,
@@ -79,6 +82,23 @@ function fromSummary(asset: AssetSummary): HolderUniverseAsset | null {
       typeof asset.dexMedianPriceUsd === "number" && Number.isFinite(asset.dexMedianPriceUsd) && asset.dexMedianPriceUsd > 0
         ? asset.dexMedianPriceUsd
         : null,
+    displayedLiquidityUsd:
+      typeof asset.displayedLiquidityUsd === "number" && Number.isFinite(asset.displayedLiquidityUsd) && asset.displayedLiquidityUsd >= 0
+        ? asset.displayedLiquidityUsd
+        : null,
+    pools: asset.pools.map((pool) => ({
+      priceUsd: typeof pool.priceUsd === "number" ? pool.priceUsd : null,
+      liquidityUsd: typeof pool.liquidityUsd === "number" ? pool.liquidityUsd : null,
+      baseAddress: pool.baseAddress ?? null,
+    })),
+  });
+  return {
+    address,
+    symbol,
+    issuer: asset.issuer?.trim() || null,
+    instrumentKind: kind,
+    priceUsd: quote.priceUsd,
+    displayedLiquidityUsd: quote.displayedLiquidityUsd,
   };
 }
 
@@ -182,11 +202,26 @@ async function captureOne(
       );
       if (holderCount === null) notes.push(`getProgramAccounts failed for ${program}.`);
     }
+    const unscaled =
+      supply && supply.raw ? decimalAdjustedSupply(BigInt(supply.raw), supply.decimals) : null;
+    if (supply && unscaled === null) notes.push("amount/10^decimals was unreadable, so circulatingSupply is null.");
+    else if (
+      supply &&
+      supply.adjusted !== null &&
+      unscaled !== null &&
+      supply.adjusted > 0 &&
+      Math.abs(supply.adjusted - unscaled) / supply.adjusted > 0.001
+    ) {
+      notes.push(
+        `Token-2022 scaled UI is ${supply.adjusted} and unscaled decimal supply is ${unscaled}. Market value uses the unscaled supply because DexScreener priceUsd quotes that unit.`,
+      );
+    }
     return buildHolderSnapshotAsset({
       asset,
       totalSupplyRaw: supply?.raw ?? null,
       totalSupplyDecimals: supply?.decimals ?? null,
       totalSupply: supply?.adjusted ?? null,
+      circulatingSupply: unscaled,
       priceUsd: asset.priceUsd,
       holderCount,
       supplySource: SOLANA_SUPPLY_SOURCE,
@@ -210,6 +245,7 @@ async function captureOne(
     totalSupplyRaw: supply?.raw ?? null,
     totalSupplyDecimals: supply?.decimals ?? null,
     totalSupply: supply?.adjusted ?? null,
+    circulatingSupply: supply?.adjusted ?? null,
     priceUsd: asset.priceUsd,
     holderCount: holders.holderCount,
     supplySource: EVM_SUPPLY_SOURCE,

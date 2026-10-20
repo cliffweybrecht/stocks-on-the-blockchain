@@ -25,7 +25,7 @@ At 11:59 PM Eastern, UTC is already the next calendar day. The day key is still 
 | Equity perps | `npm run snapshot:perps` | `data/perps-snapshots/perps.json` |
 | Lending | `LENDING_SNAPSHOT_DATE=YYYY-MM-DD npm run snapshot:lending` | `data/lending-snapshots/YYYY-MM-DD.json` |
 
-`scripts/snapshot-bnb-volume.py` and `scripts/snapshot-robinhood-volume.py` are on `main`, same as the Base and Solana writers. Nightly runs use those writers, then land only the JSON row. Closed-day rows keep the lane totals and add `assets[]` (address, symbol, issuer when known, instrumentKind, volume24hUsd, displayedLiquidityUsd, pools). Hourly files stay totals only.
+`scripts/snapshot-bnb-volume.py` and `scripts/snapshot-robinhood-volume.py` are on `main`, same as the Base and Solana writers. Nightly runs use those writers, then land only the JSON row. Each of those four writers also runs the holder/supply capture for the same Eastern date (`scripts/snapshot_holders_hook.py`, or `scripts/snapshot-volume.ts` for Solana) and appends `data/holder-snapshots/<chain>.json`. `SKIP_HOLDER_SNAPSHOT=1` skips that second write. The holder file is a separate land (`--chain holders-<chain>`). A holder failure does not roll back the volume file. Closed-day rows keep the lane totals and add `assets[]` (address, symbol, issuer when known, instrumentKind, volume24hUsd, displayedLiquidityUsd, pools). Hourly files stay totals only.
 
 Displayed liquidity uses one sanity guard (`src/lib/market/liquidity-sanity.ts`, `scripts/snapshot_asset_rows.py`). Solana applies it in the nightly asset writer. Robinhood and BNB apply it through `assets_for`. A pool is left out of `displayedLiquidityUsd` when its liquidity is above $50M and its 24h volume is below 0.01% of that liquidity. A missing volume counts as no trading. The same helper also drops a pool above 20× the asset's next-largest pool when that pool is also above 10× a known market value, and it uses a GeckoTerminal `reserve_in_usd` when that reserve is under 10% of the reported figure. Excluded pools stay on the asset as `excludedLiquidityPools` (pool id, raw liquidity, reason). Volume is unchanged. When every reported reserve is excluded, `displayedLiquidityUsd` is 0 so a reader does not sum the raw pool instead. Stored rows that were rewritten keep the previous displayed total on the asset `correction`.
 
@@ -86,10 +86,12 @@ Holder counts and token supply are a separate nightly file. They do not change v
 
 | Chain | Command | File |
 | --- | --- | --- |
-| Solana | `SOLANA_MARKET_ENABLED=true npm run snapshot:holders -- --chain solana` | `data/holder-snapshots/solana.json` |
-| Base | `npm run snapshot:holders -- --chain base` | `data/holder-snapshots/base.json` |
-| BNB | `npm run snapshot:holders -- --chain bnb` | `data/holder-snapshots/bnb.json` |
-| Robinhood | `npm run snapshot:holders -- --chain robinhood` | `data/holder-snapshots/robinhood.json` |
+| Solana | `SOLANA_MARKET_ENABLED=true npm run snapshot:volume` (also `npm run snapshot:holders -- --chain solana`) | `data/holder-snapshots/solana.json` |
+| Base | `npm run snapshot:base-volume` (also `npm run snapshot:holders -- --chain base`) | `data/holder-snapshots/base.json` |
+| BNB | `npm run snapshot:bnb-volume` (also `npm run snapshot:holders -- --chain bnb`) | `data/holder-snapshots/bnb.json` |
+| Robinhood | `npm run snapshot:robinhood-volume` (also `npm run snapshot:holders -- --chain robinhood`) | `data/holder-snapshots/robinhood.json` |
+
+The 11:59 PM Eastern volume command is the schedule. It writes the volume row, then the holder row, for that same Eastern date. `HOLDER_SNAPSHOT_DATE` (or the volume writer's own `SNAPSHOT_DATE` / chain date) forces the key only. Land volume and holders as two commits. The holder subject is `chore: <Chain> holder snapshot YYYY-MM-DD`.
 
 Land the JSON the same way as volume, with a `holders-` chain id. The subject is `chore: <Chain> holder snapshot YYYY-MM-DD`.
 

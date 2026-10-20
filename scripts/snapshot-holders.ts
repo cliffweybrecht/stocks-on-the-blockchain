@@ -26,12 +26,13 @@ function selectedChains(argv: readonly string[]): HolderSnapshotChainId[] {
   return [chain];
 }
 
-async function main(): Promise<number> {
-  const argv = process.argv.slice(2);
+export async function runHolderSnapshotCli(argv: readonly string[] = process.argv.slice(2)): Promise<number> {
   if (argv.includes("--help") || argv.includes("-h")) {
     console.log(`Nightly holder and supply snapshot for the desk universe.
 
-Runs at 11:59 PM America/New_York. The record key is that Eastern calendar date.
+Runs at 11:59 PM America/New_York, from each chain's volume writer
+(snapshot:volume, snapshot:base-volume, snapshot:bnb-volume, snapshot:robinhood-volume).
+The record key is that Eastern calendar date. This command does not land to main.
 
   npm run snapshot:holders -- --chain solana
   npm run snapshot:holders -- --chain base
@@ -95,11 +96,14 @@ Then land with:
   return failed === 0 ? 0 : 1;
 }
 
-main()
-  .then((code) => {
-    process.exit(code);
-  })
-  .catch((error) => {
-    console.error(error instanceof Error ? error.message : "snapshot:holders failed.");
-    process.exit(1);
-  });
+const invokedDirectly = (process.argv[1] ?? "").replaceAll("\\", "/");
+if (invokedDirectly.endsWith("/scripts/snapshot-holders.ts") || invokedDirectly.endsWith("/scripts/snapshot-holders.js")) {
+  runHolderSnapshotCli()
+    .then((code) => {
+      process.exit(code);
+    })
+    .catch((error) => {
+      console.error(error instanceof Error ? error.message : "snapshot:holders failed.");
+      process.exit(1);
+    });
+}

@@ -3,12 +3,14 @@ import {
   buildHolderSnapshotAsset,
   combineHolderDeskPoints,
   holderSnapshotTotals,
+  marketValuePrice,
   marketValueLanes,
   consecutiveChange,
   decimalAdjustedSupply,
   holderAssetRangeView,
   holderDaySlots,
   parseHolderSnapshotFile,
+  parseStoredHolderSnapshotFile,
   upsertHolderSnapshotDay,
   type HolderSnapshotAsset,
   type HolderSnapshotDay,
@@ -144,6 +146,42 @@ describe("holder snapshot days", () => {
     expect(file.records[0]?.date).toBe("2026-10-08");
   });
 
+  it("reads a historical day back without adding fields the capture did not store", () => {
+    const asset = {
+      address: "mint-a",
+      symbol: "A",
+      issuer: null,
+      instrumentKind: "equity" as const,
+      totalSupplyRaw: "100",
+      totalSupplyDecimals: 0,
+      totalSupply: 100,
+      supplyUsd: 10,
+      holderCount: 2,
+      sources: { totalSupply: "solana-rpc:getTokenSupply", supplyUsd: "x", holderCount: "y", price: "z" },
+      notes: [],
+      capturedAt: "2026-10-08T21:00:00.000Z",
+    };
+    const record = {
+      date: "2026-10-08",
+      t: 1,
+      capturedAt: "2026-10-08T21:00:00.000Z",
+      holderCount: 2,
+      supplyUsd: 10,
+      assetCount: 1,
+      assetsWithHolders: 1,
+      assetsWithSupplyUsd: 1,
+      limits: [],
+      assets: [asset],
+    };
+    const stored = parseStoredHolderSnapshotFile({ version: 1, chainId: "solana", records: [record] }, "solana");
+    expect(stored.records[0]).toEqual(record);
+    expect("circulatingSupply" in stored.records[0]!.assets[0]!).toBe(false);
+    expect("publicMarketValueUsd" in stored.records[0]!).toBe(false);
+    const read = parseHolderSnapshotFile({ version: 1, chainId: "solana", records: [record] }, "solana");
+    expect(read.records[0]?.publicMarketValueUsd).toBe(10);
+    expect(read.records[0]?.assets[0]?.supplyUsd).toBe(10);
+  });
+
   it("leaves a missing day empty and changes only consecutive real snapshots", () => {
     const points = [
       { date: "2026-10-06", t: 1, holderCount: 10, totalSupply: 100, supplyUsd: 1000 },
@@ -184,7 +222,7 @@ describe("market value lanes", () => {
     const priced = (kind: "equity" | "private" | "etf", supply: number, price: number | null) =>
       buildHolderSnapshotAsset({
         asset: { ...asset, instrumentKind: kind, priceUsd: price },
-        totalSupplyRaw: "100",
+        totalSupplyRaw: String(supply),
         totalSupplyDecimals: 0,
         totalSupply: supply,
         priceUsd: price,
@@ -200,6 +238,7 @@ describe("market value lanes", () => {
     const etf = priced("etf", 3, 8);
     const missing = priced("equity", 9, null);
     expect(equity.priceUsd).toBe(10);
+    expect(equity.circulatingSupply).toBe(2);
     expect(equity.supplyUsd).toBe(20);
     expect(missing.priceUsd).toBeNull();
     expect(missing.supplyUsd).toBeNull();
@@ -209,6 +248,80 @@ describe("market value lanes", () => {
     expect(totals.etfMarketValueUsd).toBe(24);
     expect(totals.supplyUsd).toBe(64);
     expect(totals.assetsWithSupplyUsd).toBe(3);
+  });
+});
+
+describe("circulating market value", () => {
+  it("prices Solana amount/10^decimals and not the Token-2022 UI amount", () => {
+    const row = buildHolderSnapshotAsset({
+      asset,
+      totalSupplyRaw: "15505684087196",
+      totalSupplyDecimals: 8,
+      totalSupply: 1_550_568.4087196,
+      priceUsd: 707.01,
+      holderCount: 3454,
+      supplySource: "solana-rpc:getTokenSupply",
+      holderSource: "solana-rpc:getProgramAccounts:token-2022",
+      priceSource: "dexscreener:dexMedianPriceUsd",
+      notes: [],
+      capturedAt: "2026-10-08T21:48:28.198Z",
+    });
+    expect(row.circulatingSupply).toBeCloseTo(155_056.84087196, 4);
+    expect(row.supplyUsd).toBeCloseTo(155_056.84087196 * 707.01, 2);
+    expect(row.supplyUsd).not.toBeCloseTo(1_550_568.4087196 * 707.01, -3);
+  });
+
+  it("leaves supplyUsd null when the displayed pool reserve is under $1", () => {
+    const row = buildHolderSnapshotAsset({
+      asset: { ...asset, displayedLiquidityUsd: 0.0006 },
+      totalSupplyRaw: "780290321452628",
+      totalSupplyDecimals: 6,
+      totalSupply: 780_290_321.452628,
+      priceUsd: 1.44,
+      holderCount: 16,
+      supplySource: "solana-rpc:getTokenSupply",
+      holderSource: "solana-rpc:getProgramAccounts:token-2022",
+      priceSource: "dexscreener:dexMedianPriceUsd",
+      notes: [],
+      capturedAt: "2026-10-08T21:48:33.619Z",
+    });
+    expect(row.circulatingSupply).toBeCloseTo(780_290_321.452628, 2);
+    expect(row.priceUsd).toBeNull();
+    expect(row.supplyUsd).toBeNull();
+    expect(row.notes.some((note) => note.includes("under 1 USD"))).toBe(true);
+  });
+
+  it("prices the deepest pool and does not average a thin outlier", () => {
+    const quote = marketValuePrice({
+      ...asset,
+      address: "CSCOxMint",
+      priceUsd: 19_162.6625,
+      displayedLiquidityUsd: 498,
+      pools: [
+        { priceUsd: 38_210.31, liquidityUsd: 57.29, baseAddress: "CSCOxMint" },
+        { priceUsd: 115.015, liquidityUsd: 441.08, baseAddress: "CSCOxMint" },
+        { priceUsd: 9_999, liquidityUsd: 5_000, baseAddress: "some-other-base" },
+      ],
+    });
+    expect(quote.priceUsd).toBe(115.015);
+    expect(quote.displayedLiquidityUsd).toBe(441.08);
+  });
+
+  it("does not treat a missing reserve as dust", () => {
+    const row = buildHolderSnapshotAsset({
+      asset,
+      totalSupplyRaw: "100",
+      totalSupplyDecimals: 0,
+      totalSupply: 100,
+      priceUsd: 2,
+      holderCount: 3,
+      supplySource: "evm-rpc:eth_call:totalSupply+decimals",
+      holderSource: "geckoterminal:holders.count",
+      priceSource: "dexscreener:dexMedianPriceUsd",
+      notes: [],
+      capturedAt: "2026-10-19T03:59:00.000Z",
+    });
+    expect(row.supplyUsd).toBe(200);
   });
 });
 

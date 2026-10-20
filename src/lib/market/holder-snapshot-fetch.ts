@@ -23,7 +23,7 @@ const HEX_WORD = /^0x[0-9a-fA-F]*$/;
 export interface SolanaMintSupply {
   raw: string;
   decimals: number;
-  /** `uiAmountString` when the RPC sent one. That is the unit DexScreener prices. */
+  /** `uiAmountString` when the RPC sent one. Mint census only. DexScreener priceUsd quotes `amount/10^decimals`, not this. */
   adjusted: number | null;
   source: string;
 }

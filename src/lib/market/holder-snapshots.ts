@@ -28,9 +28,10 @@ export interface HolderSnapshotSources {
 
 /**
  * One token on one Eastern day.
- * `totalSupplyRaw` is the on-chain integer. `totalSupply` is the decimal-adjusted
- * figure the price quotes (SPL `uiAmountString`, including a Token-2022 multiplier).
- * Null is unreported. It is not zero.
+ * `totalSupplyRaw` is the on-chain integer. `totalSupply` is the mint census:
+ * SPL `uiAmountString` (Token-2022 scaled UI included) or EVM `totalSupply/10^decimals`.
+ * `circulatingSupply` is the unit the desk price quotes. On Solana that is
+ * `amount/10^decimals`, not `uiAmountString`. Null is unreported. It is not zero.
  */
 export interface HolderSnapshotAsset {
   address: string;
@@ -40,9 +41,15 @@ export interface HolderSnapshotAsset {
   totalSupplyRaw: string | null;
   totalSupplyDecimals: number | null;
   totalSupply: number | null;
+  /**
+   * Outstanding supply in the price's unit. Solana: unscaled `amount/10^decimals`.
+   * EVM: the same figure as `totalSupply`. Issuer-treasury balances this desk cannot
+   * read are not subtracted. Null when the raw integer or decimals were unreadable.
+   */
+  circulatingSupply: number | null;
   /** Desk price used for `supplyUsd`. Missing stays null. It is not inferred. */
   priceUsd: number | null;
-  /** Onchain market value: decimal-adjusted supply × `priceUsd`. Null when either side is missing. */
+  /** Onchain market value: `circulatingSupply` × `priceUsd`. Null when either side is missing. */
   supplyUsd: number | null;
   holderCount: number | null;
   sources: HolderSnapshotSources;
@@ -87,6 +94,69 @@ export interface HolderUniverseAsset {
   instrumentKind: InstrumentKind;
   /** Desk DexScreener median (or the chain loader's spot). Missing stays null. */
   priceUsd: number | null;
+  /**
+   * Displayed pool reserve in USD. Under $1, the price is not a market price.
+   * Null means the desk did not report a reserve. That is not treated as zero.
+   */
+  displayedLiquidityUsd?: number | null;
+  /**
+   * Desk pools. `priceUsd` is the base token's price. A pool is ignored unless
+   * `baseAddress` is this asset. The deepest reserve of at least $1 is the
+   * market price. A median that mixes a $57 pool with a real pool is not used.
+   */
+  pools?: readonly HolderPricePool[];
+}
+
+export interface HolderPricePool {
+  priceUsd: number | null;
+  liquidityUsd: number | null;
+  baseAddress: string | null;
+}
+
+/** A displayed reserve under this is not a market. Unknown liquidity is not this. */
+export const MARKET_PRICE_MIN_LIQUIDITY_USD = 1;
+
+/**
+ * Price for circulating supply × price.
+ * Uses the highest-liquidity pool that prices this mint as the base token and
+ * holds at least $1. A thinner pool's price is not averaged in. When no pool
+ * reports a base price, the desk median is kept only if displayed liquidity is
+ * unknown or at least $1.
+ */
+export function marketValuePrice(asset: HolderUniverseAsset): {
+  priceUsd: number | null;
+  displayedLiquidityUsd: number | null;
+} {
+  const key = holderAddressKey(asset.address);
+  let best: { price: number; liquidity: number } | null = null;
+  let sawBasePrice = false;
+  for (const pool of asset.pools ?? []) {
+    const base = pool.baseAddress?.trim() ?? "";
+    if (!base || holderAddressKey(base) !== key) continue;
+    const price = typeof pool.priceUsd === "number" && Number.isFinite(pool.priceUsd) && pool.priceUsd > 0 ? pool.priceUsd : null;
+    const liquidity =
+      typeof pool.liquidityUsd === "number" && Number.isFinite(pool.liquidityUsd) && pool.liquidityUsd >= 0
+        ? pool.liquidityUsd
+        : null;
+    if (price === null || liquidity === null) continue;
+    sawBasePrice = true;
+    if (liquidity < MARKET_PRICE_MIN_LIQUIDITY_USD) continue;
+    if (!best || liquidity > best.liquidity) best = { price, liquidity };
+  }
+  if (best) return { priceUsd: best.price, displayedLiquidityUsd: best.liquidity };
+  if (sawBasePrice) return { priceUsd: null, displayedLiquidityUsd: 0 };
+  const displayed =
+    typeof asset.displayedLiquidityUsd === "number" &&
+    Number.isFinite(asset.displayedLiquidityUsd) &&
+    asset.displayedLiquidityUsd >= 0
+      ? asset.displayedLiquidityUsd
+      : null;
+  if (displayed !== null && displayed < MARKET_PRICE_MIN_LIQUIDITY_USD) {
+    return { priceUsd: null, displayedLiquidityUsd: displayed };
+  }
+  const median =
+    typeof asset.priceUsd === "number" && Number.isFinite(asset.priceUsd) && asset.priceUsd > 0 ? asset.priceUsd : null;
+  return { priceUsd: median, displayedLiquidityUsd: displayed };
 }
 
 const RANGE_DAYS: Record<VolumeChartRangeId, number> = {
@@ -138,8 +208,18 @@ export function easternSnapshotDate(unixSeconds: number): { date: string; t: num
   return { date, t };
 }
 
-function finiteSupply(value: number | null): number | null {
-  if (value === null || !Number.isFinite(value) || value < 0) return null;
+function finiteSupply(value: number | null | undefined): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return null;
+  return value;
+}
+
+function finiteLiquidity(value: number | null | undefined): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return null;
+  return value;
+}
+
+function integerDecimals(value: number | null): number | null {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0 || value > 36) return null;
   return value;
 }
 
@@ -194,6 +274,13 @@ export function buildHolderSnapshotAsset(input: {
   totalSupplyRaw: string | null;
   totalSupplyDecimals: number | null;
   totalSupply: number | null;
+  /**
+   * Price unit. When omitted, this is `totalSupplyRaw / 10^totalSupplyDecimals`.
+   * It is not `totalSupply` when that field is a Token-2022 UI amount.
+   */
+  circulatingSupply?: number | null;
+  /** Overrides `asset.displayedLiquidityUsd` when the caller already resolved it. */
+  displayedLiquidityUsd?: number | null;
   priceUsd: number | null;
   holderCount: number | null;
   supplySource: string | null;
@@ -202,13 +289,25 @@ export function buildHolderSnapshotAsset(input: {
   notes: readonly string[];
   capturedAt: string;
 }): HolderSnapshotAsset {
+  const notes = [...input.notes];
   const totalSupply = finiteSupply(input.totalSupply);
-  const priceUsd =
+  const decimals = integerDecimals(input.totalSupplyDecimals);
+  const raw = input.totalSupplyRaw && RAW_UINT.test(input.totalSupplyRaw) ? input.totalSupplyRaw : null;
+  const fromRaw = raw !== null && decimals !== null ? decimalAdjustedSupply(BigInt(raw), decimals) : null;
+  const circulatingSupply = finiteSupply(input.circulatingSupply === undefined ? fromRaw : input.circulatingSupply);
+  let priceUsd =
     typeof input.priceUsd === "number" && Number.isFinite(input.priceUsd) && input.priceUsd > 0 ? input.priceUsd : null;
-  const supplyUsd = priceTimesSupply(priceUsd, totalSupply);
+  const liquidity = finiteLiquidity(input.displayedLiquidityUsd ?? input.asset.displayedLiquidityUsd);
+  if (priceUsd !== null && liquidity !== null && liquidity < MARKET_PRICE_MIN_LIQUIDITY_USD) {
+    notes.push(
+      `Displayed pool liquidity is ${liquidity} USD, under ${MARKET_PRICE_MIN_LIQUIDITY_USD} USD, so the desk price is not a market price. supplyUsd is null.`,
+    );
+    priceUsd = null;
+  }
+  const supplyUsd = priceTimesSupply(priceUsd, circulatingSupply);
   const holderCount = asHolderCount(input.holderCount);
   const sources: HolderSnapshotSources = {
-    totalSupply: totalSupply !== null || input.totalSupplyRaw ? input.supplySource : null,
+    totalSupply: totalSupply !== null || raw ? input.supplySource : null,
     supplyUsd: supplyUsd !== null && input.priceSource && input.supplySource ? `${input.priceSource}×${input.supplySource}` : null,
     holderCount: holderCount !== null ? input.holderSource : null,
     price: priceUsd !== null ? input.priceSource : null,
@@ -218,20 +317,15 @@ export function buildHolderSnapshotAsset(input: {
     symbol: input.asset.symbol.trim(),
     issuer: input.asset.issuer?.trim() || null,
     instrumentKind: input.asset.instrumentKind,
-    totalSupplyRaw: input.totalSupplyRaw && RAW_UINT.test(input.totalSupplyRaw) ? input.totalSupplyRaw : null,
-    totalSupplyDecimals:
-      typeof input.totalSupplyDecimals === "number" &&
-      Number.isInteger(input.totalSupplyDecimals) &&
-      input.totalSupplyDecimals >= 0 &&
-      input.totalSupplyDecimals <= 36
-        ? input.totalSupplyDecimals
-        : null,
+    totalSupplyRaw: raw,
+    totalSupplyDecimals: decimals,
     totalSupply,
+    circulatingSupply,
     priceUsd,
     supplyUsd,
     holderCount,
     sources,
-    notes: [...input.notes],
+    notes,
     capturedAt: input.capturedAt,
   };
 }
@@ -280,30 +374,49 @@ export function normalizeHolderSnapshotDay(day: HolderSnapshotDay): HolderSnapsh
     etfMarketValueUsd: asUsd(day.etfMarketValueUsd) ?? lanes.etfMarketValueUsd,
     assets: day.assets.map((asset) => ({
       ...asset,
+      circulatingSupply: finiteSupply(asset.circulatingSupply),
       priceUsd: asPrice(asset.priceUsd),
     })),
   };
 }
 
-function asDay(value: unknown): HolderSnapshotDay | null {
+function asStoredDay(value: unknown): HolderSnapshotDay | null {
   if (!value || typeof value !== "object") return null;
   const row = value as Partial<HolderSnapshotDay>;
   if (typeof row.date !== "string" || !DAY_KEY.test(row.date)) return null;
   if (!Array.isArray(row.assets)) return null;
-  return normalizeHolderSnapshotDay(row as HolderSnapshotDay);
+  return row as HolderSnapshotDay;
 }
 
-export function parseHolderSnapshotFile(payload: unknown, chainId: HolderSnapshotChainId): HolderSnapshotFile {
-  if (!payload || typeof payload !== "object") return { version: 1, chainId, records: [] };
+function asDay(value: unknown): HolderSnapshotDay | null {
+  const stored = asStoredDay(value);
+  return stored ? normalizeHolderSnapshotDay(stored) : null;
+}
+
+function daysFromPayload(payload: unknown, read: (value: unknown) => HolderSnapshotDay | null): HolderSnapshotDay[] {
+  if (!payload || typeof payload !== "object") return [];
   const records = (payload as { records?: unknown }).records;
-  if (!Array.isArray(records)) return { version: 1, chainId, records: [] };
+  if (!Array.isArray(records)) return [];
   const days: HolderSnapshotDay[] = [];
   for (const row of records) {
-    const day = asDay(row);
+    const day = read(row);
     if (day) days.push(day);
   }
   days.sort((a, b) => a.date.localeCompare(b.date));
-  return { version: 1, chainId, records: days };
+  return days;
+}
+
+/** Read path. Missing lane totals are filled from assets. Stored supplyUsd is kept. */
+export function parseHolderSnapshotFile(payload: unknown, chainId: HolderSnapshotChainId): HolderSnapshotFile {
+  return { version: 1, chainId, records: daysFromPayload(payload, asDay) };
+}
+
+/**
+ * Writer path. Historical days are returned as stored so a new day does not
+ * rewrite them with filled lanes or null circulatingSupply fields.
+ */
+export function parseStoredHolderSnapshotFile(payload: unknown, chainId: HolderSnapshotChainId): HolderSnapshotFile {
+  return { version: 1, chainId, records: daysFromPayload(payload, asStoredDay) };
 }
 
 export interface HolderDaySlot<T> {
