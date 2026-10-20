@@ -7,6 +7,7 @@ import {
   equityCardRangeCoverageHint,
   type EquityCardClosedRangeId,
 } from "./equity-card-range-volume";
+import { readStoredAssetLiquidityUsd, type ExcludedLiquidityPool } from "./liquidity-sanity";
 import { asNonNegativeNumber, compareNullableDesc } from "./numbers";
 import { easternDayKey, easternMidnightUnix } from "./volume-snapshots";
 
@@ -193,7 +194,11 @@ function liquidityByDate(payload: unknown, allowed: ReadonlySet<string>): Map<st
   return byDate;
 }
 
-/** Nightly reserve. The stored sum wins. Pools are summed only when that field is absent. */
+/**
+ * Nightly reserve. `displayedLiquidityUsd` wins, including an explicit 0 from
+ * the liquidity sanity guard. Pools are summed only when that field is absent,
+ * and pools the guard excluded are not added back.
+ */
 function readAssetLiquidity(row: unknown): { key: string; liquidityUsd: number } | null {
   if (!row || typeof row !== "object") return null;
   const rec = row as Record<string, unknown>;
@@ -204,25 +209,65 @@ function readAssetLiquidity(row: unknown): { key: string; liquidityUsd: number }
     "";
   const key = equityCardRangeAddressKey(address);
   if (!key) return null;
-  const displayed = asNonNegativeNumber(rec.displayedLiquidityUsd);
-  if (displayed !== null) return { key, liquidityUsd: roundUsd(displayed) };
-  const summed = sumPoolLiquidity(rec.pools);
-  if (summed === null) return null;
-  return { key, liquidityUsd: roundUsd(summed) };
+  const displayed = storedDisplayedLiquidity(rec.displayedLiquidityUsd);
+  if (displayed !== undefined && displayed !== null) {
+    const liquidityUsd = readStoredAssetLiquidityUsd({ displayedLiquidityUsd: displayed });
+    if (liquidityUsd === null) return null;
+    return { key, liquidityUsd };
+  }
+  const liquidityUsd = sumPoolsSkippingExcluded(rec.pools, storedExcludedPools(rec.excludedLiquidityPools));
+  if (liquidityUsd === null) return null;
+  return { key, liquidityUsd };
 }
 
-function sumPoolLiquidity(pools: unknown): number | null {
+function storedDisplayedLiquidity(value: unknown): number | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  return asNonNegativeNumber(value);
+}
+
+function sumPoolsSkippingExcluded(pools: unknown, excludedRows: readonly ExcludedLiquidityPool[] | null): number | null {
   if (!Array.isArray(pools)) return null;
+  const replacements = new Map<string, number>();
+  const excluded = new Set<string>();
+  for (const row of excludedRows ?? []) {
+    if (row.replacementLiquidityUsd !== undefined) replacements.set(row.poolId, row.replacementLiquidityUsd);
+    else excluded.add(row.poolId);
+  }
   let sum = 0;
   let any = false;
   for (const pool of pools) {
     if (!pool || typeof pool !== "object") continue;
-    const usd = asNonNegativeNumber((pool as { liquidityUsd?: unknown }).liquidityUsd);
+    const item = pool as { pairAddress?: unknown; poolId?: unknown; liquidityUsd?: unknown };
+    const poolId = (typeof item.pairAddress === "string" ? item.pairAddress : typeof item.poolId === "string" ? item.poolId : "").trim();
+    if (poolId && excluded.has(poolId)) continue;
+    const replacement = poolId ? replacements.get(poolId) : undefined;
+    const usd = replacement !== undefined ? replacement : asNonNegativeNumber(item.liquidityUsd);
     if (usd === null) continue;
     sum += usd;
     any = true;
   }
-  return any ? sum : null;
+  return any ? roundUsd(sum) : null;
+}
+
+function storedExcludedPools(value: unknown): ExcludedLiquidityPool[] | null {
+  if (!Array.isArray(value)) return null;
+  const rows: ExcludedLiquidityPool[] = [];
+  for (const row of value) {
+    if (!row || typeof row !== "object") continue;
+    const item = row as { poolId?: unknown; liquidityUsd?: unknown; reason?: unknown; replacementLiquidityUsd?: unknown };
+    if (typeof item.poolId !== "string" || !item.poolId) continue;
+    const liquidityUsd = asNonNegativeNumber(item.liquidityUsd);
+    if (liquidityUsd === null || typeof item.reason !== "string" || !item.reason) continue;
+    const replacement = asNonNegativeNumber(item.replacementLiquidityUsd);
+    rows.push({
+      poolId: item.poolId,
+      liquidityUsd,
+      reason: item.reason,
+      ...(replacement === null ? {} : { replacementLiquidityUsd: replacement }),
+    });
+  }
+  return rows;
 }
 
 function roundUsd(value: number): number {

@@ -114,6 +114,46 @@ describe("equityCardLiquidityHistoryFromSnapshot", () => {
     expect(equityCardLiquidityForRange(history, "mint-zero", "24h")?.liquidityUsd).toBe(0);
   });
 
+  it("keeps a sanity-guard zero and does not add an excluded pool back", () => {
+    const history = equityCardLiquidityHistoryFromSnapshot(
+      {
+        records: [
+          day("2026-10-06", [
+            {
+              address: "mint-guarded",
+              displayedLiquidityUsd: 0,
+              pools: [{ pairAddress: "dead-pool", liquidityUsd: 596_294_797.53 }],
+              excludedLiquidityPools: [
+                {
+                  poolId: "dead-pool",
+                  liquidityUsd: 596_294_797.53,
+                  reason: "liquidity-above-50m-with-volume-below-0.01pct",
+                },
+              ],
+            },
+            {
+              address: "mint-fallback",
+              pools: [
+                { pairAddress: "kept", liquidityUsd: 20 },
+                { pairAddress: "dead-pool", liquidityUsd: 80_000_000 },
+              ],
+              excludedLiquidityPools: [
+                {
+                  poolId: "dead-pool",
+                  liquidityUsd: 80_000_000,
+                  reason: "liquidity-above-50m-with-volume-below-0.01pct",
+                },
+              ],
+            },
+          ]),
+        ],
+      },
+      NOW,
+    );
+    expect(equityCardLiquidityForRange(history, "mint-guarded", "24h")?.liquidityUsd).toBe(0);
+    expect(equityCardLiquidityForRange(history, "mint-fallback", "24h")?.liquidityUsd).toBe(20);
+  });
+
   it("ignores Gecko backfill reserves and symbolsWithVolume", () => {
     const history = equityCardLiquidityHistoryFromSnapshot(
       {
@@ -192,9 +232,34 @@ describe("recorded liquidity snapshots", () => {
     expect(fortnight?.days).toBeLessThan(14);
   });
 
-  it("finds no per-asset reserves in the Robinhood or BNB snapshot files", () => {
+  it("finds no closed Robinhood or BNB reserves before those desks stored per-asset liquidity", () => {
     expect(equityCardLiquidityHistoryFromSnapshot(readSnapshot("robinhood.json"), NOW).byAsset).toEqual({});
     expect(equityCardLiquidityHistoryFromSnapshot(readSnapshot("bnb.json"), NOW).byAsset).toEqual({});
+  });
+
+  it("reads displayedLiquidityUsd, including a sanity-guard zero, on every chain desk", () => {
+    // 12:00 America/New_York on 2026-10-20. Oct 19 has already closed.
+    const now = Date.parse("2026-10-20T16:00:00Z") / 1000;
+    const solana = equityCardLiquidityHistoryFromSnapshot(readSnapshot("solana.json"), now);
+    const spcx = solana.byAsset.Ae1nDy28fKVEwKPS8wqW2iCz15Kpe6yhMQkK2r2hfjru?.find((point) => point.date === "2026-10-12");
+    expect(spcx?.liquidityUsd).toBe(0);
+    expect(lastClosedEasternDay(now)).toBe("2026-10-19");
+
+    expect(equityCardLiquidityForRange(equityCardLiquidityHistoryFromSnapshot(readSnapshot("base.json"), now), AAPL_C, "24h")).toMatchObject({
+      liquidityUsd: 1_525_297.69,
+      days: 1,
+      series: [expect.objectContaining({ date: "2026-10-19" })],
+    });
+    expect(
+      equityCardLiquidityForRange(
+        equityCardLiquidityHistoryFromSnapshot(readSnapshot("robinhood.json"), now),
+        "0xaF3D76f1834A1d425780943C99Ea8A608f8a93f9",
+        "24h",
+      )?.liquidityUsd,
+    ).toBe(3_505_683.6);
+    const bnb = equityCardLiquidityHistoryFromSnapshot(readSnapshot("bnb.json"), now);
+    expect(equityCardLiquidityForRange(bnb, "0x431a3bee82e2ca41e49895cbece5bb0f76a89b7a", "24h")?.liquidityUsd).toBe(1_283_118.58);
+    expect(equityCardLiquidityForRange(bnb, "0x68fa48B1C2FE52b3D776E1953e0E782b5044Ce28", "24h")?.liquidityUsd).toBe(5_012.88);
   });
 });
 
@@ -251,6 +316,28 @@ describe("loadEquityCardRangeMetrics", () => {
     expect((await loadEquityCardRangeMetrics(ROBINHOOD_CHAIN_ID, NOW)).liquidity.byAsset).toEqual({});
     expect(equityCardLiquidityForRange((await loadEquityCardRangeMetrics(BASE_CHAIN_ID, NOW)).liquidity, AAPL_C, "24h")?.days).toBe(
       1,
+    );
+  });
+
+  it("loads later Robinhood and BNB closes without writing the snapshot files", async () => {
+    resetEquityCardRangeVolumeCache();
+    const now = Date.parse("2026-10-20T16:00:00Z") / 1000;
+    const files = ["solana.json", "base.json", "bnb.json", "robinhood.json"] as const;
+    const before = Object.fromEntries(files.map((file) => [file, statSync(join(process.cwd(), "data/volume-snapshots", file)).mtimeMs]));
+    const robinhood = await loadEquityCardRangeMetrics(ROBINHOOD_CHAIN_ID, now);
+    const bnb = await loadEquityCardRangeMetrics(BNB_CHAIN_ID, now);
+    const base = await loadEquityCardRangeMetrics(BASE_CHAIN_ID, now);
+    const solana = await loadEquityCardRangeMetrics(SOLANA_CHAIN_ID, now);
+    for (const file of files) {
+      expect(statSync(join(process.cwd(), "data/volume-snapshots", file)).mtimeMs).toBe(before[file]);
+    }
+    expect(equityCardLiquidityForRange(robinhood.liquidity, "0xaF3D76f1834A1d425780943C99Ea8A608f8a93f9", "24h")?.liquidityUsd).toBe(
+      3_505_683.6,
+    );
+    expect(equityCardLiquidityForRange(bnb.liquidity, "0x68fa48B1C2FE52b3D776E1953e0E782b5044Ce28", "24h")?.liquidityUsd).toBe(5_012.88);
+    expect(equityCardLiquidityForRange(base.liquidity, AAPL_C, "24h")?.days).toBe(1);
+    expect(solana.liquidity.byAsset.Ae1nDy28fKVEwKPS8wqW2iCz15Kpe6yhMQkK2r2hfjru?.some((point) => point.liquidityUsd === 0)).toBe(
+      true,
     );
   });
 });
