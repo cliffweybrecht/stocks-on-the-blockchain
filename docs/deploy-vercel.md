@@ -26,7 +26,7 @@ Either variable hides them. A change needs a redeploy.
 - `NEXT_PUBLIC_HIDE_SECTIONS` — comma-separated list. Use `perps`, `lending`, or `perps,lending`.
 - `PUBLIC_SITE` — `1`, `true`, or `yes` hides both desks.
 
-For stocksontheblockchain.com, set one of them so `/perps` and `/lending` 404 and the nav, home card, and sitemap omit those desks.
+For stocksontheblockchain.com, set one of them so `/perps` and `/lending` 404 and the nav and sitemap omit those desks. The home page does not render the Perps block in any environment.
 
 ### Read by the running site
 

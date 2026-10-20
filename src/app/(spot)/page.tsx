@@ -1,5 +1,4 @@
 import { DeskVolumeRangeProvider } from "@/components/desk-volume-range";
-import { PerpsHomeCard } from "@/components/perps-home-card";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
 import { HomeChainVolume } from "@/components/home-chain-volume";
@@ -31,12 +30,9 @@ import { loadClosedSnapshotDeskDays } from "@/lib/market/snapshot-desk-volume-fi
 import { SOLANA_CHAIN_ID, type AssetSummary, type ChainDetailResult } from "@/lib/market/types";
 import { emptyEquityVolumeHistory } from "@/lib/market/volume-history";
 import { emptyHourlyRollingVolumeHistory } from "@/lib/market/volume-hourly-snapshots";
-import { loadPerpsDeskModel } from "@/lib/market/perps-snapshot-file";
-import { perpsHomeSummary, type PerpsHomeSummary } from "@/lib/market/perps-snapshot";
 import { FileDeskVolumeSnapshotStore } from "@/lib/market/volume-snapshot-store";
 import { closedSnapshotVolumePoints } from "@/lib/market/volume-snapshots";
 import { canonicalUrl } from "@/lib/site/seo";
-import { isSectionHidden } from "@/lib/site/visibility";
 import type { Metadata } from "next";
 
 /** Hourly ISR. A nightly snapshot commit redeploys main before this expires. */
@@ -192,17 +188,6 @@ export default async function HomePage() {
     baseDays: baseClosed,
     bnbDays: bnbClosed,
   });
-  let perpsSummary: PerpsHomeSummary | null = null;
-  if (!isSectionHidden("perps")) {
-    try {
-      perpsSummary = perpsHomeSummary(await loadPerpsDeskModel());
-    } catch {
-      perpsSummary = perpsHomeSummary({
-        days: [],
-        readError: "Equity-perp snapshot could not be read.",
-      });
-    }
-  }
 
   return (
     <PageShell
@@ -241,7 +226,6 @@ export default async function HomePage() {
               <HomeChainVolume chains={rankedChains} ranges={chainRanges} />
             )}
           </section>
-          {perpsSummary ? <PerpsHomeCard summary={perpsSummary} /> : null}
         </div>
       </DeskVolumeRangeProvider>
     </PageShell>
