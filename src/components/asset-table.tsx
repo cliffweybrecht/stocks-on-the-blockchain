@@ -13,8 +13,10 @@ import {
   compareByEquityCardRangeLiquidity,
   equityCardLiquidityForRange,
 } from "@/lib/market/equity-card-range-liquidity";
+import type { VolumeChartRangeId } from "@/lib/market/daily-volume-view";
 import {
   compareByEquityCardRangeVolume,
+  equityCardRangeAddressKey,
   equityCardRangeTotal,
 } from "@/lib/market/equity-card-range-volume";
 import { assetMatchesSearch } from "@/lib/market/asset-search";
@@ -125,6 +127,7 @@ export function AssetTable({
   privateChipVisible,
   showRobinhoodMarks = true,
   enableFavorites = false,
+  rangeViews,
 }: {
   assets: AssetSummary[];
   catalogAssets?: Array<
@@ -159,12 +162,39 @@ export function AssetTable({
   privateChipVisible?: boolean;
   showRobinhoodMarks?: boolean;
   enableFavorites?: boolean;
+  /**
+   * BNB Chain windows. When set, the grid, lane counts, and issuer chips follow the
+   * selected 24H/7D/14D/30D range instead of one fixed registry list.
+   */
+  rangeViews?: Partial<
+    Record<
+      VolumeChartRangeId,
+      {
+        addresses: readonly string[];
+        equityCount: number;
+        etfCount: number;
+        privateCount: number;
+        issuerFacets: readonly IssuerFacet[];
+        unknownIssuerCount: number;
+      }
+    >
+  >;
 }) {
   const [query, setQuery] = useState("");
   const [dayVolumeByMint, setDayVolumeByMint] = useState<Record<string, VolumeHistoryPoint[]>>({});
   const favorites = useSolanaFavorites();
   const catalog = catalogAssets ?? assets;
   const deskRange = useDeskVolumeRange("24h");
+  const rangeView = rangeViews?.[deskRange.range] ?? null;
+  const rangeAddresses = useMemo(() => {
+    if (!rangeView) return null;
+    return new Set(rangeView.addresses.map((address) => equityCardRangeAddressKey(address)));
+  }, [rangeView]);
+  const equityCountShown = rangeView?.equityCount ?? equityCount;
+  const etfCountShown = rangeView?.etfCount ?? etfCount;
+  const privateCountShown = rangeView?.privateCount ?? privateCount;
+  const issuerFacetsShown = rangeView?.issuerFacets ?? issuerFacets;
+  const unknownIssuerCountShown = rangeView?.unknownIssuerCount ?? unknownIssuerCount;
 
   useEffect(() => {
     if (chainId !== SOLANA_CHAIN_ID) return;
@@ -216,11 +246,14 @@ export function AssetTable({
   const solanaDesk = chainId === SOLANA_CHAIN_ID;
   /** Solana, Robinhood Chain, Base, and BNB Chain share the Volume | Liquidity markets strip. */
   const marketsDesk = solanaDesk || chainId === ROBINHOOD_CHAIN_ID || chainId === BASE_CHAIN_ID || chainId === BNB_CHAIN_ID;
-  const showIssuerFilter = (marketsDesk || enableFavorites) && (issuerFacets.length > 0 || unknownIssuerCount > 0);
-  const activeIssuerLabel = issuerFilterLabel(issuerFilter, issuerFacets);
+  const showIssuerFilter = (marketsDesk || enableFavorites) && (issuerFacetsShown.length > 0 || unknownIssuerCountShown > 0);
+  const activeIssuerLabel = issuerFilterLabel(issuerFilter, issuerFacetsShown);
 
   const rows = useMemo(() => {
-    const searched = query.trim() ? assets.filter((asset) => assetMatchesSearch(asset, query)) : assets;
+    const inWindow = rangeAddresses
+      ? assets.filter((asset) => rangeAddresses.has(equityCardRangeAddressKey(asset.contractAddress)))
+      : assets;
+    const searched = query.trim() ? inWindow.filter((asset) => assetMatchesSearch(asset, query)) : inWindow;
     const scoped = pinnedOnly ? searched.filter((asset) => favorites.favoriteSet.has(asset.contractAddress)) : searched;
     const range = deskRange.range;
     const liquidityMode = sortKey === "displayedLiquidityUsd";
@@ -242,6 +275,7 @@ export function AssetTable({
     favorites.favoriteSet,
     pinnedOnly,
     query,
+    rangeAddresses,
     sortKey,
   ]);
 
@@ -259,22 +293,22 @@ export function AssetTable({
     ["no-pools", "Confirmed no pools"],
   ];
 
-  const showEtfChip = etfChipVisible ?? etfCount > 0;
-  const showPrivateChip = privateChipVisible ?? privateCount > 0;
+  const showEtfChip = etfChipVisible ?? etfCountShown > 0;
+  const showPrivateChip = privateChipVisible ?? privateCountShown > 0;
   const laneChips =
     showEtfChip || showPrivateChip ? (
       <div className="flex flex-wrap gap-2">
         <Link href={hrefFor({ lane: "equity" })} scroll={false} className={chipClass(lane === "equity")}>
-          Equities ({equityCount})
+          Equities ({equityCountShown})
         </Link>
         {showEtfChip ? (
           <Link href={hrefFor({ lane: "etf" })} scroll={false} className={chipClass(lane === "etf")}>
-            ETF / index ({etfCount})
+            ETF / index ({etfCountShown})
           </Link>
         ) : null}
         {showPrivateChip ? (
           <Link href={hrefFor({ lane: "private" })} scroll={false} className={chipClass(lane === "private")}>
-            Private market ({privateCount})
+            Private market ({privateCountShown})
           </Link>
         ) : null}
       </div>
@@ -285,7 +319,7 @@ export function AssetTable({
       <Link href={hrefFor({ issuer: ALL_ISSUERS })} scroll={false} className={chipClass(issuerFilter === ALL_ISSUERS)}>
         All issuers
       </Link>
-      {issuerFacets.map((facet) => (
+      {issuerFacetsShown.map((facet) => (
         <Link
           key={facet.slug}
           href={hrefFor({ issuer: facet.slug })}
@@ -295,13 +329,13 @@ export function AssetTable({
           {facet.label} ({facet.count})
         </Link>
       ))}
-      {unknownIssuerCount > 0 ? (
+      {unknownIssuerCountShown > 0 ? (
         <Link
           href={hrefFor({ issuer: UNKNOWN_ISSUER })}
           scroll={false}
           className={chipClass(issuerFilter === UNKNOWN_ISSUER)}
         >
-          Unknown ({unknownIssuerCount})
+          Unknown ({unknownIssuerCountShown})
         </Link>
       ) : null}
     </div>
@@ -465,7 +499,15 @@ export function AssetTable({
 
       {rows.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-          {emptyCopy({ totalInLane, lane, query, pinnedOnly, coverageFilter, issuerFilter, chainId })}
+          {emptyCopy({
+            totalInLane: rangeView ? rangeView.addresses.length : totalInLane,
+            lane,
+            query,
+            pinnedOnly,
+            coverageFilter,
+            issuerFilter,
+            chainId,
+          })}
         </p>
       ) : null}
     </div>

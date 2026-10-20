@@ -19,7 +19,7 @@ import { loadRobinhoodChainMarkets, robinhoodCatalogCount } from "@/lib/market/r
 import { BASE_DESK } from "@/lib/market/base-desk-volume";
 import { baseCatalogCount, loadBaseChainMarkets } from "@/lib/market/base-chain-markets";
 import { BNB_DESK } from "@/lib/market/bnb-desk-volume";
-import { bnbCatalogCount, loadBnbChainMarkets } from "@/lib/market/bnb-chain-markets";
+import { bnbDeskRangeViews, loadBnbSnapshotCardCatalog } from "@/lib/market/bnb-snapshot-cards";
 import { snapshotDeskChainShell } from "@/lib/market/snapshot-desk-volume";
 import {
   overlayTerminalReference,
@@ -110,15 +110,7 @@ export default async function ChainPage({
         }),
       )
     : null;
-  const bnbNames = requestedBnb
-    ? loadBnbChainMarkets().then(
-        (catalog) => ({ catalog, error: null as string | null }),
-        (error: unknown) => ({
-          catalog: null,
-          error: error instanceof Error ? error.message : "BNB Chain names did not load.",
-        }),
-      )
-    : null;
+  const bnbCatalogPromise = requestedBnb ? loadBnbSnapshotCardCatalog() : null;
 
   let result;
   let listError: string | null = null;
@@ -188,7 +180,7 @@ export default async function ChainPage({
   const isBnb = chain.id === BNB_CHAIN_ID;
   let robinhoodVolumeHydrated = false;
   let baseVolumeHydrated = false;
-  let bnbVolumeHydrated = false;
+  let bnbCatalog: Awaited<ReturnType<typeof loadBnbSnapshotCardCatalog>> | null = null;
   if (isRobinhood && robinhoodNames) {
     const loaded = await robinhoodNames;
     const terminalRows = [...assets, ...etfAssets, ...privateAssets];
@@ -221,17 +213,14 @@ export default async function ChainPage({
       listError = loaded.error;
     }
   }
-  if (isBnb && bnbNames) {
-    const loaded = await bnbNames;
-    if (loaded.catalog && bnbCatalogCount(loaded.catalog) > 0) {
-      assets = loaded.catalog.assets;
-      etfAssets = loaded.catalog.etfAssets;
-      privateAssets = loaded.catalog.privateAssets;
-      bnbVolumeHydrated = loaded.catalog.volumeHydrated;
-      provenance = loaded.catalog.provenance;
+  if (isBnb && bnbCatalogPromise) {
+    bnbCatalog = await bnbCatalogPromise;
+    const union = bnbCatalog.union;
+    if (union.assets.length + union.etfAssets.length + union.privateAssets.length > 0) {
+      assets = union.assets;
+      etfAssets = union.etfAssets;
+      privateAssets = union.privateAssets;
       listError = null;
-    } else if (loaded.error) {
-      listError = loaded.error;
     }
   }
   const robinhoodDays = isRobinhood ? await loadClosedRobinhoodDeskDays() : [];
@@ -258,8 +247,7 @@ export default async function ChainPage({
   const defaultCoverage =
     isSolana ||
     (isRobinhood && robinhoodVolumeHydrated && reportedVolume) ||
-    (isBase && baseVolumeHydrated && reportedVolume) ||
-    (isBnb && bnbVolumeHydrated && reportedVolume)
+    (isBase && baseVolumeHydrated && reportedVolume)
       ? "with-volume"
       : "all";
   const coverageFilter = parseCoverageFilter(query.coverage, defaultCoverage);
@@ -360,7 +348,7 @@ export default async function ChainPage({
                   : isBnb
                     ? listError
                       ? `Volume bars above are recorded DexScreener samples. The stock list did not load (${listError}). That is a missing list, not zero volume.`
-                      : "Volume bars above are recorded DexScreener samples from bnb.json. Names come from Stocks On Chain, xStocks, bStocks, Colb, and Paimon on BNB Chain. An empty list is not zero volume."
+                      : "Volume bars above are recorded samples from bnb.json. Cards are the snapshot assets in the selected window, with each asset's stored lane and issuer. An empty list is not zero volume."
                     : "The source listed the chain but returned no asset rows. That is an empty snapshot, not zero volume. On Solana this usually means live discovery found no verifiable public equities."
             }
           />
@@ -382,6 +370,12 @@ export default async function ChainPage({
             issuerFilter={issuerFilter}
             issuerFacets={issuerFacets.issuers}
             unknownIssuerCount={issuerFacets.unknownCount}
+            rangeViews={
+              bnbCatalog &&
+              bnbCatalog.union.assets.length + bnbCatalog.union.etfAssets.length + bnbCatalog.union.privateAssets.length > 0
+                ? bnbDeskRangeViews(bnbCatalog, lane, coverageFilter, issuerFilter)
+                : undefined
+            }
             chainId={chain.id}
             showRobinhoodMarks={!marketsDesk}
             enableFavorites={marketsDesk}
