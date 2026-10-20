@@ -269,7 +269,7 @@ export async function fetchKaminoMarketObligations(
         const bytes = accountBytes(item as ProgramAccount);
         if (bytes) accounts.push(bytes);
       }
-      if (accounts.length === 0) throw new Error("Solana returned no Sentora loans.");
+      if (accounts.length === 0) throw new Error("Solana returned no loans for this market.");
       return { accounts, source: url };
     },
     { sleep: options?.sleep },

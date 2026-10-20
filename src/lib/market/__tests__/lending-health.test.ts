@@ -7,6 +7,7 @@ import {
   loansFromMorphoPositions,
   majoritySafeUntilPct,
   poolBreachDropPct,
+  poolLoanHealth,
   positionLoanHealth,
   riskSentence,
 } from "../lending-health";
@@ -126,5 +127,48 @@ describe("loan health buckets", () => {
     });
     expect(old?.rows[0]?.loanHealth).toBeNull();
     expect(parseLendingSnapshot({ ...day, rows: [{ ...day.rows[0], loanHealth: { method: "nope" } }] })?.rows[0]?.loanHealth).toBeNull();
+  });
+
+  it("keeps a stale pool flag and drops one that is not exactly true", () => {
+    const health = poolLoanHealth({
+      asOf: "2026-10-09T12:00:00.000Z",
+      source: "https://rpc.example",
+      fallback: "The loan read did not finish, so this is the pool estimate.",
+      stale: true,
+    });
+    const day = lendingDayFromCapture(
+      Date.parse("2026-10-09T16:00:00.000Z"),
+      [
+        {
+          id: "jupiter-lend",
+          venue: "Jupiter Lend",
+          chainId: "solana",
+          chainLabel: "Solana",
+          collateralUsd: 10,
+          stableBorrowedUsd: 4,
+          lendSupplyUsd: null,
+          utilization: null,
+          borrowApy: null,
+          borrowApyMin: null,
+          borrowApyMax: null,
+          stockBorrowedUsd: null,
+          assets: [],
+          note: null,
+          borrowEstimate: null,
+          loanHealth: health,
+          source: "jupiter",
+          error: null,
+        },
+      ],
+      [],
+    );
+    const parsed = parseLendingSnapshot(JSON.parse(serializeLendingSnapshot(day)));
+    expect(parsed?.rows[0]?.loanHealth?.stale).toBe(true);
+    expect(parsed?.rows[0]?.loanHealth?.method).toBe("pool");
+    const loose = parseLendingSnapshot({
+      ...JSON.parse(serializeLendingSnapshot(day)),
+      rows: [{ ...JSON.parse(serializeLendingSnapshot(day)).rows[0], loanHealth: { ...health, stale: "yes" } }],
+    });
+    expect(loose?.rows[0]?.loanHealth?.stale).toBeUndefined();
   });
 });

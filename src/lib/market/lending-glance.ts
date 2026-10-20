@@ -116,6 +116,10 @@ export interface LendingDepthVenue {
   estimateLabel: string | null;
   ltvLabel: string | null;
   positionsNote: string;
+  /** Real loans when this snapshot counted each loan. Estimated when it used the pool. */
+  loanKind: "real" | "estimated";
+  /** The loan read failed and an older pool estimate was kept. */
+  loanStale: boolean;
   assets: LendingDepthAsset[];
   history: LendingDepthHistoryPoint[];
 }
@@ -309,12 +313,21 @@ export function lendingStaleNotes(rows: readonly LendingRow[]): LendingStaleNote
   const notes: LendingStaleNote[] = [];
   for (const row of rows) {
     const estimate = row.borrowEstimate;
-    if (!estimate || !borrowEstimateIsStale(estimate)) continue;
-    notes.push({
-      venueId: row.id,
-      label: "Stale",
-      text: `${lendingVenueLabel(row, rows)} borrowed dollars are a pro-rata estimate last measured ${formatLendingCapturedAt(estimate.asOf)}. The new scan did not finish.`,
-    });
+    if (estimate && borrowEstimateIsStale(estimate)) {
+      notes.push({
+        venueId: row.id,
+        label: "Stale",
+        text: `${lendingVenueLabel(row, rows)} borrowed dollars are a pro-rata estimate last measured ${formatLendingCapturedAt(estimate.asOf)}. The new scan did not finish.`,
+      });
+      continue;
+    }
+    if (row.loanHealth?.stale) {
+      notes.push({
+        venueId: row.id,
+        label: "Stale",
+        text: `${lendingVenueLabel(row, rows)} loans did not finish loading. The pool estimate was kept, read ${formatLendingCapturedAt(row.loanHealth.asOf)}.`,
+      });
+    }
   }
   return notes;
 }
@@ -758,6 +771,39 @@ function ltvLabel(assets: readonly LendingAsset[]): string | null {
   return `Up to ${low}–${high} for every $100 of stock, depending on the token.`;
 }
 
+function loanTag(row: LendingRow): { loanKind: "real" | "estimated"; loanStale: boolean } {
+  const real = row.loanHealth?.method === "positions";
+  return {
+    loanKind: real ? "real" : "estimated",
+    loanStale: row.loanHealth?.stale === true || (!real && borrowEstimateIsStale(row.borrowEstimate)),
+  };
+}
+
+export interface LendingDropLoanTag {
+  venueId: string;
+  label: string;
+  kind: "real" | "estimated";
+  stale: boolean;
+}
+
+/** One tag per venue in the current drop choice. */
+export function lendingDropLoanTags(scopeId: string, depth: LendingDepth): LendingDropLoanTag[] {
+  let picked = depth.venues;
+  if (scopeId.startsWith("stock:")) {
+    const ticker = scopeId.slice("stock:".length);
+    const ids = new Set(depth.stocks.find((stock) => stock.ticker === ticker)?.places.map((place) => place.venueId) ?? []);
+    picked = depth.venues.filter((venue) => ids.has(venue.id));
+  } else if (scopeId !== "all") {
+    picked = depth.venues.filter((venue) => venue.id === scopeId);
+  }
+  return picked.map((venue) => ({
+    venueId: venue.id,
+    label: venue.label,
+    kind: venue.loanKind,
+    stale: venue.loanStale,
+  }));
+}
+
 function listsEachLoan(row: Pick<LendingRow, "id" | "venue">): boolean {
   return /morpho|kamino|aave/i.test(`${row.id} ${row.venue}`);
 }
@@ -772,7 +818,8 @@ function positionsNote(row: LendingRow): string {
   }
   if (health?.method === "pool") {
     const why = health.fallback ?? "Each loan was not available.";
-    return `${row.venue} uses the pool estimate. ${why}`;
+    const stale = health.stale ? "Stale. " : "";
+    return `${stale}${row.venue} uses the pool estimate. ${why}`;
   }
   const who = listsEachLoan(row) ? `${row.venue} can list each loan. ` : "";
   return `${who}This snapshot stores the pool total and each token deposited, not each person's loan.`;
@@ -855,6 +902,7 @@ export function buildLendingDepth(days: readonly LendingDaySnapshot[]): LendingD
           : null,
         ltvLabel: ltvLabel(row.assets ?? []),
         positionsNote: positionsNote(row),
+        ...loanTag(row),
         assets,
         history: venueHistory.get(row.id) ?? [],
       });
