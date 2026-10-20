@@ -1,3 +1,4 @@
+import { isChainEnabled } from "./chain-config";
 import { findAssetByKey } from "./identity";
 import { MOCK_ASSETS, MOCK_CHAINS, MOCK_DETAILS, MOCK_PRIVATE_ASSETS, mockProvenance } from "./mock-data";
 import {
@@ -21,12 +22,13 @@ export class MockMarketDataSource implements MarketDataSource {
 
   async listChains(): Promise<ChainListResult> {
     return {
-      chains: MOCK_CHAINS,
+      chains: MOCK_CHAINS.filter((chain) => isChainEnabled(chain.id)),
       provenance: mockProvenance(),
     };
   }
 
   async getChain(chainId: string): Promise<ChainDetailResult | null> {
+    if (!isChainEnabled(chainId)) return null;
     const chain = MOCK_CHAINS.find((entry) => entry.id === chainId);
     const assets = MOCK_ASSETS[chainId];
     if (!chain || !assets) return null;
@@ -39,6 +41,7 @@ export class MockMarketDataSource implements MarketDataSource {
   }
 
   async getAsset(chainId: string, symbol: string): Promise<AssetDetailResult | null> {
+    if (!isChainEnabled(chainId)) return null;
     const chain = MOCK_CHAINS.find((entry) => entry.id === chainId);
     const asset = findAssetByKey(MOCK_DETAILS[chainId] ?? [], symbol);
     if (!chain || !asset) return null;

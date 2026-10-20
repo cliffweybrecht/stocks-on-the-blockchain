@@ -113,4 +113,15 @@ describe("HomeChainVolume", () => {
     expect(html).not.toContain("of 7 days");
     expect(html.indexOf('data-chain-id="solana"')).toBeLessThan(html.indexOf('data-chain-id="robinhood-chain"'));
   });
+
+  it("drops a disabled Ethereum row and leaves the other chains' volumes in place", () => {
+    const html = renderAt("24h", [...chains, chain("ethereum", "Ethereum", 4_530_000)]);
+    expect(html).not.toContain('data-chain-id="ethereum"');
+    expect(html).not.toContain(">Ethereum<");
+    expect(html).not.toContain("$4.5M");
+    expect(html).toContain('data-chain-id="solana" data-chain-rank="1"');
+    expect(html).toContain("$100.0");
+    expect(html).toContain("$5.0");
+    expect(html).toContain(">Base<");
+  });
 });

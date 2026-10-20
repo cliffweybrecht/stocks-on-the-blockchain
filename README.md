@@ -20,7 +20,7 @@ npm run dev -- --port 43147
 
 Open [http://127.0.0.1:43147](http://127.0.0.1:43147).
 
-With no live adapters configured, the **seed adapter** shows four demo chains so the drill-down works without any network.
+With no live adapters configured, the **seed adapter** shows Solana, Robinhood Chain, and Base so the drill-down works without any network. Ethereum stays in the seed data with `enabled: false` (`src/lib/market/chain-config.ts`) and is omitted from the home table, navigation, and search until that flag is turned on.
 
 ### Live Terminal (Robinhood Chain)
 

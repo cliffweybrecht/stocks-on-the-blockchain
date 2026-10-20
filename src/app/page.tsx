@@ -15,6 +15,7 @@ import {
   solanaDeskFallbackDetail,
   withDocumentBudget,
 } from "@/lib/market/document-budget";
+import { isChainEnabled } from "@/lib/market/chain-config";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { BASE_DESK } from "@/lib/market/base-desk-volume";
 import { BNB_DESK } from "@/lib/market/bnb-desk-volume";
@@ -114,7 +115,8 @@ export default async function HomePage() {
     );
   }
 
-  const { chains: listedChains, provenance, history, hourlyHistory } = loaded;
+  const { chains: loadedChains, provenance, history, hourlyHistory } = loaded;
+  const listedChains = loadedChains.filter((chain) => isChainEnabled(chain.id));
   const tickerAssets: AssetSummary[] = [];
   let jumpAssets: ReturnType<typeof toJumpAsset>[] = [];
   const chains = [...listedChains];
@@ -163,7 +165,7 @@ export default async function HomePage() {
     robinhoodHomeChainVolume(robinhoodDays),
     snapshotHomeChainVolume(BASE_DESK, baseDays),
     snapshotHomeChainVolume(BNB_DESK, bnbDays),
-  ]);
+  ]).filter((chain) => isChainEnabled(chain.id));
   const priceTicker = selectEquityPriceTicker(tickerAssets);
   const solanaChain = chains.find((chain) => chain.id === SOLANA_CHAIN_ID) ?? null;
   const parsedGeneratedAt = Date.parse(history.generatedAt);

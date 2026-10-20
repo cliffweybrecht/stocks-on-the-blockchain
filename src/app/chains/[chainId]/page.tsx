@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { AssetTable } from "@/components/asset-table";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorState } from "@/components/error-state";
@@ -39,6 +40,7 @@ import {
   resolveSolanaDeskForDocument,
   withDocumentBudget,
 } from "@/lib/market/document-budget";
+import { isChainEnabled } from "@/lib/market/chain-config";
 import { createMarketDataSource } from "@/lib/market/factory";
 import { findSnapshotDesk, loadClosedSnapshotDeskDays } from "@/lib/market/snapshot-desk-volume-file";
 import { BASE_CHAIN_ID, BNB_CHAIN_ID, ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type AssetSummary, type EquityVolumeHistoryResult } from "@/lib/market/types";
@@ -55,6 +57,7 @@ export default async function ChainPage({
   searchParams: Promise<{ lane?: string; coverage?: string; sort?: string; pinned?: string; issuer?: string }>;
 }) {
   const { chainId } = await params;
+  if (!isChainEnabled(chainId)) notFound();
   const query = await searchParams;
   const snapshotDesk = findSnapshotDesk(chainId);
   if (snapshotDesk && snapshotDesk.chainId !== BASE_CHAIN_ID && snapshotDesk.chainId !== BNB_CHAIN_ID) {
