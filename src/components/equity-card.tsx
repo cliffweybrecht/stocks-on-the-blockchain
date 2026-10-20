@@ -109,7 +109,13 @@ export function EquityCard({
       />
       <div className="relative z-10 flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-start gap-2.5 pointer-events-none">
-          <AssetLogo logoUrl={asset.logoUrl} name={asset.name} symbol={asset.symbol} size="md" />
+          <AssetLogo
+            logoUrl={asset.logoUrl}
+            name={asset.name}
+            symbol={asset.symbol}
+            issuer={asset.issuer}
+            size="md"
+          />
           <div className="min-w-0 pt-0.5">
             <p className="truncate text-[15px] font-semibold tracking-tight text-white">{asset.symbol}</p>
             <p className="truncate text-xs text-neutral-500">{asset.name}</p>
