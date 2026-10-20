@@ -1,11 +1,14 @@
+import { notFound } from "next/navigation";
 import { buildPerpsCsv, PERPS_CSV_FILES, type PerpsCsvId } from "@/lib/market/perps-csv";
 import { buildPerpsJson, PERPS_JSON_FILES, type PerpsJsonId } from "@/lib/market/perps-json";
 import { loadPerpsDeskModel } from "@/lib/market/perps-snapshot-file";
+import { isSectionHidden } from "@/lib/site/visibility";
 
 export const dynamic = "force-static";
 export const dynamicParams = false;
 
 export function generateStaticParams() {
+  if (isSectionHidden("perps")) return [];
   return [
     ...PERPS_CSV_FILES.map((file) => ({ file: `${file.id}.csv` })),
     ...PERPS_JSON_FILES.map((file) => ({ file: `${file.id}.json` })),
@@ -13,6 +16,7 @@ export function generateStaticParams() {
 }
 
 export async function GET(_request: Request, context: { params: Promise<{ file: string }> }) {
+  if (isSectionHidden("perps")) notFound();
   const { file } = await context.params;
   const model = await loadPerpsDeskModel();
   const csv = PERPS_CSV_FILES.find((row) => `${row.id}.csv` === file);

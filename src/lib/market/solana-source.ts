@@ -1443,12 +1443,13 @@ export class SolanaMarketDataSource implements MarketDataSource {
    * with the last good in-memory list when the current desk has totals only.
    * Null when this process has not committed a desk yet — the page then shows
    * the closed snapshot file, including its per-asset rows. Does not wait on
-   * the network and does not write a snapshot file.
+   * the network and does not write a snapshot file. `next build` does not
+   * start the refresh, so the production build stays on the committed file.
    */
   readDeskForDocument(): ChainDetailResult | null {
     const now = Date.now();
     const full = this.cacheSatisfies("full", now);
-    if (!full && !this.inflight) {
+    if (!full && !this.inflight && process.env.NEXT_PHASE !== "phase-production-build") {
       const light = this.cacheSatisfies("light", now);
       void this.loadCached(light ? "full" : "light").catch(() => undefined);
     }

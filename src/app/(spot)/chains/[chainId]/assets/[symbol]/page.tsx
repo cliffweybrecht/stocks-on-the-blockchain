@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AssetBreadcrumb, AssetIdentityHeader } from "@/components/asset-identity-header";
 import { AssetMarketPanel } from "@/components/asset-price-chart";
@@ -43,8 +44,22 @@ import { enrichBaseAssetDetail } from "@/lib/market/base-asset-series";
 import { lookupBnbChainAsset } from "@/lib/market/bnb-chain-markets";
 import { enrichBnbAssetDetail } from "@/lib/market/bnb-asset-series";
 import { BASE_CHAIN_ID, BNB_CHAIN_ID, ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type AssetDetailResult } from "@/lib/market/types";
+import { canonicalUrl } from "@/lib/site/seo";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ chainId: string; symbol: string }>;
+}): Promise<Metadata> {
+  const { chainId, symbol } = await params;
+  return {
+    alternates: {
+      canonical: canonicalUrl(`/chains/${encodeURIComponent(chainId)}/assets/${encodeURIComponent(decodeURIComponent(symbol))}`),
+    },
+  };
+}
 
 export default async function AssetPage({
   params,
