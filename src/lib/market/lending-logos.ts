@@ -13,7 +13,9 @@ export const LENDING_VENUE_LOGOS: Record<string, string> = {
   "aave": "/lending-logos/venues/aave.png",
   "morpho": "/lending-logos/venues/morpho.png",
   "venus": "/lending-logos/venues/venus.png",
-  "lista": "/lending-logos/venues/lista.png"
+  "lista": "/lending-logos/venues/lista.png",
+  "frankencoin": "/lending-logos/venues/frankencoin.png",
+  "euler": "/lending-logos/venues/euler.png"
 };
 const TOKEN_LOGOS: Record<string, string> = {
   "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W": "/lending-logos/tokens/XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W.png",
@@ -115,6 +117,8 @@ export function lendingVenueLogo(venueId: string): string | null {
   if (venueId.startsWith("morpho")) return LENDING_VENUE_LOGOS.morpho ?? null;
   if (venueId.startsWith("venus")) return LENDING_VENUE_LOGOS.venus ?? null;
   if (venueId.startsWith("lista")) return LENDING_VENUE_LOGOS.lista ?? null;
+  if (venueId.startsWith("frankencoin")) return LENDING_VENUE_LOGOS.frankencoin ?? null;
+  if (venueId.startsWith("euler")) return LENDING_VENUE_LOGOS.euler ?? null;
   return null;
 }
 

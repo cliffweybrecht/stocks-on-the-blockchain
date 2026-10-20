@@ -331,6 +331,17 @@ describe("lending glance", () => {
     expect(badges[0]?.text).toMatch(/90\.0% full/);
     expect(lendingHowFull(jupiter)).toBeNull();
     expect(lendingHowFull(venus)).toBeNull();
+    expect(
+      lendingHowFull(
+        row({
+          id: "frankencoin-ethereum",
+          venue: "Frankencoin",
+          stableBorrowedUsd: 3_000_000,
+          lendSupplyUsd: 5_000_000,
+          utilization: 0.6,
+        }),
+      ),
+    ).toBeNull();
     expect(badges[1]?.text).toMatch(/1\.5 points/);
     const quiet = lendingSimpleBadges([row({ id: "lista-bnb", venue: "Lista", borrowApy: 0.021, stableBorrowedUsd: 100_000, lendSupplyUsd: 200_000 })], [row({ id: "lista-bnb", venue: "Lista", borrowApy: 0.02 })]);
     expect(quiet).toEqual([]);
