@@ -53,13 +53,15 @@ MAX_TOKEN_MARKET_VALUE_USD = 10_000_000_000.0
 PRICE_HISTORY_MAX_RATIO = 10.0
 MARKET_VALUE_SOURCE = "bsc-erc20-totalSupply x dexscreener-cash-pool-else-geckoterminal"
 DEFAULT_BUDGET_S = 240.0
-RPC_BATCH = 40
+# Public BSC nodes rate-limit eth_call batches above about 20 calls.
+# Two calls per mint (totalSupply and decimals) keeps a batch at that cap.
+RPC_BATCH = 10
 GECKO_PRICE_BATCH = 30
 GECKO_PRICE_URL = "https://api.geckoterminal.com/api/v2/simple/networks/bsc/token_price/{addrs}"
 DEFAULT_BSC_RPCS = (
+    "https://bsc.publicnode.com",
     "https://bsc-dataseed.binance.org/",
     "https://bsc-dataseed1.defibit.io/",
-    "https://bsc.publicnode.com",
     "https://bsc-dataseed1.ninicoin.io/",
 )
 
@@ -138,7 +140,28 @@ def _decode_uint(raw: Any) -> int | None:
         return None
 
 
+def _batch_error(payload: Any) -> str | None:
+    """A node that rejects the whole batch returns one error and a null id."""
+    row = None
+    if isinstance(payload, dict) and payload.get("error") and "result" not in payload:
+        row = payload
+    elif isinstance(payload, list) and len(payload) == 1 and isinstance(payload[0], dict):
+        item = payload[0]
+        if item.get("error") and "result" not in item and item.get("id") is None:
+            row = item
+    if row is None:
+        return None
+    err = row.get("error")
+    if isinstance(err, dict) and err.get("message"):
+        return str(err["message"])
+    return "rpc batch failed"
+
+
 def _rpc_results(payload: Any) -> dict[int, Any]:
+    """Per-call results. A batch-level rate limit is a failure, not an empty read."""
+    message = _batch_error(payload)
+    if message:
+        raise RuntimeError(message)
     rows = payload if isinstance(payload, list) else [payload]
     found: dict[int, Any] = {}
     for row in rows:
@@ -149,6 +172,8 @@ def _rpc_results(payload: Any) -> dict[int, Any]:
         except (TypeError, ValueError):
             continue
         found[call_id] = row
+    if not found:
+        raise RuntimeError("rpc batch returned no results")
     return found
 
 

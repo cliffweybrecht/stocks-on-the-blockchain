@@ -1144,6 +1144,21 @@ class BnbMarketValueTest(unittest.TestCase):
         self.assertEqual(still, {AAPL.lower()})
         self.assertTrue(any("time budget" in note for note in notes))
 
+        def rate_limited(url: str, payload: list[dict]) -> list[dict]:
+            if "bad" in url:
+                return [{"jsonrpc": "2.0", "id": None, "error": {"code": -32005, "message": "method eth_call in batch triggered rate limit"}}]
+            return post(url, payload)
+
+        rotated, _notes, unread_after = read_token_supplies(
+            [AAPL],
+            post=rate_limited,
+            rpcs=["http://bad", "http://good"],
+            budget_s=30,
+            clock=lambda: 0,
+        )
+        self.assertEqual(rotated[AAPL.lower()], 123)
+        self.assertEqual(unread_after, set())
+
     def test_attach_keeps_nulls_and_upsert_does_not_touch_past_rows(self) -> None:
         import json
         import tempfile
