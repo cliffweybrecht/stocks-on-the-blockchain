@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { DeskVolumeRangeProvider } from "@/components/desk-volume-range";
 import { loadEquityCardRangeMetrics } from "@/lib/market/equity-card-range-volume-file";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 /**
  * One range for the volume toggle and the equity cards on every chain desk.

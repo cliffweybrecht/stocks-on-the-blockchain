@@ -35,8 +35,16 @@ import { loadPerpsDeskModel } from "@/lib/market/perps-snapshot-file";
 import { perpsHomeSummary, type PerpsHomeSummary } from "@/lib/market/perps-snapshot";
 import { FileDeskVolumeSnapshotStore } from "@/lib/market/volume-snapshot-store";
 import { closedSnapshotVolumePoints } from "@/lib/market/volume-snapshots";
+import { canonicalUrl } from "@/lib/site/seo";
+import { isSectionHidden } from "@/lib/site/visibility";
+import type { Metadata } from "next";
 
-export const dynamic = "force-dynamic";
+/** Hourly ISR. A nightly snapshot commit redeploys main before this expires. */
+export const revalidate = 3600;
+
+export const metadata: Metadata = {
+  alternates: { canonical: canonicalUrl("/") },
+};
 
 export default async function HomePage() {
   const source = createMarketDataSource();
@@ -47,7 +55,9 @@ export default async function HomePage() {
     // Closed snapshot days are a file read. A cold DexScreener desk refreshes
     // in the background. The document renders the in-memory desk or the last
     // closed snapshot and does not wait on that refresh.
-    void source.getEquityVolumeHistory().catch(() => undefined);
+    if (process.env.NEXT_PHASE !== "phase-production-build") {
+      void source.getEquityVolumeHistory().catch(() => undefined);
+    }
     liveDesk = readSolanaDeskForDocument(source);
     const needsSnapshotAssets = !chainDetailHasAssetRows(liveDesk);
     const [historySettled, hourlySettled, otherChains, snapshotRecords] = await Promise.all([
@@ -182,14 +192,16 @@ export default async function HomePage() {
     baseDays: baseClosed,
     bnbDays: bnbClosed,
   });
-  let perpsSummary: PerpsHomeSummary;
-  try {
-    perpsSummary = perpsHomeSummary(await loadPerpsDeskModel());
-  } catch {
-    perpsSummary = perpsHomeSummary({
-      days: [],
-      readError: "Equity-perp snapshot could not be read.",
-    });
+  let perpsSummary: PerpsHomeSummary | null = null;
+  if (!isSectionHidden("perps")) {
+    try {
+      perpsSummary = perpsHomeSummary(await loadPerpsDeskModel());
+    } catch {
+      perpsSummary = perpsHomeSummary({
+        days: [],
+        readError: "Equity-perp snapshot could not be read.",
+      });
+    }
   }
 
   return (
@@ -229,7 +241,7 @@ export default async function HomePage() {
               <HomeChainVolume chains={rankedChains} ranges={chainRanges} />
             )}
           </section>
-          <PerpsHomeCard summary={perpsSummary} />
+          {perpsSummary ? <PerpsHomeCard summary={perpsSummary} /> : null}
         </div>
       </DeskVolumeRangeProvider>
     </PageShell>

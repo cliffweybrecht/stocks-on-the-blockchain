@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AssetTable } from "@/components/asset-table";
 import { EmptyState } from "@/components/empty-state";
@@ -44,8 +45,18 @@ import { findSnapshotDesk, loadClosedSnapshotDeskDays } from "@/lib/market/snaps
 import { BASE_CHAIN_ID, BNB_CHAIN_ID, ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID, type AssetSummary, type EquityVolumeHistoryResult } from "@/lib/market/types";
 import { parseCoverageFilter } from "@/lib/market/volume-coverage";
 import { FileDeskVolumeSnapshotStore } from "@/lib/market/volume-snapshot-store";
+import { canonicalUrl } from "@/lib/site/seo";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ chainId: string }>;
+}): Promise<Metadata> {
+  const { chainId } = await params;
+  return { alternates: { canonical: canonicalUrl(`/chains/${encodeURIComponent(chainId)}`) } };
+}
 
 export default async function ChainPage({
   params,
@@ -113,7 +124,9 @@ export default async function ChainPage({
       // Warm the in-memory desk in the background. Render that desk when it has
       // asset rows. Otherwise render the last closed snapshot, including the
       // newest nightly per-asset rows. Do not wait on DexScreener.
-      void source.getEquityVolumeHistory().catch(() => undefined);
+      if (process.env.NEXT_PHASE !== "phase-production-build") {
+        void source.getEquityVolumeHistory().catch(() => undefined);
+      }
       const live = readSolanaDeskForDocument(source);
       if (chainDetailHasAssetRows(live)) {
         result = live;
@@ -233,7 +246,7 @@ export default async function ChainPage({
   } else {
     volumeHistory = emptyEquityVolumeHistory("This chart is Solana tokenized public equities only.");
   }
-  if (isSolana) {
+  if (isSolana && process.env.NEXT_PHASE !== "phase-production-build") {
     void source.getEquityCardDayVolumeSeries();
   }
   const lane = parseDeskLane(query.lane, { etf: etfAssets.length > 0, private: privateAssets.length > 0 });
