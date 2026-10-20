@@ -10,10 +10,12 @@ from pathlib import Path
 from bnb_volume_universe import (
     CHAIN_ID,
     CHAIN_SLUG,
+    FOURMEME_4STOCKS,
     HttpStatus,
     PAIMON_PRIME,
     add_colb_docs,
     add_cowswap_tokenlist,
+    add_fourmeme,
     add_jumper_bstocks,
     add_ondo_metadata,
     add_paimon,
@@ -128,7 +130,7 @@ class BnbUniverseTest(unittest.TestCase):
         self.assertEqual(by_ticker["NVDA"]["issuer"], "new-issuer")
         self.assertEqual(by_ticker["QQQ"]["issuer"], "xstocks")
         self.assertEqual(by_ticker["QQQ"]["kind"], "etf")
-        self.assertEqual(by_ticker["SPCX"]["kind"], "preipo")
+        self.assertEqual(by_ticker["SPCX"]["kind"], "equity")
         self.assertEqual(by_ticker["HOOD"]["issuer"], "unknown")
         self.assertEqual(
             count_issuers(rows),
@@ -149,7 +151,8 @@ class BnbUniverseTest(unittest.TestCase):
         self.assertEqual(classify_kind("etf", ticker="ARM", name="Arm Holdings plc"), "equity")
         self.assertIsNone(classify_kind("stock", ticker="TQQQ", name="ProShares UltraPro QQQ"))
         self.assertEqual(classify_kind("etf", ticker="QQQ", name="Invesco QQQ Trust"), "etf")
-        self.assertEqual(classify_kind("pre-ipo", ticker="SPCX", name="SpaceX"), "preipo")
+        self.assertEqual(classify_kind("pre-ipo", ticker="SPCX", name="SpaceX"), "equity")
+        self.assertEqual(classify_kind("stock", ticker="SPCXB", name="SpaceX", issuer="bstocks", underlying="SPCX"), "equity")
 
     def test_etf_is_classified_before_private_and_private_is_fail_closed(self) -> None:
         # ETF/index wins even when the registry kind is private/preipo.
@@ -160,7 +163,8 @@ class BnbUniverseTest(unittest.TestCase):
         # Kind string alone does not admit. Company name alone does not admit.
         self.assertIsNone(classify_kind("private", ticker="MYSTERY", name="Mystery Product"))
         self.assertIsNone(classify_kind("pre-ipo", ticker="BASKET", name="Pre-IPO Basket"))
-        self.assertIsNone(classify_kind("stock", ticker="SPCX", name="SpaceX"))
+        self.assertEqual(classify_kind("stock", ticker="SPCX", name="SpaceX"), "equity")
+        self.assertEqual(classify_kind("private", ticker="SPCX", name="SpaceX", issuer="bstocks"), "equity")
         # Colb / Paimon wrappers are the BNB private mint signal.
         self.assertEqual(
             classify_kind("stock", ticker="CSPX", name="Colb SpaceX", issuer="colb"),
@@ -180,17 +184,18 @@ class BnbUniverseTest(unittest.TestCase):
         from bnb_volume_universe import Book
 
         book = Book()
-        self.assertFalse(
+        self.assertTrue(
             book.add(
                 symbol="SPCXx",
                 name="SpaceX",
                 address=SPCX,
-                issuer="copycat",
+                issuer="xstocks",
                 source="test",
                 ticker="SPCX",
                 kind_raw="stock",
             )
         )
+        self.assertEqual(book.rows[0]["kind"], "equity")
         self.assertFalse(
             book.add(
                 symbol="CSPX",
@@ -213,7 +218,7 @@ class BnbUniverseTest(unittest.TestCase):
                 kind_raw="stock",
             )
         )
-        self.assertTrue(
+        self.assertFalse(
             book.add(
                 symbol="SPCXx",
                 name="SpaceX",
@@ -224,10 +229,10 @@ class BnbUniverseTest(unittest.TestCase):
                 kind_raw="private",
             )
         )
-        self.assertEqual(book.skipped.get("private"), 1)
+        self.assertEqual(book.skipped.get("duplicate"), 1)
         self.assertEqual(book.skipped.get("copycat"), 1)
         self.assertEqual(book.skipped.get("crypto"), 1)
-        self.assertEqual(book.rows[0]["kind"], "preipo")
+        self.assertEqual(book.rows[0]["kind"], "equity")
 
     def test_registries_union_by_address_and_keep_bnb_only(self) -> None:
         from bnb_volume_universe import Book
@@ -365,9 +370,21 @@ class BnbUniverseTest(unittest.TestCase):
         rows, warnings, meta = load_universe(fetch)
         issuers = count_issuers(rows)
         self.assertEqual(issuers["ondo"], 1)
-        self.assertEqual(issuers["bstocks"], 1)
+        self.assertGreaterEqual(issuers["bstocks"], 69)
+        bncb = next(row for row in rows if row["symbol"] == "BNCB")
+        self.assertEqual(bncb["address"].lower(), "0x4902c5ebc598265ed2212b559b042de8a5eeec3f")
+        self.assertEqual(bncb["issuer"], "bstocks")
+        self.assertEqual(bncb["kind"], "equity")
+        spcxb = next(row for row in rows if row["symbol"] == "SPCXB")
+        self.assertEqual(spcxb["kind"], "equity")
+        self.assertEqual(spcxb["issuer"], "bstocks")
         self.assertEqual(issuers["colb"], 1)
         self.assertGreaterEqual(issuers["paimon"], 1)
+        self.assertEqual(issuers["fourmeme"], 1)
+        bnc4 = next(row for row in rows if row["issuer"] == "fourmeme")
+        self.assertEqual(bnc4["symbol"], "BNC4")
+        self.assertEqual(bnc4["kind"], "equity")
+        self.assertEqual(bnc4["address"], FOURMEME_4STOCKS[0][2])
         self.assertEqual(meta["registries"]["ondo-gm"]["status"], 403)
         self.assertEqual(meta["registries"]["bstocks-finance"]["status"], 403)
         self.assertTrue(any("HTTP 403" in warning and "ondo" in warning for warning in warnings))
@@ -521,13 +538,389 @@ class BnbUniverseTest(unittest.TestCase):
         self.assertEqual(reported_h24(0), 0.0)
         self.assertEqual(reported_h24("0"), 0.0)
 
+    def test_fourmeme_seed_is_public_equity_and_easy_to_extend(self) -> None:
+        from bnb_volume_universe import Book
+
+        self.assertEqual(FOURMEME_4STOCKS[0][0], "BNC4")
+        self.assertEqual(FOURMEME_4STOCKS[0][3], "BNC")
+        book = Book()
+        self.assertEqual(add_fourmeme(book), 1)
+        self.assertEqual(add_fourmeme(book), 0)
+        row = book.rows[0]
+        self.assertEqual(row["issuer"], "fourmeme")
+        self.assertEqual(row["kind"], "equity")
+        self.assertEqual(row["symbol"], "BNC4")
+        self.assertEqual(row["name"], "Cea Industries")
+        self.assertEqual(row["ticker"], "BNC")
+        self.assertEqual(row["source"], "fourmeme")
+
+    def test_fourmeme_counts_only_base_against_real_quotes(self) -> None:
+        bnc4 = FOURMEME_4STOCKS[0][2]
+        usdt = "0x55d398326f99059ff775485246999027b3197955"
+        bncb = "0x4902C5ebc598265Ed2212b559B042De8a5Eeec3f"
+        meme = "0x" + "cd" * 20
+        pairs = [
+            {
+                "chainId": "bsc",
+                "pairAddress": "0xusdt",
+                "baseToken": {"address": bnc4},
+                "quoteToken": {"address": usdt},
+                "volume": {"h24": 100},
+            },
+            {
+                "chainId": "bsc",
+                "pairAddress": "0xusdt",
+                "baseToken": {"address": bnc4},
+                "quoteToken": {"address": usdt},
+                "volume": {"h24": 100},
+            },
+            {
+                "chainId": "bsc",
+                "pairAddress": "0xusdc",
+                "baseToken": {"address": bnc4},
+                "quoteToken": {"address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d"},
+                "volume": {"h24": 40},
+            },
+            {
+                "chainId": "bsc",
+                "pairAddress": "0xwbnb",
+                "baseToken": {"address": bnc4},
+                "quoteToken": {"address": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c"},
+                "volume": {"h24": 0},
+            },
+            {
+                "chainId": "bsc",
+                "pairAddress": "0xbncb",
+                "baseToken": {"address": bnc4},
+                "quoteToken": {"address": bncb},
+                "volume": {"h24": 500},
+            },
+            {
+                "chainId": "bsc",
+                "pairAddress": "0xmeme-quote",
+                "baseToken": {"address": meme, "symbol": "MEME"},
+                "quoteToken": {"address": bnc4},
+                "volume": {"h24": 9000},
+            },
+            {
+                "chainId": "bsc",
+                "pairAddress": "0xmeme-base",
+                "baseToken": {"address": bnc4},
+                "quoteToken": {"address": meme, "symbol": "BOB"},
+                "volume": {"h24": 700},
+            },
+            {
+                "chainId": "bsc",
+                "pairAddress": "0xother-stock",
+                "baseToken": {"address": meme},
+                "quoteToken": {"address": AAPL},
+                "volume": {"h24": 3},
+            },
+        ]
+        restricted = {bnc4.lower()}
+        totals, counts = sum_unique_pool_volumes(
+            pairs,
+            {bnc4, AAPL},
+            base_against_quotes=restricted,
+            quote_assets=_MOD.BNB_QUOTE_ASSETS,
+        )
+        self.assertEqual(totals[bnc4.lower()], 140.0)
+        self.assertEqual(counts[bnc4.lower()], 3)
+        self.assertEqual(totals[AAPL.lower()], 3.0)
+        self.assertEqual(counts[AAPL.lower()], 1)
+
+    def test_stock_stock_pool_is_counted_once_on_the_base(self) -> None:
+        quote = "0x" + "11" * 20
+        pairs = [
+            {
+                "chainId": "bsc",
+                "pairAddress": "0xcross",
+                "baseToken": {"address": AAPL},
+                "quoteToken": {"address": NVDA},
+                "volume": {"h24": 80},
+            },
+            {
+                "chainId": "bsc",
+                "pairAddress": "0xcross",
+                "baseToken": {"address": AAPL},
+                "quoteToken": {"address": NVDA},
+                "volume": {"h24": 80},
+            },
+            {
+                "chainId": "bsc",
+                "pairAddress": "0xusdt",
+                "baseToken": {"address": NVDA},
+                "quoteToken": {"address": quote},
+                "volume": {"h24": 5},
+            },
+        ]
+        tracked = {
+            AAPL.lower(): {"address": AAPL},
+            NVDA.lower(): {"address": NVDA},
+            QQQ.lower(): {"address": QQQ},
+        }
+        totals, counts, _details, _pair_h24 = _MOD.fold_desk_pools(pairs, tracked)
+        self.assertEqual(totals[AAPL.lower()], 80.0)
+        self.assertEqual(totals[NVDA.lower()], 5.0)
+        self.assertEqual(counts[AAPL.lower()], 1)
+        self.assertEqual(counts[NVDA.lower()], 1)
+
+    def test_writer_reads_token_pairs_for_every_mint(self) -> None:
+        text = Path(__file__).resolve().parent.joinpath("snapshot-bnb-volume.py").read_text()
+        self.assertIn("token-pairs/v1/bsc", text)
+        self.assertIn("latest/dex/pairs/bsc", text)
+        self.assertIn("for addr in sorted(by_addr)", text)
+        self.assertNotIn("for addr in sorted(restricted)", text)
+
     def test_writer_does_not_hardcode_an_issuer_allowlist(self) -> None:
         text = _SCRIPT.read_text() + Path(__file__).with_name("bnb_volume_universe.py").read_text()
         self.assertNotIn("ALLOWED_ISSUERS", text)
         self.assertIn("every issuer", text)
         self.assertIn(f"chainId {CHAIN_ID}", text)
         self.assertIn(CHAIN_SLUG, text)
-        self.assertNotIn("geckoterminal", text.lower())
+        self.assertIn("token-pairs/v1", text)
+        self.assertIn("geckoterminal", text.lower())
+        self.assertIn("cash", text.lower())
+
+    def test_cash_quotes_apply_to_every_mint_and_stock_pairs_count_once(self) -> None:
+        usdt = "0x55d398326f99059ff775485246999027b3197955"
+        meme = "0x" + "cd" * 20
+        pairs = [
+            {
+                "chainId": "bsc",
+                "pairAddress": "0xcash",
+                "baseToken": {"address": AAPL},
+                "quoteToken": {"address": usdt},
+                "volume": {"h24": 10},
+                "liquidity": {"usd": 5000},
+            },
+            {
+                "chainId": "bsc",
+                "pairAddress": "0xmeme",
+                "baseToken": {"address": AAPL},
+                "quoteToken": {"address": meme},
+                "volume": {"h24": 80},
+                "liquidity": {"usd": 9000},
+            },
+            {
+                "chainId": "bsc",
+                "pairAddress": "0xcross",
+                "baseToken": {"address": AAPL},
+                "quoteToken": {"address": NVDA},
+                "volume": {"h24": 4},
+                "liquidity": {"usd": 2000},
+            },
+            {
+                "chainId": "bsc",
+                "pairAddress": "0xwash",
+                "dexId": "uniswap-v4-bsc",
+                "baseToken": {"address": AAPL},
+                "quoteToken": {"address": usdt},
+                "volume": {"h24": 273000},
+                "liquidity": {"usd": 5},
+            },
+        ]
+        tracked = {
+            AAPL.lower(): {"address": AAPL, "symbol": "AAPL"},
+            NVDA.lower(): {"address": NVDA, "symbol": "NVDA"},
+        }
+        vols, counts, details, _pair_h24 = _MOD.fold_desk_pools(pairs, tracked)
+        self.assertEqual(vols[AAPL.lower()], 14.0)
+        self.assertEqual(counts[AAPL.lower()], 2)
+        self.assertIsNone(vols[NVDA.lower()])
+        self.assertEqual(counts[NVDA.lower()], 0)
+        sources = {pool["source"] for pool in details[AAPL.lower()]}
+        self.assertEqual(sources, {"dexscreener"})
+
+    def test_registry_keeps_cash_pools_and_drops_meme_pairs(self) -> None:
+        usdt = "0x55d398326f99059ff775485246999027b3197955"
+        meme = "0x" + "ab" * 20
+        rows = [{"address": AAPL, "symbol": "AAPLB", "issuer": "bstocks", "kind": "equity"}]
+        payload = {
+            "pairs": [
+                {
+                    "chainId": "bsc",
+                    "pairAddress": "0xcashpool",
+                    "dexId": "pancakeswap",
+                    "baseToken": {"address": AAPL},
+                    "quoteToken": {"address": usdt},
+                    "volume": {"h24": 10},
+                    "liquidity": {"usd": 5000},
+                },
+                {
+                    "chainId": "bsc",
+                    "pairAddress": "0xmemepool",
+                    "dexId": "pancakeswap",
+                    "baseToken": {"address": AAPL},
+                    "quoteToken": {"address": meme},
+                    "volume": {"h24": 80},
+                    "liquidity": {"usd": 9000},
+                },
+            ]
+        }
+        vols, _counts, _details, warnings, _pair_h24, known = _MOD.hydrate_volumes(
+            rows, {}, fetch=lambda _url: payload, discover_gecko=False
+        )
+        self.assertEqual(warnings, [])
+        self.assertEqual(vols[AAPL.lower()], 10.0)
+        pools = known[AAPL.lower()]["pools"]
+        self.assertIn("0xcashpool", pools)
+        self.assertNotIn("0xmemepool", pools)
+
+    def test_volume_drop_warns_without_blanking(self) -> None:
+        rows = [{"address": AAPL, "symbol": "AAPLB", "kind": "equity"}]
+        vols = {AAPL.lower(): 5.0}
+        known = {
+            AAPL.lower(): {
+                "mainPool": "0xmain",
+                "pools": {"0xmain": {"pairAddress": "0xmain"}},
+            }
+        }
+        warnings = _MOD.volume_drop_warnings(
+            rows,
+            vols,
+            known,
+            {"0xmain": 80_000.0},
+            {AAPL.lower(): 100.0},
+        )
+        self.assertEqual(len(warnings), 1)
+        self.assertEqual(warnings[0]["volume24hUsd"], 5.0)
+        self.assertEqual(vols[AAPL.lower()], 5.0)
+        quiet = _MOD.volume_drop_warnings(
+            rows,
+            vols,
+            known,
+            {"0xmain": 0.0},
+            {AAPL.lower(): 100.0},
+        )
+        self.assertEqual(quiet, [])
+
+    def test_seed_bstocks_are_equity_and_fakes_stay_out(self) -> None:
+        from bnb_volume_universe import (
+            BSTOCKS_SEED,
+            Book,
+            add_bstocks_seed,
+            discover_bstocks_from_pairs,
+        )
+
+        book = Book()
+        self.assertGreaterEqual(add_bstocks_seed(book), 69)
+        by_symbol = {row["symbol"]: row for row in book.rows}
+        self.assertEqual(by_symbol["SPCXB"]["kind"], "equity")
+        self.assertEqual(by_symbol["BNCB"]["kind"], "equity")
+        self.assertEqual(by_symbol["BNCB"]["issuer"], "bstocks")
+        self.assertEqual(by_symbol["BNCB"]["address"].lower(), "0x4902c5ebc598265ed2212b559b042de8a5eeec3f")
+        self.assertEqual(by_symbol["QQQB"]["kind"], "etf")
+        self.assertEqual(by_symbol["DRAMB"]["kind"], "etf")
+        self.assertEqual(by_symbol["SPYB"]["kind"], "etf")
+        self.assertIn("LLYB", by_symbol)
+        self.assertFalse(
+            book.add(
+                symbol="PDDB",
+                name="PDD Holdings",
+                address="0x1d55111111111111111111111111111111111111",
+                issuer="bstocks",
+                source="test",
+                ticker="PDD",
+                kind_raw="equity",
+            )
+        )
+        self.assertFalse(
+            book.add(
+                symbol="SOXLB",
+                name="Direxion Semiconductor Bull 3X",
+                address="0x2222222222222222222222222222222222222222",
+                issuer="bstocks",
+                source="test",
+                ticker="SOXL",
+                kind_raw="etf",
+            )
+        )
+        fresh = "0x3333333333333333333333333333333333333333"
+        added = discover_bstocks_from_pairs(
+            [
+                {
+                    "chainId": "bsc",
+                    "baseToken": {"address": fresh, "symbol": "NEWB", "name": "New Co"},
+                    "quoteToken": {"address": "0x55d398326f99059ff775485246999027b3197955", "symbol": "USDT"},
+                },
+                {
+                    "chainId": "bsc",
+                    "baseToken": {"address": "0x4444444444444444444444444444444444444444", "symbol": "FAKEB", "name": "Nope"},
+                    "quoteToken": {"address": "0x55d398326f99059ff775485246999027b3197955", "symbol": "USDT"},
+                },
+            ],
+            book,
+            lambda address: "0x156d6dce9a4f6139a3406f1f021f1a4880de93a3" if address.lower() == fresh else "0x" + "11" * 20,
+        )
+        self.assertEqual(added, 1)
+        self.assertEqual(next(row for row in book.rows if row["symbol"] == "NEWB")["source"], "bstocks-beacon")
+        self.assertTrue(any(sym == "SPCXB" for sym, _name, _addr, _tick in BSTOCKS_SEED))
+        self.assertTrue(any(sym == "BNCB" for sym, _name, _addr, _tick in BSTOCKS_SEED))
+
+    def test_snapshot_history_keeps_a_high_volume_mint_and_warns(self) -> None:
+        from bnb_volume_universe import load_universe as load
+
+        gone = "0x" + "12" * 20
+        quiet = "0x" + "13" * 20
+        etf = "0x" + "14" * 20
+
+        def fetch(url: str):
+            if "stocksonchain" in url:
+                return {"stocks": []}
+            if "xstocks.fi" in url:
+                return {"nodes": [], "page": {"hasNextPage": False}}
+            if "tokenlist" in url or "dexscreener" in url:
+                return {"tokens": [], "pairs": []}
+            if "colb" in url:
+                return "### BNB Chain\n### Moonbeam\n"
+            if "jumper" in url or "paimon" in url or "ondo" in url or "bstocks.finance" in url:
+                return ""
+            raise HttpStatus(url, 404)
+
+        records = [
+            {
+                "date": "2026-10-10",
+                "assets": [
+                    {
+                        "address": gone,
+                        "symbol": "GONEB",
+                        "issuer": "bstocks",
+                        "instrumentKind": "equity",
+                        "volume24hUsd": 150_000.5,
+                    },
+                    {
+                        "address": quiet,
+                        "symbol": "QUIETB",
+                        "issuer": "bstocks",
+                        "instrumentKind": "equity",
+                        "volume24hUsd": 100_000,
+                    },
+                    {
+                        "address": etf,
+                        "symbol": "HISTB",
+                        "issuer": "ondo",
+                        "instrumentKind": "etf",
+                        "volume24hUsd": 250_000,
+                    },
+                ],
+            }
+        ]
+        rows, warnings, meta = load(fetch, snapshot_records=records)
+        by_addr = {row["address"].lower(): row for row in rows}
+        self.assertEqual(by_addr[gone]["source"], "snapshot-seen")
+        self.assertEqual(by_addr[gone]["issuer"], "bstocks")
+        self.assertEqual(by_addr[gone]["kind"], "equity")
+        self.assertEqual(by_addr[quiet]["source"], "snapshot-seen")
+        self.assertEqual(by_addr[etf]["kind"], "etf")
+        self.assertEqual(by_addr[etf]["issuer"], "ondo")
+        self.assertEqual(by_addr["0x4902c5ebc598265ed2212b559b042de8a5eeec3f"]["source"], "bstocks-seed")
+        self.assertTrue(any("GONEB" in warning and "kept from snapshot history" in warning for warning in warnings))
+        self.assertTrue(any("HISTB" in warning and "kept from snapshot history" in warning for warning in warnings))
+        self.assertFalse(any("QUIETB" in warning for warning in warnings))
+        self.assertFalse(any("BNCB" in warning and "vanished" in warning for warning in warnings))
+        self.assertGreater(meta["registries"]["snapshot-seen"]["added"], 0)
+        self.assertGreater(len(rows), 3)
 
 
 if __name__ == "__main__":

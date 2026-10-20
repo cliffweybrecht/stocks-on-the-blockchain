@@ -6,9 +6,10 @@ import { usePathname } from "next/navigation";
 const LINKS = [
   { href: "/", label: "Spot", match: (path: string) => path === "/" || path.startsWith("/chains") },
   { href: "/perps", label: "Perps", match: (path: string) => path.startsWith("/perps") },
+  { href: "/lending", label: "Lending", match: (path: string) => path.startsWith("/lending") },
 ] as const;
 
-/** Desk switch. Perps stays off the tokenized-stock totals. */
+/** Desk switch. Perps and lending stay off the tokenized-stock spot totals. */
 export function DeskNav() {
   const path = usePathname() ?? "/";
   return (

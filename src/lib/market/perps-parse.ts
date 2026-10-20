@@ -1,3 +1,4 @@
+import type { PerpsArchiveSymbol } from "./perps-archive";
 import {
   classifyPerpUnderlying,
   isStoredEquityCategory,
@@ -5,8 +6,22 @@ import {
   type PerpsCategory,
   type PerpsClass,
 } from "./perps-classify";
-import { asNonNegativeNumber, asReportedNumber, sumNullable } from "./numbers";
-import { perpsExcludeReason, type PerpsDaySnapshot, type PerpsMarketSnapshot, type PerpsTier, type PerpsVenueSnapshot, type PerpsVolumeWindow } from "./perps-snapshot";
+import { perpsFundingIntervalHours } from "./perps-funding";
+import { asNonNegativeNumber, asReportedNumber } from "./numbers";
+import { perpsExcludeReason, perpsScreenInputs, type PerpsDaySnapshot, type PerpsMarketSnapshot, type PerpsTier, type PerpsVenueSnapshot, type PerpsVolumeWindow } from "./perps-snapshot";
+import {
+  CG_OI_MARKETS,
+  CG_SPECS,
+  DIRECT_CG_MARKETS,
+  HIP3_DEX_LIST_SOURCE,
+  PERPS_COINGECKO_NAMED_SKIP,
+  PERPS_PRICE_BAND_MAX,
+  PERPS_PRICE_BAND_MIN,
+  coingeckoVenueSource,
+  hip3DexSource,
+  perpsDirectSpec,
+  type PerpsDirectSpec,
+} from "./perps-sources";
 import { easternDayKey } from "./volume-snapshots";
 
 /**
@@ -20,46 +35,7 @@ import { easternDayKey } from "./volume-snapshots";
  * are not turned into an ET-day figure.
  */
 
-const PRICE_BAND_MIN = 0.8;
-const PRICE_BAND_MAX = 1.25;
-
 const HL_NONEQ = new Set(["ANSEM", "TREAD", "BTCD", "TOTAL2", "OTHERS", "BVIV", "10Y", "2Y", "30Y", "USBOND"]);
-
-const DIRECT_CG_MARKETS = new Set([
-  "Hyperliquid (Futures)",
-  "Bitget Futures",
-  "OKX (Futures)",
-  "Gate (Futures)",
-  "MEXC (Futures)",
-  "Aster (Futures)",
-  "Lighter",
-  "Robinhood Chain Lighter (Futures)",
-  "Ondo Perps",
-  "Extended",
-  "Variational Omni",
-  "KuCoin Futures",
-  "Kraken (Futures)",
-  "BingX (Futures)",
-  "dYdX Chain",
-  "Gate DEX",
-  "Toobit Futures",
-  "XT.COM (Derivatives)",
-  "Bitunix Futures",
-  "LBank (Futures)",
-  "WhiteBIT (Futures)",
-  "Phemex (Futures)",
-  "BTSE (Futures)",
-  "Deribit (Futures)",
-  "HTX (Futures)",
-  "Crypto.com (Futures)",
-  "GRVT",
-  "ApeX Omni",
-  "Nado",
-  "Pacifica",
-  "Orderly",
-  "Paradex",
-  "WEEX (Futures)",
-]);
 
 const BINGX_INDEX_ALIAS: Record<string, string> = {
   NASDAQ100: "US100",
@@ -84,7 +60,19 @@ export interface PerpsFeeds {
   capturedAt: string;
   hyperliquid: { dexs: HyperliquidDexFeed[]; error: string | null };
   bitget: { tickers: unknown; contracts: unknown; error: string | null };
-  okx: { instruments: unknown; tickers: unknown; openInterest: unknown; oiError: string | null; error: string | null };
+  okx: {
+    instruments: unknown;
+    tickers: unknown;
+    openInterest: unknown;
+    oiError: string | null;
+    error: string | null;
+    /**
+     * One bulk funding-rate response (`instId=ANY`). Absent in fixtures.
+     * A funding error does not fail the OKX book; rates stay unannualized.
+     */
+    funding?: unknown;
+    fundingError?: string | null;
+  };
   gate: { tickers: unknown; contracts: unknown; error: string | null };
   mexc: { ticker: unknown; detail: unknown; error: string | null };
   aster: { ticker: unknown; exchangeInfo: unknown; error: string | null };
@@ -92,6 +80,11 @@ export interface PerpsFeeds {
   extended: PerpsFeedResult<unknown>;
   lighter: PerpsFeedResult<unknown>;
   lighterRobinhood: PerpsFeedResult<unknown>;
+  /**
+   * Public Lighter funding-rates list. Absent in fixtures and on the Robinhood host.
+   * Only rows with exchange "lighter" are used, and they carry no interval.
+   */
+  lighterFunding?: PerpsFeedResult<unknown>;
   ondo: PerpsFeedResult<unknown>;
   variational: PerpsFeedResult<unknown>;
   kraken: PerpsFeedResult<unknown>;
@@ -116,6 +109,9 @@ export interface PerpsFeeds {
   pacifica?: PerpsFeedResult<unknown>;
   orderly?: PerpsFeedResult<unknown>;
   paradex?: PerpsFeedResult<unknown>;
+  /** Absent in unit fixtures. The live fetcher always sets these. */
+  weex?: { tickers: unknown; exchangeInfo: unknown; openInterest: unknown; error: string | null };
+  coinbase?: PerpsFeedResult<unknown>;
 }
 
 interface Observation {
@@ -175,6 +171,7 @@ function market(
   priceUsd: number | null,
   lifetimeVolumeUsd?: number | null,
   fundingRate?: number | null,
+  fundingIntervalHours?: number | null,
 ): PerpsMarketSnapshot {
   const row: PerpsMarketSnapshot = {
     symbol,
@@ -186,6 +183,9 @@ function market(
   };
   if (typeof lifetimeVolumeUsd === "number") row.lifetimeVolumeUsd = lifetimeVolumeUsd;
   if (typeof fundingRate === "number") row.fundingRate = fundingRate;
+  if (typeof fundingRate === "number" && typeof fundingIntervalHours === "number" && fundingIntervalHours > 0) {
+    row.fundingIntervalHours = fundingIntervalHours;
+  }
   return row;
 }
 
@@ -212,6 +212,8 @@ function venueShell(
     windowNote,
     capturedAt,
     error,
+    quality: error ? "failed" : "fresh",
+    lastGoodAt: error ? null : capturedAt,
     markets: sorted,
   };
 }
@@ -226,6 +228,17 @@ function emptyVenue(
   error: string | null,
 ): PerpsVenueSnapshot {
   return venueShell(venueName, tier, source, volumeWindow, windowNote, capturedAt, error, []);
+}
+
+function shellFromSpec(
+  spec: PerpsDirectSpec,
+  capturedAt: string,
+  error: string | null,
+  markets: PerpsMarketSnapshot[] = [],
+  note = spec.note,
+  source = spec.source,
+): PerpsVenueSnapshot {
+  return venueShell(spec.venue, spec.tier, source, spec.volumeWindow, note, capturedAt, error, markets);
 }
 
 function classified(
@@ -251,10 +264,13 @@ function observe(
   priceUsd: number | null,
   fundingRate?: number | null,
   lifetimeVolumeUsd?: number | null,
+  fundingIntervalHours?: number | null,
 ): void {
   observations.push({ underlying, category, price: priceUsd });
   if (!isStoredEquityCategory(category) && category !== "preipo") return;
-  markets.push(market(symbol, underlying, category, volume24hUsd, openInterestUsd, priceUsd, lifetimeVolumeUsd, fundingRate));
+  markets.push(
+    market(symbol, underlying, category, volume24hUsd, openInterestUsd, priceUsd, lifetimeVolumeUsd, fundingRate, fundingIntervalHours),
+  );
 }
 
 function median(values: readonly number[]): number | null {
@@ -314,7 +330,7 @@ export function matchUntaggedPerp(
   const ref = reference.prices.get(underlying);
   if (ref === undefined || price === null || ref <= 0) return null;
   const ratio = price / ref;
-  if (ratio < PRICE_BAND_MIN || ratio > PRICE_BAND_MAX) return null;
+  if (ratio < PERPS_PRICE_BAND_MIN || ratio > PERPS_PRICE_BAND_MAX) return null;
   return { underlying, category };
 }
 
@@ -340,6 +356,36 @@ export function hyperliquidEtDayNotional(candles: unknown): number | null {
   return any ? sum : null;
 }
 
+/**
+ * WEEX quoteVolume is USD when quoteVolume / volume lands inside the bar.
+ * A quote that does not match volume × a price in that range is discarded,
+ * and volume × mark is used instead. CoinGecko's WEEX quote is not used.
+ */
+export function weexQuoteVolumeUsd(ticker: {
+  volume?: unknown;
+  quoteVolume?: unknown;
+  markPrice?: unknown;
+  lastPrice?: unknown;
+  highPrice?: unknown;
+  lowPrice?: unknown;
+}): number | null {
+  const base = vol(ticker.volume);
+  const quote = vol(ticker.quoteVolume);
+  const mark = px(ticker.markPrice) ?? px(ticker.lastPrice);
+  const low = px(ticker.lowPrice);
+  const high = px(ticker.highPrice);
+  if (quote !== null && base !== null && base > 0) {
+    const implied = quote / base;
+    const floor = low ?? mark;
+    const cap = high ?? mark;
+    if (floor !== null && cap !== null && implied >= floor * 0.98 && implied <= cap * 1.02) return quote;
+  }
+  if (base !== null && mark !== null) return base * mark;
+  return null;
+}
+
+const WEEX_EQUITY_TYPES = new Set(["Stocks", "Indices", "Pre-IPO"]);
+
 function pushUntagged(
   markets: PerpsMarketSnapshot[],
   reference: ReferenceBook,
@@ -348,49 +394,44 @@ function pushUntagged(
   volume24hUsd: number | null,
   openInterestUsd: number | null,
   fundingRate?: number | null,
+  fundingIntervalHours?: number | null,
 ): void {
   const matched = matchUntaggedPerp(symbol, price, reference);
   if (!matched) return;
   markets.push(
-    market(symbol, matched.underlying, matched.category, volume24hUsd, openInterestUsd, price, null, fundingRate),
+    market(
+      symbol,
+      matched.underlying,
+      matched.category,
+      volume24hUsd,
+      openInterestUsd,
+      price,
+      null,
+      fundingRate,
+      fundingIntervalHours,
+    ),
   );
 }
 
 function hyperliquidVenues(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSnapshot[] {
-  const sourceFor = (dex: string) =>
-    `POST https://api.hyperliquid.xyz/info {"type":"metaAndAssetCtxs","dex":"${dex}"}`;
-  const note =
-    "Rolling 24h notional (dayNtlVlm). Hourly candles are base size, not USD, so this is not an ET-day sum.";
+  const spec = perpsDirectSpec("Hyperliquid HIP-3");
   if (feeds.hyperliquid.error && feeds.hyperliquid.dexs.length === 0) {
-    return [
-      emptyVenue(
-        "Hyperliquid HIP-3",
-        "onchain",
-        "POST https://api.hyperliquid.xyz/info {\"type\":\"perpDexs\"}",
-        "rolling-24h",
-        note,
-        feeds.capturedAt,
-        feeds.hyperliquid.error,
-      ),
-    ];
+    return [shellFromSpec(spec, feeds.capturedAt, feeds.hyperliquid.error, [], spec.note, HIP3_DEX_LIST_SOURCE)];
   }
   const venues: PerpsVenueSnapshot[] = [];
   for (const dexFeed of feeds.hyperliquid.dexs) {
     const name = `Hyperliquid HIP-3 (${dexFeed.dex})`;
+    const source = hip3DexSource(dexFeed.dex);
     if (dexFeed.error || dexFeed.book === null) {
-      venues.push(
-        emptyVenue(name, "onchain", sourceFor(dexFeed.dex), "rolling-24h", note, feeds.capturedAt, dexFeed.error),
-      );
+      venues.push(emptyVenue(name, spec.tier, source, spec.volumeWindow, spec.note, feeds.capturedAt, dexFeed.error));
       continue;
     }
     const pair = asList(dexFeed.book);
     const meta = rec(pair[0]);
     const ctxs = asList(pair[1]);
     const universe = asList(meta?.universe);
-    if (!meta || universe.length === 0 || ctxs.length === 0) {
-      venues.push(
-        emptyVenue(name, "onchain", sourceFor(dexFeed.dex), "rolling-24h", note, feeds.capturedAt, "Empty HIP-3 book."),
-      );
+    if (!meta || !Array.isArray(meta.universe) || !Array.isArray(pair[1]) || (universe.length > 0 && ctxs.length === 0)) {
+      venues.push(emptyVenue(name, spec.tier, source, spec.volumeWindow, spec.note, feeds.capturedAt, "Empty HIP-3 book."));
       continue;
     }
     const markets: PerpsMarketSnapshot[] = [];
@@ -407,6 +448,7 @@ function hyperliquidVenues(feeds: PerpsFeeds, observations: Observation[]): Perp
       const classifiedName = classified(underlying, { forceNonequity, forcePreipo });
       const price = px(ctx.markPx);
       const oi = mul(vol(ctx.openInterest), price);
+      const funding = rate(ctx.funding);
       observe(
         observations,
         markets,
@@ -416,11 +458,19 @@ function hyperliquidVenues(feeds: PerpsFeeds, observations: Observation[]): Perp
         vol(ctx.dayNtlVlm),
         oi,
         price,
-        rate(ctx.funding),
+        funding,
+        null,
+        funding === null ? null : 1,
       );
     }
-    if (markets.length === 0) continue;
-    venues.push(venueShell(name, "onchain", sourceFor(dexFeed.dex), "rolling-24h", note, feeds.capturedAt, null, markets));
+    if (markets.length === 0) {
+      const quiet = venueShell(name, spec.tier, source, spec.volumeWindow, spec.note, feeds.capturedAt, null, markets);
+      quiet.noEquity = true;
+      quiet.windowNote = `${spec.note} Book returned and contained no equity markets.`;
+      venues.push(quiet);
+      continue;
+    }
+    venues.push(venueShell(name, spec.tier, source, spec.volumeWindow, spec.note, feeds.capturedAt, null, markets));
   }
   return venues;
 }
@@ -436,19 +486,9 @@ function indexBy(rows: unknown[], key: string): Map<string, Record<string, unkno
 }
 
 function bitgetVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSnapshot {
-  const source =
-    "GET https://api.bitget.com/api/v2/mix/market/tickers?productType=USDT-FUTURES (+ /contracts isRwa=YES)";
+  const spec = perpsDirectSpec("Bitget");
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell(
-      "Bitget",
-      "cex-direct",
-      source,
-      "rolling-24h",
-      "Rolling 24h USDT volume. Equity flag is Bitget isRwa=YES.",
-      feeds.capturedAt,
-      error,
-      markets,
-    );
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
   if (feeds.bitget.error) return shell(feeds.bitget.error);
   const contracts = indexBy(listFrom(feeds.bitget.contracts), "symbol");
   const markets: PerpsMarketSnapshot[] = [];
@@ -471,19 +511,20 @@ function bitgetVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenue
       mul(vol(ticker.holdingAmount), price),
       price,
       rate(ticker.fundingRate),
+      null,
+      perpsFundingIntervalHours(meta.fundInterval, "hours"),
     );
   }
   return shell(null, markets);
 }
 
 function okxVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSnapshot {
-  const source =
-    "GET https://www.okx.com/api/v5/market/tickers?instType=SWAP (volCcy24h × last) + /public/instruments instCategory=3 + /public/open-interest";
+  const spec = perpsDirectSpec("OKX");
   const note = feeds.okx.oiError
     ? `Rolling 24h. Open interest left blank (${feeds.okx.oiError}). Equity flag is instCategory=3.`
-    : "Rolling 24h (volCcy24h × last). Equity flag is instCategory=3.";
+    : spec.note;
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell("OKX", "cex-direct", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+    shellFromSpec(spec, feeds.capturedAt, error, markets, note);
   if (feeds.okx.error) return shell(feeds.okx.error);
   const instruments = indexBy(listFrom(feeds.okx.instruments), "instId");
   const oi = new Map<string, number | null>();
@@ -491,6 +532,23 @@ function okxVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSna
     const record = rec(row);
     if (!record) continue;
     oi.set(text(record.instId), vol(record.oiUsd));
+  }
+  const funding = new Map<string, { rate: number; hours: number | null }>();
+  if (!feeds.okx.fundingError && feeds.okx.funding != null) {
+    for (const row of listFrom(feeds.okx.funding)) {
+      const item = rec(row);
+      if (!item) continue;
+      const instId = text(item.instId);
+      const fundingRate = rate(item.fundingRate);
+      if (!instId || fundingRate === null) continue;
+      const start = asReportedNumber(item.fundingTime);
+      const next = asReportedNumber(item.nextFundingTime);
+      const hours =
+        start !== null && next !== null && next > start
+          ? perpsFundingIntervalHours((next - start) / 1000, "seconds")
+          : null;
+      funding.set(instId, { rate: fundingRate, hours });
+    }
   }
   const markets: PerpsMarketSnapshot[] = [];
   for (const row of listFrom(feeds.okx.tickers)) {
@@ -502,6 +560,7 @@ function okxVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSna
     const underlying = normPerpSymbol(symbol);
     const classifiedName = classified(underlying);
     const price = px(ticker.last);
+    const fund = funding.get(symbol);
     observe(
       observations,
       markets,
@@ -511,24 +570,18 @@ function okxVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSna
       mul(vol(ticker.volCcy24h), price),
       oi.get(symbol) ?? null,
       price,
+      fund?.rate ?? null,
+      null,
+      fund?.hours ?? null,
     );
   }
   return shell(null, markets);
 }
 
 function gateVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSnapshot {
-  const source = "GET https://api.gateio.ws/api/v4/futures/usdt/tickers (+ /contracts contract_type)";
+  const spec = perpsDirectSpec("Gate");
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell(
-      "Gate",
-      "cex-direct",
-      source,
-      "rolling-24h",
-      "Rolling 24h quote volume. Equity flag is contract_type stocks or indices.",
-      feeds.capturedAt,
-      error,
-      markets,
-    );
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
   if (feeds.gate.error) return shell(feeds.gate.error);
   const contracts = indexBy(listFrom(feeds.gate.contracts), "name");
   const markets: PerpsMarketSnapshot[] = [];
@@ -556,6 +609,8 @@ function gateVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSn
       oi,
       price,
       rate(ticker.funding_rate),
+      null,
+      perpsFundingIntervalHours(meta.funding_interval, "seconds"),
     );
   }
   return shell(null, markets);
@@ -567,19 +622,9 @@ function plates(value: unknown): string[] {
 }
 
 function mexcVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSnapshot {
-  const source =
-    "GET https://contract.mexc.com/api/v1/contract/ticker (+ /contract/detail conceptPlate Stock)";
+  const spec = perpsDirectSpec("MEXC");
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell(
-      "MEXC",
-      "cex-direct",
-      source,
-      "rolling-24h",
-      "Rolling 24h. Equity flag is conceptPlate Stock. Zero-fee / points venue.",
-      feeds.capturedAt,
-      error,
-      markets,
-    );
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
   if (feeds.mexc.error) return shell(feeds.mexc.error);
   const detail = indexBy(listFrom(feeds.mexc.detail), "symbol");
   const markets: PerpsMarketSnapshot[] = [];
@@ -611,19 +656,9 @@ function mexcVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSn
 }
 
 function asterVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSnapshot {
-  const source =
-    "GET https://fapi.asterdex.com/fapi/v1/ticker/24hr (+ exchangeInfo underlyingSubType STOCK)";
+  const spec = perpsDirectSpec("Aster");
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell(
-      "Aster",
-      "onchain",
-      source,
-      "rolling-24h",
-      "Rolling 24h quote volume. Equity flag is underlyingSubType STOCK. Open interest is not on this endpoint.",
-      feeds.capturedAt,
-      error,
-      markets,
-    );
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
   if (feeds.aster.error) return shell(feeds.aster.error);
   const info = indexBy(listFrom(feeds.aster.exchangeInfo, "symbols"), "symbol");
   const markets: PerpsMarketSnapshot[] = [];
@@ -651,18 +686,9 @@ function asterVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueS
 }
 
 function kucoinVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSnapshot {
-  const source = "GET https://api-futures.kucoin.com/api/v1/contracts/active (assetClass=STOCK)";
+  const spec = perpsDirectSpec("KuCoin");
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell(
-      "KuCoin",
-      "cex-direct",
-      source,
-      "rolling-24h",
-      "Rolling 24h turnover. Equity flag is assetClass=STOCK.",
-      feeds.capturedAt,
-      error,
-      markets,
-    );
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
   if (feeds.kucoin.error) return shell(feeds.kucoin.error);
   const markets: PerpsMarketSnapshot[] = [];
   for (const row of listFrom(feeds.kucoin.data)) {
@@ -692,19 +718,9 @@ function kucoinVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenue
 }
 
 function extendedVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSnapshot {
-  const source =
-    "GET https://api.starknet.extended.exchange/api/v1/info/markets (category RWA, subCategory Equity|ETF/Index)";
+  const spec = perpsDirectSpec("Extended");
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell(
-      "Extended",
-      "onchain",
-      source,
-      "rolling-24h",
-      "Rolling 24h (dailyVolume). Equity flag is RWA Equity or ETF/Index. Pre-IPO is excluded.",
-      feeds.capturedAt,
-      error,
-      markets,
-    );
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
   if (feeds.extended.error) return shell(feeds.extended.error);
   const allowed = new Set(["Equity", "ETF/Index", "Pre-market"]);
   const markets: PerpsMarketSnapshot[] = [];
@@ -732,60 +748,58 @@ function extendedVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVen
   return shell(null, markets);
 }
 
+function lighterFundingRates(feeds: PerpsFeeds): Map<string, number> {
+  const map = new Map<string, number>();
+  const feed = feeds.lighterFunding;
+  if (!feed || feed.error || feed.data == null) return map;
+  for (const row of listFrom(feed.data, "funding_rates")) {
+    const item = rec(row);
+    if (!item || text(item.exchange) !== "lighter") continue;
+    const symbol = text(item.symbol);
+    const fundingRate = rate(item.rate);
+    if (!symbol || fundingRate === null) continue;
+    map.set(symbol, fundingRate);
+  }
+  return map;
+}
+
 function bookVenue(
   feeds: PerpsFeeds,
   reference: ReferenceBook,
   which: "lighter" | "lighterRobinhood",
 ): PerpsVenueSnapshot {
   const robinhood = which === "lighterRobinhood";
-  const venueName = robinhood ? "Lighter on Robinhood Chain" : "Lighter";
-  const host = robinhood ? "api.rh.lighter.xyz" : "mainnet.zklighter.elliot.ai";
-  const source = `GET https://${host}/api/v1/orderBookDetails`;
+  const spec = perpsDirectSpec(robinhood ? "Lighter on Robinhood Chain" : "Lighter");
   const feed = robinhood ? feeds.lighterRobinhood : feeds.lighter;
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell(
-      venueName,
-      "onchain",
-      source,
-      "rolling-24h",
-      "Rolling 24h (daily_quote_token_volume). No asset-class flag; ticker plus price band. Zero-fee / points venue.",
-      feeds.capturedAt,
-      error,
-      markets,
-    );
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
   if (feed.error) return shell(feed.error);
+  const lighterRates = robinhood ? new Map<string, number>() : lighterFundingRates(feeds);
   const markets: PerpsMarketSnapshot[] = [];
   const root = rec(feed.data);
   for (const row of asList(root?.order_book_details)) {
     const book = rec(row);
     if (!book || text(book.status) !== "active") continue;
+    const symbol = text(book.symbol);
+    const bookRate = rate(book.funding_rate) ?? rate(book.last_funding_rate);
     const price = px(book.mark_price);
     pushUntagged(
       markets,
       reference,
-      text(book.symbol),
+      symbol,
       price,
       vol(book.daily_quote_token_volume),
       mul(vol(book.open_interest), price),
-      rate(book.funding_rate) ?? rate(book.last_funding_rate),
+      bookRate ?? lighterRates.get(symbol) ?? null,
     );
   }
   return shell(null, markets);
 }
 
 function ondoVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnapshot {
-  const source = "GET https://api.ondoperps.xyz/v1/perps/contracts";
+  const spec = perpsDirectSpec("Ondo Perps");
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell(
-      "Ondo Perps",
-      "onchain",
-      source,
-      "rolling-24h",
-      "Rolling 24h usdVolume. No asset-class flag; ticker plus price band.",
-      feeds.capturedAt,
-      error,
-      markets,
-    );
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
   if (feeds.ondo.error) return shell(feeds.ondo.error);
   const markets: PerpsMarketSnapshot[] = [];
   const root = rec(feeds.ondo.data);
@@ -806,18 +820,9 @@ function ondoVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnaps
 }
 
 function variationalVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnapshot {
-  const source = "GET https://omni-client-api.prod.ap-northeast-1.variational.io/metadata/stats";
+  const spec = perpsDirectSpec("Variational Omni");
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell(
-      "Variational Omni",
-      "onchain",
-      source,
-      "rolling-24h",
-      "Rolling 24h. No asset-class flag; ticker plus price band. US500 is the SPY product. Zero-fee / points venue.",
-      feeds.capturedAt,
-      error,
-      markets,
-    );
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
   if (feeds.variational.error) return shell(feeds.variational.error);
   const markets: PerpsMarketSnapshot[] = [];
   const root = rec(feeds.variational.data);
@@ -844,18 +849,9 @@ function variationalVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVen
 }
 
 function krakenVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnapshot {
-  const source = "GET https://futures.kraken.com/derivatives/api/v3/tickers";
+  const spec = perpsDirectSpec("Kraken Futures");
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell(
-      "Kraken Futures",
-      "cex-direct",
-      source,
-      "rolling-24h",
-      "Rolling 24h (volumeQuote). No equity flag; ticker plus price band.",
-      feeds.capturedAt,
-      error,
-      markets,
-    );
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
   if (feeds.kraken.error) return shell(feeds.kraken.error);
   const markets: PerpsMarketSnapshot[] = [];
   const root = rec(feeds.kraken.data);
@@ -879,18 +875,9 @@ function krakenVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSna
 }
 
 function bingxVenue(feeds: PerpsFeeds): PerpsVenueSnapshot {
-  const source = "GET https://open-api.bingx.com/openApi/swap/v2/quote/ticker (NCSK*/NCSI* symbols)";
+  const spec = perpsDirectSpec("BingX");
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell(
-      "BingX",
-      "cex-direct",
-      source,
-      "rolling-24h",
-      "Rolling 24h. Equity symbols use the NCSK (stock) or NCSI (index) prefix. Open interest is not on this endpoint.",
-      feeds.capturedAt,
-      error,
-      markets,
-    );
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
   if (feeds.bingx.error) return shell(feeds.bingx.error);
   const markets: PerpsMarketSnapshot[] = [];
   for (const row of listFrom(feeds.bingx.data)) {
@@ -930,12 +917,11 @@ function optionalShell(
 }
 
 function toobitVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnapshot | null {
-  const source = "GET https://api.toobit.com/quote/v1/contract/ticker/24hr";
-  const note = "Rolling 24h quote volume (qv) on *-SWAP-USDT. No equity tag; ticker plus price band. The ticker op field is not open interest.";
+  const spec = perpsDirectSpec("Toobit");
   const gate = optionalShell(feeds.toobit);
   if (gate.skip) return null;
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell("Toobit", "cex-direct", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
   if (gate.error) return shell(gate.error);
   const markets: PerpsMarketSnapshot[] = [];
   for (const row of asList(feeds.toobit?.data)) {
@@ -952,11 +938,9 @@ function toobitVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSna
 function xtVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSnapshot | null {
   const feed = feeds.xt;
   if (!feed) return null;
-  const source =
-    "GET https://fapi.xt.com/future/market/v1/public/q/tickers (v = quote vol) + /future/market/v3/public/symbol/list (labels STOCK/INDEX)";
-  const note = "Rolling 24h. Equity flag is label STOCK or INDEX. Open interest is not on this ticker.";
+  const spec = perpsDirectSpec("XT.COM");
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell("XT.COM", "cex-direct", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
   if (feed.error) return shell(feed.error);
   const symbolRoot = rec(rec(feed.symbols)?.result);
   const meta = indexBy(asList(symbolRoot?.symbols), "symbol");
@@ -981,10 +965,9 @@ function xtVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSnap
 function bitunixVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnapshot | null {
   const feed = feeds.bitunix;
   if (!feed) return null;
-  const source = "GET https://fapi.bitunix.com/api/v1/futures/market/tickers";
-  const note = "Rolling 24h quoteVol. No equity tag; ticker plus price band. Open interest is not on this ticker.";
+  const spec = perpsDirectSpec("Bitunix");
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell("Bitunix", "cex-direct", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
   if (feed.error) return shell(feed.error);
   const markets: PerpsMarketSnapshot[] = [];
   for (const row of listFrom(feed.data)) {
@@ -999,10 +982,9 @@ function bitunixVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSn
 function whitebitVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnapshot | null {
   const feed = feeds.whitebit;
   if (!feed) return null;
-  const source = "GET https://whitebit.com/api/v4/public/futures";
-  const note = "Rolling 24h money_volume. No equity tag; ticker plus price band. Open interest is open_interest × index price.";
+  const spec = perpsDirectSpec("WhiteBIT");
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell("WhiteBIT", "cex-direct", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
   if (feed.error) return shell(feed.error);
   const markets: PerpsMarketSnapshot[] = [];
   for (const row of listFrom(feed.data, "result")) {
@@ -1025,12 +1007,9 @@ function whitebitVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueS
 function phemexVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSnapshot | null {
   const feed = feeds.phemex;
   if (!feed) return null;
-  const source =
-    "GET https://api.phemex.com/md/v3/ticker/24hr/all (turnoverRv) + /public/products-plus perpProductsV2 (TradFi/PreMarket)";
-  const note =
-    "Rolling 24h. Equity flag is perpProductSubType TradFi or PreMarket. Commodities drop in classification. PreMarket is pre-IPO and stays out of the headline.";
+  const spec = perpsDirectSpec("Phemex");
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell("Phemex", "cex-direct", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
   if (feed.error) return shell(feed.error);
   const products = asList(rec(rec(feed.products)?.data)?.perpProductsV2);
   const tickers = indexBy(listFrom(feed.tickers, "result"), "symbol");
@@ -1064,10 +1043,9 @@ function phemexVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenue
 function btseVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnapshot | null {
   const feed = feeds.btse;
   if (!feed) return null;
-  const source = "GET https://api.btse.com/futures/api/v2.1/market_summary";
-  const note = "Rolling 24h. *PFC symbols, ticker plus price band. volume and openInterestUSD are USD.";
+  const spec = perpsDirectSpec("BTSE");
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell("BTSE", "cex-direct", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
   if (feed.error) return shell(feed.error);
   const markets: PerpsMarketSnapshot[] = [];
   for (const row of asList(feed.data)) {
@@ -1090,10 +1068,9 @@ function btseVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnaps
 function deribitVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnapshot | null {
   const feed = feeds.deribit;
   if (!feed) return null;
-  const source = "GET https://www.deribit.com/api/v2/public/get_book_summary_by_currency?currency=USDC&kind=future";
-  const note = "Rolling 24h volume_usd on *_USDC-PERPETUAL. Ticker plus price band. Open interest is contracts × mark.";
+  const spec = perpsDirectSpec("Deribit");
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell("Deribit", "cex-direct", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
   if (feed.error) return shell(feed.error);
   const markets: PerpsMarketSnapshot[] = [];
   for (const row of listFrom(feed.data, "result")) {
@@ -1118,13 +1095,12 @@ function deribitVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSn
 function htxVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSnapshot | null {
   const feed = feeds.htx;
   if (!feed) return null;
-  const source =
-    "GET https://api.hbdm.com/linear-swap-ex/market/detail/batch_merged?business_type=swap + /linear-swap-api/v1/swap_contract_info (tradfi_labels) + /swap_open_interest";
+  const spec = perpsDirectSpec("HTX");
   const note = feed.oiError
     ? `Rolling 24h trade_turnover. Equity flag is tradfi_labels Stocks or Indices. Open interest left blank (${feed.oiError}).`
-    : "Rolling 24h trade_turnover. Equity flag is tradfi_labels Stocks or Indices. Open interest is the value field.";
+    : spec.note;
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell("HTX", "cex-direct", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+    shellFromSpec(spec, feeds.capturedAt, error, markets, note);
   if (feed.error) return shell(feed.error);
   const info = indexBy(listFrom(feed.info), "contract_code");
   const oi = indexBy(listFrom(feed.openInterest), "contract_code");
@@ -1157,10 +1133,9 @@ function htxVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSna
 function cryptoVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnapshot | null {
   const feed = feeds.crypto;
   if (!feed) return null;
-  const source = "GET https://api.crypto.com/exchange/v1/public/get-tickers";
-  const note = "Rolling 24h vv on *USD-PERP. No equity tag; ticker plus price band. Open interest is oi × mark.";
+  const spec = perpsDirectSpec("Crypto.com");
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell("Crypto.com", "cex-direct", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
   if (feed.error) return shell(feed.error);
   const markets: PerpsMarketSnapshot[] = [];
   for (const row of asList(rec(rec(feed.data)?.result)?.data)) {
@@ -1184,10 +1159,9 @@ function cryptoVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSna
 function lbankVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnapshot | null {
   const feed = feeds.lbank;
   if (!feed) return null;
-  const source = "GET https://lbkperp.lbank.com/cfd/openApi/v1/pub/marketData?productGroup=SwapU";
-  const note = "Rolling 24h turnover. No equity tag; ticker plus price band. Recorded even when the volume/OI screen excludes it.";
+  const spec = perpsDirectSpec("LBank");
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell("LBank", "cex-direct", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
   if (feed.error) return shell(feed.error);
   const markets: PerpsMarketSnapshot[] = [];
   for (const row of listFrom(feed.data)) {
@@ -1202,11 +1176,9 @@ function lbankVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnap
 function grvtVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSnapshot | null {
   const feed = feeds.grvt;
   if (!feed) return null;
-  const source =
-    "POST https://market-data.grvt.io/full/v1/all_instruments (asset_class EQUITY) + POST /full/v1/ticker per instrument";
-  const note = "Rolling 24h buy_volume_24h_q + sell_volume_24h_q. Equity flag is asset_class EQUITY. Open interest is base × mark.";
+  const spec = perpsDirectSpec("GRVT");
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell("GRVT", "onchain", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
   if (feed.error) return shell(feed.error);
   const root = rec(feed.data);
   const tickers = new Map<string, Record<string, unknown>>();
@@ -1247,10 +1219,9 @@ function grvtVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSn
 function apexVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSnapshot | null {
   const feed = feeds.apex;
   if (!feed) return null;
-  const source = "GET https://omni.apex.exchange/api/v3/symbols (contractConfig.stockContract) + /api/v3/ticker?symbol=";
-  const note = "Rolling 24h turnover24h. Equity flag is the stockContract list. Open interest is openInterest × mark.";
+  const spec = perpsDirectSpec("ApeX Omni");
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell("ApeX Omni", "onchain", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
   if (feed.error) return shell(feed.error);
   const root = rec(feed.data);
   const bySymbol = new Map<string, Record<string, unknown>>();
@@ -1288,10 +1259,9 @@ function apexVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSn
 function nadoVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnapshot | null {
   const feed = feeds.nado;
   if (!feed) return null;
-  const source = "GET https://archive.prod.nado.xyz/v2/contracts";
-  const note = "Rolling 24h quote_volume. No equity tag; ticker plus price band. open_interest_usd is USD.";
+  const spec = perpsDirectSpec("Nado");
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell("Nado", "onchain", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
   if (feed.error) return shell(feed.error);
   const root = rec(feed.data);
   if (!root) return shell("Empty Nado book.");
@@ -1316,10 +1286,9 @@ function nadoVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnaps
 function pacificaVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnapshot | null {
   const feed = feeds.pacifica;
   if (!feed) return null;
-  const source = "GET https://api.pacifica.fi/api/v1/info/prices";
-  const note = "Rolling 24h volume_24h in USD. No equity tag; ticker plus price band. Open interest is base × mark.";
+  const spec = perpsDirectSpec("Pacifica");
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell("Pacifica", "onchain", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
   if (feed.error) return shell(feed.error);
   const markets: PerpsMarketSnapshot[] = [];
   for (const row of listFrom(feed.data)) {
@@ -1342,10 +1311,9 @@ function pacificaVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueS
 function orderlyVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnapshot | null {
   const feed = feeds.orderly;
   if (!feed) return null;
-  const source = "GET https://api.orderly.org/v1/public/futures";
-  const note = "Rolling 24h 24h_amount. One shared book. Broker frontends are not added. Ticker plus price band.";
+  const spec = perpsDirectSpec("Orderly");
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell("Orderly", "onchain", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
   if (feed.error) return shell(feed.error);
   const markets: PerpsMarketSnapshot[] = [];
   for (const row of asList(rec(rec(feed.data)?.data)?.rows)) {
@@ -1368,10 +1336,9 @@ function orderlyVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSn
 function paradexVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSnapshot | null {
   const feed = feeds.paradex;
   if (!feed) return null;
-  const source = "GET https://api.prod.paradex.trade/v1/markets/summary?market=ALL";
-  const note = "Rolling 24h volume_24h on *-USD-PERP. Ticker plus price band. Counted once, not per frontend.";
+  const spec = perpsDirectSpec("Paradex");
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell("Paradex", "onchain", source, "rolling-24h", note, feeds.capturedAt, error, markets);
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
   if (feed.error) return shell(feed.error);
   const markets: PerpsMarketSnapshot[] = [];
   for (const row of listFrom(feed.data, "results")) {
@@ -1393,51 +1360,6 @@ function paradexVenue(feeds: PerpsFeeds, reference: ReferenceBook): PerpsVenueSn
   return shell(null, markets);
 }
 
-interface CgSpec {
-  market: string;
-  venue: string;
-  tier: PerpsTier;
-  note: string;
-}
-
-const CG_SPECS: readonly CgSpec[] = [
-  { market: "Binance (Futures)", venue: "Binance", tier: "cex-coingecko", note: "Binance blocks this host. CoinGecko only. The www.binance.com route is not used." },
-  { market: "Bybit (Futures)", venue: "Bybit", tier: "cex-coingecko", note: "Bybit blocks this host. CoinGecko only." },
-  { market: "Tapbit (Futures)", venue: "Tapbit", tier: "long-tail", note: "CoinGecko only, unverified. Opt-in long-tail. Not in the default headline." },
-  { market: "CoinW (Futures)", venue: "CoinW", tier: "long-tail", note: "CoinGecko only, unverified. Opt-in long-tail. Not in the default headline." },
-  { market: "Ourbit (Futures)", venue: "Ourbit", tier: "long-tail", note: "CoinGecko only, unverified. Opt-in long-tail. Not in the default headline." },
-  { market: "OrangeX Futures", venue: "OrangeX", tier: "long-tail", note: "CoinGecko only, unverified. Opt-in long-tail. Not in the default headline." },
-  { market: "BitKan (Futures)", venue: "BitKan", tier: "long-tail", note: "CoinGecko only, unverified. Opt-in long-tail. Not in the default headline." },
-  { market: "AlphaX (Futures)", venue: "AlphaX", tier: "long-tail", note: "CoinGecko only, unverified. Opt-in long-tail. Not in the default headline." },
-  { market: "Zoomex (Futures)", venue: "Zoomex", tier: "long-tail", note: "CoinGecko only, unverified. Opt-in long-tail. Not in the default headline." },
-  { market: "Arcus (Futures)", venue: "Arcus", tier: "onchain", note: "No public market API found. CoinGecko row for this onchain book." },
-  { market: "QFEX", venue: "QFEX", tier: "onchain", note: "Direct market data needs auth. CoinGecko row for this hybrid book." },
-  { market: "RISEx", venue: "RISEx", tier: "onchain", note: "No public market API found. CoinGecko row." },
-  { market: "edgeX", venue: "edgeX", tier: "onchain", note: "Direct API was blocked. CoinGecko row." },
-  { market: "Polymarket Perps", venue: "Polymarket Perps", tier: "onchain", note: "No public perps REST endpoint. CoinGecko row." },
-  { market: "Decibel", venue: "Decibel", tier: "onchain", note: "Aptos gateway needs an API key. CoinGecko row." },
-  { market: "Deepcoin (Derivatives)", venue: "Deepcoin", tier: "long-tail", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
-  { market: "BVOX (Futures)", venue: "BVOX", tier: "long-tail", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
-  { market: "KCEX (Futures)", venue: "KCEX", tier: "long-tail", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
-  { market: "Hotcoin (Futures)", venue: "Hotcoin", tier: "long-tail", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
-  { market: "Bitrue (Futures)", venue: "Bitrue", tier: "long-tail", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
-  { market: "BYDFi (Futures)", venue: "BYDFi", tier: "long-tail", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
-  { market: "BigONE Futures", venue: "BigONE", tier: "long-tail", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
-  { market: "Dipcoin (Futures)", venue: "Dipcoin", tier: "onchain", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
-  { market: "GMX Perpetuals V2 (Solana)", venue: "GMX V2 (Solana)", tier: "onchain", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
-  { market: "TurboFlow", venue: "TurboFlow", tier: "onchain", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
-];
-
-/** Direct venues whose CoinGecko open interest fills a blank, without a second volume row. */
-const CG_OI_MARKETS: Record<string, string> = {
-  Aster: "Aster (Futures)",
-  BingX: "BingX (Futures)",
-  "XT.COM": "XT.COM (Derivatives)",
-  Bitunix: "Bitunix Futures",
-  Toobit: "Toobit Futures",
-  LBank: "LBank (Futures)",
-};
-
 interface CgPoint {
   underlying: string;
   price: number | null;
@@ -1445,14 +1367,17 @@ interface CgPoint {
   fundingRate: number | null;
 }
 
-function coingeckoVenues(feeds: PerpsFeeds, reference: ReferenceBook): { venues: PerpsVenueSnapshot[]; points: Map<string, CgPoint[]> } {
-  const source = "GET https://api.coingecko.com/api/v3/derivatives?include_tickers=unexpired";
+function coingeckoVenues(
+  feeds: PerpsFeeds,
+  reference: ReferenceBook,
+  archiveSymbols: { binance: PerpsArchiveSymbol[]; bybit: PerpsArchiveSymbol[] },
+): { venues: PerpsVenueSnapshot[]; points: Map<string, CgPoint[]> } {
   const points = new Map<string, CgPoint[]>();
   const specs = CG_SPECS;
   if (feeds.coingecko.error) {
     return {
       venues: specs.map((item) =>
-        emptyVenue(item.venue, item.tier, `${source} (market=${item.market})`, "rolling-24h", item.note, feeds.capturedAt, feeds.coingecko.error),
+        emptyVenue(item.venue, item.tier, coingeckoVenueSource(item.market), "rolling-24h", item.note, feeds.capturedAt, feeds.coingecko.error),
       ),
       points,
     };
@@ -1463,7 +1388,7 @@ function coingeckoVenues(feeds: PerpsFeeds, reference: ReferenceBook): { venues:
     const ticker = rec(row);
     if (!ticker || text(ticker.contract_type) !== "perpetual") continue;
     const marketName = text(ticker.market);
-    if (marketName === "Hyperliquid (Futures)") continue;
+    if (PERPS_COINGECKO_NAMED_SKIP.has(marketName)) continue;
     const symbol = text(ticker.index_id) || text(ticker.symbol);
     const price = px(ticker.price);
     const matched = matchUntaggedPerp(symbol, price, reference);
@@ -1477,27 +1402,28 @@ function coingeckoVenues(feeds: PerpsFeeds, reference: ReferenceBook): { venues:
     list.push(point);
     points.set(marketName, list);
     if (DIRECT_CG_MARKETS.has(marketName) || !specByMarket.has(marketName) || !matched) continue;
+    const quote = vol(ticker.volume_24h);
     buckets.get(marketName)?.push(
-      market(symbol, matched.underlying, matched.category, vol(ticker.volume_24h), vol(ticker.open_interest), price, null, rate(ticker.funding_rate)),
+      market(symbol, matched.underlying, matched.category, quote, vol(ticker.open_interest), price, null, rate(ticker.funding_rate)),
     );
+    const exchangeSymbol = text(ticker.symbol).toUpperCase();
+    if (!/^[A-Z0-9]{2,30}USDT$/.test(exchangeSymbol)) continue;
+    if (marketName === "Binance (Futures)") archiveSymbols.binance.push({ symbol: exchangeSymbol, volumeUsd: quote });
+    if (marketName === "Bybit (Futures)") archiveSymbols.bybit.push({ symbol: exchangeSymbol, volumeUsd: quote });
   }
   return {
-    venues: specs.flatMap((item) => {
-      const markets = buckets.get(item.market) ?? [];
-      if (markets.length === 0 && item.tier !== "cex-coingecko") return [];
-      return [
-        venueShell(
-          item.venue,
-          item.tier,
-          `${source} (market=${item.market})`,
-          "rolling-24h",
-          item.note,
-          feeds.capturedAt,
-          null,
-          markets,
-        ),
-      ];
-    }),
+    venues: specs.map((item) =>
+      venueShell(
+        item.venue,
+        item.tier,
+        coingeckoVenueSource(item.market),
+        "rolling-24h",
+        item.note,
+        feeds.capturedAt,
+        null,
+        buckets.get(item.market) ?? [],
+      ),
+    ),
     points,
   };
 }
@@ -1517,7 +1443,7 @@ function fillMissingOpenInterest(venues: PerpsVenueSnapshot[], points: Map<strin
         if (market.category === "index") return true;
         if (market.priceUsd === null || row.price === null || row.price <= 0 || market.priceUsd <= 0) return false;
         const ratio = market.priceUsd / row.price;
-        return ratio >= PRICE_BAND_MIN && ratio <= PRICE_BAND_MAX;
+        return ratio >= PERPS_PRICE_BAND_MIN && ratio <= PERPS_PRICE_BAND_MAX;
       });
       if (!hit) continue;
       if (needsOi && hit.openInterestUsd !== null) {
@@ -1533,31 +1459,24 @@ function fillMissingOpenInterest(venues: PerpsVenueSnapshot[], points: Map<strin
 }
 
 function annotateCredibility(venue: PerpsVenueSnapshot): PerpsVenueSnapshot {
-  const volumes: (number | null)[] = [];
-  const ois: (number | null)[] = [];
-  for (const market of venue.markets) {
-    if (market.category === "preipo") continue;
-    volumes.push(market.volume24hUsd);
-    ois.push(market.openInterestUsd);
-  }
-  const excludeReason = perpsExcludeReason(sumNullable(volumes), sumNullable(ois));
+  const screen = perpsScreenInputs(venue.markets);
+  const excludeReason = perpsExcludeReason(screen.volumeUsd, screen.openInterestUsd);
   return { ...venue, credible: excludeReason === null, excludeReason };
 }
 
+/** A successful onchain book with no equity markets stays in the file under the same venue name. */
+function markQuietOnchainBook(venue: PerpsVenueSnapshot): PerpsVenueSnapshot {
+  if (venue.noEquity) return venue;
+  if (venue.tier !== "onchain" || venue.error || venue.markets.length > 0) return venue;
+  const sentence = "Book returned and contained no equity markets.";
+  const windowNote = venue.windowNote.includes(sentence) ? venue.windowNote : `${venue.windowNote} ${sentence}`.trim();
+  return { ...venue, noEquity: true, windowNote };
+}
+
 function ostiumVenue(feeds: PerpsFeeds): PerpsVenueSnapshot {
-  const source =
-    "GET https://builder.prod.bedrock.ostium.io/v1/pairs?chainId=42161&first=1000 (volumeInUsd is cumulative)";
+  const spec = perpsDirectSpec("Ostium");
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell(
-      "Ostium",
-      "onchain",
-      source,
-      "lifetime",
-      "No 24h field. lifetimeVolumeUsd is cumulative volumeInUsd. Daily volume is the difference between consecutive Eastern snapshots.",
-      feeds.capturedAt,
-      error,
-      markets,
-    );
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
   if (feeds.ostium.error) return shell(feeds.ostium.error);
   const markets: PerpsMarketSnapshot[] = [];
   const root = rec(feeds.ostium.data);
@@ -1595,18 +1514,9 @@ function ostiumVenue(feeds: PerpsFeeds): PerpsVenueSnapshot {
 }
 
 function avantisVenue(feeds: PerpsFeeds): PerpsVenueSnapshot {
-  const source = "GET https://socket-api-pub.avantisfi.com/socket-api/v1/data";
+  const spec = perpsDirectSpec("Avantis");
   const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
-    venueShell(
-      "Avantis",
-      "onchain",
-      source,
-      "unavailable",
-      "No public 24h volume. Open interest is the equities group (groupIndex 6). Volume stays blank.",
-      feeds.capturedAt,
-      error,
-      markets,
-    );
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
   if (feeds.avantis.error) return shell(feeds.avantis.error);
   const markets: PerpsMarketSnapshot[] = [];
   const root = rec(feeds.avantis.data);
@@ -1632,6 +1542,91 @@ function avantisVenue(feeds: PerpsFeeds): PerpsVenueSnapshot {
   return shell(null, markets);
 }
 
+function weexVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSnapshot | null {
+  const feed = feeds.weex;
+  if (!feed) return null;
+  const spec = perpsDirectSpec("WEEX");
+  const shell = (error: string | null, markets: PerpsMarketSnapshot[] = []) =>
+    shellFromSpec(spec, feeds.capturedAt, error, markets);
+  if (feed.error) return shell(feed.error);
+  const meta = indexBy(asList(rec(feed.exchangeInfo)?.symbols), "symbol");
+  const oiBySymbol = new Map<string, number>();
+  for (const row of asList(feed.openInterest)) {
+    const item = rec(row);
+    if (!item) continue;
+    const symbol = text(item.symbol);
+    const base = vol(item.openInterest);
+    if (symbol && base !== null) oiBySymbol.set(symbol, base);
+  }
+  const markets: PerpsMarketSnapshot[] = [];
+  for (const row of asList(feed.tickers)) {
+    const ticker = rec(row);
+    if (!ticker) continue;
+    const symbol = text(ticker.symbol);
+    const info = meta.get(symbol);
+    if (!info || text(info.contractType) !== "TRADIFI_PERPETUAL") continue;
+    const kind = text(info.underlyingType);
+    if (!WEEX_EQUITY_TYPES.has(kind)) continue;
+    const underlying = normPerpSymbol(text(info.baseAsset) || symbol);
+    const classifiedName = classified(underlying, { forcePreipo: kind === "Pre-IPO" });
+    const price = px(ticker.markPrice) ?? px(ticker.lastPrice);
+    const oiBase = oiBySymbol.get(symbol);
+    observe(
+      observations,
+      markets,
+      symbol,
+      classifiedName.underlying,
+      classifiedName.category,
+      weexQuoteVolumeUsd(ticker),
+      oiBase === undefined ? null : mul(oiBase, price),
+      price,
+    );
+  }
+  return shell(null, markets);
+}
+
+function coinbaseVenue(feeds: PerpsFeeds, observations: Observation[]): PerpsVenueSnapshot | null {
+  const feed = feeds.coinbase;
+  if (!feed) return null;
+  const spec = perpsDirectSpec("Coinbase International");
+  const shell = (error: string | null, markets: PerpsMarketSnapshot[] = [], note = spec.note) =>
+    shellFromSpec(spec, feeds.capturedAt, error, markets, note);
+  if (feed.error) return shell(feed.error);
+  const markets: PerpsMarketSnapshot[] = [];
+  let listed = 0;
+  let paused = 0;
+  for (const row of asList(feed.data)) {
+    const instrument = rec(row);
+    if (!instrument || text(instrument.type) !== "PERP") continue;
+    const kind = text(instrument.underlying_type);
+    if (kind !== "EQUITY" && kind !== "EQUITY_ETF" && kind !== "PREIPO") continue;
+    const state = text(instrument.trading_state);
+    if (state === "DELISTED") continue;
+    const underlying = normPerpSymbol(text(instrument.base_asset_name) || text(instrument.symbol));
+    const classifiedName = classified(underlying, { forcePreipo: kind === "PREIPO" });
+    if (!isStoredEquityCategory(classifiedName.category) && classifiedName.category !== "preipo") continue;
+    listed += 1;
+    const notional = vol(instrument.notional_24hr);
+    const volume = state === "PAUSED" ? 0 : notional;
+    if (state === "PAUSED") paused += 1;
+    observe(
+      observations,
+      markets,
+      text(instrument.symbol) || underlying,
+      classifiedName.underlying,
+      classifiedName.category,
+      volume,
+      null,
+      null,
+    );
+  }
+  const note =
+    listed > 0 && paused === listed
+      ? `${spec.note} All ${listed} equity instruments on this feed are paused, so 24h notional is $0.`
+      : spec.note;
+  return shell(null, markets, note);
+}
+
 export function parseEquityPerpsFeeds(feeds: PerpsFeeds): PerpsDaySnapshot {
   const capturedMs = Date.parse(feeds.capturedAt);
   const date = easternDayKey((Number.isFinite(capturedMs) ? capturedMs : Date.now()) / 1000);
@@ -1648,11 +1643,20 @@ export function parseEquityPerpsFeeds(feeds: PerpsFeeds): PerpsDaySnapshot {
     kucoinVenue(feeds, referenceObservations),
     extendedVenue(feeds, referenceObservations),
   ];
-  for (const venue of [xtVenue(feeds, referenceObservations), phemexVenue(feeds, referenceObservations), htxVenue(feeds, referenceObservations), grvtVenue(feeds, referenceObservations), apexVenue(feeds, referenceObservations)]) {
+  for (const venue of [
+    xtVenue(feeds, referenceObservations),
+    phemexVenue(feeds, referenceObservations),
+    htxVenue(feeds, referenceObservations),
+    grvtVenue(feeds, referenceObservations),
+    apexVenue(feeds, referenceObservations),
+    weexVenue(feeds, referenceObservations),
+    coinbaseVenue(feeds, referenceObservations),
+  ]) {
     if (venue) tagged.push(venue);
   }
   const reference = buildReference(referenceObservations);
-  const coingecko = coingeckoVenues(feeds, reference);
+  const archiveSymbols = { binance: [] as PerpsArchiveSymbol[], bybit: [] as PerpsArchiveSymbol[] };
+  const coingecko = coingeckoVenues(feeds, reference, archiveSymbols);
   const venues = [
     ...tagged,
     bookVenue(feeds, reference, "lighter"),
@@ -1681,7 +1685,12 @@ export function parseEquityPerpsFeeds(feeds: PerpsFeeds): PerpsDaySnapshot {
     if (venue) venues.push(venue);
   }
   fillMissingOpenInterest(venues, coingecko.points);
-  const annotated = venues.map(annotateCredibility).sort((a, b) => a.venue.localeCompare(b.venue));
+  const annotated = venues.map(annotateCredibility).map(markQuietOnchainBook).sort((a, b) => a.venue.localeCompare(b.venue));
 
-  return { date, capturedAt: feeds.capturedAt, venues: annotated };
+  return {
+    date,
+    capturedAt: feeds.capturedAt,
+    venues: annotated,
+    archiveSymbols,
+  };
 }

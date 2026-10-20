@@ -54,7 +54,16 @@ const INDEX_ALIASES: Record<string, string> = {
   HSI: "Hang Seng index",
   HSCHKD: "HS China Ent. index",
   GER40: "DAX index",
+  DAX: "DAX index",
+  GDAXI: "DAX index",
+  DE40: "DAX index",
   UK100: "FTSE 100 index",
+  FTSE: "FTSE 100 index",
+  UKX: "FTSE 100 index",
+  DJI: "Dow 30 index",
+  DJIA: "Dow 30 index",
+  NIK: "Nikkei/Japan 225 index",
+  NKY: "Nikkei/Japan 225 index",
   AUS200: "ASX 200 index",
   TW88: "Taiwan index",
   TWIS: "Taiwan index",
@@ -67,7 +76,7 @@ const INDEX_ALIASES: Record<string, string> = {
 };
 
 const ETF_EQ = new Set(
-  `SPY QQQ IWM DIA VOO SOXX SMH EWY EWJ EWT EWZ EWH INDA KWEB XLE XLK XLU XLV XLF XLI XBI IBB IGV GDX URNM URA REMX DRAM LYTE NCLD MAGS KSTR BOTZ ARKK VUG VGT RSP SNXX MUU NVD SKDD SKUU XNDU KODEX200 SHLD JEPQ KR2550 SPYM`.split(
+  `SPY QQQ IWM DIA VOO SOXX SMH EWY EWJ EWT EWZ EWH INDA KWEB XLE XLK XLU XLV XLF XLI XBI IBB IGV GDX URNM URA REMX DRAM LYTE NCLD MAGS KSTR BOTZ ARKK VUG VGT RSP SNXX NVD SKUU XNDU KODEX200 SHLD JEPQ KR2550 SPYM`.split(
     /\s+/,
   ),
 );
@@ -77,8 +86,14 @@ const ETF_EQ = new Set(
  * separable so the desk can hide them. 2L/3L/2S/3S names (CSOP and similar)
  * are included by suffix as well as this list.
  */
+/**
+ * Single-stock leveraged products that do not use a 2L/3L/2S/3S suffix.
+ * MUU is Direxion Daily MU Bull 2X. MVLL and INTW are GraniteShares 2x long
+ * MRVL and INTC. SKDD is GraniteShares 2x short the SK Hynix ADR. SKHY
+ * (Nasdaq ADS) and SKHYNIX (KRX common) stay stocks and are not aliases.
+ */
 const LEVERAGED_ETF = new Set(
-  `TQQQ SQQQ SOXL SOXS QLD QID SPXL SPXS UPRO SPXU SSO SDS TNA TZA UWM TWM URTY SRTY UDOW SDOW TECL TECS BULZ FNGU FNGD WEBL WEBS CURE LABU LABD FAS FAZ MIDU MIDZ HIBL HIBS NVDL NVDX NVDU TSLL TSLQ CONL MSTU MSTZ METU AMZU AAPU MSFU MSFB GGLL AAPB KORU DFEN WANT NAIL DRN CSOPSKHYNIX2L CSOPSAMSUNG2L CSOPSK2LHKD CSOPSS2LHKD`.split(
+  `TQQQ SQQQ SOXL SOXS QLD QID SPXL SPXS UPRO SPXU SSO SDS TNA TZA UWM TWM URTY SRTY UDOW SDOW TECL TECS BULZ FNGU FNGD WEBL WEBS CURE LABU LABD FAS FAZ MIDU MIDZ HIBL HIBS NVDL NVDX NVDU TSLL TSLQ CONL MSTU MSTZ METU AMZU AAPU MSFU MSFB GGLL AAPB KORU DFEN WANT NAIL DRN MUU MVLL INTW SKDD CSOPSKHYNIX2L CSOPSAMSUNG2L CSOPSK2LHKD CSOPSS2LHKD`.split(
     /\s+/,
   ),
 );
@@ -103,6 +118,8 @@ const ALIAS: Record<string, string> = {
   "SK HYNIX": "SKHYNIX",
   TCNT: "TENCENT",
   VISA: "V",
+  /** Exchange suffix on an Alphabet contract. Same share class as GOOGL. */
+  GOOGLX: "GOOGL",
 };
 
 const STRIP_SUFFIXES = [
@@ -148,9 +165,19 @@ export function normPerpSymbol(sym: string): string {
   return ALIAS[s] ?? s;
 }
 
+/** Explicit leveraged/inverse equity ETF tickers. Suffix rule is separate. */
+export const PERPS_LEVERAGED_ETF_UNDERLYINGS: ReadonlySet<string> = LEVERAGED_ETF;
+/** Pre-IPO names. Stored as a side stat, not in the headline or the ticker list. */
+export const PERPS_PREIPO_UNDERLYINGS: ReadonlySet<string> = PREIPO;
+/** Index aliases collapse to one underlying label. */
+export const PERPS_INDEX_LABELS: Readonly<Record<string, string>> = INDEX_ALIASES;
+/** CSOP-style leveraged suffixes. Applied only when the name is at least this long. */
+export const PERPS_LEVERAGED_SUFFIX = /(?:2L|3L|2S|3S)$/;
+export const PERPS_LEVERAGED_SUFFIX_MIN_LENGTH = 5;
+
 function leveragedName(n: string): boolean {
-  if (LEVERAGED_ETF.has(n)) return true;
-  return n.length >= 5 && /(?:2L|3L|2S|3S)$/.test(n);
+  if (PERPS_LEVERAGED_ETF_UNDERLYINGS.has(n)) return true;
+  return n.length >= PERPS_LEVERAGED_SUFFIX_MIN_LENGTH && PERPS_LEVERAGED_SUFFIX.test(n);
 }
 
 export function classifyPerpUnderlying(n: string): PerpsClass {

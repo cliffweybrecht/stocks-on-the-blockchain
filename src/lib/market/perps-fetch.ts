@@ -1,3 +1,19 @@
+import {
+  assembleArchiveVenue,
+  binanceKlineUrl,
+  binanceMetricsUrl,
+  bybitTradeUrl,
+  dedupeArchiveSymbols,
+  lastBinanceMetricsOpenInterestUsd,
+  previousUtcDay,
+  priorUtcDay,
+  readGzipText,
+  readZipText,
+  sumBinanceDailyQuoteVolume,
+  sumBybitTradeNotional,
+  type PerpsArchiveCheck,
+  type PerpsArchiveSymbolResult,
+} from "./perps-archive";
 import { parseEquityPerpsFeeds, type PerpsFeedResult, type PerpsFeeds } from "./perps-parse";
 import type { PerpsDaySnapshot } from "./perps-snapshot";
 
@@ -158,6 +174,138 @@ async function fetchHtx(): Promise<NonNullable<PerpsFeeds["htx"]>> {
   };
 }
 
+async function getBytes(url: string, timeoutMs = 30_000): Promise<Uint8Array | null> {
+  const response = await fetch(url, {
+    signal: AbortSignal.timeout(timeoutMs),
+    headers: { accept: "*/*", "user-agent": UA },
+  });
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
+  return new Uint8Array(await response.arrayBuffer());
+}
+
+async function fetchWeex(): Promise<NonNullable<PerpsFeeds["weex"]>> {
+  const tickers = await settle(() => getJson("https://api-contract.weex.com/capi/v3/market/ticker/24hr"));
+  const info = await settle(() => getJson("https://api-contract.weex.com/capi/v3/market/exchangeInfo"));
+  if (tickers.error || info.error || tickers.data === null || info.data === null) {
+    return {
+      tickers: tickers.data,
+      exchangeInfo: info.data,
+      openInterest: [],
+      error: tickers.error ?? info.error ?? "empty response",
+    };
+  }
+  const symbols: string[] = [];
+  const rows = asRecord(info.data);
+  const listed = Array.isArray(rows?.symbols) ? rows.symbols : [];
+  for (const row of listed) {
+    const contract = asRecord(row);
+    if (!contract || contract.contractType !== "TRADIFI_PERPETUAL") continue;
+    const kind = contract.underlyingType;
+    if (kind !== "Stocks" && kind !== "Indices" && kind !== "Pre-IPO") continue;
+    if (typeof contract.symbol === "string" && contract.symbol) symbols.push(contract.symbol);
+  }
+  const openInterest = await mapPool(symbols, 8, async (symbol) => {
+    try {
+      return await getJson(
+        `https://api-contract.weex.com/capi/v3/market/openInterest?symbol=${encodeURIComponent(symbol)}`,
+        undefined,
+        15_000,
+      );
+    } catch {
+      return null;
+    }
+  });
+  return { tickers: tickers.data, exchangeInfo: info.data, openInterest, error: null };
+}
+
+async function archiveText(url: string, gzip: boolean): Promise<string | null> {
+  try {
+    const bytes = await getBytes(url);
+    if (!bytes) return null;
+    return gzip ? readGzipText(bytes) : readZipText(bytes);
+  } catch {
+    return null;
+  }
+}
+
+async function loadArchiveDay(
+  day: string,
+  binance: readonly { symbol: string; volumeUsd: number | null }[],
+  bybit: readonly { symbol: string; volumeUsd: number | null }[],
+): Promise<{ binance: PerpsArchiveSymbolResult[]; bybit: PerpsArchiveSymbolResult[] }> {
+  const [binanceRows, bybitRows] = await Promise.all([
+    mapPool(binance, 6, async (row) => {
+      const [kline, metrics] = await Promise.all([
+        archiveText(binanceKlineUrl(row.symbol, day), false),
+        archiveText(binanceMetricsUrl(row.symbol, day), false),
+      ]);
+      return {
+        symbol: row.symbol,
+        coingeckoVolumeUsd: row.volumeUsd,
+        volumeUsd: kline === null ? null : sumBinanceDailyQuoteVolume(kline),
+        openInterestUsd: metrics === null ? null : lastBinanceMetricsOpenInterestUsd(metrics),
+      } satisfies PerpsArchiveSymbolResult;
+    }),
+    mapPool(bybit, 4, async (row) => {
+      const csv = await archiveText(bybitTradeUrl(row.symbol, day), true);
+      return {
+        symbol: row.symbol,
+        coingeckoVolumeUsd: row.volumeUsd,
+        volumeUsd: csv === null ? null : sumBybitTradeNotional(csv),
+        openInterestUsd: null,
+      } satisfies PerpsArchiveSymbolResult;
+    }),
+  ]);
+  return { binance: binanceRows, bybit: bybitRows };
+}
+
+function archiveCheck(
+  utcDate: string,
+  rows: { binance: PerpsArchiveSymbolResult[]; bybit: PerpsArchiveSymbolResult[] },
+  note: string | null,
+): PerpsArchiveCheck {
+  return {
+    utcDate,
+    binance: assembleArchiveVenue(rows.binance, true),
+    bybit: assembleArchiveVenue(rows.bybit, false),
+    note,
+  };
+}
+
+async function fetchArchiveCheck(day: PerpsDaySnapshot): Promise<PerpsArchiveCheck | undefined> {
+  const symbols = day.archiveSymbols;
+  if (!symbols) return undefined;
+  const binance = dedupeArchiveSymbols(symbols.binance);
+  const bybit = dedupeArchiveSymbols(symbols.bybit);
+  const utcDate = priorUtcDay(day.capturedAt);
+  if (!utcDate) return undefined;
+  if (binance.length === 0 && bybit.length === 0) {
+    return archiveCheck(utcDate, { binance: [], bybit: [] }, "No CoinGecko equity symbols, so the archive cross-check was not downloaded.");
+  }
+  const first = await loadArchiveDay(utcDate, binance, bybit);
+  const firstCheck = archiveCheck(utcDate, first, null);
+  const binanceMissing = binance.length > 0 && firstCheck.binance.covered === 0;
+  const bybitMissing = bybit.length > 0 && firstCheck.bybit.covered === 0;
+  const oneMissing =
+    (binanceMissing && bybit.length > 0 && !bybitMissing) || (bybitMissing && binance.length > 0 && !binanceMissing);
+  if (!binanceMissing && !bybitMissing) return firstCheck;
+  if (oneMissing) {
+    const waiting = binanceMissing ? "Binance" : "Bybit";
+    return archiveCheck(utcDate, first, `${waiting} archive for this UTC day was not published. The other venue stays on this day.`);
+  }
+  const earlier = previousUtcDay(utcDate);
+  if (!earlier) return firstCheck;
+  const second = await loadArchiveDay(earlier, binance, bybit);
+  const secondCheck = archiveCheck(
+    earlier,
+    second,
+    "The prior UTC day was not published yet. This cross-check uses the previous UTC day.",
+  );
+  if (secondCheck.binance.covered > 0 || secondCheck.bybit.covered > 0) return secondCheck;
+  return archiveCheck(utcDate, first, "The official archive for the prior UTC day was not published.");
+}
+
 function dexNames(payload: unknown): string[] {
   if (!Array.isArray(payload)) return [];
   const names: string[] = [];
@@ -176,12 +324,14 @@ export async function fetchEquityPerpsFeeds(capturedAt: string): Promise<PerpsFe
     okxInstruments,
     okxTickers,
     okxOi,
+    okxFunding,
     gate,
     mexc,
     aster,
     kucoin,
     extended,
     lighter,
+    lighterFunding,
     lighterRobinhood,
     ondo,
     variational,
@@ -206,6 +356,8 @@ export async function fetchEquityPerpsFeeds(capturedAt: string): Promise<PerpsFe
     pacifica,
     orderly,
     paradex,
+    weex,
+    coinbase,
   ] = await Promise.all([
     settle(() => postInfo({ type: "perpDexs" })),
     pair(
@@ -215,6 +367,7 @@ export async function fetchEquityPerpsFeeds(capturedAt: string): Promise<PerpsFe
     settle(() => getJson("https://www.okx.com/api/v5/public/instruments?instType=SWAP")),
     settle(() => getJson("https://www.okx.com/api/v5/market/tickers?instType=SWAP")),
     settle(() => getJson("https://www.okx.com/api/v5/public/open-interest?instType=SWAP")),
+    settle(() => getJson("https://www.okx.com/api/v5/public/funding-rate?instId=ANY", undefined, 20_000)),
     pair(
       () => getJson("https://api.gateio.ws/api/v4/futures/usdt/tickers"),
       () => getJson("https://api.gateio.ws/api/v4/futures/usdt/contracts"),
@@ -234,6 +387,7 @@ export async function fetchEquityPerpsFeeds(capturedAt: string): Promise<PerpsFe
       }),
     ),
     settle(() => getJson("https://mainnet.zklighter.elliot.ai/api/v1/orderBookDetails")),
+    settle(() => getJson("https://mainnet.zklighter.elliot.ai/api/v1/funding-rates", undefined, 20_000)),
     settle(() => getJson("https://api.rh.lighter.xyz/api/v1/orderBookDetails")),
     settle(() => getJson("https://api.ondoperps.xyz/v1/perps/contracts")),
     settle(() => getJson("https://omni-client-api.prod.ap-northeast-1.variational.io/metadata/stats")),
@@ -266,6 +420,8 @@ export async function fetchEquityPerpsFeeds(capturedAt: string): Promise<PerpsFe
     settle(() => getJson("https://api.pacifica.fi/api/v1/info/prices")),
     settle(() => getJson("https://api.orderly.org/v1/public/futures")),
     settle(() => getJson("https://api.prod.paradex.trade/v1/markets/summary?market=ALL")),
+    fetchWeex(),
+    settle(() => getJson("https://api.international.coinbase.com/api/v1/instruments")),
   ]);
 
   let hyperliquid: PerpsFeeds["hyperliquid"] = { dexs: [], error: hyperliquidDexs.error };
@@ -291,6 +447,8 @@ export async function fetchEquityPerpsFeeds(capturedAt: string): Promise<PerpsFe
       openInterest: okxOi.data,
       oiError: okxOi.error,
       error: okxError,
+      funding: okxFunding.data,
+      fundingError: okxFunding.error,
     },
     gate: { tickers: gate.left, contracts: gate.right, error: gate.error },
     mexc: { ticker: mexc.left, detail: mexc.right, error: mexc.error },
@@ -298,6 +456,7 @@ export async function fetchEquityPerpsFeeds(capturedAt: string): Promise<PerpsFe
     kucoin,
     extended,
     lighter,
+    lighterFunding,
     lighterRobinhood,
     ondo,
     variational,
@@ -322,11 +481,28 @@ export async function fetchEquityPerpsFeeds(capturedAt: string): Promise<PerpsFe
     pacifica,
     orderly,
     paradex,
+    weex,
+    coinbase,
   };
 }
 
 export async function captureEquityPerpsSnapshot(now = new Date()): Promise<PerpsDaySnapshot> {
   const capturedAt = now.toISOString();
   const feeds = await fetchEquityPerpsFeeds(capturedAt);
-  return parseEquityPerpsFeeds(feeds);
+  const day = parseEquityPerpsFeeds(feeds);
+  let archive: PerpsArchiveCheck | undefined;
+  try {
+    archive = await fetchArchiveCheck(day);
+  } catch (error) {
+    const utcDate = priorUtcDay(day.capturedAt);
+    if (utcDate) {
+      archive = archiveCheck(
+        utcDate,
+        { binance: [], bybit: [] },
+        error instanceof Error ? error.message.slice(0, 180) : "Archive cross-check failed.",
+      );
+    }
+  }
+  const { archiveSymbols: _symbols, ...stored } = day;
+  return archive ? { ...stored, archive } : stored;
 }

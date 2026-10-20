@@ -32,6 +32,18 @@ export function PerpsHomeCard({ summary }: { summary: PerpsHomeSummary }) {
         <p className="mt-1 max-w-2xl text-[11px] leading-snug text-muted-foreground" data-perps-home-caption>
           {summary.readError ?? summary.caption}
         </p>
+        {summary.asOf ? (
+          <p className="mt-1 text-[11px] leading-snug text-muted-foreground" data-perps-as-of>
+            {summary.asOf}
+          </p>
+        ) : null}
+        {summary.sources.length > 0 ? (
+          <ul className="mt-1 space-y-0.5 text-[11px] leading-snug text-muted-foreground" data-perps-sources>
+            {summary.sources.map((source) => (
+              <li key={source.name}>{source.line}</li>
+            ))}
+          </ul>
+        ) : null}
         <div className="mt-3 grid grid-cols-3 gap-3">
           <Tier label="Onchain" value={summary.onchainUsd} />
           <Tier label="Major CEX" value={summary.cexDirectUsd} />

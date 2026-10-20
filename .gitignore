@@ -49,7 +49,9 @@ next-env.d.ts
 !/data/volume-snapshots/solana.json
 !/data/volume-snapshots/robinhood.json
 !/data/volume-snapshots/base.json
+!/data/volume-snapshots/base-pools.json
 !/data/volume-snapshots/bnb.json
+!/data/volume-snapshots/bnb-pools.json
 !/data/volume-snapshots/solana-asset-daily.json
 !/data/volume-snapshots/robinhood-asset-daily.json
 !/data/volume-snapshots/base-asset-daily.json
@@ -58,6 +60,10 @@ next-env.d.ts
 # Equity perp snapshots. perps.json is the tracked nightly file.
 /data/perps-snapshots/*.json
 !/data/perps-snapshots/perps.json
+
+# Equity lending snapshots. One America/New_York day per file. The committed
+# day is tracked with git add -f; later days follow the same way.
+/data/lending-snapshots/*.json
 
 # Cached cross-pool Gecko daily volume. Rebuilt in the background.
 /data/cache/

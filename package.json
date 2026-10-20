@@ -12,9 +12,10 @@
     "snapshot:volume": "tsx scripts/snapshot-volume.ts",
     "snapshot:volume:hourly": "tsx scripts/snapshot-volume-hourly.ts",
     "snapshot:robinhood-volume": "python scripts/snapshot-robinhood-volume.py",
-    "snapshot:bnb-volume": "python scripts/snapshot-bnb-volume.py",
+    "snapshot:bnb-volume": "python3 scripts/snapshot-bnb-volume.py",
     "snapshot:base-volume": "python3 scripts/snapshot-base-volume.py",
     "snapshot:perps": "tsx scripts/snapshot-perps.ts",
+    "snapshot:lending": "tsx scripts/snapshot-lending.ts",
     "snapshot:land": "tsx scripts/land-volume-snapshot.ts"
   },
   "dependencies": {

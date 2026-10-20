@@ -1,12 +1,25 @@
+import type { PerpsArchiveCheck, PerpsArchiveSymbol } from "./perps-archive";
 import { VOLUME_CHART_RANGES, type VolumeChartRangeId } from "./daily-volume-view";
+import {
+  compactPerpsDay,
+  encodeCompactDay,
+  isCompactDay,
+  parseCompactDay,
+  type PerpsCompactDay,
+  type PerpsCompactPart,
+  type PerpsCompactTicker,
+} from "./perps-compact";
 import {
   isStoredEquityCategory,
   perpGroupLabel,
   perpVenueZeroFee,
   type PerpsCategory,
 } from "./perps-classify";
+import { fundingSpreads, type FundingSpreadRow } from "./perps-funding";
 import { hip3Dex, perpPlace } from "./perps-meta";
+import { perpsFeedKind } from "./perps-sources";
 import { compareNullableDesc, sumNullable } from "./numbers";
+import { assertAppendOnlySnapshot } from "./snapshot-land";
 import { easternDayKey, utcInstantForDayKey } from "./volume-snapshots";
 
 /**
@@ -14,9 +27,13 @@ import { easternDayKey, utcInstantForDayKey } from "./volume-snapshots";
  * One record per America/New_York date. Null is unreported, never coerced to 0.
  * Ostium stores lifetime volume; a daily figure is derived only when the
  * previous Eastern date also has a real lifetime number.
+ *
+ * The file schema is equity-perps-v2: venue category buckets plus a capped
+ * ticker list. equity-perps-v1 per-market rows migrate on read.
  */
 
-export const PERPS_SNAPSHOT_SCHEMA = "equity-perps-v1";
+export const PERPS_SNAPSHOT_SCHEMA_V1 = "equity-perps-v1";
+export const PERPS_SNAPSHOT_SCHEMA = "equity-perps-v2";
 export const PERPS_SNAPSHOT_FILE = "perps.json";
 
 /**
@@ -30,6 +47,55 @@ export const PERPS_THIN_VOLUME_USD = 100_000_000;
 export type PerpsTier = "onchain" | "cex-direct" | "cex-coingecko" | "long-tail";
 export type PerpsStoredCategory = PerpsCategory | "preipo";
 export type PerpsVolumeWindow = "rolling-24h" | "et-day" | "lifetime" | "unavailable";
+/** fresh: this capture succeeded. stale: this capture failed and an older good row exists. failed: this capture failed and there is no older good row. */
+export type PerpsVenueQuality = "fresh" | "stale" | "failed";
+
+/** One informational flag stored on a new row. Absent on older rows. */
+export interface PerpsDataCheck {
+  code: string;
+  text: string;
+}
+
+/**
+ * Volume and open interest for the credibility screen.
+ * A market with no volume does not have to report open interest.
+ * When only some positive-volume markets report it, the screen uses that
+ * covered subset if it is at least half the venue volume. A thinner fill is
+ * treated as missing, so a handful of open-interest prints cannot exclude
+ * the rest of the book.
+ */
+export function perpsScreenInputs(
+  markets: readonly Pick<PerpsMarketSnapshot, "category" | "volume24hUsd" | "openInterestUsd">[],
+): { volumeUsd: number | null; openInterestUsd: number | null } {
+  const volumes: (number | null)[] = [];
+  const ois: (number | null)[] = [];
+  let positive = 0;
+  let covered = 0;
+  let coveredVolume = 0;
+  let coveredOpenInterest = 0;
+  for (const market of markets) {
+    if (market.category === "preipo") continue;
+    volumes.push(market.volume24hUsd);
+    ois.push(market.openInterestUsd);
+    const volume = market.volume24hUsd;
+    const openInterest = market.openInterestUsd;
+    if (typeof volume === "number" && Number.isFinite(volume) && volume > 0) {
+      positive += 1;
+      if (typeof openInterest === "number" && Number.isFinite(openInterest)) {
+        covered += 1;
+        coveredVolume += volume;
+        coveredOpenInterest += openInterest;
+      }
+    }
+  }
+  const volumeUsd = sumNullable(volumes);
+  if (positive === 0) return { volumeUsd, openInterestUsd: null };
+  if (covered === positive) return { volumeUsd, openInterestUsd: sumNullable(ois) };
+  if (volumeUsd !== null && volumeUsd > 0 && coveredVolume / volumeUsd >= 0.5) {
+    return { volumeUsd: coveredVolume, openInterestUsd: coveredOpenInterest };
+  }
+  return { volumeUsd, openInterestUsd: null };
+}
 
 export function perpsExcludeReason(volumeUsd: number | null, openInterestUsd: number | null): string | null {
   if (volumeUsd === null || openInterestUsd === null || !(volumeUsd > 0)) return null;
@@ -54,6 +120,11 @@ export interface PerpsMarketSnapshot {
   lifetimeVolumeUsd?: number | null;
   /** Venue-reported funding rate as a decimal. Interval differs by venue. Absent when unknown. */
   fundingRate?: number | null;
+  /**
+   * Native quote interval in hours, when this capture's feed included one.
+   * Absent on older rows and when the feed did not say. Not filled from a catalog.
+   */
+  fundingIntervalHours?: number | null;
   priceUsd: number | null;
 }
 
@@ -66,11 +137,23 @@ export interface PerpsVenueSnapshot {
   capturedAt: string;
   error: string | null;
   /**
+   * Absent on rows written before quality was stored. Readers treat a missing
+   * value as fresh when error is null, and failed when error is set.
+   */
+  quality?: PerpsVenueQuality;
+  /** Last capture that returned a book. Absent when this row has never succeeded. */
+  lastGoodAt?: string | null;
+  /**
    * False when the venue fails the volume/OI screen. Absent on older rows,
    * which stay in the headline.
    */
   credible?: boolean;
   excludeReason?: string | null;
+  /**
+   * True when an onchain book succeeded and contained no equity markets.
+   * Absent otherwise, including failed requests and older rows.
+   */
+  noEquity?: boolean;
   markets: PerpsMarketSnapshot[];
 }
 
@@ -78,11 +161,26 @@ export interface PerpsDaySnapshot {
   date: string;
   capturedAt: string;
   venues: PerpsVenueSnapshot[];
+  /**
+   * Exchange symbols for the archive cross-check. Used at capture time and
+   * dropped when the day is compacted. Not written to the snapshot file.
+   */
+  archiveSymbols?: { binance: PerpsArchiveSymbol[]; bybit: PerpsArchiveSymbol[] };
+  /** Official-archive cross-check. Stored as a short array on the compact day. */
+  archive?: PerpsArchiveCheck;
+  /**
+   * Informational flags versus the previous stored day. Absent on older rows
+   * and when the check itself failed. An empty array means the watchdog ran clean.
+   */
+  checks?: PerpsDataCheck[];
 }
 
+/** A capture day (full book) or a compact stored day. */
+export type PerpsStoredDay = PerpsDaySnapshot | PerpsCompactDay;
+
 export interface PerpsSnapshotFile {
-  schema: typeof PERPS_SNAPSHOT_SCHEMA;
-  records: PerpsDaySnapshot[];
+  schema: typeof PERPS_SNAPSHOT_SCHEMA | typeof PERPS_SNAPSHOT_SCHEMA_V1;
+  records: PerpsStoredDay[];
   readError?: string;
 }
 
@@ -124,6 +222,7 @@ function parseMarket(value: unknown): PerpsMarketSnapshot | null {
     market.lifetimeVolumeUsd = finiteOrNull(row.lifetimeVolumeUsd);
   }
   if (row.fundingRate !== undefined) market.fundingRate = finiteOrNull(row.fundingRate);
+  if (row.fundingIntervalHours !== undefined) market.fundingIntervalHours = finiteOrNull(row.fundingIntervalHours);
   return market;
 }
 
@@ -149,8 +248,15 @@ function parseVenue(value: unknown): PerpsVenueSnapshot | null {
     error: typeof row.error === "string" && row.error ? row.error : null,
     credible: typeof row.credible === "boolean" ? row.credible : true,
     excludeReason: typeof row.excludeReason === "string" && row.excludeReason ? row.excludeReason : null,
+    ...(row.noEquity === true ? { noEquity: true } : {}),
     markets,
   };
+}
+
+function recordHasMarkets(row: object): boolean {
+  const venues = (row as { venues?: unknown }).venues;
+  if (!Array.isArray(venues)) return false;
+  return venues.some((venue) => venue && typeof venue === "object" && Array.isArray((venue as { markets?: unknown }).markets));
 }
 
 export function parsePerpsSnapshotFile(raw: unknown): PerpsSnapshotFile {
@@ -159,41 +265,115 @@ export function parsePerpsSnapshotFile(raw: unknown): PerpsSnapshotFile {
   }
   const recordsRaw = (raw as { records?: unknown }).records;
   if (!Array.isArray(recordsRaw)) return emptyPerpsSnapshotFile("Equity-perp snapshot file has no records array.");
-  const records: PerpsDaySnapshot[] = [];
+  const records: PerpsCompactDay[] = [];
   for (const row of recordsRaw) {
     if (!row || typeof row !== "object" || Array.isArray(row)) continue;
     const date = (row as { date?: unknown }).date;
     if (typeof date !== "string" || !DAY_KEY.test(date)) continue;
-    const venuesRaw = (row as { venues?: unknown }).venues;
-    const venues = Array.isArray(venuesRaw)
-      ? venuesRaw.map(parseVenue).filter((venue): venue is PerpsVenueSnapshot => venue !== null)
-      : [];
     const capturedAt = (row as { capturedAt?: unknown }).capturedAt;
-    records.push({
+    if (recordHasMarkets(row)) {
+      const venuesRaw = (row as { venues?: unknown }).venues;
+      const venues = Array.isArray(venuesRaw)
+        ? venuesRaw.map(parseVenue).filter((venue): venue is PerpsVenueSnapshot => venue !== null)
+        : [];
+      records.push(
+        compactPerpsDay({
+          date,
+          capturedAt: typeof capturedAt === "string" ? capturedAt : "",
+          venues,
+        }),
+      );
+      continue;
+    }
+    const compact = parseCompactDay({
       date,
-      capturedAt: typeof capturedAt === "string" ? capturedAt : "",
-      venues,
+      capturedAt,
+      venues: (row as { venues?: unknown }).venues,
+      tickers: (row as { tickers?: unknown }).tickers,
+      arc: (row as { arc?: unknown }).arc,
+      arcNote: (row as { arcNote?: unknown }).arcNote,
+      names: (row as { names?: unknown }).names,
+      ck: (row as { ck?: unknown }).ck,
     });
+    if (compact) records.push(compact);
   }
   records.sort((a, b) => a.date.localeCompare(b.date));
   return { schema: PERPS_SNAPSHOT_SCHEMA, records };
 }
 
-export function serializePerpsSnapshot(file: PerpsSnapshotFile): string {
-  const body: PerpsSnapshotFile = {
-    schema: PERPS_SNAPSHOT_SCHEMA,
-    records: [...file.records].sort((a, b) => a.date.localeCompare(b.date)),
-  };
-  return `${JSON.stringify(body, null, 2)}\n`;
+function storedDay(row: PerpsStoredDay): PerpsCompactDay {
+  return isCompactDay(row) ? row : compactPerpsDay(row);
 }
 
-/** Replace the same Eastern date. Older dates stay byte-stable inputs to the land guard. */
+export function serializePerpsSnapshot(file: PerpsSnapshotFile): string {
+  const records = file.records
+    .map(storedDay)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map(encodeCompactDay);
+  return `${JSON.stringify({ schema: PERPS_SNAPSHOT_SCHEMA, records })}\n`;
+}
+
+/** Replace the same Eastern date. Stored records are compact v2. */
 export function mergePerpsDay(file: PerpsSnapshotFile, day: PerpsDaySnapshot): PerpsSnapshotFile {
   if (!DAY_KEY.test(day.date)) throw new Error(`Refusing perps snapshot: ${day.date} is not YYYY-MM-DD.`);
-  const records = file.records.filter((row) => row.date !== day.date);
-  records.push(day);
+  const records = file.records.map(storedDay).filter((row) => row.date !== day.date);
+  records.push(compactPerpsDay(day));
   records.sort((a, b) => a.date.localeCompare(b.date));
   return { schema: PERPS_SNAPSHOT_SCHEMA, records };
+}
+
+function inputRecordDates(raw: unknown): string[] | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const records = (raw as { records?: unknown }).records;
+  if (!Array.isArray(records)) return null;
+  const dates: string[] = [];
+  for (const row of records) {
+    if (!row || typeof row !== "object" || Array.isArray(row)) return null;
+    const date = (row as { date?: unknown }).date;
+    if (typeof date !== "string" || !DAY_KEY.test(date)) return null;
+    dates.push(date);
+  }
+  return dates;
+}
+
+function isStoredPerpsV2(raw: unknown): boolean {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return false;
+  if ((raw as { schema?: unknown }).schema !== PERPS_SNAPSHOT_SCHEMA) return false;
+  const records = (raw as { records?: unknown }).records;
+  if (!Array.isArray(records)) return false;
+  for (const row of records) {
+    if (!row || typeof row !== "object" || Array.isArray(row)) return false;
+    if (recordHasMarkets(row)) return false;
+  }
+  return true;
+}
+
+/**
+ * Append-only land for the perps file. A v2 file uses the shared guard.
+ * A v1 per-market file may be rewritten into v2 as long as each old date
+ * migrates to the same compact row. Other chains do not call this.
+ */
+export function assertPerpsLandSnapshot(
+  before: unknown,
+  after: unknown,
+): { ok: true; added: string[] } | { ok: false; reason: string } {
+  if (isStoredPerpsV2(before) && isStoredPerpsV2(after)) return assertAppendOnlySnapshot(before, after);
+  const prior = canonicalPerpsPayload(before);
+  if (!prior.ok) return prior;
+  const next = canonicalPerpsPayload(after);
+  if (!next.ok) return next;
+  return assertAppendOnlySnapshot(prior.value, next.value);
+}
+
+function canonicalPerpsPayload(raw: unknown): { ok: true; value: unknown } | { ok: false; reason: string } {
+  const dates = inputRecordDates(raw);
+  if (!dates) return { ok: false, reason: "Snapshot JSON must be an object with a records array." };
+  const parsed = parsePerpsSnapshotFile(raw);
+  if (parsed.readError) return { ok: false, reason: parsed.readError };
+  if (parsed.records.length !== dates.length) {
+    return { ok: false, reason: "Equity-perp snapshot has a record that could not be migrated." };
+  }
+  return { ok: true, value: JSON.parse(serializePerpsSnapshot(parsed)) as unknown };
 }
 
 export function previousEasternDayKey(day: string): string | null {
@@ -225,13 +405,19 @@ export interface PerpsViewVenue {
   windowNote: string;
   capturedAt: string;
   error: string | null;
+  quality?: PerpsVenueQuality;
+  lastGoodAt?: string | null;
   zeroFee: boolean;
   credible: boolean;
   excludeReason: string | null;
+  /** Successful onchain book with zero equity markets. Omitted otherwise. */
+  noEquity?: boolean;
   chain: string;
   operator: string;
   onchainChain: string | null;
   markets: PerpsViewMarket[];
+  /** Set on compact days. Sums use these buckets instead of markets. */
+  parts?: Partial<Record<PerpsStoredCategory, PerpsCompactPart>>;
 }
 
 export interface PerpsViewDay {
@@ -240,6 +426,13 @@ export interface PerpsViewDay {
   capturedAt: string;
   closed: boolean;
   venues: PerpsViewVenue[];
+  /** Set on compact days. Underlying and funding lists read this instead of markets. */
+  tickers?: PerpsCompactTicker[];
+  /** Full equity name set when the snapshot stored one. */
+  names?: string[];
+  archive?: PerpsArchiveCheck;
+  /** Informational flags. Absent when this row was written before checks existed. */
+  checks?: PerpsDataCheck[];
 }
 
 export interface PerpsDeskModel {
@@ -257,6 +450,37 @@ function lifetimeBySymbol(venue: PerpsVenueSnapshot | undefined): Map<string, nu
   return map;
 }
 
+function lifetimesFromRecord(record: PerpsStoredDay | undefined): Map<string, number> {
+  if (!record) return new Map();
+  if (isCompactDay(record)) {
+    const venue = record.venues.find((row) => row.venue === "Ostium");
+    const map = new Map<string, number>();
+    for (const row of venue?.lifetime ?? []) map.set(row.symbol, row.lifetimeVolumeUsd);
+    return map;
+  }
+  return lifetimeBySymbol(record.venues.find((row) => row.venue === "Ostium"));
+}
+
+const PART_CATEGORIES: readonly PerpsStoredCategory[] = ["stock", "etf", "leveraged-etf", "index", "preipo"];
+
+function partTotals(
+  parts: Partial<Record<PerpsStoredCategory, PerpsCompactPart>>,
+  include: (category: PerpsStoredCategory) => boolean,
+): { volumeUsd: number | null; openInterestUsd: number | null; marketCount: number } {
+  const volumes: (number | null)[] = [];
+  const ois: (number | null)[] = [];
+  let marketCount = 0;
+  for (const category of PART_CATEGORIES) {
+    if (!include(category)) continue;
+    const part = parts[category];
+    if (!part) continue;
+    volumes.push(part.volumeUsd ?? null);
+    ois.push(part.openInterestUsd ?? null);
+    marketCount += part.markets;
+  }
+  return { volumeUsd: sumNullable(volumes), openInterestUsd: sumNullable(ois), marketCount };
+}
+
 function toViewMarket(market: PerpsMarketSnapshot, volume24hUsd: number | null): PerpsViewMarket {
   return {
     underlying: market.underlying,
@@ -268,10 +492,11 @@ function toViewMarket(market: PerpsMarketSnapshot, volume24hUsd: number | null):
   };
 }
 
-function venuePresentation(venue: PerpsVenueSnapshot): Pick<
-  PerpsViewVenue,
-  "credible" | "excludeReason" | "chain" | "operator" | "onchainChain"
-> {
+function venuePresentation(venue: {
+  venue: string;
+  credible?: boolean;
+  excludeReason?: string | null;
+}): Pick<PerpsViewVenue, "credible" | "excludeReason" | "chain" | "operator" | "onchainChain"> {
   const place = perpPlace(venue.venue);
   return {
     credible: venue.credible !== false,
@@ -282,6 +507,169 @@ function venuePresentation(venue: PerpsVenueSnapshot): Pick<
   };
 }
 
+function ostiumWindow(diffs: number): { volumeWindow: PerpsViewVenue["volumeWindow"]; windowNote: string } {
+  if (diffs > 0) {
+    return {
+      volumeWindow: "lifetime-diff",
+      windowNote: "Daily change in Ostium lifetime volume versus the previous Eastern snapshot.",
+    };
+  }
+  return {
+    volumeWindow: "lifetime",
+    windowNote: "Ostium reports lifetime volume only. A daily figure needs a snapshot on the previous Eastern date.",
+  };
+}
+
+function ostiumDiffs(
+  lifetime: readonly { symbol: string; underlying: string; category: PerpsStoredCategory; lifetimeVolumeUsd: number }[],
+  prior: ReadonlyMap<string, number>,
+): { diffs: number; byCategory: Map<PerpsStoredCategory, number>; byGroup: Map<string, number> } {
+  const byCategory = new Map<PerpsStoredCategory, number>();
+  const byGroup = new Map<string, number>();
+  let diffs = 0;
+  for (const row of lifetime) {
+    const before = prior.get(row.symbol);
+    if (typeof before !== "number" || row.lifetimeVolumeUsd < before) continue;
+    const daily = row.lifetimeVolumeUsd - before;
+    diffs += 1;
+    byCategory.set(row.category, (byCategory.get(row.category) ?? 0) + daily);
+    const group = perpGroupLabel(row.underlying);
+    byGroup.set(group, (byGroup.get(group) ?? 0) + daily);
+  }
+  return { diffs, byCategory, byGroup };
+}
+
+function compactDayToView(day: PerpsCompactDay, prior: ReadonlyMap<string, number>, nowUnixSeconds: number): PerpsViewDay {
+  const ostium = day.venues.find((venue) => venue.venue === "Ostium");
+  const diff = ostiumDiffs(ostium?.lifetime ?? [], prior);
+  const tickers = day.tickers.map((ticker) => {
+    const extra = diff.byGroup.get(ticker.group);
+    if (extra === undefined) return ticker;
+    const onchain = ticker.tiers.onchain ?? {};
+    const venues = onchain.venues?.includes("Ostium") ? onchain.venues : [...(onchain.venues ?? []), "Ostium"];
+    const books = ticker.books
+      ? ticker.books.some((book) => book.venue === "Ostium")
+        ? ticker.books.map((book) =>
+            book.venue === "Ostium"
+              ? { ...book, volumeUsd: sumNullable([book.volumeUsd ?? null, extra]) ?? undefined }
+              : book,
+          )
+        : [...ticker.books, { venue: "Ostium", volumeUsd: extra }].sort((a, b) => a.venue.localeCompare(b.venue))
+      : undefined;
+    return {
+      ...ticker,
+      ...(books ? { books } : {}),
+      tiers: {
+        ...ticker.tiers,
+        onchain: {
+          ...onchain,
+          volumeUsd: sumNullable([onchain.volumeUsd ?? null, extra]) ?? undefined,
+          venues: venues.sort((a, b) => a.localeCompare(b)),
+        },
+      },
+    };
+  });
+  const venues = day.venues.map((venue) => {
+    const parts: Partial<Record<PerpsStoredCategory, PerpsCompactPart>> = { ...venue.parts };
+    let volumeWindow: PerpsViewVenue["volumeWindow"] = venue.volumeWindow;
+    let windowNote = venue.windowNote;
+    if (venue.venue === "Ostium") {
+      for (const [category, daily] of diff.byCategory) {
+        const current = parts[category] ?? { markets: 0 };
+        parts[category] = { ...current, volumeUsd: daily };
+      }
+      const window = ostiumWindow(diff.diffs);
+      volumeWindow = window.volumeWindow;
+      windowNote = window.windowNote;
+    }
+    return {
+      venue: venue.venue,
+      tier: venue.tier,
+      source: venue.source,
+      volumeWindow,
+      windowNote,
+      capturedAt: venue.capturedAt,
+      error: venue.error,
+      ...(venue.quality ? { quality: venue.quality } : {}),
+      ...(venue.lastGoodAt ? { lastGoodAt: venue.lastGoodAt } : {}),
+      zeroFee: venue.venue === "Ostium" ? false : perpVenueZeroFee(venue.venue),
+      ...(venue.noEquity ? { noEquity: true } : {}),
+      ...venuePresentation(venue),
+      markets: [],
+      parts,
+    } satisfies PerpsViewVenue;
+  });
+  return {
+    date: day.date,
+    t: utcInstantForDayKey(day.date),
+    capturedAt: day.capturedAt,
+    closed: perpsDayIsClosed(day.date, nowUnixSeconds),
+    venues,
+    tickers,
+    ...(day.names && day.names.length > 0 ? { names: day.names } : {}),
+    ...(day.archive ? { archive: day.archive } : {}),
+    ...(Array.isArray(day.checks) ? { checks: day.checks } : {}),
+  };
+}
+
+function marketDayToView(day: PerpsDaySnapshot, priorLifetime: ReadonlyMap<string, number>, nowUnixSeconds: number): PerpsViewDay {
+  const venues = day.venues.map((venue) => {
+    if (venue.venue !== "Ostium") {
+      return {
+        venue: venue.venue,
+        tier: venue.tier,
+        source: venue.source,
+        volumeWindow: venue.volumeWindow,
+        windowNote: venue.windowNote,
+        capturedAt: venue.capturedAt,
+        error: venue.error,
+        ...(venue.quality ? { quality: venue.quality } : {}),
+        ...(venue.lastGoodAt ? { lastGoodAt: venue.lastGoodAt } : {}),
+        zeroFee: perpVenueZeroFee(venue.venue),
+        ...(venue.noEquity ? { noEquity: true } : {}),
+        ...venuePresentation(venue),
+        markets: venue.markets.map((market) => toViewMarket(market, market.volume24hUsd)),
+      } satisfies PerpsViewVenue;
+    }
+    let diffs = 0;
+    const markets = venue.markets.map((market) => {
+      const lifetime = market.lifetimeVolumeUsd;
+      const before = priorLifetime.get(market.symbol);
+      let daily: number | null = null;
+      if (typeof lifetime === "number" && Number.isFinite(lifetime) && typeof before === "number" && lifetime >= before) {
+        daily = lifetime - before;
+        diffs += 1;
+      }
+      return toViewMarket(market, daily);
+    });
+    const window = ostiumWindow(diffs);
+    return {
+      venue: venue.venue,
+      tier: venue.tier,
+      source: venue.source,
+      volumeWindow: window.volumeWindow,
+      windowNote: window.windowNote,
+      capturedAt: venue.capturedAt,
+      error: venue.error,
+      ...(venue.quality ? { quality: venue.quality } : {}),
+      ...(venue.lastGoodAt ? { lastGoodAt: venue.lastGoodAt } : {}),
+      zeroFee: false,
+      ...(venue.noEquity ? { noEquity: true } : {}),
+      ...venuePresentation(venue),
+      markets,
+    } satisfies PerpsViewVenue;
+  });
+  return {
+    date: day.date,
+    t: utcInstantForDayKey(day.date),
+    capturedAt: day.capturedAt,
+    closed: perpsDayIsClosed(day.date, nowUnixSeconds),
+    venues,
+    ...(day.archive ? { archive: day.archive } : {}),
+    ...(Array.isArray(day.checks) ? { checks: day.checks } : {}),
+  };
+}
+
 /**
  * Ostium daily volume is lifetime(today) − lifetime(previous Eastern date).
  * A gap, a missing prior print, or a lifetime that fell is left null.
@@ -289,62 +677,8 @@ function venuePresentation(venue: PerpsVenueSnapshot): Pick<
 export function buildPerpsDeskModel(file: PerpsSnapshotFile, nowUnixSeconds: number): PerpsDeskModel {
   const byDate = new Map(file.records.map((row) => [row.date, row]));
   const days: PerpsViewDay[] = file.records.map((day) => {
-    const prior = byDate.get(previousEasternDayKey(day.date) ?? "");
-    const venues = day.venues.map((venue) => {
-      if (venue.venue !== "Ostium") {
-        return {
-          venue: venue.venue,
-          tier: venue.tier,
-          source: venue.source,
-          volumeWindow: venue.volumeWindow,
-          windowNote: venue.windowNote,
-          capturedAt: venue.capturedAt,
-          error: venue.error,
-          zeroFee: perpVenueZeroFee(venue.venue),
-          ...venuePresentation(venue),
-          markets: venue.markets.map((market) => toViewMarket(market, market.volume24hUsd)),
-        } satisfies PerpsViewVenue;
-      }
-      const priorLifetime = lifetimeBySymbol(prior?.venues.find((row) => row.venue === "Ostium"));
-      let diffs = 0;
-      const markets = venue.markets.map((market) => {
-        const lifetime = market.lifetimeVolumeUsd;
-        const before = priorLifetime.get(market.symbol);
-        let daily: number | null = null;
-        if (
-          typeof lifetime === "number" &&
-          Number.isFinite(lifetime) &&
-          typeof before === "number" &&
-          lifetime >= before
-        ) {
-          daily = lifetime - before;
-          diffs += 1;
-        }
-        return toViewMarket(market, daily);
-      });
-      return {
-        venue: venue.venue,
-        tier: venue.tier,
-        source: venue.source,
-        volumeWindow: diffs > 0 ? "lifetime-diff" : "lifetime",
-        windowNote:
-          diffs > 0
-            ? "Daily change in Ostium lifetime volume versus the previous Eastern snapshot."
-            : "Ostium reports lifetime volume only. A daily figure needs a snapshot on the previous Eastern date.",
-        capturedAt: venue.capturedAt,
-        error: venue.error,
-        zeroFee: false,
-        ...venuePresentation(venue),
-        markets,
-      } satisfies PerpsViewVenue;
-    });
-    return {
-      date: day.date,
-      t: utcInstantForDayKey(day.date),
-      capturedAt: day.capturedAt,
-      closed: perpsDayIsClosed(day.date, nowUnixSeconds),
-      venues,
-    };
+    const prior = lifetimesFromRecord(byDate.get(previousEasternDayKey(day.date) ?? ""));
+    return isCompactDay(day) ? compactDayToView(day, prior, nowUnixSeconds) : marketDayToView(day, prior, nowUnixSeconds);
   });
   return { days, readError: file.readError ?? null };
 }
@@ -362,10 +696,15 @@ export interface PerpsVenueRow {
   source: string;
   volumeWindow: string;
   windowNote: string;
+  /** Capture instant for this venue. Falls back to the day when the row omitted its own. */
+  capturedAt: string;
   error: string | null;
+  quality?: PerpsVenueQuality;
+  lastGoodAt?: string | null;
   zeroFee: boolean;
   credible: boolean;
   excludeReason: string | null;
+  noEquity?: boolean;
   chain: string;
   operator: string;
   volumeUsd: number | null;
@@ -424,6 +763,8 @@ export interface PerpsRangeView {
   builders: { dex: string; volumeUsd: number | null; openInterestUsd: number | null; marketCount: number }[];
   fundingVenues: string[];
   funding: PerpsFundingRow[];
+  /** Derived 8h spreads for the newest day in the range. Empty when fewer than two venues have a known interval. */
+  fundingSpreads: FundingSpreadRow[];
   /** Closed days inside the window that contributed a number. */
   reportedDays: number;
   windowDays: number;
@@ -463,11 +804,19 @@ function rollupDay(day: PerpsViewDay, excludeLeveraged: boolean, includeLongTail
   for (const venue of day.venues) {
     const inHeadline = perpsVenueInHeadline(venue, includeLongTail);
     const volumes: (number | null)[] = [];
-    for (const market of venue.markets) {
-      if (inHeadline && market.category === "preipo") preipo.push(market.volume24hUsd);
-      if (inHeadline && market.category === "leveraged-etf") leveraged.push(market.volume24hUsd);
-      if (!marketIncluded(market.category, excludeLeveraged)) continue;
-      volumes.push(market.volume24hUsd);
+    if (venue.parts) {
+      if (inHeadline) {
+        preipo.push(partTotals(venue.parts, (category) => category === "preipo").volumeUsd);
+        leveraged.push(partTotals(venue.parts, (category) => category === "leveraged-etf").volumeUsd);
+      }
+      volumes.push(partTotals(venue.parts, (category) => marketIncluded(category, excludeLeveraged)).volumeUsd);
+    } else {
+      for (const market of venue.markets) {
+        if (inHeadline && market.category === "preipo") preipo.push(market.volume24hUsd);
+        if (inHeadline && market.category === "leveraged-etf") leveraged.push(market.volume24hUsd);
+        if (!marketIncluded(market.category, excludeLeveraged)) continue;
+        volumes.push(market.volume24hUsd);
+      }
     }
     const venueVolume = sumNullable(volumes);
     if (!venue.credible) {
@@ -511,7 +860,7 @@ function rangeLabel(range: VolumeChartRangeId): string {
   return VOLUME_CHART_RANGES.find((row) => row.id === range)?.label ?? range;
 }
 
-function formatEt(iso: string): string {
+export function formatPerpsEt(iso: string): string {
   const t = Date.parse(iso);
   if (!Number.isFinite(t)) return "";
   return new Intl.DateTimeFormat("en-US", {
@@ -522,6 +871,70 @@ function formatEt(iso: string): string {
     minute: "2-digit",
     timeZoneName: "short",
   }).format(new Date(t));
+}
+
+export type PerpsSourceGroup = "Hyperliquid" | "Direct API" | "CoinGecko";
+
+export interface PerpsSourceStamp {
+  name: PerpsSourceGroup;
+  line: string;
+}
+
+const SOURCE_GROUP_ORDER: readonly PerpsSourceGroup[] = ["Hyperliquid", "Direct API", "CoinGecko"];
+
+export function perpsSourceGroup(venue: string, source: string): PerpsSourceGroup {
+  if (venue.startsWith("Hyperliquid")) return "Hyperliquid";
+  return perpsFeedKind(source) === "CoinGecko" ? "CoinGecko" : "Direct API";
+}
+
+function latestIso(values: readonly string[]): string | null {
+  let best = "";
+  let bestT = Number.NEGATIVE_INFINITY;
+  for (const iso of values) {
+    const t = Date.parse(iso);
+    if (Number.isFinite(t) && t >= bestT) {
+      bestT = t;
+      best = iso;
+    }
+  }
+  return best || null;
+}
+
+/** Per-source freshness for one day. A group with no venues is omitted. */
+export function perpsSourceStamps(
+  venues: readonly {
+    venue: string;
+    source: string;
+    capturedAt: string;
+    error: string | null;
+    quality?: PerpsVenueQuality;
+    lastGoodAt?: string | null;
+  }[],
+): PerpsSourceStamp[] {
+  return SOURCE_GROUP_ORDER.flatMap((name) => {
+    const rows = venues.filter((venue) => perpsSourceGroup(venue.venue, venue.source) === name);
+    if (rows.length === 0) return [];
+    const fresh = rows.filter((venue) => perpsVenueQuality(venue) === "fresh");
+    const stale = rows.filter((venue) => perpsVenueQuality(venue) === "stale").length;
+    const failed = rows.filter((venue) => perpsVenueQuality(venue) === "failed").length;
+    const updatedAt = latestIso(fresh.map((venue) => venue.capturedAt));
+    const lastGoodAt = latestIso(rows.flatMap((venue) => (venue.lastGoodAt ? [venue.lastGoodAt] : [])));
+    const bits: string[] = [];
+    if (stale > 0) bits.push(`${stale} stale`);
+    if (failed > 0) bits.push(`${failed} failed`);
+    const tail = bits.length > 0 ? ` · ${bits.join(" · ")}` : "";
+    let line: string;
+    if (fresh.length > 0 && updatedAt) line = `${name} updated ${formatPerpsEt(updatedAt)}${tail}`;
+    else if (lastGoodAt) line = `${name} last good ${formatPerpsEt(lastGoodAt)}${tail}`;
+    else line = `${name}${tail || " · no capture"}`;
+    return [{ name, line }];
+  });
+}
+
+export function perpsAsOfLine(day: { capturedAt: string; date: string; closed: boolean }): string {
+  const when = formatPerpsEt(day.capturedAt);
+  const state = day.closed ? "closed snapshot" : "day still open";
+  return `As of ${when} · Eastern day ${day.date} · ${state}`;
 }
 
 export function selectPerpsRange(
@@ -575,9 +988,9 @@ export function selectPerpsRange(
   } else if (!newest) {
     caption = `${rangeLabel(range)} · no closed Eastern day in this range. 24H is the latest capture, and it is not a closed-day total until 11:59 PM America/New_York.`;
   } else if (range === "24h" && openDay) {
-    caption = `Latest capture ${formatEt(newest.capturedAt)} · Eastern day ${newest.date} has not closed · rolling 24h venue totals, not the 11:59 PM ET snapshot`;
+    caption = `Latest capture ${formatPerpsEt(newest.capturedAt)} · Eastern day ${newest.date} has not closed · rolling 24h venue totals, not the 11:59 PM ET snapshot`;
   } else if (range === "24h") {
-    caption = `24H · ${newest.date} America/New_York · last closed snapshot${capturedAt ? ` · captured ${formatEt(newest.capturedAt)}` : ""}`;
+    caption = `24H · ${newest.date} America/New_York · last closed snapshot${capturedAt ? ` · captured ${formatPerpsEt(newest.capturedAt)}` : ""}`;
   } else {
     caption = `${rangeLabel(range)} · sum of closed Eastern snapshots · ${reportedDays} of ${windowDays} days with a reported total`;
   }
@@ -597,6 +1010,9 @@ export function selectPerpsRange(
         excludeReason: venue.excludeReason,
         chain: venue.chain,
         operator: venue.operator,
+        capturedAt: venue.capturedAt,
+        ...(venue.quality ? { quality: venue.quality } : {}),
+        ...(venue.lastGoodAt ? { lastGoodAt: venue.lastGoodAt } : {}),
         volumeUsd: null,
         openInterestUsd: null,
         marketCount: 0,
@@ -604,11 +1020,18 @@ export function selectPerpsRange(
       const volumes: (number | null)[] = [];
       const ois: (number | null)[] = [];
       let count = 0;
-      for (const market of venue.markets) {
-        if (!marketIncluded(market.category, excludeLeveraged)) continue;
-        volumes.push(market.volume24hUsd);
-        ois.push(market.openInterestUsd);
-        count += 1;
+      if (venue.parts) {
+        const totals = partTotals(venue.parts, (category) => marketIncluded(category, excludeLeveraged));
+        volumes.push(totals.volumeUsd);
+        ois.push(totals.openInterestUsd);
+        count = totals.marketCount;
+      } else {
+        for (const market of venue.markets) {
+          if (!marketIncluded(market.category, excludeLeveraged)) continue;
+          volumes.push(market.volume24hUsd);
+          ois.push(market.openInterestUsd);
+          count += 1;
+        }
       }
       existing.volumeUsd = sumNullable([existing.volumeUsd, sumNullable(volumes)]);
       existing.error = venue.error ?? existing.error;
@@ -621,8 +1044,12 @@ export function selectPerpsRange(
       existing.operator = venue.operator || existing.operator;
       existing.tier = venue.tier;
       if (newest && day.date === newest.date) {
+        existing.capturedAt = venue.capturedAt || existing.capturedAt;
+        existing.quality = venue.quality;
+        existing.lastGoodAt = venue.lastGoodAt;
         existing.openInterestUsd = sumNullable(ois);
         existing.marketCount = count;
+        existing.noEquity = venue.noEquity === true;
       }
       venueMap.set(venue.venue, existing);
     }
@@ -687,6 +1114,7 @@ export function selectPerpsRange(
     builders: facts.builders,
     fundingVenues: facts.fundingVenues,
     funding: facts.funding,
+    fundingSpreads: fundingSpreads(newest?.tickers ?? [], excludeLeveraged),
     reportedDays,
     windowDays,
   };
@@ -777,8 +1205,100 @@ function collectPerpsFacts(
     map.set(market.group, row);
   };
 
+  const touchTicker = (
+    map: Map<string, UnderlyingAcc>,
+    ticker: PerpsCompactTicker,
+    tiers: readonly PerpsTier[],
+    newestDay: boolean,
+  ) => {
+    const slots = tiers.flatMap((tier) => {
+      const slot = ticker.tiers[tier];
+      return slot ? [slot] : [];
+    });
+    if (slots.length === 0) return;
+    const volumeUsd = sumNullable(slots.map((slot) => slot.volumeUsd ?? null));
+    const openInterestUsd = sumNullable(slots.map((slot) => slot.openInterestUsd ?? null));
+    const row = map.get(ticker.group) ?? blankUnderlying(ticker.group);
+    row.volumeUsd = sumNullable([row.volumeUsd, volumeUsd]);
+    for (const slot of slots) {
+      for (const name of slot.venues ?? []) row.venues.add(name);
+    }
+    const cat = row.categories.get(ticker.category) ?? { weight: 0, count: 0 };
+    cat.count += 1;
+    cat.weight += volumeUsd ?? 0;
+    row.categories.set(ticker.category, cat);
+    if (newestDay) row.openInterestUsd = sumNullable([row.openInterestUsd, openInterestUsd]);
+    map.set(ticker.group, row);
+  };
+
   for (const day of selected) {
     const newestDay = Boolean(newest && day.date === newest.date);
+    if (day.tickers) {
+      const tiers: PerpsTier[] = includeLongTail
+        ? ["onchain", "cex-direct", "cex-coingecko", "long-tail"]
+        : ["onchain", "cex-direct", "cex-coingecko"];
+      for (const ticker of day.tickers) {
+        if (!marketIncluded(ticker.category, excludeLeveraged)) continue;
+        touchTicker(underlyingMap, ticker, tiers, newestDay);
+        touchTicker(onchainMap, ticker, ["onchain"], newestDay);
+        if (!newestDay || !ticker.funding) continue;
+        for (const [venueName, rate] of Object.entries(ticker.funding)) {
+          const byVenue = fundingByGroup.get(ticker.group) ?? new Map();
+          const slot = byVenue.get(venueName) ?? { num: 0, den: 0, plain: 0, n: 0 };
+          slot.plain += rate;
+          slot.n += 1;
+          byVenue.set(venueName, slot);
+          fundingByGroup.set(ticker.group, byVenue);
+        }
+      }
+      for (const venue of day.venues) {
+        if (!perpsVenueInHeadline(venue, includeLongTail) || !venue.parts) continue;
+        const included = partTotals(venue.parts, (category) => marketIncluded(category, excludeLeveraged));
+        if (newestDay) {
+          if (included.marketCount > 0) venueCount += 1;
+          marketCount += included.marketCount;
+        }
+        for (const category of ["stock", "leveraged-etf", "etf", "index"] as const) {
+          const part = venue.parts[category];
+          if (!part) continue;
+          const list = categoryVolumes.get(category) ?? [];
+          list.push(part.volumeUsd ?? null);
+          categoryVolumes.set(category, list);
+        }
+        if (venue.tier === "onchain" && venue.onchainChain) {
+          const list = chainVolumes.get(venue.onchainChain) ?? [];
+          list.push(included.volumeUsd);
+          chainVolumes.set(venue.onchainChain, list);
+        }
+        const dex = hip3Dex(venue.venue);
+        if (dex) {
+          const list = builderVolumes.get(dex) ?? [];
+          list.push(included.volumeUsd);
+          builderVolumes.set(dex, list);
+          if (newestDay) {
+            const oi = builderOi.get(dex) ?? [];
+            oi.push(included.openInterestUsd);
+            builderOi.set(dex, oi);
+            builderCount.set(dex, (builderCount.get(dex) ?? 0) + included.marketCount);
+          }
+        }
+        if (newestDay) {
+          let fundingVolume = 0;
+          let anyFunding = false;
+          for (const category of ["stock", "leveraged-etf", "etf", "index"] as const) {
+            if (!marketIncluded(category, excludeLeveraged)) continue;
+            const part = venue.parts[category];
+            if (!part || part.fundingVolumeUsd === undefined) continue;
+            fundingVolume += part.fundingVolumeUsd;
+            anyFunding = true;
+          }
+          if (anyFunding) {
+            fundingVenueVolume.set(venue.venue, (fundingVenueVolume.get(venue.venue) ?? 0) + fundingVolume);
+          }
+        }
+      }
+      continue;
+    }
     for (const venue of day.venues) {
       if (!perpsVenueInHeadline(venue, includeLongTail)) continue;
       const included = venue.markets.filter((market) => marketIncluded(market.category, excludeLeveraged));
@@ -899,14 +1419,20 @@ export interface PerpsHomeSummary {
   venueCount: number;
   marketCount: number;
   caption: string;
+  /** Freshness line for the day behind the card numbers. Null when there is no row. */
+  asOf: string | null;
+  /** Hyperliquid, Direct API, and CoinGecko, in that order, when the day has that group. */
+  sources: PerpsSourceStamp[];
 }
 
 export function perpsHomeSummary(model: PerpsDeskModel): PerpsHomeSummary {
   const view = selectPerpsRange(model.days, "24h", false, false);
+  const date = view.chart[0]?.date ?? null;
+  const day = date ? (model.days.find((row) => row.date === date) ?? null) : null;
   return {
     hasSnapshot: model.days.length > 0 && !model.readError,
     readError: model.readError,
-    date: view.chart[0]?.date ?? null,
+    date,
     capturedAt: view.capturedAt,
     closed: view.chart.length > 0 && !view.openDay,
     totalUsd: view.headlineUsd,
@@ -918,6 +1444,40 @@ export function perpsHomeSummary(model: PerpsDeskModel): PerpsHomeSummary {
     venueCount: view.venueCount,
     marketCount: view.marketCount,
     caption: view.caption,
+    asOf: day ? perpsAsOfLine(day) : null,
+    sources: day ? perpsSourceStamps(day.venues) : [],
+  };
+}
+
+/** Missing quality on an older row: failed when that row recorded an error, otherwise fresh. */
+export function perpsVenueQuality(venue: { quality?: PerpsVenueQuality; error: string | null }): PerpsVenueQuality {
+  if (venue.quality === "fresh" || venue.quality === "stale" || venue.quality === "failed") return venue.quality;
+  return venue.error ? "failed" : "fresh";
+}
+
+/**
+ * A failed venue keeps a null book. When the previous day had a good row,
+ * the status is stale and lastGoodAt is that earlier capture. Yesterday's
+ * volume is not copied forward.
+ */
+export function stampPerpsQuality(day: PerpsDaySnapshot, previous: PerpsCompactDay | null): PerpsDaySnapshot {
+  const prior = new Map((previous?.venues ?? []).map((venue) => [venue.venue, venue]));
+  return {
+    ...day,
+    venues: day.venues.map((venue) => {
+      if (!venue.error) {
+        return { ...venue, quality: "fresh", lastGoodAt: venue.capturedAt };
+      }
+      const earlier = prior.get(venue.venue);
+      const lastGoodAt =
+        earlier && !earlier.error
+          ? earlier.capturedAt || previous?.capturedAt || null
+          : earlier?.quality === "stale" && earlier.lastGoodAt
+            ? earlier.lastGoodAt
+            : null;
+      if (lastGoodAt) return { ...venue, quality: "stale", lastGoodAt };
+      return { ...venue, quality: "failed", lastGoodAt: null };
+    }),
   };
 }
 

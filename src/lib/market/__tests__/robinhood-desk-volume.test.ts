@@ -54,10 +54,10 @@ describe("robinhood snapshot file", () => {
     expect(new Set(dates).size).toBe(dates.length);
     for (const date of dates.slice(13)) expect(date > "2026-10-05").toBe(true);
     const oct5 = days.find((row) => row.date === "2026-10-05");
-    expect(oct5?.combined24hUsd).toBeCloseTo(48_555_668.9);
+    expect(oct5?.combined24hUsd).toBeCloseTo(115_558_513.6);
     expect(oct5?.t).toBe(Date.parse("2026-10-05T04:00:00.000Z") / 1000);
     const oct7 = days.find((row) => row.date === "2026-10-07");
-    expect(oct7?.combined24hUsd).toBeCloseTo(84_008_823.63);
+    expect(oct7?.combined24hUsd).toBeCloseTo(171_520_982.29);
     expect(oct7?.displayedLiquidityUsd).toBeGreaterThan(0);
     const oct7Issuers = robinhoodIssuerRows(oct7 ? [oct7] : []);
     expect(oct7Issuers.map((row) => row.slug)).toEqual(["rhj"]);
@@ -67,15 +67,14 @@ describe("robinhood snapshot file", () => {
     const last = days.find((row) => row.date === "2026-10-05");
     expect(last?.displayedLiquidityUsd).toBeGreaterThan(0);
     const issuers = robinhoodIssuerRows(last ? [last] : []);
-    expect(issuers.map((row) => row.label)).toEqual(["RHJ", "Ondo-named (unverified)"]);
-    expect(issuers.find((row) => row.slug === "ondo")?.official).toBe(false);
+    expect(issuers.map((row) => row.label)).toEqual(["RHJ"]);
+    expect(robinhoodIssuerPresentation("ondo")).toMatchObject({ official: false });
     expect(issuers.find((row) => row.slug === "rhj")).toMatchObject({
       official: true,
-      equityUsd: expect.closeTo(30_452_357.21, 2),
-      etfUsd: expect.closeTo(15_750_857.01, 2),
-      privateUsd: expect.closeTo(2_352_414.29, 2),
+      equityUsd: expect.closeTo(75_037_565.64, 2),
+      etfUsd: expect.closeTo(33_139_374.65, 2),
+      privateUsd: expect.closeTo(7_381_573.29, 2),
     });
-    expect(issuers.find((row) => row.slug === "ondo")?.etfUsd).toBeNull();
   });
 });
 

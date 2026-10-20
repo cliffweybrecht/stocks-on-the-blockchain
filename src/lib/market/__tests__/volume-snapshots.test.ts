@@ -443,45 +443,46 @@ describe("committed Solana desk snapshots", () => {
   const snapshots = parseDeskVolumeSnapshotRecords(raw);
 
   it("keeps every honest recorded day, including the Sep 23 CLI total and days later commits had replaced away", () => {
-    expect(snapshots.map((row) => row.date)).toEqual([
-      "2026-09-23",
-      "2026-09-24",
-      "2026-09-25",
-      "2026-09-26",
-      "2026-09-27",
-      "2026-09-28",
-      "2026-09-29",
-      "2026-09-30",
-      "2026-10-01",
-      "2026-10-02",
-      "2026-10-03",
-      "2026-10-04",
-      "2026-10-05",
-      "2026-10-06",
-      "2026-10-07",
-    ]);
-    expect(snapshots.map((row) => row.combined24hUsd)).toEqual([
-      173522731.07,
-      121018931.03999996,
-      115145253.47000003,
-      56268835.52999999,
-      76080265.64999995,
-      113009159.34999996,
-      293070235.75999993,
-      143757138.89999998,
-      148049332.76000005,
-      110030098.63,
-      33065999.139999986,
-      80079706.93999998,
-      82265342.28,
-      103263530.24999994,
-      81272910.46000001,
-    ]);
+    const dates = snapshots.map((row) => row.date);
+    expect(dates[0]).toBe("2026-09-23");
+    expect(dates.at(-1)! >= "2026-10-13").toBe(true);
+    expect(new Set(dates).size).toBe(dates.length);
+    for (let index = 1; index < dates.length; index += 1) {
+      expect(dates[index]! > dates[index - 1]!).toBe(true);
+      expect(easternDayKey(utcInstantForDayKey(dates[index - 1]!) + 26 * 3600)).toBe(dates[index]);
+    }
+    const recordedCombined: Record<string, number> = {
+      "2026-09-23": 133612028.33,
+      "2026-09-24": 129580787.39,
+      "2026-09-25": 120374995.69,
+      "2026-09-26": 62039972.79,
+      "2026-09-27": 78641445.28,
+      "2026-09-28": 127747228.91,
+      "2026-09-29": 229372144.68,
+      "2026-09-30": 168707228.1,
+      "2026-10-01": 165151241.64,
+      "2026-10-02": 126725920.37,
+      "2026-10-03": 37019510.68,
+      "2026-10-04": 88289243.29,
+      "2026-10-05": 92076794.59,
+      "2026-10-06": 115642562.14,
+      "2026-10-07": 85958147.02,
+      "2026-10-08": 113121327.45,
+      "2026-10-09": 67940946.16,
+      "2026-10-10": 40692515.330000006,
+      "2026-10-11": 55718561.70000001,
+      "2026-10-12": 71041285.27999999,
+      "2026-10-13": 72545118.35,
+    };
+    for (const [date, combined24hUsd] of Object.entries(recordedCombined)) {
+      expect(snapshots.find((row) => row.date === date)?.combined24hUsd).toBe(combined24hUsd);
+    }
     const sep23 = snapshots[0];
-    expect(sep23?.publicEquity24hUsd).toBeNull();
-    expect(sep23?.private24hUsd).toBeNull();
-    expect(sep23?.etfIndex24hUsd).toBeNull();
-    expect(sep23?.assets).toBeUndefined();
+    expect(sep23?.publicEquity24hUsd).toBeCloseTo(94_444_200.04, 2);
+    expect(sep23?.private24hUsd).toBeCloseTo(18_309_288.95, 2);
+    expect(sep23?.etfIndex24hUsd).toBeCloseTo(20_858_539.34, 2);
+    expect(sep23?.correction?.previousCombined24hUsd).toBe(173522731.07);
+    expect(sep23?.assets?.length).toBeGreaterThan(0);
     const oct3 = snapshots.find((row) => row.date === "2026-10-03");
     expect(oct3?.assets?.length).toBeGreaterThan(0);
     expect(oct3?.assets?.[0]).toEqual(
@@ -492,7 +493,13 @@ describe("committed Solana desk snapshots", () => {
       }),
     );
     expect(oct3?.assets?.some((asset) => asset.volume24hUsd !== null)).toBe(true);
-    expect(snapshots.find((row) => row.date === "2026-10-07")?.assets).toBeUndefined();
+    expect(snapshots.find((row) => row.date === "2026-10-07")?.assets?.length).toBeGreaterThan(0);
+    const oct8 = snapshots.find((row) => row.date === "2026-10-08");
+    expect(oct8?.t).toBe(1_791_432_000);
+    expect(oct8?.generatedAt).toBe("2026-10-09T04:20:08.601Z");
+    expect(oct8?.assets?.length).toBeGreaterThan(0);
+    expect(oct8?.assets?.some((asset) => asset.displayedLiquidityUsd !== null)).toBe(true);
+    expect(oct8?.assets?.some((asset) => asset.pools.some((pool) => pool.liquidityUsd !== null))).toBe(true);
   });
 
   it("holds the stored Sep 28 snapshot off 7D, 14D, and 30D while that Eastern day is in progress", () => {
@@ -521,7 +528,7 @@ describe("committed Solana desk snapshots", () => {
         "Sep 27",
       ]);
       const sep26 = visible.find((point) => new Date(point.t * 1000).toISOString().startsWith("2026-09-26"));
-      expect(sep26?.volumeUsd).toBeCloseTo(56_268_835.53);
+      expect(sep26?.volumeUsd).toBeCloseTo(62_039_972.79);
       const headline = deskRangeVolumeHeadline(visible, range);
       expect(headline.volumeUsd).toBeCloseTo(throughSep27);
       expect(headline.volumeUsd).not.toBeCloseTo(throughSep27 + sep28Usd);
@@ -542,7 +549,7 @@ describe("committed Solana desk snapshots", () => {
     const dates = history.points.map((point) => new Date(point.t * 1000).toISOString().slice(0, 10));
     expect(dates).toEqual(["2026-09-23", "2026-09-24", "2026-09-25", "2026-09-26", "2026-09-27"]);
     expect(history.points[history.points.length - 1]).toMatchObject({
-      volumeUsd: 76_080_265.64999995,
+      volumeUsd: 78_641_445.28,
       kind: "calendar_day",
     });
     for (const range of ["7d", "14d", "30d"] as const) {
@@ -579,7 +586,7 @@ describe("committed Solana desk snapshots", () => {
       "2026-09-28",
     ]);
     expect(history.points[history.points.length - 1]).toMatchObject({
-      volumeUsd: 113_009_159.34999996,
+      volumeUsd: 127_747_228.91,
       kind: "calendar_day",
     });
     for (const range of ["7d", "14d", "30d"] as const) {
@@ -640,7 +647,7 @@ describe("committed Solana desk snapshots", () => {
       });
       const sep28 = history.points.find((point) => new Date(point.t * 1000).toISOString().startsWith("2026-09-28"));
       if (date === "2026-09-29") {
-        expect(sep28?.volumeUsd).toBeCloseTo(113_009_159.34999996);
+        expect(sep28?.volumeUsd).toBeCloseTo(127_747_228.91);
       } else {
         expect(sep28).toBeUndefined();
       }

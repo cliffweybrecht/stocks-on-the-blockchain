@@ -1,6 +1,6 @@
 import { captureEquityPerpsSnapshot } from "../src/lib/market/perps-fetch";
 import { savePerpsDay } from "../src/lib/market/perps-snapshot-file";
-import { buildPerpsDeskModel, selectPerpsRange } from "../src/lib/market/perps-snapshot";
+import { buildPerpsDeskModel, PERPS_SNAPSHOT_SCHEMA, selectPerpsRange } from "../src/lib/market/perps-snapshot";
 
 function billions(value: number | null): string {
   if (value === null) return "—";
@@ -18,7 +18,7 @@ captureEquityPerpsSnapshot()
       process.exit(1);
     }
     await savePerpsDay(day);
-    const model = buildPerpsDeskModel({ schema: "equity-perps-v1", records: [day] }, Date.parse(day.capturedAt) / 1000);
+    const model = buildPerpsDeskModel({ schema: PERPS_SNAPSHOT_SCHEMA, records: [day] }, Date.parse(day.capturedAt) / 1000);
     const view = selectPerpsRange(model.days, "24h", false);
     const capturedMs = Date.parse(day.capturedAt);
     const et = new Intl.DateTimeFormat("en-US", {
@@ -35,6 +35,13 @@ captureEquityPerpsSnapshot()
       `Headline ${billions(view.headlineUsd)}  onchain ${billions(view.onchainUsd)}  major CEX ${billions(view.cexDirectUsd)}  Binance+Bybit ${billions(view.cexCoingeckoUsd)}  long-tail ${billions(view.longTailUsd)}  excluded ${billions(view.excludedUsd)}`,
     );
     console.log(`Venues ${view.venueCount}  markets ${view.marketCount}  pre-IPO ${billions(view.preipoUsd)}`);
+    if (day.archive) {
+      const binance = day.archive.binance;
+      const bybit = day.archive.bybit;
+      console.log(
+        `Archive ${day.archive.utcDate}  Binance CG ${billions(binance.coingeckoVolumeUsd)} vs dump ${billions(binance.volumeUsd)} (${binance.covered}/${binance.symbols})  Bybit CG ${billions(bybit.coingeckoVolumeUsd)} vs dump ${billions(bybit.volumeUsd)} (${bybit.covered}/${bybit.symbols})${day.archive.note ? `  ${day.archive.note}` : ""}`,
+      );
+    }
     for (const venue of view.venues) {
       const vol = venue.volumeUsd === null ? "—".padStart(10) : `${(venue.volumeUsd / 1e6).toFixed(1)}M`.padStart(10);
       const flag = venue.error ? `  ERROR ${venue.error}` : venue.credible ? "" : "  EXCLUDED";

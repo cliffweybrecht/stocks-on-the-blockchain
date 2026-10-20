@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { formatChartClock, formatCountCompact, formatUsdCompact } from "../format";
+import { formatChartClock, formatCountCompact, formatTokenAmount, formatUsdCompact } from "../format";
 
 describe("formatUsdCompact", () => {
   it("formats zero as $0 on both server and client", () => {
     expect(formatUsdCompact(0)).toBe("$0");
+  });
+
+  it("keeps a trailing zero so server and browser render the same millions", () => {
+    expect(formatUsdCompact(8_958_806)).toBe("$9.0M");
+    expect(formatUsdCompact(9.6)).toBe("$9.6");
+    expect(formatUsdCompact(743.9)).toBe("$743.9");
   });
 });
 
@@ -16,6 +22,15 @@ describe("formatChartClock", () => {
     expect(formatChartClock(sep29("19"))).toBe("3:00 PM");
     expect(formatChartClock(Date.parse("2026-01-15T20:00:00.000Z") / 1000)).toBe("3:00 PM");
     expect(formatChartClock(Number.NaN)).toBe("");
+  });
+});
+
+describe("formatTokenAmount", () => {
+  it("compacts thousands and leaves a dash when the count is missing", () => {
+    expect(formatTokenAmount(null)).toBe("—");
+    expect(formatTokenAmount(43_930)).toBe("43.93K");
+    expect(formatTokenAmount(12.5)).toBe("12.5");
+    expect(formatTokenAmount(2)).toBe("2");
   });
 });
 
