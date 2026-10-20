@@ -923,5 +923,315 @@ class BnbUniverseTest(unittest.TestCase):
         self.assertGreater(len(rows), 3)
 
 
+USDT = "0x55d398326f99059ff775485246999027b3197955"
+WBNB = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c"
+DAI = "0x1AF3F329e8be154074D8769D1FFa4eE058B1DBc3"
+
+
+def price_pair(
+    base: str,
+    quote: str,
+    pair: str,
+    price: float,
+    liquidity: float,
+    *,
+    volume: float = 1000,
+    change: float = 0,
+    base_amt: float | None = None,
+    quote_amt: float | None = None,
+    chain: str = "bsc",
+) -> dict:
+    liquidity_row: dict = {"usd": liquidity}
+    if base_amt is not None:
+        liquidity_row["base"] = base_amt
+    if quote_amt is not None:
+        liquidity_row["quote"] = quote_amt
+    return {
+        "chainId": chain,
+        "pairAddress": pair,
+        "baseToken": {"address": base},
+        "quoteToken": {"address": quote},
+        "priceUsd": str(price),
+        "priceNative": str(price),
+        "priceChange": {"h24": change},
+        "volume": {"h24": volume},
+        "liquidity": liquidity_row,
+    }
+
+
+class BnbMarketValueTest(unittest.TestCase):
+    def test_cash_pool_price_skips_guard_failures_and_non_cash_quotes(self) -> None:
+        from bnb_market_value import index_cash_price_candidates, resolve_market_values
+
+        meme = "0x" + "cd" * 20
+        pairs = [
+            price_pair(AAPL, meme, "0x" + "01" * 20, 80, 9_000_000),
+            price_pair(AAPL, DAI, "0x" + "02" * 20, 70, 8_000_000),
+            price_pair(AAPL, USDT, "0x" + "03" * 20, 50, 60_000_000, volume=1),
+            price_pair(AAPL, WBNB, "0x" + "04" * 20, 4, 10_000),
+            price_pair(AAPL, USDT, "0x" + "05" * 20, 3, 2_000),
+            price_pair(USDT, AAPL, "0x" + "06" * 20, 1, 20_000_000),
+            price_pair(AAPL, USDT, "0x" + "07" * 20, 9, 50_000, chain="ethereum"),
+        ]
+        candidates = index_cash_price_candidates(pairs, {AAPL.lower()})
+        readings, warnings, nulls = resolve_market_values(
+            [{"address": AAPL, "symbol": "AAPLB", "kind": "equity", "issuer": "xstocks"}],
+            {AAPL.lower(): 10},
+            candidates,
+            {},
+        )
+        self.assertEqual(readings[AAPL.lower()]["priceUsd"], 4)
+        self.assertEqual(readings[AAPL.lower()]["priceSource"], "dexscreener")
+        self.assertEqual(readings[AAPL.lower()]["marketValueUsd"], 40)
+        self.assertEqual(readings[AAPL.lower()]["supply"], 10)
+        self.assertEqual(warnings, [])
+        self.assertEqual(nulls, {})
+
+    def test_price_far_from_pool_history_falls_through_to_gecko_or_null(self) -> None:
+        from bnb_market_value import index_cash_price_candidates, resolve_market_values
+
+        pairs = [price_pair(AAPL, USDT, "0x" + "11" * 20, 350, 10_000, change=5000)]
+        candidates = index_cash_price_candidates(pairs, {AAPL.lower()})
+        row = {"address": AAPL, "symbol": "AAPLB", "kind": "equity", "issuer": "ondo"}
+        near, warnings, nulls = resolve_market_values([row], {AAPL.lower(): 2}, candidates, {AAPL.lower(): 354})
+        self.assertEqual(near[AAPL.lower()]["priceSource"], "geckoterminal")
+        self.assertEqual(near[AAPL.lower()]["priceUsd"], 354)
+        self.assertEqual(near[AAPL.lower()]["marketValueUsd"], 708)
+        self.assertEqual(warnings[0]["reason"], "price-far-from-pool-history")
+        self.assertEqual(nulls, {})
+
+        dead = price_pair(NVDA, USDT, "0x" + "12" * 20, 100, 60_000_000, volume=1, change=0)
+        dead_candidates = index_cash_price_candidates([dead], {NVDA.lower()})
+        nvda = {"address": NVDA, "symbol": "NVDAB", "kind": "equity", "issuer": "bstocks"}
+        far, far_warnings, far_nulls = resolve_market_values(
+            [nvda], {NVDA.lower(): 2}, dead_candidates, {NVDA.lower(): 1500}
+        )
+        self.assertIsNone(far[NVDA.lower()]["marketValueUsd"])
+        self.assertIsNone(far[NVDA.lower()]["priceUsd"])
+        self.assertEqual(far[NVDA.lower()]["supply"], 2)
+        self.assertIn("gecko-far-from-pool-history", {item["reason"] for item in far_warnings})
+        self.assertEqual(far_nulls, {"gecko-far-from-pool-history": 1})
+
+    def test_skewed_reserves_stay_priced_and_ten_billion_cap_stays_null(self) -> None:
+        from bnb_market_value import index_cash_price_candidates, resolve_market_values
+
+        skewed = price_pair(
+            AAPL,
+            USDT,
+            "0x" + "21" * 20,
+            100,
+            10_000,
+            base_amt=100,
+            quote_amt=100,
+        )
+        huge = price_pair(NVDA, USDT, "0x" + "22" * 20, 6, 10_000)
+        candidates = index_cash_price_candidates([skewed, huge], {AAPL.lower(), NVDA.lower()})
+        rows = [
+            {"address": AAPL, "symbol": "AAPLB", "kind": "equity", "issuer": "xstocks"},
+            {"address": NVDA, "symbol": "NVDAB", "kind": "equity", "issuer": "bstocks"},
+            {"address": QQQ, "symbol": "QQQB", "kind": "etf", "issuer": "xstocks"},
+            {"address": SPCX, "symbol": "SPCX", "kind": "preipo", "issuer": "paimon"},
+        ]
+        readings, warnings, nulls = resolve_market_values(
+            rows,
+            {AAPL.lower(): 5, NVDA.lower(): 2_000_000_000, QQQ.lower(): 4, SPCX.lower(): 0},
+            candidates,
+            {QQQ.lower(): None},
+        )
+        self.assertEqual(readings[AAPL.lower()]["marketValueUsd"], 500)
+        self.assertEqual(readings[AAPL.lower()]["priceUsd"], 100)
+        self.assertEqual(readings[AAPL.lower()]["priceSource"], "dexscreener")
+        self.assertEqual(readings[AAPL.lower()]["supply"], 5)
+        self.assertIsNone(readings[NVDA.lower()]["marketValueUsd"])
+        self.assertIsNone(readings[QQQ.lower()]["marketValueUsd"])
+        self.assertEqual(readings[QQQ.lower()]["supply"], 4)
+        self.assertIsNone(readings[SPCX.lower()]["marketValueUsd"])
+        self.assertIsNone(readings[SPCX.lower()]["priceUsd"])
+        reasons = {item["reason"] for item in warnings}
+        self.assertNotIn("price-far-from-reserves", reasons)
+        self.assertIn("market-value-above-10b", reasons)
+        self.assertEqual(nulls["market-value-above-10b"], 1)
+        self.assertEqual(nulls["no-price"], 2)
+        self.assertNotIn("no-supply-and-no-price", nulls)
+
+        values = {addr: reading["marketValueUsd"] for addr, reading in readings.items()}
+        self.assertEqual(lane_volume(rows, values, "equity"), 500)
+        self.assertIsNone(lane_volume(rows, values, "etf"))
+        self.assertIsNone(lane_volume(rows, values, "preipo"))
+        self.assertEqual(sum_nullable([lane_volume(rows, values, kind) for kind in ("equity", "etf", "preipo")]), 500)
+
+    def test_missing_supply_or_price_is_null_and_zero_supply_counts(self) -> None:
+        from bnb_market_value import index_cash_price_candidates, resolve_market_values
+
+        pairs = [
+            price_pair(AAPL, USDT, "0x" + "31" * 20, 3, 5_000),
+            price_pair(HOOD, USDT, "0x" + "32" * 20, 3, 5_000),
+        ]
+        candidates = index_cash_price_candidates(pairs, {AAPL.lower(), HOOD.lower()})
+        rows = [
+            {"address": AAPL, "symbol": "A", "kind": "equity", "issuer": "ondo"},
+            {"address": HOOD, "symbol": "H", "kind": "equity", "issuer": "ondo"},
+            {"address": QQQ, "symbol": "Q", "kind": "etf", "issuer": "xstocks"},
+        ]
+        readings, _warnings, nulls = resolve_market_values(
+            rows,
+            {AAPL.lower(): None, HOOD.lower(): 0, QQQ.lower(): None},
+            candidates,
+            {QQQ.lower(): 8},
+        )
+        self.assertEqual(readings[AAPL.lower()]["priceUsd"], 3)
+        self.assertEqual(readings[AAPL.lower()]["priceSource"], "dexscreener")
+        self.assertIsNone(readings[AAPL.lower()]["marketValueUsd"])
+        self.assertEqual(readings[HOOD.lower()]["marketValueUsd"], 0)
+        self.assertEqual(readings[HOOD.lower()]["priceUsd"], 3)
+        self.assertIsNone(readings[QQQ.lower()]["marketValueUsd"])
+        self.assertEqual(readings[QQQ.lower()]["priceSource"], "geckoterminal")
+        self.assertEqual(nulls, {"no-supply": 2})
+
+        market_values = {addr: reading["marketValueUsd"] for addr, reading in readings.items()}
+        breakdown = issuers_by_lane(rows, {AAPL.lower(): None, HOOD.lower(): 0, QQQ.lower(): None}, {}, market_values)
+        self.assertEqual(
+            breakdown["equity"]["ondo"],
+            {"usd": 0.0, "mints": 2, "pools": 0, "marketValueUsd": 0.0, "marketValueMints": 1},
+        )
+        self.assertIsNone(breakdown["etf"]["xstocks"]["marketValueUsd"])
+        self.assertEqual(breakdown["etf"]["xstocks"]["marketValueMints"], 0)
+        self.assertEqual(
+            lane_volume(rows, market_values, "equity"),
+            sum_nullable([stats["marketValueUsd"] for stats in breakdown["equity"].values()]),
+        )
+        self.assertIsNone(lane_volume(rows, market_values, "etf"))
+        self.assertIsNone(sum_nullable([None, None, None]))
+
+    def test_supply_scales_by_decimals_and_budget_stays_unread(self) -> None:
+        from bnb_market_value import read_token_supplies
+
+        failed = "0x" + "bb" * 20
+
+        def post(_url: str, payload: list[dict]) -> list[dict]:
+            out = []
+            for item in payload:
+                addr = item["params"][0]["to"].lower()
+                data = item["params"][0]["data"]
+                if addr == failed:
+                    out.append({"jsonrpc": "2.0", "id": item["id"], "error": {"message": "missing"}})
+                elif data == "0x18160ddd":
+                    out.append({"jsonrpc": "2.0", "id": item["id"], "result": hex(123 * 10**18)})
+                else:
+                    out.append({"jsonrpc": "2.0", "id": item["id"], "result": hex(18)})
+            return out
+
+        supplies, warnings, unread = read_token_supplies(
+            [AAPL, failed],
+            post=post,
+            rpcs=["http://rpc"],
+            budget_s=30,
+            clock=lambda: 0,
+        )
+        self.assertEqual(supplies[AAPL.lower()], 123)
+        self.assertIsNone(supplies[failed])
+        self.assertEqual(unread, set())
+        self.assertEqual(warnings, [])
+
+        state = {"n": 0}
+
+        def clock() -> float:
+            state["n"] += 1
+            return 0 if state["n"] == 1 else 10_000
+
+        skipped, notes, still = read_token_supplies(
+            [AAPL],
+            post=post,
+            rpcs=["http://rpc"],
+            budget_s=5,
+            clock=clock,
+        )
+        self.assertIsNone(skipped[AAPL.lower()])
+        self.assertEqual(still, {AAPL.lower()})
+        self.assertTrue(any("time budget" in note for note in notes))
+
+        def rate_limited(url: str, payload: list[dict]) -> list[dict]:
+            if "bad" in url:
+                return [{"jsonrpc": "2.0", "id": None, "error": {"code": -32005, "message": "method eth_call in batch triggered rate limit"}}]
+            return post(url, payload)
+
+        rotated, _notes, unread_after = read_token_supplies(
+            [AAPL],
+            post=rate_limited,
+            rpcs=["http://bad", "http://good"],
+            budget_s=30,
+            clock=lambda: 0,
+        )
+        self.assertEqual(rotated[AAPL.lower()], 123)
+        self.assertEqual(unread_after, set())
+
+    def test_attach_keeps_nulls_and_upsert_does_not_touch_past_rows(self) -> None:
+        import json
+        import tempfile
+
+        from snapshot_asset_rows import upsert_day_record
+
+        rows = [
+            {"address": AAPL, "symbol": "AAPLB", "kind": "equity", "issuer": "xstocks"},
+            {"address": QQQ, "symbol": "QQQ", "kind": "etf", "issuer": "ondo"},
+            {"address": NVDA, "symbol": "NVDAB", "kind": "equity", "issuer": "bstocks"},
+        ]
+        readings = {
+            AAPL.lower(): {"supply": 5, "priceUsd": 2, "priceSource": "dexscreener", "marketValueUsd": 10},
+            QQQ.lower(): {"supply": None, "priceUsd": None, "priceSource": None, "marketValueUsd": None},
+            NVDA.lower(): {"supply": 8, "priceUsd": None, "priceSource": None, "marketValueUsd": None},
+        }
+        assets = _MOD.attach_market_values(
+            [{"address": QQQ, "symbol": "QQQ", "instrumentKind": "etf", "volume24hUsd": 1, "pools": []}],
+            rows,
+            readings,
+        )
+        by_symbol = {item["symbol"]: item for item in assets}
+        self.assertEqual(by_symbol["AAPLB"]["marketValueUsd"], 10)
+        self.assertEqual(by_symbol["AAPLB"]["volume24hUsd"], None)
+        self.assertIsNone(by_symbol["QQQ"]["marketValueUsd"])
+        self.assertIsNone(by_symbol["QQQ"]["supply"])
+        self.assertEqual(by_symbol["QQQ"]["priceSource"], None)
+        self.assertEqual(by_symbol["QQQ"]["volume24hUsd"], 1)
+        self.assertNotIn("NVDAB", by_symbol)
+
+        past = {
+            "date": "2026-10-19",
+            "combined24hUsd": 12.5,
+            "publicEquity24hUsd": 12.5,
+            "assets": [{"address": AAPL, "symbol": "A", "volume24hUsd": 12.5, "pools": []}],
+        }
+        today = {
+            "date": "2026-10-20",
+            "combined24hUsd": 1,
+            "publicEquity24hUsd": 1,
+            "publicEquityMarketValueUsd": 10,
+            "assets": [
+                {
+                    "address": AAPL,
+                    "symbol": "A",
+                    "volume24hUsd": 1,
+                    "supply": 5,
+                    "priceUsd": 2,
+                    "priceSource": "dexscreener",
+                    "marketValueUsd": 10,
+                }
+            ],
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "bnb.json"
+            path.write_text(json.dumps({"version": 1, "records": [past]}))
+            upsert_day_record(path, today)
+            loaded = json.loads(path.read_text())
+        stored = {row["date"]: row for row in loaded["records"]}
+        self.assertEqual(stored["2026-10-19"]["publicEquity24hUsd"], 12.5)
+        self.assertEqual(stored["2026-10-19"]["assets"][0]["volume24hUsd"], 12.5)
+        self.assertNotIn("publicEquityMarketValueUsd", stored["2026-10-19"])
+        self.assertNotIn("marketValueUsd", stored["2026-10-19"]["assets"][0])
+        self.assertNotIn("supply", stored["2026-10-19"]["assets"][0])
+        self.assertEqual(stored["2026-10-20"]["assets"][0]["volume24hUsd"], 1)
+        self.assertEqual(stored["2026-10-20"]["publicEquityMarketValueUsd"], 10)
+
+
 if __name__ == "__main__":
     raise SystemExit(unittest.main())
