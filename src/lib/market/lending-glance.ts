@@ -249,9 +249,9 @@ export function lendingFillingFlags(rows: readonly LendingRow[], previous: reado
   return flags;
 }
 
-const NO_LEND_SUPPLY_PREFIX = ["jupiter", "venus"] as const;
+const NO_LEND_SUPPLY_PREFIX = ["jupiter", "venus", "frankencoin"] as const;
 
-/** How full is stable dollars borrowed divided by dollars supplied to lend. Jupiter and Venus do not publish that supply. */
+/** How full is stable dollars borrowed divided by dollars supplied to lend. Jupiter, Venus, and Frankencoin do not publish that supply. */
 export function lendingHowFull(
   row: Pick<LendingRow, "id" | "stableBorrowedUsd" | "lendSupplyUsd" | "borrowEstimate">,
 ): number | null {

@@ -251,6 +251,11 @@ export function LendingDesk({ model, days }: { model: LendingDeskModel; days: re
         <p>
           Not tracked onchain: {EXCLUDED_CEX_MARGIN_VENUES.join(", ")} margin. Those exchanges let people borrow against stock tokens, but they do not publish how much is in use.
         </p>
+        {[...new Set(model.rows.map((row) => row.footnote).filter((text): text is string => Boolean(text)))].map((text) => (
+          <p key={text} data-lending-extra-footnote>
+            {text}
+          </p>
+        ))}
         <p>Issuer market cap and fund size are not used here. The numbers above are stock tokens in lending pools and the dollars borrowed against them.</p>
         {model.failures.length > 0 ? <p>Missing: {model.failures.map((failure) => `${failure.source} (${failure.message})`).join("; ")}.</p> : null}
       </footer>
