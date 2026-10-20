@@ -58495,6 +58495,3370 @@
           "mainPool24hUsd": 8.03
         }
       ]
+    },
+    {
+      "date": "2026-10-19",
+      "t": 1792382400,
+      "publicEquity24hUsd": 89966241.12,
+      "private24hUsd": 54871.51,
+      "etfIndex24hUsd": 29970702.24,
+      "combined24hUsd": 119991814.87,
+      "issuersByLane": {
+        "equity": {
+          "bstocks": {
+            "usd": 89690218.71,
+            "mints": 64,
+            "pools": 183
+          },
+          "fourmeme": {
+            "usd": 237203.2,
+            "mints": 1,
+            "pools": 5
+          },
+          "ondo": {
+            "usd": 38819.21,
+            "mints": 333,
+            "pools": 54
+          },
+          "xstocks": {
+            "usd": 0.0,
+            "mints": 1399,
+            "pools": 6
+          }
+        },
+        "etf": {
+          "bstocks": {
+            "usd": 27316887.94,
+            "mints": 5,
+            "pools": 21
+          },
+          "ondo": {
+            "usd": 2653814.3,
+            "mints": 111,
+            "pools": 26
+          },
+          "xstocks": {
+            "usd": null,
+            "mints": 54,
+            "pools": 0
+          }
+        },
+        "private": {
+          "colb": {
+            "usd": null,
+            "mints": 3,
+            "pools": 0
+          },
+          "paimon": {
+            "usd": 54871.51,
+            "mints": 5,
+            "pools": 19
+          }
+        }
+      },
+      "assets": [
+        {
+          "address": "0x10343ef7da3301493d7ecb647d68a288c6c1db2f",
+          "symbol": "AAOIB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": 1314.71,
+          "pools": [
+            {
+              "pairAddress": "0xd54a65c57506e369f6a02f328f1d46771329d39a690bb9c2c7308117057301f5",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1314.71,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 1
+        },
+        {
+          "address": "0x431a3bee82e2ca41e49895cbece5bb0f76a89b7a",
+          "symbol": "AAPLB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 12202630.21,
+          "displayedLiquidityUsd": 1283118.58,
+          "pools": [
+            {
+              "pairAddress": "0x0905edeC2928B701Fb6C6354e4eEE4960895A82f",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 1917929.67,
+              "liquidityUsd": 98221.68,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x755f5baA43f692550AA46Be662240eEb99Ae7502",
+              "dexId": "metric",
+              "volume24hUsd": 9802788.41,
+              "liquidityUsd": 487325.77,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xe9b9998B2EC5430D2246c7f1F8D9f298c97D7365",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 229301.68,
+              "liquidityUsd": 453930.99,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x36c0fc3159EB8662A2E1B84a4df518D916bce0E1",
+              "dexId": "uniswap",
+              "volume24hUsd": 116226.39,
+              "liquidityUsd": 108478.4,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x5aCa9563F8d14A6d79F12421D549a5606644A270",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 29327.8,
+              "liquidityUsd": 56043.81,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x550C36D2c777F8621D300f2aA9Da4Fda5AeFffE5",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 1068.92,
+              "liquidityUsd": 22429.69,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x2C097784B50e6bD7AAE3932FFc7F5D1fe665Eae4",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 463.64,
+              "liquidityUsd": 10261.85,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x49fcb68f78a4b75fc3e2464bfd21ebd5a3349b3a4cf811acaf2a9975a2110617",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 78954.36,
+              "liquidityUsd": 32339.34,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x21632d9be3a5895d83a2f9adde60fa3b2450ffd596f897da1a048219b3963f99",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 26569.34,
+              "liquidityUsd": 14087.05,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 9
+        },
+        {
+          "address": "0x390a684EF9cADE28A7AD0DFa61AB1Eb3842618c4",
+          "symbol": "AAPLon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 3066.99,
+          "displayedLiquidityUsd": 8775.23,
+          "pools": [
+            {
+              "pairAddress": "0x8D39c7E9427EdfF441C63fc51861522CF02167C8",
+              "dexId": "uniswap",
+              "volume24hUsd": 3063.39,
+              "liquidityUsd": 3756.56,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x2cf94f4671c376e2aef86f98ae5a85d7b6a941f1930e329737c155bde2fc227c",
+              "dexId": "pancakeswap-infinity-clmm",
+              "volume24hUsd": 3.6,
+              "liquidityUsd": 3996.51,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x6d0a537fc3dea363e784c6ed9b09a235be7f5e011da8884efa33aa3e34b8896a",
+              "dexId": "pancakeswap-infinity-clmm",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1022.16,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "ondo",
+          "poolCount": 3
+        },
+        {
+          "address": "0xa304bd78e739c0f777202b3eb73ac3736d1df801",
+          "symbol": "AMATB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": 1589.13,
+          "pools": [
+            {
+              "pairAddress": "0x2e2d0b0a786bfdbdc549ba9f35e26de442663b008a00518238fe2060063dcbb0",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1589.13,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 1
+        },
+        {
+          "address": "0x75fd4cf6f8392e41e70391d60c90c0d5211603a1",
+          "symbol": "AMDB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 579.19,
+          "displayedLiquidityUsd": 8412.02,
+          "pools": [
+            {
+              "pairAddress": "0x5e1c94b7b15a740a8606c37cedd680bc33e4e0252bbe5372069a60d73d9b24ad",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 579.19,
+              "liquidityUsd": 8412.02,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 1
+        },
+        {
+          "address": "0x1a4b499833a79a09ad7cf1d42d7dacf71e92eb00",
+          "symbol": "AMZNB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 66863.74,
+          "displayedLiquidityUsd": 197395.66,
+          "pools": [
+            {
+              "pairAddress": "0x7530beb7Bde5843f668cf31b996fa1F748C9b6B1",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 66863.74,
+              "liquidityUsd": 197395.66,
+              "source": "dexscreener"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 1
+        },
+        {
+          "address": "0x4553cFe1C09f37f38b12dC509F676964e392F8Fc",
+          "symbol": "AMZNon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 52.27,
+          "displayedLiquidityUsd": 6480.6,
+          "pools": [
+            {
+              "pairAddress": "0x8617Ba6DEEE616694601ADc41Ab7ffE0e610907E",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 52.27,
+              "liquidityUsd": 6480.6,
+              "source": "dexscreener"
+            }
+          ],
+          "issuer": "ondo",
+          "poolCount": 1
+        },
+        {
+          "address": "0xd42a79ebb7f527f40faecd196ffb47ad5e8d6f8c",
+          "symbol": "ARMB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1503.27,
+          "displayedLiquidityUsd": 8156.58,
+          "pools": [
+            {
+              "pairAddress": "0x07d726370d28b3d38f2285ef70f5e24731b481ee36affa53b00dee467fe7b16c",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 1503.27,
+              "liquidityUsd": 4463.57,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x5edff67e026fadbf85275732eaba9bb9bea210a65c1bc3c53b3c8100d61b54c4",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 3693.01,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 2
+        },
+        {
+          "address": "0x58b6f5feeb8436489f5bf4a56619092b1fa8e777",
+          "symbol": "ASTSB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": 2727.94,
+          "pools": [
+            {
+              "pairAddress": "0x6af3a52ff5f10bc4e147fa69be20232d6efd36a40e7dbcdaefb95d12390b4d83",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 2727.94,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 1
+        },
+        {
+          "address": "0x76682c454467b3a1150ad8b6a92fc5ee2c21d7ed",
+          "symbol": "AVGOB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1578.88,
+          "displayedLiquidityUsd": 43924.93,
+          "pools": [
+            {
+              "pairAddress": "0x18d1dffd0cc4fe99acbde3ff07971a5720d563ae2192e8c9cc1ead692de75a45",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 1578.88,
+              "liquidityUsd": 6666.34,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x5769229774064f01babd3b7bbee50f9b6a49fa6ad3bdddf36d7b6d60c3547d25",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 37258.59,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 2
+        },
+        {
+          "address": "0x4ef9d3062c7f6eba4aae4990c5036598c6eff4ec",
+          "symbol": "BABAB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 708572.51,
+          "displayedLiquidityUsd": 2557377.86,
+          "pools": [
+            {
+              "pairAddress": "0xfD95CB1391999006Eb91797a7c62acFe88b20292",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 603269.43,
+              "liquidityUsd": 2483489.24,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xa79EE23fbC148A5b1A7D3EAf89A3E9e7db852083",
+              "dexId": "metric",
+              "volume24hUsd": 90311.71,
+              "liquidityUsd": 59954.91,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x082a0A013F0D9152e53e435B274276E798f75cD5",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 394.22,
+              "liquidityUsd": 10463.04,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x3C519f6bb91158a4148B276baa2d4fe3E8A26614",
+              "dexId": "uniswap",
+              "volume24hUsd": 14597.15,
+              "liquidityUsd": 3470.67,
+              "source": "dexscreener"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 4
+        },
+        {
+          "address": "0xd5964f3fcee8D649995AB88F04b8982539c282D2",
+          "symbol": "BABAon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": 2019.76,
+          "pools": [
+            {
+              "pairAddress": "0x9233bf4b818686ffce5560aeab3a4bee6a5401bd2df4cc36c1c8cce835dadc7a",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 2019.76,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "ondo",
+          "poolCount": 1
+        },
+        {
+          "address": "0x5519de00f5388c17d886b97cb5d2d43a812a82bc",
+          "symbol": "BEB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": 1249.44,
+          "pools": [
+            {
+              "pairAddress": "0xbb68f327cd6f1c546d61a90d6121231618fbbd9c5a53eb030c1bad154bed0728",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1249.44,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 1
+        },
+        {
+          "address": "0x467e59ce5D5fe01686D4A80dd1E1DAE13549AA6c",
+          "symbol": "BIDUon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": 59293.55,
+          "pools": [
+            {
+              "pairAddress": "0xcd22040fdf1eee0f158a8de9ce141574fc6d8bf66c5c53aff7792ed17ab2f6c1",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 30318.0,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x5bd6ad8e559b8a9362d8c844390ab192541affebf2e2d3174161c13cf41f8089",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 21214.65,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x2c0b391a80adad16de15da07eb414a4a9c9a241a2db263776c99f3f8a8334de4",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 7760.9,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "ondo",
+          "poolCount": 3
+        },
+        {
+          "address": "0x91fc7371d6dE682A1e8CFcB4EB7dA693312A03a4",
+          "symbol": "BILIon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 2002.76,
+          "displayedLiquidityUsd": 40665.71,
+          "pools": [
+            {
+              "pairAddress": "0x33E1e31133a986FfB1A51e3Be1e0fC86Eb495C2F",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 1972.86,
+              "liquidityUsd": 30753.74,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x9fDd40C6C4C37Ab1295F341681C86F4D45e723E2",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 29.9,
+              "liquidityUsd": 9911.97,
+              "source": "dexscreener"
+            }
+          ],
+          "issuer": "ondo",
+          "poolCount": 2
+        },
+        {
+          "address": "0x3548da95a9effe481e8604664d75e95821e557f5",
+          "symbol": "BMNRB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 38068.08,
+          "displayedLiquidityUsd": 109268.32,
+          "pools": [
+            {
+              "pairAddress": "0x52a427Db0B2D9154A5f4AD09D22f3792F754b6fc",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 15568.24,
+              "liquidityUsd": 72961.89,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x5544552CAbacfBDE8358Ca77Ae666938e4A59557",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 407.97,
+              "liquidityUsd": 18592.02,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x48f9FA8125Ffebd32C94A977810d46F4609Fb068",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 19095.8,
+              "liquidityUsd": 8019.02,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x8c9FcDF8016BD9a6646e78C8A2D6E39b34416204",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 2996.07,
+              "liquidityUsd": 8394.3,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x4370199e1685e1408f379d8b865de63727b3ffad97b738c15a42cdee444d5634",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1301.09,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 5
+        },
+        {
+          "address": "0x7C8D5502b544dDAf8852Fc46D1174E34876D545C",
+          "symbol": "BNC4",
+          "instrumentKind": "equity",
+          "volume24hUsd": 237203.2,
+          "displayedLiquidityUsd": 3989679.27,
+          "pools": [
+            {
+              "pairAddress": "0xbec6906a984f4695aca0f15BaFa7de5Eb45b54aB",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 132140.34,
+              "liquidityUsd": 766573.16,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x783A3D7c3236Cf05f103adC890377f5984d694e5",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 96468.4,
+              "liquidityUsd": 109706.74,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xCf936261a1582b45Eae2246105B3388D1e31c94d",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 7187.06,
+              "liquidityUsd": 3102946.25,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xFF02B30Ee2d7E13d73bDEB27cc8A267d588b8Bce",
+              "dexId": "uniswap",
+              "volume24hUsd": 509.2,
+              "liquidityUsd": 1410.93,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xB4eb915dcd3fDf15A49e7c3169a7db4a1e746f49",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 898.2,
+              "liquidityUsd": 9042.19,
+              "source": "dexscreener"
+            }
+          ],
+          "issuer": "fourmeme",
+          "poolCount": 5
+        },
+        {
+          "address": "0x4902C5ebc598265Ed2212b559B042De8a5Eeec3f",
+          "symbol": "BNCB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 11311543.9,
+          "displayedLiquidityUsd": 2984906.47,
+          "pools": [
+            {
+              "pairAddress": "0x320e8096e5e7a46E43446141A5B15d801FC596f5",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 5005186.09,
+              "liquidityUsd": 2289225.59,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xb754F10CebF50B8862444cF4D6c1cC31A3B71c18",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 3729576.79,
+              "liquidityUsd": 185279.53,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x32c51041f3D7a66ac14ABA7485444EFb6E15efe1",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 897463.0,
+              "liquidityUsd": 436544.46,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xC53E634836e95CDa2857E2fbd3eAf2F7F63CF832",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 15689.04,
+              "liquidityUsd": 17704.32,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xFC58462502b7C47f166292DF6e6b11e1ae41F314",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 66199.27,
+              "liquidityUsd": 8200.46,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x369c3753168D6eFde184f72A8399720EADB73d3E",
+              "dexId": "uniswap",
+              "volume24hUsd": 7552.5,
+              "liquidityUsd": 5646.36,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x939862Cb12c02d91DAF456396D6b6d06aFdF5c89",
+              "dexId": "topaz",
+              "volume24hUsd": 458984.69,
+              "liquidityUsd": 8262.21,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x1C94E22F7bb872d25fba42045A9f778E8A1e3f8c",
+              "dexId": "metric",
+              "volume24hUsd": 210222.05,
+              "liquidityUsd": null,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xA762B05f288b4002A4dbf20d0aeCe8E98D56938D",
+              "dexId": "metric",
+              "volume24hUsd": 10.58,
+              "liquidityUsd": null,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x9bbad47b24f1c6a1b9951d4cc85714cf88ce9caf4a84ba4fbfdff2c5ac30cb73",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 920659.89,
+              "liquidityUsd": 34043.54,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 10
+        },
+        {
+          "address": "0x5131859a059b2446abeefe0f5d313b3c54ff3d36",
+          "symbol": "COHRB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": 1049.21,
+          "pools": [
+            {
+              "pairAddress": "0xf99a6f44cbae082575091b76beefa05d131a4e6bf8e947fd92c95eaafb530b11",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1049.21,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 1
+        },
+        {
+          "address": "0x585bde7c54abb5ccd7791f923d6c2187635f3952",
+          "symbol": "COINB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 5211.36,
+          "displayedLiquidityUsd": 149079.8,
+          "pools": [
+            {
+              "pairAddress": "0x9e9df2c9053864ABfa5Bf773f9770F08710c8A10",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 2710.05,
+              "liquidityUsd": 2968.1,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x4E4C111a5c8c29E21F661A5aff769b19021dEBc1",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 2500.89,
+              "liquidityUsd": 2659.75,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xe9a4bbf50b14b6842fc227947ded22ee0149496200953f066318703fbe6f289a",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.42,
+              "liquidityUsd": 4234.3,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x9d02661895f7acc33cbaca99019e5847c86d839f45cd51b84d552867dee1d34d",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 74707.11,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x14311e51dc17d43babd783120923a7d2701522e774829a9f92298870b1b839d8",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 61158.02,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xb3d1aaf3d2600151fb54c30029babb1b3f73ac0f68b8838c5f73d471829af7d5",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 2108.09,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x66a3d148a58e1f28564f7750186dbeb7b9731901f3e35cf03b547a5e3ac0dc10",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1244.43,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 7
+        },
+        {
+          "address": "0x0888EDfeC4C0A66FCE074796CF4F6509c00f6c49",
+          "symbol": "CPERon",
+          "instrumentKind": "etf",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": 4034.21,
+          "pools": [
+            {
+              "pairAddress": "0x59e913407d3707926f0c156f03682b869d77714869de8b939204c919f46b4ed9",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 2651.37,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xcb30bf66856b49511fa59c34abbc1fd158c8eebabbadaac182b81c2b3eb789af",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1382.84,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "ondo",
+          "poolCount": 2
+        },
+        {
+          "address": "0x80f3d493ebce97e343c53d29a137942416b4ffc0",
+          "symbol": "CRCLB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 3576067.08,
+          "displayedLiquidityUsd": 1092381.32,
+          "pools": [
+            {
+              "pairAddress": "0x29967c54c5Bf12E8158c8894376064b30ebaB297",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 669084.27,
+              "liquidityUsd": 997767.23,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xdC2b2F96bC1eb01E7286C688d5354e081AF188C4",
+              "dexId": "metric",
+              "volume24hUsd": 2904430.07,
+              "liquidityUsd": 53446.15,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x85D4AbC3F64805d22f9dF3c22d69227808C33Eb5",
+              "dexId": "uniswap",
+              "volume24hUsd": 982.44,
+              "liquidityUsd": 24431.73,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xc2ec808036302cbb263d9c3b9f9232ba33a79dec0f21306b905f1b43f31915d3",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 1558.34,
+              "liquidityUsd": 8634.99,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x311af0ed06dd701fddc4e7c6a74023dd0cf866ee9635788425fb0eff9c4c5d13",
+              "dexId": "pancakeswap-infinity-clmm",
+              "volume24hUsd": 11.96,
+              "liquidityUsd": 6735.42,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xa772e1c7f4fd4ffa39170a441ef127f27c41b9ecaf63e231228cbf47c766b4ee",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1365.8,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 6
+        },
+        {
+          "address": "0x992879Cd8ce0c312d98648875B5A8D6D042cbF34",
+          "symbol": "CRCLon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1205.6,
+          "displayedLiquidityUsd": 5392.92,
+          "pools": [
+            {
+              "pairAddress": "0x5984213FC9AD7EFD003EeA59Bf39ddb81051029d",
+              "dexId": "uniswap",
+              "volume24hUsd": 1205.6,
+              "liquidityUsd": 3638.92,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x85ddf8f23bcd8a0a370123dfc1b02541d65507169c457b850f10af93936bfc07",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1754.0,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "ondo",
+          "poolCount": 2
+        },
+        {
+          "address": "0xfEbDEd1B0986a8ee107f5AB1a1c5a813491DeCEB",
+          "symbol": "CRCLx",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": 1598.74,
+          "pools": [
+            {
+              "pairAddress": "0x9448422a87baac7d9c6a270e759bbe712ab763cf1d476815ae99dd7168ae643f",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1598.74,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "xstocks",
+          "poolCount": 1
+        },
+        {
+          "address": "0x33e7317e17838fee56b10fe8d0b9ca6ca3090c95",
+          "symbol": "CRWVB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 485.21,
+          "displayedLiquidityUsd": 10526.79,
+          "pools": [
+            {
+              "pairAddress": "0x1043f284Da5E938Ec912a44D44C3Cba24E641eA4",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 233.74,
+              "liquidityUsd": 7527.14,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xeBF95e42ff3647EDc7678869B4f7334fdA8Bee34",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 251.47,
+              "liquidityUsd": 2999.65,
+              "source": "dexscreener"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 2
+        },
+        {
+          "address": "0x0e7a51966c66648999d506e1372efdea1b78cb0b",
+          "symbol": "DELLB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": 9145.98,
+          "pools": [
+            {
+              "pairAddress": "0xd98482547d778da2d2b1b75b53cdab040cfe79d8798de17a95f10e125bcb72ff",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 4963.16,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xe4b2f64377e9dabba577c161b4de630dff95e8721165c879c030e99da7601f24",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 2877.84,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x2cefb9dbcc0c867f7cd9df71ba8206bbc4fe856d52649789326bf033826d710b",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1304.98,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 3
+        },
+        {
+          "address": "0xeEe9eeE593cB8f7946260B4066CBa7907f40ACFa",
+          "symbol": "DISon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 17354.3,
+          "displayedLiquidityUsd": 57801.31,
+          "pools": [
+            {
+              "pairAddress": "0x167c88898537eA7dC756d9B0bF7489A068f0b497",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 17253.21,
+              "liquidityUsd": 51601.66,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x21260A5E4712054e345499211d695d645787979F",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 101.09,
+              "liquidityUsd": 5045.33,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x8fd3a84895fc1c2115d36e1841913bd8e455962789178e5bb6458ffe83562566",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1154.32,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "ondo",
+          "poolCount": 3
+        },
+        {
+          "address": "0xf2ec508422174ee564de98187db9359d318afb6b",
+          "symbol": "DJTB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 359312.4,
+          "displayedLiquidityUsd": 275259.77,
+          "pools": [
+            {
+              "pairAddress": "0x9aaDBd51515432DBB77c0A7F69C2B2c211f0C837",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 58081.63,
+              "liquidityUsd": 67763.52,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xC409B41456fdB21e0c8f393ac99631cD8fab8a27",
+              "dexId": "metric",
+              "volume24hUsd": 300784.9,
+              "liquidityUsd": 12293.45,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x41B5B10afFCBa51C2aD864d85f9C73d7597CD727",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 445.87,
+              "liquidityUsd": 8528.66,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xc75a2e25246c56557848b9563e6e6d0110505a80a85efb4078e1e9bec4a2b2f0",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 86362.95,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xf062722fed054552d1f89e256868822223e016049a87e87ff5341ef8510da601",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 30063.63,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x02c4311aa4018481fa4135f9094ad3045d9c9b45ed0607c7b0499fc08136324f",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 25382.07,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xb59b8ee5c98df71c0fe046cd80ed3fe828da7402fceeccddf97e17c079e2759c",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 23477.44,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x076beb7b6556b19003217e0106324b34e24c280a147205fff83da01db432347a",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 16388.17,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xd7bd320ed89d90ad49e89101f5bc3ab9b66b6740894886c3b91664cedc01d18c",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 4999.88,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 9
+        },
+        {
+          "address": "0x93862d63fd9fd488b1328e9b47717d75e994a84b",
+          "symbol": "DRAMB",
+          "instrumentKind": "etf",
+          "volume24hUsd": 5365.62,
+          "displayedLiquidityUsd": 5069.64,
+          "pools": [
+            {
+              "pairAddress": "0xFB540645cb0f5e2cb08933e68735FBDAb3ca74CF",
+              "dexId": "metric",
+              "volume24hUsd": 5365.62,
+              "liquidityUsd": 2786.47,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xc3b76f3a1e5e16a04f686d13e126622f490bb9b03ea2a3713cc70346f10fd6b4",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 2283.17,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 2
+        },
+        {
+          "address": "0xbe82f76637dba2c114c41df856c2c51e522e2cb8",
+          "symbol": "EWYB",
+          "instrumentKind": "etf",
+          "volume24hUsd": 1734938.22,
+          "displayedLiquidityUsd": 234141.91,
+          "pools": [
+            {
+              "pairAddress": "0xc60ED5b770e8a3AbD60eE9Ed10Faa0aee577a66b",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 1734938.22,
+              "liquidityUsd": 234141.91,
+              "source": "dexscreener"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 1
+        },
+        {
+          "address": "0x4af1d41cd9dd950dca43984b43aaa2a8702714ac",
+          "symbol": "FLNCB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 28617.13,
+          "displayedLiquidityUsd": 123972.47,
+          "pools": [
+            {
+              "pairAddress": "0x1f7083a138f980b60Eb1582F01cA3B1D6C46aD10",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 28354.75,
+              "liquidityUsd": 49002.14,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xc514FEAe96126866798a440670d7E4Da83a6a412",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 262.38,
+              "liquidityUsd": 7548.53,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x7fda3d4c32d66d3fd85280f69a6ed0e6359c6b6aa8fee53448fb6cf7996322c7",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 31849.85,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x05e5cd31c3349c5c3fd7008745a61762cea21e68a7dc49d8b4a42076a41b24d8",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 19423.69,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x46d9ed04e24334dca6a1a4dab3b4c8f97363e9303469ebef40b31a67cd4e369f",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 16148.26,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 5
+        },
+        {
+          "address": "0x5acf40056ED51C8bBCD1b125Ef803581Ac89A627",
+          "symbol": "FUTUon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.46,
+          "displayedLiquidityUsd": 21178.34,
+          "pools": [
+            {
+              "pairAddress": "0x7f45477db5f35ca3f6475f7884c6c2a3e90057820674c267c33586691ae61a04",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.46,
+              "liquidityUsd": 1739.58,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xa0928b346096b4f280801f4044b25b9abf4716566b3013e1947b7d498f405005",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 10194.5,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x5fe2e094bba2bd33e493f0feb9fabfe9f6a28d8f36b09750e89de7bb77493a30",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 9244.26,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "ondo",
+          "poolCount": 3
+        },
+        {
+          "address": "0x9b8E987e6fEc8Cf1380C4dcA7071e2C7853AEEA1",
+          "symbol": "FXIon",
+          "instrumentKind": "etf",
+          "volume24hUsd": 2652635.21,
+          "displayedLiquidityUsd": 760095.88,
+          "pools": [
+            {
+              "pairAddress": "0x02EDa8DBC97A0C9ADFbBfaB589430D76A7C7F5B6",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 1264128.1,
+              "liquidityUsd": 253933.06,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x6A41179d270446cA0968BABa9f5C64aCefb91e50",
+              "dexId": "uniswap",
+              "volume24hUsd": 726941.28,
+              "liquidityUsd": 131438.62,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x8768C8969e177575e37435B8295aFa2DFB231C86",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 454894.21,
+              "liquidityUsd": 328684.41,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xC70953A1012dd41b478995E4999C659E5fa137fa",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 17869.29,
+              "liquidityUsd": 25166.52,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x3cea0dfEf4a36e12b5cC377b5bF33690C1741205",
+              "dexId": "metric",
+              "volume24hUsd": 113.13,
+              "liquidityUsd": null,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xc5622FE30909Fd7914E137af7bBADaD0CAAC506B",
+              "dexId": "metric",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": null,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xe938c0c41f47546ea4cbe570020bb513df88d4e91c29308d5e7d42b923f32997",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 188689.2,
+              "liquidityUsd": 20873.27,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "ondo",
+          "poolCount": 7
+        },
+        {
+          "address": "0xfA9a1E901085e269f6D428F79Cd5252d8b919344",
+          "symbol": "GLDon",
+          "instrumentKind": "etf",
+          "volume24hUsd": 19.02,
+          "displayedLiquidityUsd": 7546.73,
+          "pools": [
+            {
+              "pairAddress": "0xf95AcBfeCc913F59Aa35A6827d15037468332e78",
+              "dexId": "uniswap",
+              "volume24hUsd": 19.02,
+              "liquidityUsd": 5500.6,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x730453217f36841cb5affdadb9cfe57fe27ebbfae61522db0e07881a06d60e50",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 2046.13,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "ondo",
+          "poolCount": 2
+        },
+        {
+          "address": "0x46ceefda28dd7207059ed19b0acdc026955bb15c",
+          "symbol": "GMEB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 204659.05,
+          "displayedLiquidityUsd": 231790.36,
+          "pools": [
+            {
+              "pairAddress": "0x908d49048EB3a7bEdfd238972403842805EAF2bE",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 123282.46,
+              "liquidityUsd": 171482.35,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xC742972221396ccc7CFD2c0EC9E5F2412cF651f5",
+              "dexId": "metric",
+              "volume24hUsd": 65135.03,
+              "liquidityUsd": 33310.45,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xd0a1C0100F7Bd5140617c78C0822f1fB7dE2C1C0",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 874.0,
+              "liquidityUsd": 23821.07,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x11c5c2d1d3dc0371965296330aa1236feb78ba9b3a27c5da9d835b5d2d46c8aa",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 15367.56,
+              "liquidityUsd": 3176.49,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 4
+        },
+        {
+          "address": "0xdABb9afF4cf02f26D2014e4cA9f94aC6fe6572a3",
+          "symbol": "GMEon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 3930.72,
+          "displayedLiquidityUsd": 47388.48,
+          "pools": [
+            {
+              "pairAddress": "0x2a73552F84F04964a84BE7cC615f3561d132A089",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 3930.72,
+              "liquidityUsd": 47388.48,
+              "source": "dexscreener"
+            }
+          ],
+          "issuer": "ondo",
+          "poolCount": 1
+        },
+        {
+          "address": "0x3f53de71c126bdabae20f9cd64848d317f6c3238",
+          "symbol": "GOOGLB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 3275925.53,
+          "displayedLiquidityUsd": 2978607.14,
+          "pools": [
+            {
+              "pairAddress": "0x89001D846f7CA36EE089F73eEFC25657E1798144",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 299281.07,
+              "liquidityUsd": 1558932.19,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xd44336aBac6672a121d3DD77008BD2589d435699",
+              "dexId": "uniswap",
+              "volume24hUsd": 462395.87,
+              "liquidityUsd": 1013128.68,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x33299e5499A33bb122a6d6FE5214CDAD9dc19478",
+              "dexId": "metric",
+              "volume24hUsd": 2210801.81,
+              "liquidityUsd": 25159.63,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x998591C364e46da28B2972f4b271ac74dd02300F",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 57540.48,
+              "liquidityUsd": 31253.95,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xF5A91043817EC002B8892688A25Afb281Ab06F4b",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 2247.51,
+              "liquidityUsd": 34334.34,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x0d268e5abaC7a2b4D3AE86670B4C6511955e6af9",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 7071.77,
+              "liquidityUsd": 14651.88,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x17759deE839565285E62ba5Aa418a3b65D139A8C",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 164.64,
+              "liquidityUsd": 10359.01,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xaf6cb213eae80642fc16b359fea2452113a86c4e6fc3b81938524451c7d003ac",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 224686.28,
+              "liquidityUsd": 93327.01,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x302a080ffb0bc52f377a293ed348cd1006b0a5847bf80d7b5a52030b19f53216",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 11736.1,
+              "liquidityUsd": 1857.41,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x9a7eabc4b4c15eb68c7d548a5cdeecc0899498eb8a25a749ade47b2ddee24eb8",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 61713.54,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xea2fda97c38fa426c6bc50dc207f70e09510bcddbebc17e42a3d8ca38ca4ae3e",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 48288.41,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xc9c7c9509400178072dc24f1454ae08e6ced815b7c3e8a6b5fdaeb0243f56cc7",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 44390.22,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xbe0ef210b95a85121273ce2bb3c560a03b187ac38417f5fb0531dea6edf7102e",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 41210.87,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 13
+        },
+        {
+          "address": "0x091FC7778e6932d4009B087B191D1EE3bac5729A",
+          "symbol": "GOOGLon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 102.49,
+          "displayedLiquidityUsd": 5076.95,
+          "pools": [
+            {
+              "pairAddress": "0x6731932C92E882Cc22a10749324C70A7d6aDde60",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 102.49,
+              "liquidityUsd": 2662.8,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x8f5dada826d7f684bfa266dc4fe255eaaa0279375460ebb77702dcbe5f67ac39",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1335.74,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x764cab723947431bcebd2073a9169b93d5360a090d9032ec19c54aa3f6de1751",
+              "dexId": "pancakeswap-infinity-clmm",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1078.41,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "ondo",
+          "poolCount": 3
+        },
+        {
+          "address": "0x20cce6656e5f7f79f280e2d0f5db55b401bdbfce",
+          "symbol": "GSB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": 17442.81,
+          "pools": [
+            {
+              "pairAddress": "0x57d45cf6116672f74152ae0511ae6c098ae731bc290ab183e80f5d7bef113c08",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 17442.81,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 1
+        },
+        {
+          "address": "0xa394dcea3fd3847fd793afbfd163e2e3858b7c65",
+          "symbol": "HOODB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 680589.62,
+          "displayedLiquidityUsd": 278008.85,
+          "pools": [
+            {
+              "pairAddress": "0xFEeF70FF6F58f0A900e28A77e5A8945aFB343923",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 54504.21,
+              "liquidityUsd": 222089.59,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x9e3Fa02E31638BBFf8B11d7AA416E9A10dec3505",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 5517.75,
+              "liquidityUsd": 20721.95,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x3a14eAde4C91d88144b7768B756faB3e58AC6F2F",
+              "dexId": "metric",
+              "volume24hUsd": 619603.22,
+              "liquidityUsd": 16102.89,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xf91679e490bdeE202Be1AD99F0717CeED85301f6",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 244.47,
+              "liquidityUsd": 8695.4,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x89619842155B93c32bC9559ee0FDEf92d15C7db9",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 690.56,
+              "liquidityUsd": 2514.58,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x2892cf78ce92a3e39f72b2ef298a705e52df86c6c056141a3449524b54208f48",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 29.41,
+              "liquidityUsd": 1007.86,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x614d373b44d31e5ec06fb68f3edd64b0a3b53fdf714ae26c565ff33d7860f6c1",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 4967.84,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xb82aa15ad413490aa92fe591145d81b1f12bdd013342ba587cf284600314f38c",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1908.74,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 8
+        },
+        {
+          "address": "0x19601179A60f55Ff6636F5D1A8b6671053Bd60a8",
+          "symbol": "HOODon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": 1090.42,
+          "pools": [
+            {
+              "pairAddress": "0x8a0dc6f28ec9b41942d709418faab1315d3fd8be9369759764b9f1e4fbc75cc0",
+              "dexId": "pancakeswap-infinity-clmm",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1090.42,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "ondo",
+          "poolCount": 1
+        },
+        {
+          "address": "0xfa273b076feb8c0fb34e554ae341082323d016a3",
+          "symbol": "IBMB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 3345.04,
+          "displayedLiquidityUsd": 34229.94,
+          "pools": [
+            {
+              "pairAddress": "0x16588be41c6004D36C338D6AFe3ec517D45B778F",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 257.45,
+              "liquidityUsd": 1160.58,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xd1cd4c16adc3ffae4ddf1b080748713da5d3430f366380c30c1d85de35c14846",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 3087.59,
+              "liquidityUsd": 29903.24,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x0d7f1b479786d817462242cefd268c988b0082f5daff5bd57ab0063e9e90e1c3",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1591.52,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x2d7555a3d764a97287053c4cd1b69bba90fabe5781535d80c265edfb98dd2cb8",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1574.6,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 4
+        },
+        {
+          "address": "0xe614e2fc6c787035ff51f452e8e826bfd32d5283",
+          "symbol": "INTCB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 137562.06,
+          "displayedLiquidityUsd": 464975.32,
+          "pools": [
+            {
+              "pairAddress": "0x4dD8e7C67033Ef4A745bB9f82a7C57c676eB2481",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 137562.06,
+              "liquidityUsd": 464975.32,
+              "source": "dexscreener"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 1
+        },
+        {
+          "address": "0xE92bE960aE64F6a914Ca77014CaC9E56DE7f36C1",
+          "symbol": "JDon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 63.58,
+          "displayedLiquidityUsd": 38086.57,
+          "pools": [
+            {
+              "pairAddress": "0x6D33ABD329EE157b631C19fFB68451e36D7fB411",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 2.95,
+              "liquidityUsd": 1056.05,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x7ff1583debf99544e0f295ff7ef3f32b92676caa0c42eb556f07af5983acf819",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 60.63,
+              "liquidityUsd": 34109.96,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xf3d55870fa7e85492d292550b4a524966ee0c81c4c537f4e5d3bedbf20c901bd",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1904.49,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x695f2682433c61f906b4c5554fda4a355baef7328121a7dc40653a13a0b46d91",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1016.07,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "ondo",
+          "poolCount": 4
+        },
+        {
+          "address": "0xbd49D695ba2cc46c8C603eb62aFcd7Fff4698281",
+          "symbol": "JPMB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 7881.12,
+          "displayedLiquidityUsd": 4383.7,
+          "pools": [
+            {
+              "pairAddress": "0xb6cfbbe4dd47c748aca1cd6df0486159d5193cb6b37a13dedbce59a6cbd09faa",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 7868.84,
+              "liquidityUsd": 1908.81,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xb9d6e4978cc47e67f2880e13bb69b133fe7f00011a0f25ed00d60e3a2cc854fd",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 12.28,
+              "liquidityUsd": 1237.0,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x43cdd8bd5ab9539873041fab6ceb0771458472e82a0c4a6f3fd529f92ec2ea36",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1237.89,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 3
+        },
+        {
+          "address": "0x405F38B90beBF1259062CF29Da299f3398662bcb",
+          "symbol": "KOon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": 13924.24,
+          "pools": [
+            {
+              "pairAddress": "0x3826b483c2ad1647c45ee591158cd811884495e8afddfc3f4075a6ad6dd3657c",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 13924.24,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "ondo",
+          "poolCount": 1
+        },
+        {
+          "address": "0x5407912F1Aa4B9E05cBE6aBeb9721547a643eC6b",
+          "symbol": "LLYB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 4249.46,
+          "displayedLiquidityUsd": 21930.18,
+          "pools": [
+            {
+              "pairAddress": "0xA349205d4152E527FC071eB03dF5f7df12b5C9A4",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 4063.58,
+              "liquidityUsd": 14301.41,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x86456A3a527ebF106893F59ccE995eB0aB5BE15a",
+              "dexId": "uniswap",
+              "volume24hUsd": 185.88,
+              "liquidityUsd": 7628.77,
+              "source": "dexscreener"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 2
+        },
+        {
+          "address": "0x995ADd4bA29a628A57930a8a185c62cA044eC090",
+          "symbol": "MCDon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1017.82,
+          "displayedLiquidityUsd": 146311.69,
+          "pools": [
+            {
+              "pairAddress": "0x22E660655F106C12ae737999F43323C5962BC8Fe",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 466.73,
+              "liquidityUsd": 1796.07,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x0d2D41dDd9425D57261E71156537de8410E57d8d",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 9.94,
+              "liquidityUsd": 1976.77,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xf3bcabeb5c0298bfdaca11d8a5b9926812c9d9ea284bff5c9e9367d56cd12388",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 541.15,
+              "liquidityUsd": 138683.95,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x9e547bf22370cfa6e6bf6cef9a99871b87536769714052ee61ecb47952a17b71",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 2670.28,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xbfaee80449345f344506cb9ab2d970faae905f9fd5b017d1965826f32ca08d63",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1184.62,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "ondo",
+          "poolCount": 5
+        },
+        {
+          "address": "0x7425889fe94f9d693e8daefe88bcced6acfef4c0",
+          "symbol": "METAB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 164289.36,
+          "displayedLiquidityUsd": 303247.54,
+          "pools": [
+            {
+              "pairAddress": "0xC2151a561E928D16576d75Ea88544543ac63D80B",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 82995.58,
+              "liquidityUsd": 207243.01,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x3399A2291815226c08A78Cc77771aBaB727D2D4B",
+              "dexId": "uniswap",
+              "volume24hUsd": 49131.38,
+              "liquidityUsd": 77256.65,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x32b5F072F73AA1bd640E0050aAcF9018224ac162",
+              "dexId": "metric",
+              "volume24hUsd": 32162.4,
+              "liquidityUsd": 18747.88,
+              "source": "dexscreener"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 3
+        },
+        {
+          "address": "0x8fa39ff32b316e2296630aa05bdd6a4a2e4b7598",
+          "symbol": "MIXUx",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": 1738.8,
+          "pools": [
+            {
+              "pairAddress": "0x845300f7d4712ee17a42be2be36e294b2f2c6dd619d8ccf43a3a282344eec100",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1738.8,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "xstocks",
+          "poolCount": 1
+        },
+        {
+          "address": "0x16cd4fe7e8880ecc3ba222795229e20489fc2c76",
+          "symbol": "MRVLB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 2804.2,
+          "displayedLiquidityUsd": 22934.38,
+          "pools": [
+            {
+              "pairAddress": "0xd5AEFc40828b76d43859b0428534D99fb2480c1F",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 2804.2,
+              "liquidityUsd": 22934.38,
+              "source": "dexscreener"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 1
+        },
+        {
+          "address": "0x80106cb3ead06659a5ad19df39d9b4733863b9b0",
+          "symbol": "MSFTB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 91074.42,
+          "displayedLiquidityUsd": 299229.47,
+          "pools": [
+            {
+              "pairAddress": "0x5018b018cEB7645c927c5Cf246786F89ebCbe7Ea",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 80055.76,
+              "liquidityUsd": 150953.92,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x6a1d40c050289cC8daD85ae2C1ad705222F596D2",
+              "dexId": "uniswap",
+              "volume24hUsd": 9586.85,
+              "liquidityUsd": 76091.48,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x58e44C2e5B17EF40915B4B3AE8451B6B87285B44",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 1314.25,
+              "liquidityUsd": 52098.85,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x8d3848bD2A14492F5077dC67840644006A10fFA6",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 117.56,
+              "liquidityUsd": 10285.7,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x716accaa9dc3f2d225f233c4b014da8883f827308daf9a507ea815b90a1c408a",
+              "dexId": "pancakeswap-infinity-clmm",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 9799.52,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 5
+        },
+        {
+          "address": "0xe87afb3076aeb0f9b14e368de8145ae6a2826a14",
+          "symbol": "MSTRB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 147019.21,
+          "displayedLiquidityUsd": 345345.97,
+          "pools": [
+            {
+              "pairAddress": "0x692081209619735f25700557078aB084d3E5D007",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 120442.08,
+              "liquidityUsd": 303886.03,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xbCe9Bb843985bac3Bc9f2A042F63e8DDddc39B98",
+              "dexId": "metric",
+              "volume24hUsd": 25642.27,
+              "liquidityUsd": 18654.66,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x0fe9C174701aD0e0D7497856Ca5dd8fEd4603187",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 620.47,
+              "liquidityUsd": 13056.16,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x55DAf55F1556683878bA38D0468eD3EbDc25330c",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 314.39,
+              "liquidityUsd": 9749.12,
+              "source": "dexscreener"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 4
+        },
+        {
+          "address": "0xcdf2f3e0fa43c47a6662a91c9e4a7c5f69762699",
+          "symbol": "MUB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 237764.82,
+          "displayedLiquidityUsd": 140417.24,
+          "pools": [
+            {
+              "pairAddress": "0x9E75Ced0a01590890917C5180c3e3ed6a86A071e",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 172687.1,
+              "liquidityUsd": 124470.48,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x0742bffd9b916E452eB6af32536452830F16958c",
+              "dexId": "metric",
+              "volume24hUsd": 64582.16,
+              "liquidityUsd": 10832.72,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x772906e0ff95e562c34151e17c03666d5623146389f53706aeb11d9570d93640",
+              "dexId": "pancakeswap-infinity-clmm",
+              "volume24hUsd": 495.56,
+              "liquidityUsd": 3972.43,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x5cfbe0ce774b940026ff7e5f058129f1ad75ded67fd214466d5fa0ea5fced4e2",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1141.61,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 4
+        },
+        {
+          "address": "0x8b6ACf6041A81567f012Ff6A4C6D96d5818d74bF",
+          "symbol": "MUon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 6363.91,
+          "displayedLiquidityUsd": 3401.4,
+          "pools": [
+            {
+              "pairAddress": "0x8eac2b0a415da079dc7eb0551f3d869c7e2b73645620957539abd6a9db7b4381",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 6363.91,
+              "liquidityUsd": 1539.99,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xf7a044cab0303ea2a6153569fa7967e36bae5392c5edaabbe616957baa21bdd1",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1861.41,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "ondo",
+          "poolCount": 2
+        },
+        {
+          "address": "0xe256bc2a4f5297f8ba6f043f180a46300ecbcbb1",
+          "symbol": "NBISB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": 6460.3,
+          "pools": [
+            {
+              "pairAddress": "0x3cdcb29a64cdd14f9d289c4dd96097b6548e93e517e811b00d5713c9a4255a35",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 5048.38,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xafa65f050c1991c582301c454f12613974f4e10675f390e724683abfe3b9ab95",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1411.92,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 2
+        },
+        {
+          "address": "0xd6829ea836b6fa224d099d40e54b31262f874631",
+          "symbol": "NFLXB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 24370.31,
+          "displayedLiquidityUsd": 172912.46,
+          "pools": [
+            {
+              "pairAddress": "0xAFab4441D8B354bBa790229c0E235E7e6187B3D0",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 24176.45,
+              "liquidityUsd": 161068.94,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x0F2a0bE7382D1FE0E65C2d96737b8927D80B000f",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 193.86,
+              "liquidityUsd": 9382.79,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xc9a423ed6d453886a0c2ccebedd2a8961512258196e18e62e5ace984dab14f09",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 2460.73,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 3
+        },
+        {
+          "address": "0x04b5E199F2eC84f78B111035F57b16BeE448dB6F",
+          "symbol": "NKEon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 23.99,
+          "displayedLiquidityUsd": 1192.14,
+          "pools": [
+            {
+              "pairAddress": "0x07E9A5dcA4B3F46Ab9b87Bf8E18e0a358B5d97dF",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 23.99,
+              "liquidityUsd": 1192.14,
+              "source": "dexscreener"
+            }
+          ],
+          "issuer": "ondo",
+          "poolCount": 1
+        },
+        {
+          "address": "0x7c4d7a180d737dd5a70d8065a90e6746a69c37ea",
+          "symbol": "NOKB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 13694.5,
+          "displayedLiquidityUsd": 45073.62,
+          "pools": [
+            {
+              "pairAddress": "0xD76cB6E9F642CDC7C33C9D4Fc6bDd858116DcC84",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 13694.5,
+              "liquidityUsd": 43592.93,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x1abee0b7bce5be52e3a792b5d8ef1a93c11efd035d7533cbb3e4038e31a477ab",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1480.69,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 2
+        },
+        {
+          "address": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+          "symbol": "NVDAB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 24859658.81,
+          "displayedLiquidityUsd": 8323851.19,
+          "pools": [
+            {
+              "pairAddress": "0x720117A6D678ef37cf9792df051da87f5809d117",
+              "dexId": "metric",
+              "volume24hUsd": 19971288.14,
+              "liquidityUsd": 1159060.44,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x8FB4243b553aC29BA088aCf00B9B7dA24bD6690C",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 3336116.26,
+              "liquidityUsd": 5852533.86,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xDD9d5164CcBc57bE377a964Fc064135b03D06177",
+              "dexId": "uniswap",
+              "volume24hUsd": 1017322.75,
+              "liquidityUsd": 280925.79,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x18d52270d09AB842c87acd45977dCF64a82FA4ad",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 104194.02,
+              "liquidityUsd": 732381.33,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xCC2bFfaeC373a6004bb6cCc8a62Cdd66061f7C6a",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 246761.6,
+              "liquidityUsd": 124590.53,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xdEbed59510885E29CE1D3DA0e5412d49D21f0354",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 116914.74,
+              "liquidityUsd": 135398.33,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x217e9ed14C797dF4597512D2245c00cA93e5a567",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 6224.99,
+              "liquidityUsd": 19581.75,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x699884c4518b330303dc07138202524fc099734463df2b9c6c165aaaadc7a1a2",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 54661.8,
+              "liquidityUsd": 5794.63,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x98e5ed25d8637d772b3568c86452b987d5d54c4f0c8c231325144a759cee55b7",
+              "dexId": "pancakeswap-infinity-clmm",
+              "volume24hUsd": 5813.9,
+              "liquidityUsd": 9701.2,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xea533859935d10e42ff6ecc58b841c2bc6fbcd2ca345466f82c400e328d19301",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 360.61,
+              "liquidityUsd": 3883.33,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 10
+        },
+        {
+          "address": "0xA9eE28C80f960B889dFbd1902055218cBa016F75",
+          "symbol": "NVDAon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 1162.18,
+          "displayedLiquidityUsd": 147241.86,
+          "pools": [
+            {
+              "pairAddress": "0xB90BDBFBdfFd4Af5a636b5805539eDeafb969308",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 1162.18,
+              "liquidityUsd": 9539.75,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xafc43fae32302d725fc4d448525c44c522a9a1b9-43",
+              "dexId": "dnax",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 100922.67,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xafc43fae32302d725fc4d448525c44c522a9a1b9-40",
+              "dexId": "dnax",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 14408.24,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x2b754227ede64644c90f920a2bfd3d6177bdeba6f210062f4110bf35ec29d37d",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 8502.26,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xafc43fae32302d725fc4d448525c44c522a9a1b9-42",
+              "dexId": "dnax",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 9773.78,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xafc43fae32302d725fc4d448525c44c522a9a1b9-41",
+              "dexId": "dnax",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 2997.4,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x4769c80376dc76edf3cf6c09c29ffa239d6dea714de66efeae9fda7fd053acda",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1097.76,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "ondo",
+          "poolCount": 7
+        },
+        {
+          "address": "0x95b0409679B55C31772daA2fB4bEE7B125B77521",
+          "symbol": "PDDB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 31758.15,
+          "displayedLiquidityUsd": 218471.72,
+          "pools": [
+            {
+              "pairAddress": "0xd0c2A4dc7c581dB2660286660b703cf6883F29ba",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 31709.01,
+              "liquidityUsd": 196755.16,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x6E57332778b0919476EbCE09ffe58888d4CeE9A7",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 48.33,
+              "liquidityUsd": 10746.5,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xef9b5eef43ff2b6b671122b50fb18152a48d394f4a90d8a3ae577dfaa087f40c",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.81,
+              "liquidityUsd": 1031.79,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x7be063227b4682e503c97dd977cd2ab571513f469461225ea1f2785542f71161",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 8834.36,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xe2badb7e3b6f662b2860fa322dbe6428a57f2f8d7f3912d0ec306fb30593d3cb",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1103.91,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 5
+        },
+        {
+          "address": "0xF3e82EA164CB344B2b11Bad4c24b0Ea4F7BA4714",
+          "symbol": "PDDon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 2065.12,
+          "displayedLiquidityUsd": 123944.64,
+          "pools": [
+            {
+              "pairAddress": "0xe93e583fECE88ca22CB51F39416344AA63BF53e4",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 2062.65,
+              "liquidityUsd": 54264.14,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xC2916c7158e464129e38B45C2E2e58DD054F1f24",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 2.47,
+              "liquidityUsd": 10337.1,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xadf42e6dcf79120259351e42352b0e180fd7366fdc86c4cc603f0bd0e9857c49",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 48389.1,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x28aa86b180d3b349e86738d6d9f6f8e5171fa96dc2d5706c2ef5413595f65d54",
+              "dexId": "pancakeswap-infinity-clmm",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 10954.3,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "ondo",
+          "poolCount": 4
+        },
+        {
+          "address": "0x1D80392D12CAAaF9E333Bb0bb7f021eaCf297Fe6",
+          "symbol": "pPOLY",
+          "instrumentKind": "private",
+          "volume24hUsd": 2749.07,
+          "displayedLiquidityUsd": 882198.18,
+          "pools": [
+            {
+              "pairAddress": "0xB2c8244FBeee2dA006b5D9Cf09908081f807C649",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 2234.46,
+              "liquidityUsd": 225796.39,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xc626fCE3CF3781C56fE7D31F87250A8DA3540A34",
+              "dexId": "uniswap",
+              "volume24hUsd": 255.72,
+              "liquidityUsd": 652669.64,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x87D7C289e6981CD0774024Cb2FcB3656c5c36d21",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 17.48,
+              "liquidityUsd": 1968.62,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xF0E8F3a6b7983D43b91bcDdf7c329812d35203A7",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 241.41,
+              "liquidityUsd": 1763.53,
+              "source": "dexscreener"
+            }
+          ],
+          "issuer": "paimon",
+          "poolCount": 4
+        },
+        {
+          "address": "0xd721c192d612db77621df57a9fab38418033c02e",
+          "symbol": "QNTB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 913.59,
+          "displayedLiquidityUsd": 1207.88,
+          "pools": [
+            {
+              "pairAddress": "0x706bc3b79a07ebff0e34b90636cffead3fd0c4a90796e33f31e7add50f68fac1",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 913.59,
+              "liquidityUsd": 1207.88,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 1
+        },
+        {
+          "address": "0x205812cdbed920aff76c6580abd681a46d11efc7",
+          "symbol": "QQQB",
+          "instrumentKind": "etf",
+          "volume24hUsd": 23920281.73,
+          "displayedLiquidityUsd": 2915731.9,
+          "pools": [
+            {
+              "pairAddress": "0x47BC06722295AC316A569EEF87aC32FAA455F441",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 3654259.48,
+              "liquidityUsd": 1342919.84,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xe531fcb1F5a195de7608B9F4f9518544C2cdB693",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 1561550.47,
+              "liquidityUsd": 328047.88,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xff2857Eef9563e92e9be9550989A80878d97676D",
+              "dexId": "metric",
+              "volume24hUsd": 18524684.47,
+              "liquidityUsd": 409985.47,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xD389b1e12786DB2024979d3214EE9f75e50E6120",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 92257.14,
+              "liquidityUsd": 95747.04,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xfC4E77248b76feFc27c4CAc7151A2EE5B5cC590e",
+              "dexId": "uniswap",
+              "volume24hUsd": 60331.87,
+              "liquidityUsd": 572466.28,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x0F494581240974B082075aF27E087e92612F90DD",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 8247.23,
+              "liquidityUsd": 138906.26,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x7C84F9943Ec82cf2233c97A7Ee417f18bD2eC295",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 8060.11,
+              "liquidityUsd": 12790.54,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x702C833A01844FDb14fFA6744C6E2DCf58f42b8D",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 121.91,
+              "liquidityUsd": 3053.7,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x62609d8964b2fb5ce0322c4e0b659466e7297df903633c0e3fdb2c7fed0c84c9",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 6429.28,
+              "liquidityUsd": 5556.19,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x787446ebc6600802eae6709c492a3d61f0353a67f95368aafe092889ebff7310",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 4339.77,
+              "liquidityUsd": 6258.7,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 10
+        },
+        {
+          "address": "0x0cdE6936d305d5B34667fC46425E852efd73559a",
+          "symbol": "QQQon",
+          "instrumentKind": "etf",
+          "volume24hUsd": 123.97,
+          "displayedLiquidityUsd": 30684.6,
+          "pools": [
+            {
+              "pairAddress": "0x9e1d24dEe1dddB38658dd3ECe97fA7A6D3E0634a",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 123.97,
+              "liquidityUsd": 1806.52,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x8d7ea29ba83ea3d4ba5690cdbe7fefa14137626c289b45debae335f96faa56bf",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 28878.08,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "ondo",
+          "poolCount": 2
+        },
+        {
+          "address": "0x41622a9125A22767Df8C1dC79FC17299BAc4Bd0b",
+          "symbol": "RDDTB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 449.5,
+          "displayedLiquidityUsd": 13797.62,
+          "pools": [
+            {
+              "pairAddress": "0x1aD976537bA876C975809539C8163E433dD7342b",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 449.5,
+              "liquidityUsd": 3725.66,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x2604b9942511bc015c0e3cbc4c3a8dfa5463a7322061eabcc68d3d3adb5e6c1d",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 6704.88,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xddeba87f60d612f30496f724fb183f37e0215d127e91f67d0eebcf2432eda3b7",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 2270.59,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x2a4b0d938d18016096a9cb6b79c871fb5a4d23541ca5aad8dfeb566411a903c3",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1096.49,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 4
+        },
+        {
+          "address": "0xc008c5F579ec1450F20099c39F587547e27c7523",
+          "symbol": "SGOVon",
+          "instrumentKind": "etf",
+          "volume24hUsd": 34.44,
+          "displayedLiquidityUsd": 75923.91,
+          "pools": [
+            {
+              "pairAddress": "0xE0F4C53D777383cc77aDFa89087A9c877586F0dF",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 20.0,
+              "liquidityUsd": 57263.98,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x583cFeEc2Db6a4C27e9156a6B1518391beF0f090",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 14.44,
+              "liquidityUsd": 8871.67,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xc60c6ba08ff497a25a36478dd70854869404d2ed19b22b047d303fa8cd368afc",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 7816.75,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x11c6889064e0fa5b2501c314ca63e8cd26f28d140a1bc442f8413b6198997373",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1971.51,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "ondo",
+          "poolCount": 4
+        },
+        {
+          "address": "0xca750ef65f295bbecd685abf54e82caf297bdb61",
+          "symbol": "SKHYB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 20795911.23,
+          "displayedLiquidityUsd": 1894862.6,
+          "pools": [
+            {
+              "pairAddress": "0xee90641E7c3b4d6338Ab7f1c23Dfb979FAb5f096",
+              "dexId": "metric",
+              "volume24hUsd": 19519275.91,
+              "liquidityUsd": 764267.97,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xD7d30F434b12F7Ed9b0Ae11fF1C754745a10aD52",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 763693.42,
+              "liquidityUsd": 903276.06,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xA05BD3D917507ed0c018665cF39f32c9eD8D3252",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 28683.43,
+              "liquidityUsd": 35282.5,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xE7f7473bA867B7aA6A7Dfd255A82ed840e1c0F7A",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 978.04,
+              "liquidityUsd": 14552.52,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x67288afa1273b167f1a52a5c643788988228c89ddd7f940f6110c6157710ba13",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 483280.43,
+              "liquidityUsd": 177483.55,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 5
+        },
+        {
+          "address": "0x8b872732b07be325a8803CDB480D9d20B6f8d11B",
+          "symbol": "SLVon",
+          "instrumentKind": "etf",
+          "volume24hUsd": 304.3,
+          "displayedLiquidityUsd": 74258.55,
+          "pools": [
+            {
+              "pairAddress": "0x3127Aa62B75a3554D96f863e10c41A5e77971B44",
+              "dexId": "uniswap",
+              "volume24hUsd": 246.0,
+              "liquidityUsd": 34060.54,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x7Fb06E60482B58059dA3139B3b155AfAeB5bb0a9",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 58.3,
+              "liquidityUsd": 33689.65,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x2aee74c4254313d04b99229a04c9645dbd919d1db387c0bdb7699042d281ea85",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 2927.68,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xceb98e9d7fb18c2e320decb5ec6d42d0e0f16016708e9ac6cf1e188cb71eea4a",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 2205.03,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x1ce6903b7dcae520ecd9035ce9c7862171318e14402b094ccc9ab94c544c55cd",
+              "dexId": "pancakeswap-infinity-clmm",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1375.65,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "ondo",
+          "poolCount": 5
+        },
+        {
+          "address": "0x387dea1d2772d716d081a29116f3effa0ffe1f36",
+          "symbol": "SMCIB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 873.37,
+          "displayedLiquidityUsd": 1172.56,
+          "pools": [
+            {
+              "pairAddress": "0x0963b1d3c9711da02ccb29183c56049c2136ae552f1abf612fd616af328e61e1",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 873.37,
+              "liquidityUsd": 1172.56,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 1
+        },
+        {
+          "address": "0x3ee4df61bd4f867e349beae8bfe07bc31b4850fb",
+          "symbol": "SNDKB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 434549.97,
+          "displayedLiquidityUsd": 149313.17,
+          "pools": [
+            {
+              "pairAddress": "0xE4B5403f5103b02d1E8193B0D7D76D49F3F8ad77",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 59409.3,
+              "liquidityUsd": 124895.87,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xE5e3a451095949F0968453f14E9f958480707A4a",
+              "dexId": "metric",
+              "volume24hUsd": 373368.4,
+              "liquidityUsd": 20240.91,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xB68BeEA809718a727B9b04cdE8b599547e707bB7",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 1772.27,
+              "liquidityUsd": 2627.34,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x662de37344ee3a7fd366a780ebdf6e37a1b4c873d2fb4cc37579a14bda526b0a",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1549.05,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 4
+        },
+        {
+          "address": "0xbe9D156892E55e7154BcD3cB0FEA677F9D3103E1",
+          "symbol": "SPCXB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 7502251.66,
+          "displayedLiquidityUsd": 4499233.63,
+          "pools": [
+            {
+              "pairAddress": "0x66faaD27cf481f82d0089ec8156B3AA3636010C7",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 2299899.79,
+              "liquidityUsd": 1701842.06,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x51A45A72Cc96CA3bA615E25e80a6Af2740ae2E2d",
+              "dexId": "uniswap",
+              "volume24hUsd": 2077740.36,
+              "liquidityUsd": 776297.82,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x977DaFFC095b33872E2741c19568925015C35b4d",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 628766.67,
+              "liquidityUsd": 1648221.26,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xce31C907A579f63Bb809bA01E462cdc44d7FA930",
+              "dexId": "metric",
+              "volume24hUsd": 1896149.32,
+              "liquidityUsd": 51994.26,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x7b07ef0C9Fc2198De1d20B2828845862179CCF6f",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 58809.77,
+              "liquidityUsd": 58303.39,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x626301d37c135a6f368aDC6a12FE1462B14ef03a",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 28505.8,
+              "liquidityUsd": 30674.54,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x216e3c265cd73965022aff33Da6E745836196594",
+              "dexId": "uniswap",
+              "volume24hUsd": 11794.77,
+              "liquidityUsd": 29104.89,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x51472DF7d3c9a02A912F2473960Ef835ff1E9a42",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 15473.42,
+              "liquidityUsd": 9457.6,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x00823B4815F37E9481714F69A29c83550F5e69C7",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 5139.89,
+              "liquidityUsd": 6136.92,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x68D16de3D6a50A77Ea060B34199ff5d5f0D9CdaF",
+              "dexId": "metric",
+              "volume24hUsd": 55.11,
+              "liquidityUsd": null,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xa88adfacfff81a5e6e22379dd6c876dcb3ae3738e702d65706b323cdf5312662",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 479916.76,
+              "liquidityUsd": 187200.89,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 11
+        },
+        {
+          "address": "0xd0a58BC9D88D3FF48C0294Cb7e45937d0E41A928",
+          "symbol": "SPCXon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 268.51,
+          "displayedLiquidityUsd": 102762.32,
+          "pools": [
+            {
+              "pairAddress": "0x3ce968657b6F152293AFC8Af4712e4BaA3836f74",
+              "dexId": "uniswap",
+              "volume24hUsd": 257.96,
+              "liquidityUsd": 1701.39,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x4D8f07342dbd604972f432C4d4E1eca0d19A7fC9",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 10.55,
+              "liquidityUsd": 1317.38,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xd854d23550116e79bd614f5ede177cb82ac7d36b1d303962c659351c4a518884",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 98656.01,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x868eac8abfe5803cfcb5c32f91f92cc4ea3478140d2f263109078b5a23641236",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1087.54,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "ondo",
+          "poolCount": 4
+        },
+        {
+          "address": "0x68fa48B1C2FE52b3D776E1953e0E782b5044Ce28",
+          "symbol": "SPCXx",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": 5012.88,
+          "pools": [
+            {
+              "pairAddress": "0xf7c3de95a836e44374f0bd8822b1283583170cee",
+              "dexId": "pancakeswap-v3-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1116140094.9,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xed8d9b448a99583d7685d071ac40456ae3e2114cbf484bc69f91aacd18ec0c37",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 5012.88,
+              "source": "geckoterminal"
+            }
+          ],
+          "excludedLiquidityPools": [
+            {
+              "poolId": "0xf7c3de95a836e44374f0bd8822b1283583170cee",
+              "liquidityUsd": 1116140094.9,
+              "reason": "liquidity-above-50m-with-volume-below-0.01pct"
+            }
+          ],
+          "issuer": "xstocks",
+          "poolCount": 2
+        },
+        {
+          "address": "0x7138b48df7d98d7e3cc221bfe7192d0a178182d8",
+          "symbol": "SPYB",
+          "instrumentKind": "etf",
+          "volume24hUsd": 1656302.37,
+          "displayedLiquidityUsd": 511129.53,
+          "pools": [
+            {
+              "pairAddress": "0x7aA6d92Fc369A8C1EDc631A3aAc44eFB0808ddbF",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 738721.62,
+              "liquidityUsd": 214385.87,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x5eB5B7a6f970cc1AB2c20aEf508D4FD529A40114",
+              "dexId": "metric",
+              "volume24hUsd": 907553.7,
+              "liquidityUsd": 23298.58,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x81E1F351DC99ee4f3e8B2CFC651C6F18B732a1C5",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 1111.03,
+              "liquidityUsd": 11921.98,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x1D0c60d03D0EE3bEef7691cc8c1b2029379585e0",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 191.91,
+              "liquidityUsd": 9967.03,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x29CB7803fD34Bd9d8CF33a5F19dbC8513F6BD60f",
+              "dexId": "uniswap",
+              "volume24hUsd": 765.21,
+              "liquidityUsd": 3924.86,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xe5f1e10139c62e03c2e4d68f5ada90190b052d8486ecdfe30fce26ffacc61450",
+              "dexId": "pancakeswap-infinity-clmm",
+              "volume24hUsd": 6087.16,
+              "liquidityUsd": 156393.78,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xcc9d128a4cb460dc0ae77ce2cd9f2746849db2bef0dbec94cf740b6c359c1d87",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 1847.18,
+              "liquidityUsd": 89582.65,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xdc197dfc6cad3c2c02c0ca143aac3324128da92f1251b8d2cbb3ce279f6bcc40",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 24.56,
+              "liquidityUsd": 1654.78,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 8
+        },
+        {
+          "address": "0x6a708EAD771238919D85930b5a0f10454E1C331a",
+          "symbol": "SPYon",
+          "instrumentKind": "etf",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": 30190.2,
+          "pools": [
+            {
+              "pairAddress": "0xafc43fae32302d725fc4d448525c44c522a9a1b9-44",
+              "dexId": "dnax",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 30190.2,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "ondo",
+          "poolCount": 1
+        },
+        {
+          "address": "0xfa15e42c18cf57aeef4b1bac1cee7754af7cfe42",
+          "symbol": "TCENTx",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": 4477.4,
+          "pools": [
+            {
+              "pairAddress": "0x0c7f1a745db695bebb35afe2bf37b168253b9ad3f042257409b2c2ffe3fd379f",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 3372.33,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x8f266338a70afebc31191141f2b5ad2d4f303534b29d6a9139f52f2e7c302651",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1105.07,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "xstocks",
+          "poolCount": 2
+        },
+        {
+          "address": "0xf69e40069aC227C11459E3f4e8a446b3401616b6",
+          "symbol": "TLTon",
+          "instrumentKind": "etf",
+          "volume24hUsd": 697.36,
+          "displayedLiquidityUsd": 66498.25,
+          "pools": [
+            {
+              "pairAddress": "0x77e6b624d664150d96e13d99c68144b2a047e554",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 673.51,
+              "liquidityUsd": 56825.09,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xE121b110383236Fdf5899dc10f1Ec93DBf2E801e",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 23.85,
+              "liquidityUsd": 8662.39,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x60c8c52924379754890cacc9c99d743ca12efdce8069e180f4bf12dc7bec8c8a",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1010.77,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "ondo",
+          "poolCount": 3
+        },
+        {
+          "address": "0x5b1910eaad6450e50f816082aa078c41f10c292f",
+          "symbol": "TSLAB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 2714224.22,
+          "displayedLiquidityUsd": 2412439.62,
+          "pools": [
+            {
+              "pairAddress": "0xB0f5E5400E8F0F7C242F2b7740C004f020579c41",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 1372411.56,
+              "liquidityUsd": 2055630.7,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x53C6291d0A5A02C76CedfA1b8F57A8ac3762F7a9",
+              "dexId": "uniswap",
+              "volume24hUsd": 677949.26,
+              "liquidityUsd": 83529.54,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x613eBCfCf41749571d659A0BF3E2C0032Fd4859E",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 67784.24,
+              "liquidityUsd": 187590.04,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xf449D597cef44FCb9fDbA861427d066C585C450d",
+              "dexId": "metric",
+              "volume24hUsd": 480325.28,
+              "liquidityUsd": 50169.28,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x162d64349c57ff06ad69551870F0414F694e6491",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 84417.96,
+              "liquidityUsd": 17353.91,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x787F3EbB965a7c5484D08B143809d8c4B043cD45",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 20401.5,
+              "liquidityUsd": 16715.63,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0x6C5434Ea1EF571659Fdb309B961a3dBdDAfAe285",
+              "dexId": "metric",
+              "volume24hUsd": 10934.42,
+              "liquidityUsd": 1450.52,
+              "source": "dexscreener"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 7
+        },
+        {
+          "address": "0x2494b603319d4D9F9715c9f4496d9E0364B59d93",
+          "symbol": "TSLAon",
+          "instrumentKind": "equity",
+          "volume24hUsd": 138.51,
+          "displayedLiquidityUsd": 4323.91,
+          "pools": [
+            {
+              "pairAddress": "0xccf577c778d08d91175525ddb5dd9e439dddc5fe50b0b801475b696c93e6d251",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 138.51,
+              "liquidityUsd": 1270.49,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xc0be69e27d58743e1a43a9a7d4625556d1405da3889f03552dcda548b2320a1e",
+              "dexId": "pancakeswap-infinity-clmm",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1944.12,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xaec45847282fa53283b2a5a16423ad224b2d0ba8197f538dade52bff5136de37",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1109.3,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "ondo",
+          "poolCount": 3
+        },
+        {
+          "address": "0xab78b89b5bb00236be0b4b20704cbfa04efc711c",
+          "symbol": "TSMB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 39847.74,
+          "displayedLiquidityUsd": 229610.1,
+          "pools": [
+            {
+              "pairAddress": "0x03f59988F5c366046321cCcD2BF0E3878e2ed69C",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 39847.74,
+              "liquidityUsd": 229610.1,
+              "source": "dexscreener"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 1
+        },
+        {
+          "address": "0xebe29695f8047c13d36e7a790ca8c1b239ffad1c",
+          "symbol": "WDCB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 0.0,
+          "displayedLiquidityUsd": 1234.5,
+          "pools": [
+            {
+              "pairAddress": "0x96199d88617cc6bcbed65b66490a799a93573e0317a6b714d039bdb682f3dbbe",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1234.5,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 1
+        },
+        {
+          "address": "0xDed1c5FB38C262beb9CfF1E1116EfF3c5bf278Cd",
+          "symbol": "WENB",
+          "instrumentKind": "equity",
+          "volume24hUsd": 13518.81,
+          "displayedLiquidityUsd": 50632.37,
+          "pools": [
+            {
+              "pairAddress": "0xD8edF76883cF0BdbBAEF78eca4195E351eDfbDCe",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 13518.81,
+              "liquidityUsd": 49457.1,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xc265df05e2dcaf4f5768fa82faf79985758a4e486b18e55b4683a78d959af237",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1175.27,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "bstocks",
+          "poolCount": 2
+        },
+        {
+          "address": "0xE0cbb7FFc0883810569d84d78f02bbcB747cFe43",
+          "symbol": "xKLSH",
+          "instrumentKind": "private",
+          "volume24hUsd": 2077.1,
+          "displayedLiquidityUsd": 99872.95,
+          "pools": [
+            {
+              "pairAddress": "0xfd5CE712A4E5cE76c3eB524599BFb546c98b88d5",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 644.33,
+              "liquidityUsd": 64169.39,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xEb59CE03d7E3E6B1E6A658a7A32bD1B4fdEdd7A8",
+              "dexId": "pancakeswap",
+              "volume24hUsd": 58.29,
+              "liquidityUsd": 9764.49,
+              "source": "dexscreener"
+            },
+            {
+              "pairAddress": "0xdd94c6064da190f138cff2282f7aa6b6126503ee187c04101f1e06fd9208cbea",
+              "dexId": "pancakeswap-infinity-clmm",
+              "volume24hUsd": 1374.48,
+              "liquidityUsd": 25939.07,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "paimon",
+          "poolCount": 3
+        },
+        {
+          "address": "0x7DdEF360f3C2DB4CC41C3967984fefa2598cC9A6",
+          "symbol": "xOPAI",
+          "instrumentKind": "private",
+          "volume24hUsd": 49507.74,
+          "displayedLiquidityUsd": 159950.78,
+          "pools": [
+            {
+              "pairAddress": "0x50e12feaf029b39e3ead3a56942a212e550b2e4face238e936bd4a6b8d76ff80",
+              "dexId": "pancakeswap-infinity-clmm",
+              "volume24hUsd": 42667.64,
+              "liquidityUsd": 75435.52,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x56f973abd2d2c8f4d65f55356fa9cea00f56c908077e5b7c192f8f99f870a206",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 6386.21,
+              "liquidityUsd": 52229.23,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xc7edd91901bdd3592cb213dc221bc6f8f4c4e9101de23df17231c72eae4b4f3e",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 260.69,
+              "liquidityUsd": 5111.75,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xc38f6c1e072aeb65d2df2ce0009a967d8fc7bc1fd004aac6a7f1cd75caf6c68e",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 183.77,
+              "liquidityUsd": 1020.56,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xa536846b6c2cb3aaa25c3616401e991f07b082b7954ad97df234c8b00c235d43",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 9.43,
+              "liquidityUsd": 6053.79,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x165c5aaf47de0396524f12195126ee87711c8cf106dfcbdb88c5badee009bc81",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 9263.86,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xe4568ef70796aeeb167a7e781f16b90c6afdfbb54f7e5177d6f5378ea7d7913b",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 3019.19,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x5a2e04617144e2582f722b425bfb56cc245b0a87ed4e2dadc9fff78820d98461",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 2996.25,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x2239a780167c4ceb4d235b6dcff2e3fde15bc6f773626e4116b472f24726ecee",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1905.97,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0x39ffe7e8c27e725153da410fbb34d1e4266d22fd0c589749ca85472b46fb276f",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1707.85,
+              "source": "geckoterminal"
+            },
+            {
+              "pairAddress": "0xfe7307c78dc2000b8cc769779321a55c09a1c6ee217b13732ce2b5149c91a800",
+              "dexId": "uniswap-v4-bsc",
+              "volume24hUsd": 0.0,
+              "liquidityUsd": 1206.81,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "paimon",
+          "poolCount": 11
+        },
+        {
+          "address": "0x05353Dabf163Fb2fec87f9e0f00f94Eae4AC1631",
+          "symbol": "xSPCX",
+          "instrumentKind": "private",
+          "volume24hUsd": 537.6,
+          "displayedLiquidityUsd": 4724.28,
+          "pools": [
+            {
+              "pairAddress": "0xce944569629b9301aa184e4457ce078b637dc10134587a343f7bd2806631cd1d",
+              "dexId": "pancakeswap-infinity-clmm",
+              "volume24hUsd": 537.6,
+              "liquidityUsd": 4724.28,
+              "source": "geckoterminal"
+            }
+          ],
+          "issuer": "paimon",
+          "poolCount": 1
+        }
+      ],
+      "publicMintCount": 1797,
+      "publicPoolCount": 248,
+      "etfMintCount": 170,
+      "etfPoolCount": 47,
+      "preipoMintCount": 8,
+      "preipoPoolCount": 19,
+      "withVolumeEquityCount": 72,
+      "generatedAt": "2026-10-20T04:08:19.745075Z",
+      "volumeSource": "dexscreener-h24-fallback",
+      "dexCombined24hUsd": null,
+      "geckoCombined24hUsd": null,
+      "sources": {
+        "universe": "BNB chainId 56 equity/pre-IPO/ETF union by contract address",
+        "volume": "GeckoTerminal hourly USD candles over the America/New_York midnight-to-midnight window when that pool's series covers the day; DexScreener token-pairs plus known pools volume.h24 is the fallback. PancakeSwap Infinity and Uniswap v4 pools that DexScreener does not list come from GeckoTerminal token pools and are persisted. Each pool is counted once. Perps are excluded.",
+        "chainId": 56,
+        "chainSlug": "bsc",
+        "issuers": {
+          "xstocks": 1453,
+          "ondo": 444,
+          "bstocks": 69,
+          "colb": 3,
+          "paimon": 5,
+          "fourmeme": 1
+        },
+        "kindCounts": {
+          "equity": 1797,
+          "etf": 170,
+          "preipo": 8
+        },
+        "registries": {
+          "stocksonchain": {
+            "url": "https://stocksonchain.io/api/tokens.json",
+            "status": "ok",
+            "added": 1057
+          },
+          "ondo-gm": {
+            "url": "https://api.gm.ondo.finance/v1/assets/all/metadata",
+            "status": 403
+          },
+          "xstocks-tokenlist": {
+            "url": "https://raw.githubusercontent.com/backed-fi/cowswap-xstocks-tokenlist/main/tokenlist.json",
+            "status": "ok",
+            "added": 485
+          },
+          "jumper-bstocks": {
+            "url": "https://rwa.jumper.xyz/providers/bstocks",
+            "status": 403
+          },
+          "bstocks-seed": {
+            "status": "ok",
+            "added": 69,
+            "note": "Jumper misses listings; seed includes every bStocks mint in bnb.json assets[] on 2026-10-08 through 2026-10-10, including BNCB"
+          },
+          "bstocks-beacon": {
+            "url": "https://api.dexscreener.com/latest/dex/search?q=bStocks",
+            "beacon": "0x156d6dce9a4f6139a3406f1f021f1a4880de93a3",
+            "reference": "0x02fca66c1d1afb4e2a7884261eb00f63598a7436",
+            "status": "ok",
+            "added": 0
+          },
+          "colb": {
+            "url": "https://docs.colb.finance/getting-started/smart-contracts.md",
+            "status": "ok",
+            "added": 3
+          },
+          "bstocks-finance": {
+            "url": "https://www.bstocks.finance/en/",
+            "status": 403
+          },
+          "xstocks": {
+            "url": "https://api.xstocks.fi/api/v2/public/assets",
+            "status": "ok",
+            "added": 355
+          },
+          "paimon": {
+            "url": "https://app.paimon.finance/trade",
+            "docs": "https://paimon-finance.gitbook.io/paimon.finance",
+            "status": "ok",
+            "added": 1
+          },
+          "fourmeme": {
+            "url": "https://four-meme.gitbook.io/four.meme/stock-meme/4stock",
+            "status": "ok",
+            "added": 1,
+            "note": "static 4Stock seed; docs do not publish contracts"
+          },
+          "snapshot-seen": {
+            "status": "ok",
+            "added": 4,
+            "note": "union of every mint stored in bnb.json assets[]; issuer and lane kept"
+          }
+        },
+        "addedBySource": {
+          "stocksonchain": 1057,
+          "xstocks-tokenlist": 485,
+          "bstocks-seed": 69,
+          "colb": 3,
+          "xstocks": 355,
+          "paimon": 1,
+          "fourmeme": 1,
+          "snapshot-seen": 4
+        },
+        "skipped": {
+          "leveraged": 34,
+          "generic": 1,
+          "private": 3,
+          "duplicate": 1761
+        }
+      },
+      "method": "BNB chainId 56 only; classify ETF/index before private; private admits Colb, Paimon, or registry kind preipo|private with a private-company signal; crypto, commodities, generic baskets, copycats, leveraged/inverse, perps, fan tokens, treasuries, and Paimon Prime stay out; public equity, pre-IPO, and ETF for every issuer; SpaceX (SPCX) is public equity since the 2026-06-12 Nasdaq listing; Colb and Paimon wrappers stay private; closed day prefers GeckoTerminal hourly candles and falls back to DexScreener all-pools h24; each pool is counted once on the base desk token; known pools missing from token-pairs are refetched; GeckoTerminal token pools add PancakeSwap Infinity and Uniswap v4 addresses DexScreener lacks; a token down more than 90% while its main pool still has volume is warned and kept; issuersByLane is that sum partitioned by issuer inside equity, etf, and private; assets[] includes poolCount; null means no reported volume (not zero)",
+      "volumeDropWarnings": [
+        {
+          "symbol": "ARMB",
+          "address": "0xd42a79ebb7f527f40faecd196ffb47ad5e8d6f8c",
+          "previous24hUsd": 40311.3,
+          "volume24hUsd": 1503.27,
+          "mainPool": "0x07d726370d28b3d38f2285ef70f5e24731b481ee36affa53b00dee467fe7b16c",
+          "mainPool24hUsd": 1503.27
+        },
+        {
+          "symbol": "SGOVon",
+          "address": "0xc008c5F579ec1450F20099c39F587547e27c7523",
+          "previous24hUsd": 1167.03,
+          "volume24hUsd": 34.44,
+          "mainPool": "0xE0F4C53D777383cc77aDFa89087A9c877586F0dF",
+          "mainPool24hUsd": 20.0
+        }
+      ]
     }
   ]
 }
