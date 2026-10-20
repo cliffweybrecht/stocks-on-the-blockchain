@@ -79,3 +79,23 @@ Equity perps are a separate file (`data/perps-snapshots/perps.json`, schema `equ
 Lending is a separate Eastern-day file (`data/lending-snapshots/YYYY-MM-DD.json`, schema `equity-lending-v1`) and a separate desk at `/lending`. The writer is `npm run snapshot:lending`. `LENDING_SNAPSHOT_DATE` (or `SNAPSHOT_DATE` when the lending-specific variable is unset) forces that Eastern day key only. `capturedAt` stays the capture instant. With neither set, the file is the America/New_York date of the capture. It does not add anything to spot or perp totals, and it does not use `snapshot:land`. A source that fails stays null on that row. The command prints nothing when the file is written.
 
 Solana hourly does not use this script (the row key is an hour, and the commit subject is `data: Solana hourly …`). The hourly routine opens a PR, tries `origin pr merge`, then runs the same `git merge --no-ff` / push `main` / comment-and-close fallback. Solana daily can use either that prompt or `snapshot:land --chain solana --push-main`.
+
+## Holder and supply snapshots
+
+Holder counts and token supply are a separate nightly file. They do not change volume math. The day key is the same Eastern date. Source choice and its limits are in `docs/holder-snapshots.md`.
+
+| Chain | Command | File |
+| --- | --- | --- |
+| Solana | `SOLANA_MARKET_ENABLED=true npm run snapshot:holders -- --chain solana` | `data/holder-snapshots/solana.json` |
+| Base | `npm run snapshot:holders -- --chain base` | `data/holder-snapshots/base.json` |
+| BNB | `npm run snapshot:holders -- --chain bnb` | `data/holder-snapshots/bnb.json` |
+| Robinhood | `npm run snapshot:holders -- --chain robinhood` | `data/holder-snapshots/robinhood.json` |
+
+Land the JSON the same way as volume, with a `holders-` chain id. The subject is `chore: <Chain> holder snapshot YYYY-MM-DD`.
+
+```bash
+npm run snapshot:land -- --chain holders-bnb --push-main
+npm run snapshot:land -- --chain holders-base --push-main
+npm run snapshot:land -- --chain holders-robinhood --push-main
+npm run snapshot:land -- --chain holders-solana --push-main
+```

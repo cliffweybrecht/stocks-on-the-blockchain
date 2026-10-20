@@ -1,0 +1,3709 @@
+{
+  "version": 1,
+  "chainId": "robinhood",
+  "records": [
+    {
+      "date": "2026-10-08",
+      "t": 1791417600,
+      "capturedAt": "2026-10-09T07:18:32.305Z",
+      "holderCount": 1533616,
+      "supplyUsd": 151576650.49862835,
+      "assetCount": 194,
+      "assetsWithHolders": 194,
+      "assetsWithSupplyUsd": 179,
+      "limits": [
+        "Supply is eth_call totalSupply() and decimals() on https://rpc.mainnet.chain.robinhood.com. totalSupplyRaw is the integer. totalSupply is raw / 10^decimals. A missing decimals() leaves the adjusted supply null.",
+        "Holders are GeckoTerminal token-info holders.count (network robinhood), the same integer this desk already shows on the asset page. Calls are one at a time, at least 6.5 seconds apart, because a faster pace receives HTTP 429 on this host. HTTP 429 is retried and is not stored as a count. Blockscout's public API for this chain returned a Cloudflare challenge from the snapshot host, and Routescan tokenholdercount does not index chain 4663 (response: chain not supported). A 404 or a payload with no holders.count stays null. The chain total sums per-token counts and is not unique wallets.",
+        "supplyUsd is decimal-adjusted total supply times the desk DexScreener price already on the asset. A missing price or supply leaves supplyUsd null. It is not volume."
+      ],
+      "assets": [
+        {
+          "address": "0x521Cf887E6531c6F667b5BC4D896E5d9bfE8EB2E",
+          "symbol": "AAOI",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "150397040000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 150.39704,
+          "supplyUsd": 16566.233956,
+          "holderCount": 175,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:32:03.502Z"
+        },
+        {
+          "address": "0xaF3D76f1834A1d425780943C99Ea8A608f8a93f9",
+          "symbol": "AAPL",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "12987510639140000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 12987.51063914,
+          "supplyUsd": 4388220.094752624,
+          "holderCount": 87876,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:19:18.316Z"
+        },
+        {
+          "address": "0x3139D77Ace0cbAA5bDfD38bD1F1911a794AF0B0e",
+          "symbol": "ABCL",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "510989000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 510.989,
+          "supplyUsd": 6484.4504099999995,
+          "holderCount": 77,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:37:41.640Z"
+        },
+        {
+          "address": "0x232B8ed6377BE97813853B0Ac104c4Cda8378d1B",
+          "symbol": "ADBE",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "169236000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 169.236,
+          "supplyUsd": 38000.25144,
+          "holderCount": 277,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:34:46.123Z"
+        },
+        {
+          "address": "0x5F604fBA1162193A4388A5DFa56F556f3E133cC2",
+          "symbol": "AEHR",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "28966000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 28.966,
+          "supplyUsd": null,
+          "holderCount": 46,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:41:16.093Z"
+        },
+        {
+          "address": "0xfAf9cb261B5FCC1f404Bb10CD39C5c6C1974E612",
+          "symbol": "AEIS",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "16169000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 16.169,
+          "supplyUsd": null,
+          "holderCount": 59,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:56:21.050Z"
+        },
+        {
+          "address": "0x748c32c3ca24eDf31ea597Db1F3d330a7a6DA3Dc",
+          "symbol": "ALAB",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "23550000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 23.55,
+          "supplyUsd": 8547.708,
+          "holderCount": 57,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:38:39.972Z"
+        },
+        {
+          "address": "0x36046893810a7E7fCE501229d57dc3FC8c8716d0",
+          "symbol": "AMAT",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "143008233790000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 143.00823379,
+          "supplyUsd": 73080.2106395996,
+          "holderCount": 2595,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:37:35.143Z"
+        },
+        {
+          "address": "0x99D9D8663545151603863C5AcbD6FC3218899009",
+          "symbol": "AMBA",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "149568990000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 149.56899,
+          "supplyUsd": 9077.3420031,
+          "holderCount": 63,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:33:21.624Z"
+        },
+        {
+          "address": "0x05a3d1Cd21d0C88145E82600E62e7E496e0F222B",
+          "symbol": "AMC",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "668125199970000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 668125.19997,
+          "supplyUsd": 1910838.0719141997,
+          "holderCount": 12996,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:19:05.269Z"
+        },
+        {
+          "address": "0x86923f96303D656E4aa86D9d42D1e57ad2023fdC",
+          "symbol": "AMD",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "3268283720000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 3268.28372,
+          "supplyUsd": 2060848.9824831998,
+          "holderCount": 41727,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:19:44.449Z"
+        },
+        {
+          "address": "0xDd356AA38F40A7b7076755aC854B6FBb1F0D305B",
+          "symbol": "AMKR",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "66461248000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 66.461248,
+          "supplyUsd": 3535.7383936,
+          "holderCount": 47,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:39:31.983Z"
+        },
+        {
+          "address": "0x12f190a9F9d7D37a250758b26824B97CE941bF54",
+          "symbol": "AMZN",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "14021833970000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 14021.83397,
+          "supplyUsd": 3574726.3523118,
+          "holderCount": 55228,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:20:16.816Z"
+        },
+        {
+          "address": "0x28bABD556b60E53663B8615036479a29c2CDd1Bf",
+          "symbol": "ANET",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "29711000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 29.711,
+          "supplyUsd": 6038.1665299999995,
+          "holderCount": 623,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:37:54.657Z"
+        },
+        {
+          "address": "0xb8DBf92F9741c9ac1c32115E78581f23509916FD",
+          "symbol": "APLD",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "353457650000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 353.45765,
+          "supplyUsd": 7882.105595,
+          "holderCount": 115,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:34:07.011Z"
+        },
+        {
+          "address": "0xA249BAF1063Af884807C1E1400AEf7784836917E",
+          "symbol": "APP",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "49108480000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 49.10848,
+          "supplyUsd": 13253.887667199999,
+          "holderCount": 102,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:38:46.694Z"
+        },
+        {
+          "address": "0x47F93d52cBeC7C6D2CfC080e154002370a60dAEA",
+          "symbol": "ASML",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "73351477830000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 73.35147783,
+          "supplyUsd": 132076.670980698,
+          "holderCount": 4634,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:29:14.565Z"
+        },
+        {
+          "address": "0x1AF6446f07eb1d97c546AFC8c9544cBDF3AD5137",
+          "symbol": "ASTS",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "621487010000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 621.48701,
+          "supplyUsd": 35810.0815162,
+          "holderCount": 171,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:30:39.273Z"
+        },
+        {
+          "address": "0x373C06c4f7BDe527D7Dae4BA169E42b55E393CeD",
+          "symbol": "AUR",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "1763894000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 1763.894,
+          "supplyUsd": 9454.47184,
+          "holderCount": 61,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:38:27.154Z"
+        },
+        {
+          "address": "0xF6290b5e7C26502e2dA514C31509849718EA76A5",
+          "symbol": "AVAV",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "48042000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 48.042,
+          "supplyUsd": 6401.116080000001,
+          "holderCount": 52,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:36:04.175Z"
+        },
+        {
+          "address": "0x156E175DD063a8cE274C50654eF40e0032b3fbcF",
+          "symbol": "AVGO",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "538355405770000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 538.35540577,
+          "supplyUsd": 197479.52994455138,
+          "holderCount": 4452,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:27:37.011Z"
+        },
+        {
+          "address": "0xC27dBD474aF5181c5A8777903690D8D262D12648",
+          "symbol": "AXON",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "11097000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 11.097,
+          "supplyUsd": null,
+          "holderCount": 57,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:56:21.293Z"
+        },
+        {
+          "address": "0x141eEa040c2250eEc0314e336975e81f85f6585e",
+          "symbol": "AXTI",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "118302010000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 118.30201,
+          "supplyUsd": 9155.3925539,
+          "holderCount": 36,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:40:11.270Z"
+        },
+        {
+          "address": "0x4D21483a44Bf67a86b77E3dA301411880797D452",
+          "symbol": "BA",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "1109744950000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 1109.74495,
+          "supplyUsd": 208254.737317,
+          "holderCount": 2654,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:27:50.308Z"
+        },
+        {
+          "address": "0xad25Ac6C84D497db898fa1E8387bf6Af3532a1c4",
+          "symbol": "BABA",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "8097588920000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 8097.58892,
+          "supplyUsd": 880612.7950500001,
+          "holderCount": 5214,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:27:17.493Z"
+        },
+        {
+          "address": "0x48E39E56aCdbA37b09020C0b734A613C9a2f100A",
+          "symbol": "BB",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "24776926940000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 24776.92694,
+          "supplyUsd": 213329.3409534,
+          "holderCount": 5590,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:28:35.674Z"
+        },
+        {
+          "address": "0x822CC93fFD030293E9842c30BBD678F530701867",
+          "symbol": "BE",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "2945607030000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 2945.60703,
+          "supplyUsd": 826861.3493913,
+          "holderCount": 18107,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:25:59.501Z"
+        },
+        {
+          "address": "0x2F62fC9fAbb470C690f141c28340eD832bB27020",
+          "symbol": "BND",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "0",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 0,
+          "supplyUsd": null,
+          "holderCount": 0,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:58:57.348Z"
+        },
+        {
+          "address": "0xceF9027c7d6985b85f0BA431125073529A947A68",
+          "symbol": "BULL",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "31264865610000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 31264.86561,
+          "supplyUsd": 185088.0044112,
+          "holderCount": 1917,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:30:26.391Z"
+        },
+        {
+          "address": "0x5c90450Bbb4273D7b2f17CF6917AEB237A569679",
+          "symbol": "CBRS",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "560908890000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 560.90889,
+          "supplyUsd": 92101.239738,
+          "holderCount": 101,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:36:55.998Z"
+        },
+        {
+          "address": "0x9651342CeA770aE9a2969Ba2A52611523146aef9",
+          "symbol": "CCL",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "1014640894570000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 1014.64089457,
+          "supplyUsd": 26928.5693418878,
+          "holderCount": 136,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:37:15.578Z"
+        },
+        {
+          "address": "0xaE517A2903E68bd929Dfd15be875F8369D53e94a",
+          "symbol": "CEG",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "120791760000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 120.79176,
+          "supplyUsd": 34460.6812104,
+          "holderCount": 166,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:29:01.778Z"
+        },
+        {
+          "address": "0x8cF07C5A878945185d327aAa6e33FAa95F95e7bF",
+          "symbol": "CELH",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "349491010000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 349.49101,
+          "supplyUsd": 9808.11570464,
+          "holderCount": 94,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:32:16.659Z"
+        },
+        {
+          "address": "0x44f6D488021f8233B9416294d1FE9b1fEe28382d",
+          "symbol": "CIEN",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "15478000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 15.478,
+          "supplyUsd": 6579.264416,
+          "holderCount": 49,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:32:29.514Z"
+        },
+        {
+          "address": "0x62200915e7DEab1eC7f79fb246daDbB80eACdDd0",
+          "symbol": "CLOV",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "2355336010000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 2355.33601,
+          "supplyUsd": 11329.1662081,
+          "holderCount": 231,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:34:26.665Z"
+        },
+        {
+          "address": "0xBf449977089c718C004a66C554B26B94ef3Ad4De",
+          "symbol": "CLS",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "27032000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 27.032,
+          "supplyUsd": 9403.89216,
+          "holderCount": 45,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:39:51.719Z"
+        },
+        {
+          "address": "0xcBB95BBF36099d34dA091dc6Fa6F49EfA257Cee3",
+          "symbol": "CLSK",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "395307000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 395.307,
+          "supplyUsd": 4265.362529999999,
+          "holderCount": 92,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:34:59.151Z"
+        },
+        {
+          "address": "0x92F9F459F1a9a5AD266b182BE7Bffd1C6c666894",
+          "symbol": "COHR",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "23685010000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 23.68501,
+          "supplyUsd": 7480.9104085,
+          "holderCount": 43,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:36:49.626Z"
+        },
+        {
+          "address": "0x6330D8C3178a418788dF01a47479c0ce7CCF450b",
+          "symbol": "COIN",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "16918399990000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 16918.39999,
+          "supplyUsd": 2966641.4382465,
+          "holderCount": 30165,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:20:03.941Z"
+        },
+        {
+          "address": "0x4EA005168D7F09a7A0Ba9D1DEf21a479950E44C2",
+          "symbol": "COST",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "903020695260000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 903.02069526,
+          "supplyUsd": 852848.8654313545,
+          "holderCount": 19900,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:26:05.987Z"
+        },
+        {
+          "address": "0xdF0992E440dD0be65BD8439b609d6D4366bf1CB5",
+          "symbol": "CRCL",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "80311454710000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 80311.45471,
+          "supplyUsd": 6596782.889879401,
+          "holderCount": 12668,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:18:33.043Z"
+        },
+        {
+          "address": "0x4D67253bc223e6b0e104F1084c1fb2b669dDC41b",
+          "symbol": "CRDO",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "33317000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 33.317,
+          "supplyUsd": 6974.24761,
+          "holderCount": 55,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:38:07.530Z"
+        },
+        {
+          "address": "0xd95B44124e475743a7589e68F3D74008A5536D44",
+          "symbol": "CRM",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "171937250550000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 171.93725055,
+          "supplyUsd": 38789.043724079995,
+          "holderCount": 1290,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:31:05.395Z"
+        },
+        {
+          "address": "0xea72Ecca2d0f6bFA1394DBBCff85b52CD4233931",
+          "symbol": "CRWD",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "9654245000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 9.654245,
+          "supplyUsd": 10401.483563,
+          "holderCount": 161,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:39:06.141Z"
+        },
+        {
+          "address": "0x5f10A1C971B69e47e059e1dC91901B59b3fB49C3",
+          "symbol": "CRWV",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "6664712000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 6664.712,
+          "supplyUsd": 553810.908352,
+          "holderCount": 20056,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:28:03.191Z"
+        },
+        {
+          "address": "0xF543967EEBB6f1917992eF0E68De63ab07a5a0dA",
+          "symbol": "CSCO",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "75366919860000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 75.36691986,
+          "supplyUsd": null,
+          "holderCount": 124,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:56:27.908Z"
+        },
+        {
+          "address": "0x63D5a3b6939a33f1e75d8Bcd85759858239600DB",
+          "symbol": "CTSH",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "99539000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 99.539,
+          "supplyUsd": 5566.22088,
+          "holderCount": 39,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:35:18.683Z"
+        },
+        {
+          "address": "0xa4f319104089FE321dc8093C6E707d4fE190A988",
+          "symbol": "CVNA",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "222725390000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 222.72539,
+          "supplyUsd": 14039.94040943,
+          "holderCount": 84,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:35:05.649Z"
+        },
+        {
+          "address": "0x27c99fBde9D0d2AA4f4Bfb4943f237843DdF6958",
+          "symbol": "DDOG",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "502280150000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 502.28015,
+          "supplyUsd": 136087.783841,
+          "holderCount": 346,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:20:43.017Z"
+        },
+        {
+          "address": "0x941AE714EC6D8130c7B75d67160Ca08f1e7d11Dd",
+          "symbol": "DELL",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "640837143110000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 640.83714311,
+          "supplyUsd": 370000.14131742076,
+          "holderCount": 6942,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:26:12.525Z"
+        },
+        {
+          "address": "0x1D11f0496982706C5e14A514D4E79F2e6BdE4516",
+          "symbol": "DJT",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "215292424010000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 215292.42401,
+          "supplyUsd": 1774009.5738424,
+          "holderCount": 35231,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:26:25.862Z"
+        },
+        {
+          "address": "0xc02f12B9fe9E707079EC0d546f3050d3F6C1F8bD",
+          "symbol": "DOCN",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "43084000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 43.084,
+          "supplyUsd": 5277.35916,
+          "holderCount": 38,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:33:08.518Z"
+        },
+        {
+          "address": "0x39EC44Bee4F6A116c6F9B8De566848a985C53C60",
+          "symbol": "ELF",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "129830330000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 129.83033,
+          "supplyUsd": 13680.2218721,
+          "holderCount": 118,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:40:17.708Z"
+        },
+        {
+          "address": "0x1c690498150252222C275A5CEd69d3A6b1f52D5E",
+          "symbol": "EWT",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "118740000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 118.74,
+          "supplyUsd": null,
+          "holderCount": 49,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:59:03.896Z"
+        },
+        {
+          "address": "0x7f0aBeF0C07280F82c6a08ead09dEd6BAE2C13Fc",
+          "symbol": "EWY",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "816836640000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 816.83664,
+          "supplyUsd": 145151.870928,
+          "holderCount": 297,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:58:24.804Z"
+        },
+        {
+          "address": "0x25C288E6D899b9BC30160965aD9644c67e73bE0C",
+          "symbol": "F",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "14852428538940000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 14852.42853894,
+          "supplyUsd": 181645.2010312362,
+          "holderCount": 2604,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:28:09.649Z"
+        },
+        {
+          "address": "0xa48F22A46C0F1C46CA7D111CB6c137c271987180",
+          "symbol": "FICO",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "13487000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 13.487,
+          "supplyUsd": 9487.83476,
+          "holderCount": 52,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:37:09.066Z"
+        },
+        {
+          "address": "0x41F4267525a8AFf329540eF24fD83d9044758B33",
+          "symbol": "FIG",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "7378784420000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 7378.78442,
+          "supplyUsd": 166170.22513839998,
+          "holderCount": 2235,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:26:19.017Z"
+        },
+        {
+          "address": "0x9ECe29A4A2397C0a35fb5fA8EE2b9509130a98cc",
+          "symbol": "FISV",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "108633320000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 108.63332,
+          "supplyUsd": 4681.11839212,
+          "holderCount": 47,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:33:15.322Z"
+        },
+        {
+          "address": "0x93Dbb1d2Dc5D63F4abACFF30485273f538Df68Ac",
+          "symbol": "FIX",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "8520020000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 8.52002,
+          "supplyUsd": 14483.5227988,
+          "holderCount": 93,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:36:23.640Z"
+        },
+        {
+          "address": "0x282e87451E10fA6679BC7D76C69BE44cD3fC777C",
+          "symbol": "FLNC",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "749563000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 749.563,
+          "supplyUsd": 5891.5651800000005,
+          "holderCount": 76,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:41:03.010Z"
+        },
+        {
+          "address": "0x03BC731Ffb162cdd7B98D3C6542bFC291126075d",
+          "symbol": "FLY",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "755242070000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 755.24207,
+          "supplyUsd": 15671.2729525,
+          "holderCount": 140,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:39:25.591Z"
+        },
+        {
+          "address": "0x3FB8976980d486084b2eb4a404BD12e72823958f",
+          "symbol": "FTNT",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "32551010000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 32.55101,
+          "supplyUsd": 5924.4791260599995,
+          "holderCount": 72,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:39:45.308Z"
+        },
+        {
+          "address": "0xeB30663bDFf0622Ef4e4E5cBb4E975F19f33f51D",
+          "symbol": "FUTU",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "269529010000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 269.52901,
+          "supplyUsd": 28729.097175900002,
+          "holderCount": 195,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:36:30.038Z"
+        },
+        {
+          "address": "0x63b814DDBd6BF339f25Fed8c36158a008D5B373e",
+          "symbol": "GE",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "203260558790000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 203.26055879,
+          "supplyUsd": 61789.1772665721,
+          "holderCount": 350,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:31:44.134Z"
+        },
+        {
+          "address": "0x94B8AAE43A1cCc08Aa64B7D1F29b4D920aF4a0C9",
+          "symbol": "GEV",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "7252000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 7.252,
+          "supplyUsd": 7123.712119999999,
+          "holderCount": 48,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:35:57.503Z"
+        },
+        {
+          "address": "0xC9a981FEE1F9DEc688bb123ccDeCc63D0deBFC4e",
+          "symbol": "GLD",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "19654996830000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 19654.99683,
+          "supplyUsd": 7556953.1811984,
+          "holderCount": 40178,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:57:32.632Z"
+        },
+        {
+          "address": "0x7c04E6A3368F2A1DE3874f0e80d2e0A1a9915da6",
+          "symbol": "GLW",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "50874010000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 50.87401,
+          "supplyUsd": 7599.559613799999,
+          "holderCount": 87,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:35:51.149Z"
+        },
+        {
+          "address": "0x2D427692E928fa156ec22acfaBaFA0447C5805B7",
+          "symbol": "GLXY",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "15883790330000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 15883.79033,
+          "supplyUsd": 327841.4324112,
+          "holderCount": 1662,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:26:32.010Z"
+        },
+        {
+          "address": "0x1b0E319c6A659F002271B69dB8A7df2F911c153E",
+          "symbol": "GME",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "120310606490000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 120310.60649,
+          "supplyUsd": 3043858.3441970004,
+          "holderCount": 57937,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:19:24.786Z"
+        },
+        {
+          "address": "0x2e0847E8910a9732eB3fb1bb4b70a580ADAD4FE3",
+          "symbol": "GOOGL",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "17122204086750000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 17122.20408675,
+          "supplyUsd": 5992894.710231924,
+          "holderCount": 70780,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:18:52.482Z"
+        },
+        {
+          "address": "0xEB61c0Ed490A367d4E3631cCf8a74B3bfc7E775D",
+          "symbol": "HII",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "20347000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 20.347,
+          "supplyUsd": null,
+          "holderCount": 54,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:56:34.333Z"
+        },
+        {
+          "address": "0xCceE82fE024c36fA15E1005edE3E9e4787e23D09",
+          "symbol": "HIMS",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "123930290000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 123930.29,
+          "supplyUsd": 3498552.0867,
+          "holderCount": 10282,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:19:11.816Z"
+        },
+        {
+          "address": "0x59dd09d4900C2E4B5F75b7c0d4E6796fcc234Cb1",
+          "symbol": "HPE",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "400023027280000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 400.02302728,
+          "supplyUsd": 28537.6427661552,
+          "holderCount": 415,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:41:09.688Z"
+        },
+        {
+          "address": "0xAEa445c5F3DB1a462998ccC422A875A361ee5d99",
+          "symbol": "HWM",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "33596250000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 33.59625,
+          "supplyUsd": 7153.313549999999,
+          "holderCount": 62,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:34:13.509Z"
+        },
+        {
+          "address": "0x980dcf6766FA79f5Cf0c4AAdb3ab477ff15a9619",
+          "symbol": "IBM",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "2241853530000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 2241.85353,
+          "supplyUsd": 507152.10555659997,
+          "holderCount": 5072,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:25:53.150Z"
+        },
+        {
+          "address": "0x7c148F74ac7445D1F28366b7FcDC6792a9Fcd0Cf",
+          "symbol": "IBRX",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "734948000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 734.948,
+          "supplyUsd": 6989.355479999999,
+          "holderCount": 65,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:33:02.397Z"
+        },
+        {
+          "address": "0xACEF2e09adb47aD6aBeBAD9fF06689E60615C2B6",
+          "symbol": "INDA",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "3034177310000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 3034.17731,
+          "supplyUsd": 139450.7891676,
+          "holderCount": 1230,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:58:11.828Z"
+        },
+        {
+          "address": "0xB853bC83a753342a4f8320ea680b4B1E84118D21",
+          "symbol": "INFQ",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "2081624020000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 2081.62402,
+          "supplyUsd": null,
+          "holderCount": 45,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:56:40.845Z"
+        },
+        {
+          "address": "0xf1953DAB6FaD537488d5A022361FfAa8B4c95eC6",
+          "symbol": "INOD",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "92916010000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 92.91601,
+          "supplyUsd": 5850.9211497,
+          "holderCount": 59,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:40:24.193Z"
+        },
+        {
+          "address": "0xc72b96e0E48ecd4DC75E1e45396e26300BC39681",
+          "symbol": "INTC",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "21045056490000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 21045.05649,
+          "supplyUsd": 2289281.2449821997,
+          "holderCount": 30814,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:19:37.940Z"
+        },
+        {
+          "address": "0x56d23beE5f41A7120170b0c603Dae30128e460e9",
+          "symbol": "INTU",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "29226547850000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 29.22654785,
+          "supplyUsd": 8842.784317496,
+          "holderCount": 78,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:31:50.489Z"
+        },
+        {
+          "address": "0x558378E000D634A36593E338eBacdd6207640EfE",
+          "symbol": "IONQ",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "442897000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 442.897,
+          "supplyUsd": 18730.114129999998,
+          "holderCount": 136,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:39:58.092Z"
+        },
+        {
+          "address": "0xF0AB0c93bE6F41369d302e55db1A96b3c430212D",
+          "symbol": "IREN",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "997472000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 997.472,
+          "supplyUsd": 36417.702719999994,
+          "holderCount": 132,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:31:31.227Z"
+        },
+        {
+          "address": "0xEAf2512dFC1bEAc608F8794B3793CD4E02894Aa6",
+          "symbol": "JBL",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "15736000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 15.736,
+          "supplyUsd": 4525.98832,
+          "holderCount": 39,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:33:47.645Z"
+        },
+        {
+          "address": "0x03DfbBE0AC4E7bCDaFd08eD41A400326B77D8c80",
+          "symbol": "JNJ",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "924540441340000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 924.54044134,
+          "supplyUsd": 236395.7454462246,
+          "holderCount": 4624,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:28:41.997Z"
+        },
+        {
+          "address": "0xb334C5cE741B80B5B671F47F5C269Cb193fe8E24",
+          "symbol": "JOBY",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "1816575000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 1816.575,
+          "supplyUsd": 10590.63225,
+          "holderCount": 68,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:40:37.182Z"
+        },
+        {
+          "address": "0x96b933C74eCB4A0926b9210cef7b743EF46be2E9",
+          "symbol": "KLAC",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "18241000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 18.241,
+          "supplyUsd": 3559.73115,
+          "holderCount": 628,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:40:05.258Z"
+        },
+        {
+          "address": "0x12e3c047bf9AeCAF9dDC98c05C31BFD1dd043993",
+          "symbol": "KSS",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "563796300300000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 563.7963003,
+          "supplyUsd": 11039.131559873998,
+          "holderCount": 295,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:31:37.654Z"
+        },
+        {
+          "address": "0x7FD06a4d81cCfA3F351394E144d5191874C31313",
+          "symbol": "KTOS",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "189328730000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 189.32873,
+          "supplyUsd": 7713.2524602,
+          "holderCount": 63,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:35:31.646Z"
+        },
+        {
+          "address": "0x48d60243c66437c6ac3c2495Be94747aEd5Dfe25",
+          "symbol": "LHX",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "19390201950000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 19.39020195,
+          "supplyUsd": 4378.5015023295,
+          "holderCount": 44,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:39:19.278Z"
+        },
+        {
+          "address": "0x8eF20885F94e3D9bc7eB3080279188Bd5ED7c08C",
+          "symbol": "LITE",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "152807520000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 152.80752,
+          "supplyUsd": 165200.209872,
+          "holderCount": 138,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:29:53.674Z"
+        },
+        {
+          "address": "0x8005d266423c7ea827372c9c864491e5786600ea",
+          "symbol": "LLY",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "858101786090000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 858.10178609,
+          "supplyUsd": 1001971.1315458495,
+          "holderCount": 6997,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:19:50.810Z"
+        },
+        {
+          "address": "0x329fcACEb9AD6F9580DD5F643fed0646900D043c",
+          "symbol": "LMT",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "454708148000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 454.708148,
+          "supplyUsd": 230045.94623616,
+          "holderCount": 725,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:30:06.541Z"
+        },
+        {
+          "address": "0x57b0030166DB0C31690d1A5aA167e2e26e2C29a4",
+          "symbol": "LRCX",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "27700207850000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 27.70020785,
+          "supplyUsd": 8687.893190074,
+          "holderCount": 51,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:34:00.814Z"
+        },
+        {
+          "address": "0x4e62068525Ab11FE768e29dfD00ef909B9803016",
+          "symbol": "LULU",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "4279404870000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 4279.40487,
+          "supplyUsd": 396615.2433516001,
+          "holderCount": 6782,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:28:48.570Z"
+        },
+        {
+          "address": "0xa5D4968421bA94814Be3B136b15cf422101aC1a3",
+          "symbol": "LUNR",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "847858930000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 847.85893,
+          "supplyUsd": null,
+          "holderCount": 91,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:56:47.177Z"
+        },
+        {
+          "address": "0xDdf2266b79abf0B48898959B0ed6E6adf512be74",
+          "symbol": "MDB",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "31743370000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 31.74337,
+          "supplyUsd": 11646.007585599998,
+          "holderCount": 84,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:39:38.664Z"
+        },
+        {
+          "address": "0xc0D6457C16Cc70d6790Dd43521C899C87ce02f35",
+          "symbol": "META",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "9799346047370000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 9799.34604737,
+          "supplyUsd": 7081791.401513351,
+          "holderCount": 54538,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:20:29.805Z"
+        },
+        {
+          "address": "0xc6Cbad1016b38B797610c25E1dc7D95988B1f362",
+          "symbol": "MOD",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "18339000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 18.339,
+          "supplyUsd": 3456.16794,
+          "holderCount": 32,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:39:12.639Z"
+        },
+        {
+          "address": "0x52D50D0280AD1054b43f052bD70a49a212A1b128",
+          "symbol": "MPWR",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "4673341060000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 4.67334106,
+          "supplyUsd": 6271.745209387561,
+          "holderCount": 39,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:32:42.668Z"
+        },
+        {
+          "address": "0x43B07D15cE533bEc5476d70C22a78a1B2B662155",
+          "symbol": "MRNA",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "3187495680000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 3187.49568,
+          "supplyUsd": 626948.5252992,
+          "holderCount": 2964,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:20:23.305Z"
+        },
+        {
+          "address": "0x62fd0668e10D8B72339BE2DCF7643001688ff13B",
+          "symbol": "MRVL",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "1024602510000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 1024.60251,
+          "supplyUsd": 286171.481043,
+          "holderCount": 5073,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:29:27.482Z"
+        },
+        {
+          "address": "0xe93237C50D904957Cf27E7B1133b510C669c2e74",
+          "symbol": "MSFT",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "4380470843290000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 4380.47084329,
+          "supplyUsd": 2291345.4496498196,
+          "holderCount": 63957,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:20:10.422Z"
+        },
+        {
+          "address": "0xec262a75e413fAfD0dF80480274532C79D42da09",
+          "symbol": "MSTR",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "30496021500000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 30496.0215,
+          "supplyUsd": 4713160.122825,
+          "holderCount": 17641,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:18:45.826Z"
+        },
+        {
+          "address": "0xC93f4d80e268AB922e871bd169156C3CC41894e6",
+          "symbol": "MTSI",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "14491030000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 14.49103,
+          "supplyUsd": 4624.087673,
+          "holderCount": 32,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:32:10.038Z"
+        },
+        {
+          "address": "0xfF080c8ce2E5feadaCa0Da81314Ae59D232d4afD",
+          "symbol": "MU",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "3962625323640000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 3962.62532364,
+          "supplyUsd": 4170900.910650518,
+          "holderCount": 40033,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:19:31.429Z"
+        },
+        {
+          "address": "0x48961813349333209994750ffA89b3c5C22eC969",
+          "symbol": "MXL",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "111407010000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 111.40701,
+          "supplyUsd": 10621.544333400001,
+          "holderCount": 86,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:32:23.030Z"
+        },
+        {
+          "address": "0xf7181b63Fdb858558A74ba96BC42732684cd7965",
+          "symbol": "NAVN",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "98683000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 98.683,
+          "supplyUsd": null,
+          "holderCount": 40,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:56:53.796Z"
+        },
+        {
+          "address": "0x9D9c6684F596F66a64C030B93A886D51Fd4D7931",
+          "symbol": "NBIS",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "1211347680000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 1211.34768,
+          "supplyUsd": 273691.89481920004,
+          "holderCount": 213,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:28:22.514Z"
+        },
+        {
+          "address": "0x116F00968269B7bfbaD4109cE591d6E74c0601d4",
+          "symbol": "NET",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "506589630000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 506.58963,
+          "supplyUsd": 173831.1656382,
+          "holderCount": 2707,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:27:24.236Z"
+        },
+        {
+          "address": "0xE0444EF8BF4eD74f74FD73686e2ddF4C1c5591E8",
+          "symbol": "NFLX",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "10522399900000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 10522.3999,
+          "supplyUsd": 752141.144852,
+          "holderCount": 16202,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:27:04.498Z"
+        },
+        {
+          "address": "0xBEF75684C43c4ea7BD18Dd532a2244674Ee8b926",
+          "symbol": "NNE",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "15880845640000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 15880.84564,
+          "supplyUsd": 241706.4706408,
+          "holderCount": 211,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:30:32.536Z"
+        },
+        {
+          "address": "0x0C3260aF4B8f13a69c4c2dFb84fD667890CDFa14",
+          "symbol": "NOW",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "58323630000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 58.32363,
+          "supplyUsd": 7867.857687000001,
+          "holderCount": 101,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:34:33.210Z"
+        },
+        {
+          "address": "0x408c14038a04f7bD235329E26d2bf569ee20e250",
+          "symbol": "NU",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "6793651900000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 6793.6519,
+          "supplyUsd": 104554.302741,
+          "holderCount": 1049,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:29:40.641Z"
+        },
+        {
+          "address": "0xd0601CE157Db5bdC3162BbaC2a2C8aF5320D9EEC",
+          "symbol": "NVDA",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "75425757982490000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 75425.75798249,
+          "supplyUsd": 17642084.792104412,
+          "holderCount": 186101,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:18:39.297Z"
+        },
+        {
+          "address": "0xbE6702d7b70315376dC48a3293f24f0982F86386",
+          "symbol": "NVTS",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "311907000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 311.907,
+          "supplyUsd": 3505.83468,
+          "holderCount": 62,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:34:39.742Z"
+        },
+        {
+          "address": "0x8B2f88497f15A18E9D4FFa1a8fFB8538399aE774",
+          "symbol": "OKLO",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "390585000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 390.585,
+          "supplyUsd": 13475.182499999999,
+          "holderCount": 58,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:33:41.006Z"
+        },
+        {
+          "address": "0xbBD09F72b025360FeE5C928053Dca6248d35be54",
+          "symbol": "ON",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "517699510000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 517.69951,
+          "supplyUsd": 41478.08474120001,
+          "holderCount": 1265,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:30:19.498Z"
+        },
+        {
+          "address": "0x8ff63eAeEe3fE54Ba450c4F5538064Ec5A893Aef",
+          "symbol": "ONTO",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "16821000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 16.821,
+          "supplyUsd": 5132.2553100000005,
+          "holderCount": 34,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:36:43.101Z"
+        },
+        {
+          "address": "0xb0992820E760d836549ba69BC7598b4af75dEE03",
+          "symbol": "ORCL",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "6205528174940000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 6205.52817494,
+          "supplyUsd": 852515.4606732572,
+          "holderCount": 21546,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:27:56.493Z"
+        },
+        {
+          "address": "0x40E7a279850e443f582059ae5dC1c3b6563E6395",
+          "symbol": "OUST",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "131730000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 131.73,
+          "supplyUsd": 5049.210899999999,
+          "holderCount": 36,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:38:20.707Z"
+        },
+        {
+          "address": "0x1Cdad396DB64BDa184d5182A97Dd9B3C62100b7D",
+          "symbol": "P",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "91571050000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 91.57105,
+          "supplyUsd": 13908.726784499999,
+          "holderCount": 209,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:36:17.132Z"
+        },
+        {
+          "address": "0xB039597eD45CBa7B6E2fb9E8BE51802969CEe5Be",
+          "symbol": "PANW",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "16579000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 16.579,
+          "supplyUsd": 6909.961410000001,
+          "holderCount": 70,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:40:30.689Z"
+        },
+        {
+          "address": "0xfb2664f07B6Aadd29ea7a59D8859b1AeB8645cDa",
+          "symbol": "PATH",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "2139196450000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 2139.19645,
+          "supplyUsd": 27424.498488999998,
+          "holderCount": 108,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:34:52.687Z"
+        },
+        {
+          "address": "0x9b23573b156B52565012F5cE02CDF60AFBaa70Be",
+          "symbol": "PENG",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "1175807350000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 1175.80735,
+          "supplyUsd": 85010.871405,
+          "holderCount": 283,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:28:16.004Z"
+        },
+        {
+          "address": "0x7066A64c24e4206CD62E83bf198c1E7EB361F51e",
+          "symbol": "PFE",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "11350145170000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 11350.14517,
+          "supplyUsd": 315647.53717769997,
+          "holderCount": 3369,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:26:38.516Z"
+        },
+        {
+          "address": "0xAA4d64474c172010aB57719cb9951E6142a100d3",
+          "symbol": "PL",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "551382000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 551.382,
+          "supplyUsd": 8904.8193,
+          "holderCount": 72,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:35:44.512Z"
+        },
+        {
+          "address": "0x894E1EC2D74FFE5AEF8Dc8A9e84686acCB964F2A",
+          "symbol": "PLTR",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "11565200280000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 11565.20028,
+          "supplyUsd": 2293610.5195295997,
+          "holderCount": 39549,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:18:58.777Z"
+        },
+        {
+          "address": "0xcf6B2D875361be807EAfa57458c80f28521F9333",
+          "symbol": "POET",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "1855218000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 1855.218,
+          "supplyUsd": 13246.25652,
+          "holderCount": 255,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:31:24.621Z"
+        },
+        {
+          "address": "0x237c16D66590F67B886d978ACD362EAeaD8B18c7",
+          "symbol": "POWL",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "43072000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 43.072,
+          "supplyUsd": 8003.63904,
+          "holderCount": 40,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:34:20.182Z"
+        },
+        {
+          "address": "0x4189F0c66EBBB0bfeF1C31f763131361EF32f77C",
+          "symbol": "PR",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "239042949470000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 239.04294947,
+          "supplyUsd": 5235.040593393,
+          "holderCount": 46,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:37:48.180Z"
+        },
+        {
+          "address": "0x9Ab02Ead789b6903c3c44d0ED32F9c707CDF12FD",
+          "symbol": "PWR",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "4361000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 4.361,
+          "supplyUsd": null,
+          "holderCount": 34,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:57:00.412Z"
+        },
+        {
+          "address": "0xC583c60aeF9Dc401Da72cEC1B404743a93cea1Cc",
+          "symbol": "QBTS",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "562587020000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 562.58702,
+          "supplyUsd": 8022.4909052,
+          "holderCount": 106,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:40:56.650Z"
+        },
+        {
+          "address": "0x0f17206447090e464C277571124dD2688E48AEA9",
+          "symbol": "QCOM",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "446258889270000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 446.25888927,
+          "supplyUsd": 79420.6945233819,
+          "holderCount": 1689,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:28:29.154Z"
+        },
+        {
+          "address": "0xD5f3879160bc7c32ebb4dC785F8a4F505888de68",
+          "symbol": "QQQ",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "6102702469620000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 6102.70246962,
+          "supplyUsd": 4601010.472920606,
+          "holderCount": 27894,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:57:45.685Z"
+        },
+        {
+          "address": "0x59818904ab4cE163b3cE4FfB64f2D6Ca02c434B4",
+          "symbol": "QUBT",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "30870577270000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 30870.57727,
+          "supplyUsd": 232455.4468431,
+          "holderCount": 3321,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:27:30.521Z"
+        },
+        {
+          "address": "0xF0C4BF4C582cb3836e98394b1d4e7B7281101bE8",
+          "symbol": "RBLX",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "14179559030000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 14179.55903,
+          "supplyUsd": 648714.8256225,
+          "holderCount": 9110,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:26:51.512Z"
+        },
+        {
+          "address": "0xFDE6b5d9BB419B10C23268c74e369AbFF39C0460",
+          "symbol": "RCAT",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "20848086070000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 20848.08607,
+          "supplyUsd": 124254.59297720001,
+          "holderCount": 795,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:30:45.822Z"
+        },
+        {
+          "address": "0x05b37Fb53A299a1b874A619e1c4C404D52C36F4C",
+          "symbol": "RDDT",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "11973544030000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 11973.54403,
+          "supplyUsd": 1874937.2596576998,
+          "holderCount": 20773,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:25:52.866Z"
+        },
+        {
+          "address": "0x92Ef19E82bD8fF36661DE838D5eaE7e5CEF0EfFE",
+          "symbol": "RDW",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "1307395000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 1307.395,
+          "supplyUsd": 12211.0693,
+          "holderCount": 71,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:35:25.005Z"
+        },
+        {
+          "address": "0x284358abc07F9359f19f4b5b4aC91901Be2597Ba",
+          "symbol": "RGTI",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "608821000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 608.821,
+          "supplyUsd": 8456.52369,
+          "holderCount": 103,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:36:10.671Z"
+        },
+        {
+          "address": "0xB1BF26c1D20ff267A4f93550d1E0d06ac40a114B",
+          "symbol": "RIVN",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "31133519650000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 31133.51965,
+          "supplyUsd": 443652.65501249995,
+          "holderCount": 2806,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:29:34.306Z"
+        },
+        {
+          "address": "0x3b14C39E89D60D627b42a1A4CA45b5bb45Fc12e2",
+          "symbol": "RKLB",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "1285327310000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 1285.32731,
+          "supplyUsd": 88661.8778438,
+          "holderCount": 705,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:31:11.547Z"
+        },
+        {
+          "address": "0x756Bc80af765C82da966a788858d65aDF14f3793",
+          "symbol": "RUN",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "5023720280000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 5023.72028,
+          "supplyUsd": 38632.4089532,
+          "holderCount": 318,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:33:53.994Z"
+        },
+        {
+          "address": "0x95052ddcd5DC25641657424A8Cf04834997E1730",
+          "symbol": "SATS",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "103000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 0.103,
+          "supplyUsd": null,
+          "holderCount": 4,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:57:06.922Z"
+        },
+        {
+          "address": "0xd63ABB2C13d7a8421a8017a712802053568e3C1D",
+          "symbol": "SCHD",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "234422137930000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 234.42213793,
+          "supplyUsd": 7707.799895138401,
+          "holderCount": 94,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:58:50.878Z"
+        },
+        {
+          "address": "0x92FD66527192E3e61d4DDd13322Aa222DE86F9B5",
+          "symbol": "SGOV",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "23119006336300000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 23119.0063363,
+          "supplyUsd": 2337285.302587257,
+          "holderCount": 13084,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:57:52.393Z"
+        },
+        {
+          "address": "0xF53F66751B1Eff985311b693531E3290F600c410",
+          "symbol": "SHOP",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "514119810000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 514.11981,
+          "supplyUsd": 84927.45141390001,
+          "holderCount": 1458,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:40:43.494Z"
+        },
+        {
+          "address": "0xBE274710Bf3d9567e1B290eF6a5F9f90ca016FD8",
+          "symbol": "SHY",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "92943369730000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 92.94336973,
+          "supplyUsd": null,
+          "holderCount": 41,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:59:10.338Z"
+        },
+        {
+          "address": "0x77E655E37F4d913fB9540e0d541D824171a60e81",
+          "symbol": "SIMO",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "21508010000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 21.50801,
+          "supplyUsd": null,
+          "holderCount": 59,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:57:13.520Z"
+        },
+        {
+          "address": "0x84CAb63bc87912E71ad199ff14A0bA45de68FeF8",
+          "symbol": "SKHY",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "6198203286440000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 6198.20328644,
+          "supplyUsd": 1069871.8692724085,
+          "holderCount": 3914,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:28:54.992Z"
+        },
+        {
+          "address": "0x285b231728c7E4333799183DF1094d775246a535",
+          "symbol": "SLS",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "322000000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 322,
+          "supplyUsd": 3448.6200000000003,
+          "holderCount": 42,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:33:28.274Z"
+        },
+        {
+          "address": "0x411eFb0E7f985935DAec3D4C3ebaEa0d0AD7D89f",
+          "symbol": "SLV",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "22657875050000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 22657.87505,
+          "supplyUsd": 1234627.6114745,
+          "holderCount": 8477,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:57:58.843Z"
+        },
+        {
+          "address": "0xc01aA1fECeC0605b13bc84874ff7256C0f5F562a",
+          "symbol": "SMCI",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "375259020000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 375.25902,
+          "supplyUsd": 15948.50835,
+          "holderCount": 141,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:30:52.008Z"
+        },
+        {
+          "address": "0x072f979c2CAc8e1391B0162a87Fee094bF8744a0",
+          "symbol": "SMH",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "213266480000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 213.26648,
+          "supplyUsd": 125198.72688344,
+          "holderCount": 84,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:58:44.331Z"
+        },
+        {
+          "address": "0x1Eebee7F74517e0279dFb09d25B0407bEEc3FDd6",
+          "symbol": "SMR",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "2220860990000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 2220.86099,
+          "supplyUsd": 15670.395145440001,
+          "holderCount": 78,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:35:12.374Z"
+        },
+        {
+          "address": "0xF6589F11Bc40b669e584073F428B05562F568733",
+          "symbol": "SNAP",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "45316357250000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 45316.35725,
+          "supplyUsd": 266007.0170575,
+          "holderCount": 3465,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:26:45.091Z"
+        },
+        {
+          "address": "0xB90A19fF0Af67f7779afF50A882A9CfF42446400",
+          "symbol": "SNDK",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "1010150450000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 1010.15045,
+          "supplyUsd": 1645403.7634915,
+          "holderCount": 26954,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:26:58.137Z"
+        },
+        {
+          "address": "0xBa0CAB75495255d0cB58E22B648bFED4ECD1F47E",
+          "symbol": "SNOW",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "328358550000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 328.35855,
+          "supplyUsd": 112075.34028599999,
+          "holderCount": 1811,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:29:46.986Z"
+        },
+        {
+          "address": "0x98E75885157C80992A8D41b696D8c9C6Fb30A926",
+          "symbol": "SOFI",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "3165763560000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 3165.76356,
+          "supplyUsd": 48341.2095612,
+          "holderCount": 182,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:40:49.979Z"
+        },
+        {
+          "address": "0x6E3Dfd9f7e1649BaA14D25cac18C94d62dB10A54",
+          "symbol": "SOUN",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "7824587010000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 7824.58701,
+          "supplyUsd": 42018.0322437,
+          "holderCount": 157,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:37:22.238Z"
+        },
+        {
+          "address": "0x75742c18BC1f1C5c5f448f4C9D9C6F66dafAAa38",
+          "symbol": "SOXX",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "95859123080000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 95.85912308,
+          "supplyUsd": 54754.731103296006,
+          "holderCount": 1260,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:58:05.181Z"
+        },
+        {
+          "address": "0x4a0E65A3EcceC6dBe60AE065F2e7bb85Fae35eEa",
+          "symbol": "SPCX",
+          "issuer": "RHJ",
+          "instrumentKind": "private",
+          "totalSupplyRaw": "57533388090000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 57533.38809,
+          "supplyUsd": 9575281.7798187,
+          "holderCount": 113292,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:59:16.646Z"
+        },
+        {
+          "address": "0xAd622320e520de39e72d41EF07438C3Fd3354875",
+          "symbol": "SPMO",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "36779026750000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 36.77902675,
+          "supplyUsd": 5415.7116889375,
+          "holderCount": 161,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:58:37.714Z"
+        },
+        {
+          "address": "0x117cc2133c37B721F49dE2A7a74833232B3B4C0C",
+          "symbol": "SPY",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "24818292013180000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 24818.29201318,
+          "supplyUsd": 19306397.539972853,
+          "holderCount": 71092,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:57:26.176Z"
+        },
+        {
+          "address": "0xb1969f6604CA1AE7a2cD3F1827876e914594CA2D",
+          "symbol": "TE",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "2851090360000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 2851.09036,
+          "supplyUsd": 9950.305356400002,
+          "holderCount": 104,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:32:55.741Z"
+        },
+        {
+          "address": "0x5B97476b922F3305131B8f0B9D333172E87f4aaE",
+          "symbol": "TEAM",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "17987040000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 17.98704,
+          "supplyUsd": 3552.6202703999998,
+          "holderCount": 52,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:38:14.108Z"
+        },
+        {
+          "address": "0xB1CC0EC7Db69Cf43539119814df40071b9d61793",
+          "symbol": "TEM",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "124400010000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 124.40001,
+          "supplyUsd": 8340.39867045,
+          "holderCount": 98,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:38:59.633Z"
+        },
+        {
+          "address": "0x2778C5024D5cA2CdB0f8eAD671ffc69963AdCD9C",
+          "symbol": "TER",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "28393714900000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 28.3937149,
+          "supplyUsd": 11058.784079252,
+          "holderCount": 83,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:35:38.209Z"
+        },
+        {
+          "address": "0x89776d4Cd68193597A2fC132cfaC1fDe36CCeA8a",
+          "symbol": "TSEM",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "38102010000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 38.10201,
+          "supplyUsd": 8860.2414054,
+          "holderCount": 67,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:36:36.636Z"
+        },
+        {
+          "address": "0x322F0929c4625eD5bAd873c95208D54E1c003b2d",
+          "symbol": "TSLA",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "12127497760000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 12127.49776,
+          "supplyUsd": 4593532.3265552,
+          "holderCount": 72041,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:20:36.307Z"
+        },
+        {
+          "address": "0x58FfE4a942d3885bAa22D7520691F611EF09e7AA",
+          "symbol": "TSM",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "2593148993240000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 2593.14899324,
+          "supplyUsd": 1203921.2830915349,
+          "holderCount": 11189,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:19:57.301Z"
+        },
+        {
+          "address": "0x0b5fb4031cae9163db10B169Ee72685F0EdC8545",
+          "symbol": "TTD",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "442269000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 442.269,
+          "supplyUsd": 5148.01116,
+          "holderCount": 64,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:38:53.022Z"
+        },
+        {
+          "address": "0x5e81213613b6B86EaB4c6c50d718d34359459786",
+          "symbol": "TTWO",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "5526155010000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 5526.15501,
+          "supplyUsd": 1157176.8590940002,
+          "holderCount": 11983,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:27:11.036Z"
+        },
+        {
+          "address": "0x0E6e67Ba88e7b5d9B67636A215c76779B948dE79",
+          "symbol": "UMC",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "193321000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 193.321,
+          "supplyUsd": null,
+          "holderCount": 69,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:57:19.974Z"
+        },
+        {
+          "address": "0xcF364ea52787e289De6F32077834056E3E70D6A8",
+          "symbol": "UNH",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "69309015720000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 69.30901572,
+          "supplyUsd": 25588.888603824,
+          "holderCount": 1151,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:30:58.708Z"
+        },
+        {
+          "address": "0xf23250dac154D05Bb671CB0d0eBEf3c635c79CE2",
+          "symbol": "UPS",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "2354320383820000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 2354.32038382,
+          "supplyUsd": 220646.9063716104,
+          "holderCount": 1729,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:29:08.216Z"
+        },
+        {
+          "address": "0xd917B029C761D264c6A312BBbcDA868658eF86a6",
+          "symbol": "USAR",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "44136753560000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 44136.75356,
+          "supplyUsd": 565391.8131035999,
+          "holderCount": 21350,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:27:43.559Z"
+        },
+        {
+          "address": "0xa30FA36Db767ad9eD3f7a60fC79526fB4d56D344",
+          "symbol": "USO",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "17276421660000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 17276.42166,
+          "supplyUsd": 2535833.1712548,
+          "holderCount": 14024,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:57:39.197Z"
+        },
+        {
+          "address": "0x6006ed4B2F94110851ff7509D97D034f0EeD9226",
+          "symbol": "VICR",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "17338010000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 17.33801,
+          "supplyUsd": 4521.2328677,
+          "holderCount": 36,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:32:36.194Z"
+        },
+        {
+          "address": "0xFA78C12E6488814A0262E4e802749a4a737d5fB7",
+          "symbol": "VRT",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "34057325850000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 34.05732585,
+          "supplyUsd": 8137.3168653405,
+          "holderCount": 71,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:38:33.482Z"
+        },
+        {
+          "address": "0x26dCbfb34FC83CAbD6990f449674efDc6097fF85",
+          "symbol": "VSAT",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "99165000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 99.165,
+          "supplyUsd": 6526.048650000001,
+          "holderCount": 60,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:32:49.202Z"
+        },
+        {
+          "address": "0x561e2a49212b7cCF47f2744Ccb83e200722fADBc",
+          "symbol": "VST",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "373459580160000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 373.45958016,
+          "supplyUsd": 59873.039891251196,
+          "holderCount": 83,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:37:28.610Z"
+        },
+        {
+          "address": "0x0594134DF3f171a354D9C85eBD65b7A6148F6D09",
+          "symbol": "VTI",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "127142302260000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 127.14230226,
+          "supplyUsd": 48362.388933658796,
+          "holderCount": 1253,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:58:18.365Z"
+        },
+        {
+          "address": "0x82DA4646242e1D962e96e932269Dc644c94a9CaA",
+          "symbol": "WDAY",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "165320420000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 165.32042,
+          "supplyUsd": 30929.7973778,
+          "holderCount": 145,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:30:00.305Z"
+        },
+        {
+          "address": "0xF52597345A8Edf418bc4071b4a35112472277D3e",
+          "symbol": "WDC",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "170016120380000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 170.01612038,
+          "supplyUsd": 67167.58861404507,
+          "holderCount": 77,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:31:18.160Z"
+        },
+        {
+          "address": "0x348Be1A8663f15edDe5CDf8A96BB69078f7aB6Fd",
+          "symbol": "WULF",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "1132945040000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 1132.94504,
+          "supplyUsd": 15589.3237504,
+          "holderCount": 265,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:33:34.662Z"
+        },
+        {
+          "address": "0x9e7ABD3C9139D14E4c86DcE0e455AAB7A0C2FB3E",
+          "symbol": "WYFI",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "7030000000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 7030,
+          "supplyUsd": 111144.3,
+          "holderCount": 1519,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:30:13.008Z"
+        },
+        {
+          "address": "0x15Cd20759CE7F3285c29A319dE2D1A2e098c6f43",
+          "symbol": "XLK",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "50575726660000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 50.57572666,
+          "supplyUsd": 9657.435005727,
+          "holderCount": 95,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:58:31.338Z"
+        },
+        {
+          "address": "0xA8eB3BCcbf2017eE7CBfb652eB51CF2E1B153289",
+          "symbol": "XNDU",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "1532000000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 1532,
+          "supplyUsd": 6924.639999999999,
+          "holderCount": 73,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:38:01.089Z"
+        },
+        {
+          "address": "0xf9B46d3D1B22199D4D1025a9cEDB540A33F1a2d5",
+          "symbol": "XOM",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "124091209280000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 124.09120928,
+          "supplyUsd": 20642.572663728,
+          "holderCount": 4956,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:31:57.131Z"
+        },
+        {
+          "address": "0x44c4F142009036cF477eD2d09932051843137CF1",
+          "symbol": "ZM",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "474853360000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 474.85336,
+          "supplyUsd": 44493.759832,
+          "holderCount": 166,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:37:03.181Z"
+        },
+        {
+          "address": "0x7dc013eB55e436f30d7ED1AFE4E36d6e45e3c3f7",
+          "symbol": "ZS",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "39050000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 39.05,
+          "supplyUsd": 8526.5675,
+          "holderCount": 60,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-09T07:29:21.219Z"
+        }
+      ]
+    }
+  ]
+}

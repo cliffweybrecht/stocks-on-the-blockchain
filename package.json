@@ -19,7 +19,8 @@
     "snapshot:base-volume": "python3 scripts/snapshot-base-volume.py",
     "snapshot:perps": "tsx scripts/snapshot-perps.ts",
     "snapshot:lending": "tsx scripts/snapshot-lending.ts",
-    "snapshot:land": "tsx scripts/land-volume-snapshot.ts"
+    "snapshot:land": "tsx scripts/land-volume-snapshot.ts",
+    "snapshot:holders": "tsx scripts/snapshot-holders.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

@@ -67,3 +67,10 @@ next-env.d.ts
 
 # Cached cross-pool Gecko daily volume. Rebuilt in the background.
 /data/cache/
+
+# Nightly holder and supply snapshots. Tracked files are the landed chain rows.
+/data/holder-snapshots/*.json
+!/data/holder-snapshots/solana.json
+!/data/holder-snapshots/base.json
+!/data/holder-snapshots/bnb.json
+!/data/holder-snapshots/robinhood.json
