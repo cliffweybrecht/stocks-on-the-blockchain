@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { formatUsdCompact } from "../format";
 import { classifyPerpUnderlying, normPerpSymbol } from "../perps-classify";
+import { PERPS_ROW_BYTE_BUDGET } from "../perps-compact";
 import { hyperliquidEtDayNotional, matchUntaggedPerp, parseEquityPerpsFeeds, type PerpsFeeds } from "../perps-parse";
 import {
   assertPerpsLandSnapshot,
@@ -427,7 +428,7 @@ describe("equity perp snapshot", () => {
     const parsed = parsePerpsSnapshotFile(JSON.parse(text));
     expect(parsed.schema).toBe("equity-perps-v2");
     expect(parsed.readError).toBeUndefined();
-    expect(Buffer.byteLength(text)).toBeLessThan(80_000 * parsed.records.length);
+    expect(Buffer.byteLength(text)).toBeLessThan(PERPS_ROW_BYTE_BUDGET * parsed.records.length);
     const dates = parsed.records.map((row) => row.date);
     expect(dates[0]).toBe("2026-10-08");
     expect(dates.at(-1)! >= "2026-10-10").toBe(true);
