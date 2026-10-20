@@ -201,6 +201,7 @@ export function parseEulerChain(input: {
   const mixedClusters = new Set<string>();
   let mixed = false;
   let unresolved = false;
+  let incomplete = false;
   let nonStable = false;
   const collaterals = input.collaterals ?? {};
 
@@ -225,7 +226,7 @@ export function parseEulerChain(input: {
     }
     const accepted = parseEulerCollateralList(listedCollateral);
     if (accepted.length !== rawList.length) {
-      if (isStableSymbol(vault.assetSymbol)) unresolved = true;
+      if (isStableSymbol(vault.assetSymbol)) incomplete = true;
       continue;
     }
     // An empty list loaded. There is no stock collateral to count.
@@ -292,6 +293,7 @@ export function parseEulerChain(input: {
     );
   }
   if (unresolved) notes.push("A pool's collateral list did not load, so its borrowed dollars stay blank.");
+  if (incomplete) notes.push("A pool's collateral list was missing some tokens, so its borrowed dollars stay blank.");
   if (nonStable) notes.push("A pool borrows a coin that is not a dollar coin, so that debt is left blank.");
   const band = lendingApyBand(points);
   const stableBorrowedUsd = borrowedSeen ? borrowed : null;

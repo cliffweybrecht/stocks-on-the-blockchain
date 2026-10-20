@@ -179,6 +179,24 @@ describe("Euler parser", () => {
     expect(row.note ?? "").not.toMatch(/did not load/);
   });
 
+  it("leaves a borrow blank when a collateral row has no token", () => {
+    const chain = structuredClone(euler["1"]);
+    const address = "0xdfa6451eac51c913003bfeb52418f55376996a64";
+    chain.collaterals[address] = [
+      ...(chain.collaterals[address] ?? []),
+      { collateral: "0x1111111111111111111111111111111111111111", asset: "", assetSymbol: null, borrowLTV: "8000" },
+    ];
+    const row = parseEulerChain({
+      chainId: 1,
+      vaults: chain.vaults,
+      metadata: chain.metadata,
+      collaterals: chain.collaterals,
+      equityAddresses: stockBook(chain, "ethereum"),
+    });
+    expect(row.stableBorrowedUsd).toBeCloseTo(140.2898702998606, 4);
+    expect(row.note).toMatch(/missing some tokens/);
+  });
+
   it("leaves a borrow blank when its collateral list did not load", () => {
     const chain = euler["1"];
     const row = parseEulerChain({
