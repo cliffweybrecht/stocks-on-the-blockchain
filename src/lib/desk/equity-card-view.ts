@@ -3,6 +3,10 @@ import type { AssetSortKey } from "@/lib/market/aggregate";
 import type { VolumeChartRangeId } from "@/lib/market/daily-volume-view";
 import { sliceEquityCardDayVolumeSeries } from "@/lib/market/equity-card-volume";
 import {
+  equityCardLiquidityHint,
+  type EquityCardLiquidityPoint,
+} from "@/lib/market/equity-card-range-liquidity";
+import {
   equityCardRangeCoverageHint,
   equityCardRangeLabel,
   type EquityCardClosedRangeId,
@@ -20,6 +24,13 @@ export interface EquityCardRangeHeadline {
   days: number;
 }
 
+export interface EquityCardLiquidityHeadline {
+  id: VolumeChartRangeId;
+  /** Null when this asset has no recorded close in the window. */
+  liquidityUsd: number | null;
+  days: number;
+}
+
 export interface EquityCardHeadline {
   amountUsd: number | null;
   label: "Vol" | "Liq" | "7D vol" | "14D vol" | "30D vol";
@@ -30,22 +41,45 @@ export interface EquityCardHeadline {
 
 /**
  * Card headline for the Volume | Liquidity toggle.
- * Volume is DexScreener 24h (`volume.h24`, summed on the mint).
- * Liquidity is the desk field `displayedLiquidityUsd` — the sum of DexScreener
- * `liquidity.usd` already used to rank the Liquidity list. Missing stays missing.
+ * Volume is DexScreener 24h (`volume.h24`, summed on the mint), or the closed-day
+ * sum when a volume range is selected.
+ * Liquidity follows the same toggle. 24H is the last closed Eastern reserve.
+ * 7D, 14D, and 30D are the average of recorded closing reserves. No stored
+ * close falls back to the live `displayedLiquidityUsd` and says `current`.
  * Pools and RH vs DEX sorts keep the volume headline.
  */
 function finiteUsd(value: number | null | undefined): number | null {
-  if (value === null || value === undefined || !Number.isFinite(value)) return null;
+  if (value === null || value === undefined || !Number.isFinite(value) || value < 0) return null;
   return value;
+}
+
+function recordedLiquidity(liquidity: EquityCardLiquidityHeadline | null | undefined): boolean {
+  return finiteUsd(liquidity?.liquidityUsd) !== null && Number.isFinite(liquidity?.days) && (liquidity?.days ?? 0) > 0;
 }
 
 export function equityCardHeadline(
   asset: Pick<AssetSummary, "volume24hUsd" | "displayedLiquidityUsd">,
   sortKey: AssetSortKey,
   range?: EquityCardRangeHeadline | null,
+  liquidity?: EquityCardLiquidityHeadline | null,
 ): EquityCardHeadline {
   if (sortKey === "displayedLiquidityUsd") {
+    if (liquidity && recordedLiquidity(liquidity)) {
+      return {
+        amountUsd: finiteUsd(liquidity.liquidityUsd),
+        label: "Liq",
+        kind: "liquidity",
+        coverageHint: equityCardLiquidityHint(liquidity.id, liquidity.days, true),
+      };
+    }
+    if (liquidity) {
+      return {
+        amountUsd: finiteUsd(asset.displayedLiquidityUsd),
+        label: "Liq",
+        kind: "liquidity",
+        coverageHint: "current",
+      };
+    }
     return {
       amountUsd: finiteUsd(asset.displayedLiquidityUsd),
       label: "Liq",
@@ -112,6 +146,23 @@ export function equityCardDayVolumeSeries(
   nowT = Date.now() / 1000,
 ): VolumeHistoryPoint[] | null {
   return sliceEquityCardDayVolumeSeries(points, nowT);
+}
+
+/**
+ * Liquidity-mode sparkline. One recorded close is not a line. A missing series
+ * stays missing rather than borrowing the volume sparkline.
+ */
+export function equityCardLiquiditySeries(
+  points: readonly EquityCardLiquidityPoint[] | null | undefined,
+): VolumeHistoryPoint[] | null {
+  if (!points || points.length < 2) return null;
+  const series: VolumeHistoryPoint[] = [];
+  for (const point of points) {
+    if (!Number.isFinite(point.t) || point.t <= 0) return null;
+    if (!Number.isFinite(point.liquidityUsd) || point.liquidityUsd < 0) return null;
+    series.push({ t: point.t, volumeUsd: point.liquidityUsd, kind: "calendar_day" });
+  }
+  return series;
 }
 
 export function equityCardPriceSparklineDirection(
