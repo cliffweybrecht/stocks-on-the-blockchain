@@ -132,7 +132,7 @@ function FullChart({ points }: { points: readonly LendingHistoryPoint[] }) {
         ))}
       </ChartFrame>
       <figcaption className="text-sm leading-6 text-muted-foreground">
-        How full is dollars borrowed divided by dollars supplied to lend. Jupiter Lend and Venus are left out. They do not publish their own lend supply. A missing day stays blank.
+        How full is dollars borrowed divided by dollars supplied to lend. Jupiter Lend, Venus, and Frankencoin are left out. They do not publish their own lend supply. A missing day stays blank.
       </figcaption>
     </figure>
   );

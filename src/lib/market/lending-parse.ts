@@ -34,6 +34,7 @@ const STABLE_SYMBOLS = new Set([
   "USDBC",
   "USDCE",
   "JUPUSD",
+  "AUSD",
 ]);
 
 export function isStableSymbol(symbol: unknown): boolean {

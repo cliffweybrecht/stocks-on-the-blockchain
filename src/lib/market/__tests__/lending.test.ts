@@ -914,6 +914,8 @@ describe("lending stock view", () => {
     expect(classifyLendingSymbol("SPCX", "robinhood-chain").ticker).toBe("SPCX");
     expect(classifyLendingSymbol("SPCXB", "bnb")).toEqual({ ticker: "SPCX", wrapper: "bStocks" });
     expect(classifyLendingSymbol("deSPXA", "base")).toEqual({ ticker: "SPXA", wrapper: "Centrifuge" });
+    expect(classifyLendingSymbol("wtCOIN", "base")).toEqual({ ticker: "COIN", wrapper: "ST0x" });
+    expect(classifyLendingSymbol("wtSPYM", "base")).toEqual({ ticker: "SPYM", wrapper: "ST0x" });
     expect(classifyLendingSymbol("wbCOIN", "base").wrapper).toBe("Not named");
 
     const groups = lendingStockGroups([
