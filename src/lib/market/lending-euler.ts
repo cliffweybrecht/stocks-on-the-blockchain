@@ -219,11 +219,17 @@ export function parseEulerChain(input: {
       continue;
     }
     const rawList = listFrom(listedCollateral);
-    const accepted = parseEulerCollateralList(listedCollateral);
-    if (!rawList || accepted.length === 0 || accepted.length !== rawList.length) {
+    if (!rawList) {
       if (isStableSymbol(vault.assetSymbol)) unresolved = true;
       continue;
     }
+    const accepted = parseEulerCollateralList(listedCollateral);
+    if (accepted.length !== rawList.length) {
+      if (isStableSymbol(vault.assetSymbol)) unresolved = true;
+      continue;
+    }
+    // An empty list loaded. There is no stock collateral to count.
+    if (accepted.length === 0) continue;
     const kinds = accepted.map((item) => isPublicStock(item.assetAddress, item.assetSymbol, desk, equities));
     const anyStock = kinds.some(Boolean);
     const allStock = kinds.every(Boolean);

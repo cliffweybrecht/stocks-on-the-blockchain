@@ -165,6 +165,20 @@ describe("Euler parser", () => {
     expect(wrapped.stableBorrowedUsd).toBeCloseTo(row.stableBorrowedUsd ?? 0, 4);
   });
 
+  it("does not treat a loaded empty collateral list as a failed read", () => {
+    const chain = euler["1"];
+    const empty = Object.fromEntries(Object.keys(chain.collaterals).map((address) => [address, []]));
+    const row = parseEulerChain({
+      chainId: 1,
+      vaults: chain.vaults,
+      metadata: chain.metadata,
+      collaterals: empty,
+      equityAddresses: stockBook(chain, "ethereum"),
+    });
+    expect(row.stableBorrowedUsd).toBeNull();
+    expect(row.note ?? "").not.toMatch(/did not load/);
+  });
+
   it("leaves a borrow blank when its collateral list did not load", () => {
     const chain = euler["1"];
     const row = parseEulerChain({
