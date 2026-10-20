@@ -3,6 +3,11 @@ import { join } from "node:path";
 import { BASE_DESK } from "./base-desk-volume";
 import { BNB_DESK } from "./bnb-desk-volume";
 import {
+  equityCardLiquidityHistoryFromSnapshot,
+  EMPTY_EQUITY_CARD_LIQUIDITY,
+  type EquityCardLiquidityHistory,
+} from "./equity-card-range-liquidity";
+import {
   equityCardRangeVolumesFromSnapshot,
   type EquityCardRangeVolumeMap,
 } from "./equity-card-range-volume";
@@ -22,7 +27,18 @@ interface RangeVolumeCacheEntry {
   backfillMtimeMs: number;
   dayKey: string;
   volumes: EquityCardRangeVolumeMap;
+  liquidity: EquityCardLiquidityHistory;
 }
+
+export interface EquityCardRangeMetrics {
+  volumes: EquityCardRangeVolumeMap;
+  liquidity: EquityCardLiquidityHistory;
+}
+
+const EMPTY_RANGE_METRICS: EquityCardRangeMetrics = {
+  volumes: {},
+  liquidity: EMPTY_EQUITY_CARD_LIQUIDITY,
+};
 
 const cache = new Map<string, RangeVolumeCacheEntry>();
 
@@ -72,23 +88,24 @@ function backfillFileName(snapshotFile: string): string {
 }
 
 /**
- * Precomputed 7D / 14D / 30D card totals for one chain.
- * Reads the local snapshot file and, when present, the sibling Gecko hourly
- * backfill. A missing file is an empty contribution, not a network fetch.
- * Repeat calls on the same Eastern day reuse the parsed map.
+ * Precomputed card ranges for one chain, from the local snapshot file.
+ * Volume totals and closing-liquidity history are parsed together.
+ * A sibling Gecko hourly backfill fills volume days only. It has no reserves.
+ * A missing file is an empty contribution, not a network fetch and not a write.
+ * Repeat calls on the same Eastern day reuse the parsed maps.
  */
-export async function loadEquityCardRangeVolumes(
+export async function loadEquityCardRangeMetrics(
   chainId: string,
   nowT = Date.now() / 1000,
   dir = DEFAULT_VOLUME_SNAPSHOT_DIR,
-): Promise<EquityCardRangeVolumeMap> {
+): Promise<EquityCardRangeMetrics> {
   const file = equityCardSnapshotFile(chainId);
-  if (!file) return {};
+  if (!file) return cloneMetrics(EMPTY_RANGE_METRICS);
   const path =
     dir === DEFAULT_VOLUME_SNAPSHOT_DIR
       ? defaultSnapshotPath(chainId)
       : join(/*turbopackIgnore: true*/ dir, file);
-  if (!path) return {};
+  if (!path) return cloneMetrics(EMPTY_RANGE_METRICS);
   const backfillPath =
     dir === DEFAULT_VOLUME_SNAPSHOT_DIR
       ? defaultBackfillPath(chainId)
@@ -97,7 +114,7 @@ export async function loadEquityCardRangeVolumes(
   try {
     mtimeMs = (await stat(path)).mtimeMs;
   } catch {
-    return {};
+    return cloneMetrics(EMPTY_RANGE_METRICS);
   }
   let backfillMtimeMs = 0;
   let backfill: unknown = null;
@@ -111,20 +128,36 @@ export async function loadEquityCardRangeVolumes(
     }
   }
   const dayKey = easternDayKey(nowT);
-  if (!dayKey) return {};
+  if (!dayKey) return cloneMetrics(EMPTY_RANGE_METRICS);
   const hit = cache.get(path);
   if (hit && hit.mtimeMs === mtimeMs && hit.backfillMtimeMs === backfillMtimeMs && hit.dayKey === dayKey) {
-    return structuredClone(hit.volumes);
+    return cloneMetrics(hit);
   }
   let payload: unknown;
   try {
     payload = JSON.parse(await readFile(path, "utf8"));
   } catch {
-    return {};
+    return cloneMetrics(EMPTY_RANGE_METRICS);
   }
   const volumes = equityCardRangeVolumesFromSnapshot(payload, nowT, backfill);
-  // Hand out a copy. The cached map must stay intact if a later render mutates props.
-  const stored = structuredClone(volumes);
-  cache.set(path, { mtimeMs, backfillMtimeMs, dayKey, volumes: stored });
-  return structuredClone(stored);
+  const liquidity = equityCardLiquidityHistoryFromSnapshot(payload, nowT, backfill);
+  // Hand out a copy. The cached maps must stay intact if a later render mutates props.
+  const stored = cloneMetrics({ volumes, liquidity });
+  cache.set(path, { mtimeMs, backfillMtimeMs, dayKey, volumes: stored.volumes, liquidity: stored.liquidity });
+  return cloneMetrics(stored);
+}
+
+export async function loadEquityCardRangeVolumes(
+  chainId: string,
+  nowT = Date.now() / 1000,
+  dir = DEFAULT_VOLUME_SNAPSHOT_DIR,
+): Promise<EquityCardRangeVolumeMap> {
+  return (await loadEquityCardRangeMetrics(chainId, nowT, dir)).volumes;
+}
+
+function cloneMetrics(metrics: EquityCardRangeMetrics): EquityCardRangeMetrics {
+  return {
+    volumes: structuredClone(metrics.volumes),
+    liquidity: structuredClone(metrics.liquidity),
+  };
 }

@@ -50,6 +50,8 @@ export function classifyLendingSymbol(symbol: string, chainId: string): { ticker
   if (wrapped?.[1]) return { ticker: wrapped[1].toUpperCase(), wrapper: "xStocks" };
   const xstock = /^([A-Za-z][A-Za-z0-9]{0,7})x$/.exec(raw);
   if (xstock?.[1]) return { ticker: xstock[1].toUpperCase(), wrapper: "xStocks" };
+  const st0x = /^wt([A-Za-z][A-Za-z0-9]{0,7})$/.exec(raw);
+  if (st0x?.[1]) return { ticker: st0x[1].toUpperCase(), wrapper: "ST0x" };
   const ondo = /^([A-Za-z][A-Za-z0-9]{0,7})on$/.exec(raw);
   if (ondo?.[1]) return { ticker: ondo[1].toUpperCase(), wrapper: "Ondo" };
   const coinbase = /^([A-Za-z][A-Za-z0-9]{0,7})c$/.exec(raw);

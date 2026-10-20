@@ -17,7 +17,7 @@ import {
 
 type GroupBy = "chain" | "venue" | "stock";
 
-const WRAPPER_ORDER = ["xStocks", "Coinbase", "Robinhood", "bStocks", "Ondo", "Centrifuge", "Not named"];
+const WRAPPER_ORDER = ["xStocks", "Coinbase", "Robinhood", "bStocks", "Ondo", "ST0x", "Centrifuge", "Not named"];
 
 function Hint({ label, text }: { label: string; text: string }) {
   return (

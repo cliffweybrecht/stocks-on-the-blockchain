@@ -2,6 +2,7 @@ import { bscBatchRotating, padAddress, readBeacons, readSymbols } from "./lendin
 import { buildEquityAddressBook, bookHasChain, type EquityAddressBook, xstocksPageHasNext } from "./lending-addresses";
 import {
   BSTOCK_BEACON,
+  isStableSymbol,
   noteFromRow,
   parseAaveEquitiesHub,
   parseJupiterLend,
@@ -19,7 +20,9 @@ import {
   kaminoReserveMints,
   loansFromKaminoObligations,
 } from "./lending-kamino-obligations";
-import { asReportedNumber, tokenCountFromBaseUnits } from "./numbers";
+import { EULER_CHAINS, EULER_METADATA, EULER_VAULTS, parseEulerChain } from "./lending-euler";
+import { FRANKNCOIN_POSITIONS, FRANKNCOIN_STATS, parseFrankencoin } from "./lending-frankencoin";
+import { asNonEmptyString, asReportedNumber, tokenCountFromBaseUnits } from "./numbers";
 import { lendingDayFromCapture, type LendingDaySnapshot, type LendingLoanHealth, type LendingRow, type LendingSourceNote } from "./lending-snapshot";
 import { chooseVenusEstimate, scanVenusBStockBorrow, VENUS_CHECKED_ESTIMATE, type VenusBorrowEstimate } from "./lending-venus-estimate";
 
@@ -43,7 +46,11 @@ const ST0X_BASE = "https://raw.githubusercontent.com/ST0x-Technology/st0x.regist
 const BACKED_ASSETS = "https://api.backed.fi/api/v1/token";
 const ANCHORED_DOCS = "https://docs.anchored.finance/getting-started/anchored-tokens.md";
 
-const MORPHO_CHAINS = [1, 8453, 4663, 999] as const;
+/**
+ * Ethereum, Base, Robinhood Chain, and HyperEVM.
+ * Chain 4663 is the Robinhood Chain Morpho book. Do not add a second Longbow feed for the same markets.
+ */
+export const MORPHO_CHAINS = [1, 8453, 4663, 999] as const;
 
 const MORPHO_QUERY = `query LendingMarkets($chainId: Int!, $skip: Int!) {
   markets(first: 1000, skip: $skip, where: { chainId_in: [$chainId] }) {
@@ -372,7 +379,9 @@ export async function captureLendingSnapshot(
     st0x,
     backed,
     anchored,
-    ...morphoChains
+    frankencoinStats,
+    frankencoinPositions,
+    ...rest
   ] = await Promise.all([
     settle("Kamino markets", () => getJsonRetry(KAMINO_MARKETS)),
     settle("Jupiter Lend", () => getJsonRetry(JUPITER_VAULTS)),
@@ -388,7 +397,10 @@ export async function captureLendingSnapshot(
     settle("ST0x Base list", () => getJsonRetry(ST0X_BASE)),
     settle("Backed assets", () => getJsonRetry(BACKED_ASSETS)),
     settle("Anchored docs", () => getJson(ANCHORED_DOCS, { headers: { accept: "text/plain, text/markdown, */*" } }).then(async (value) => value)),
+    settle("Frankencoin stats", () => getJsonRetry(FRANKNCOIN_STATS)),
+    settle("Frankencoin positions", () => getJsonRetry(FRANKNCOIN_POSITIONS)),
     ...MORPHO_CHAINS.map((chainId) => settle(`Morpho ${chainId}`, () => fetchMorphoChain(chainId))),
+    ...EULER_CHAINS.map((chainId) => settle(`Euler ${chainId}`, () => fetchEulerChain(chainId))),
   ]);
 
   const anchoredText = await anchoredTextFrom(anchored);
@@ -411,6 +423,8 @@ export async function captureLendingSnapshot(
     failures.push(failure("xStock mints", "No verified Solana xStock mints, so Kamino and Jupiter cannot be matched."));
   }
 
+  const morphoChains = rest.slice(0, MORPHO_CHAINS.length);
+  const eulerChains = rest.slice(MORPHO_CHAINS.length);
   const listaRowPromise = captureLista(listaOverall, listaMarkets);
   const venusEstimate = await venusEstimatePromise;
   const morphoRows = await Promise.all(
@@ -421,6 +435,8 @@ export async function captureLendingSnapshot(
     captureJupiter(jupiterVaults, jupiterLiquidity, book),
     captureAave(aave, book),
     ...morphoRows,
+    captureFrankencoin(frankencoinStats, frankencoinPositions, book),
+    ...EULER_CHAINS.map((chainId, index) => captureEuler(chainId, eulerChains[index], book)),
     await captureVenus(venus, venusEstimate, options?.previousVenusEstimate ?? null),
     await listaRowPromise,
   ].map((row) => (row.loanHealth ? row : { ...row, loanHealth: poolLoanHealth({ asOf, source: row.source, fallback: poolFallback(row) }) }));
@@ -673,7 +689,102 @@ function poolFallback(row: LendingRow): string {
   }
   if (row.id.startsWith("morpho")) return "Morpho loans did not load, so this is the pool estimate.";
   if (row.id.startsWith("aave")) return "Aave loans did not load, so this is the pool estimate.";
+  if (row.id.startsWith("frankencoin")) return "Frankencoin does not publish each loan here, so this is the pool estimate.";
+  if (row.id.startsWith("euler")) return "Euler does not publish each loan here, so this is the pool estimate.";
   return "Each loan was not available, so this is the pool estimate.";
+}
+
+function captureFrankencoin(
+  stats: { data: unknown; error: string | null },
+  positions: { data: unknown; error: string | null },
+  book: EquityAddressBook,
+): LendingRow {
+  const row = parseFrankencoin({
+    stats: stats.data,
+    positions: positions.data,
+    equityAddresses: book.evm.get(1) ?? null,
+    source: FRANKNCOIN_STATS,
+  });
+  const error = stats.error ?? positions.error;
+  return error ? { ...row, error } : row;
+}
+
+function captureEuler(
+  chainId: number,
+  result: { data: unknown; error: string | null } | undefined,
+  book: EquityAddressBook,
+): LendingRow {
+  const addresses = book.evm.get(chainId) ?? null;
+  if (!result || result.error || !result.data || typeof result.data !== "object") {
+    const row = parseEulerChain({
+      chainId,
+      vaults: null,
+      metadata: null,
+      collaterals: null,
+      equityAddresses: addresses,
+      source: EULER_VAULTS,
+    });
+    return { ...row, error: result?.error ?? row.error ?? "Euler vaults did not load." };
+  }
+  const payload = result.data as { vaults?: unknown; metadata?: unknown; collaterals?: Record<string, unknown> };
+  return parseEulerChain({
+    chainId,
+    vaults: payload.vaults ?? null,
+    metadata: payload.metadata ?? null,
+    collaterals: payload.collaterals ?? null,
+    equityAddresses: addresses,
+    source: EULER_VAULTS,
+  });
+}
+
+async function fetchEulerChain(chainId: number): Promise<{ vaults: unknown[]; metadata: unknown; collaterals: Record<string, unknown | null> }> {
+  const vaults: unknown[] = [];
+  let offset = 0;
+  for (let page = 0; page < 40; page += 1) {
+    const payload = await getJsonRetry(
+      `${EULER_VAULTS}?chainId=${chainId}&limit=100&offset=${offset}&visibility=visible,warning,hidden,pending_review`,
+    );
+    const body = payload && typeof payload === "object" ? (payload as { data?: unknown; meta?: { total?: unknown } }) : null;
+    const data = Array.isArray(body?.data) ? body.data : null;
+    if (!data) throw new Error("Euler vaults were not a list.");
+    vaults.push(...data);
+    const total = asReportedNumber(body?.meta?.total);
+    offset += data.length;
+    if (data.length < 100 || (total !== null && offset >= total)) break;
+    if (page === 39) throw new Error("Euler vault list was too long to finish.");
+  }
+  let metadata: unknown = null;
+  try {
+    metadata = await getJsonRetry(`${EULER_METADATA}?chainId=${chainId}`);
+  } catch {
+    metadata = null;
+  }
+  const borrowers: string[] = [];
+  for (const vault of vaults) {
+    if (!vault || typeof vault !== "object") continue;
+    const row = vault as { address?: unknown; asset?: { symbol?: unknown }; totalBorrowsUsd?: unknown };
+    const borrows = asReportedNumber(row.totalBorrowsUsd);
+    const address = asNonEmptyString(row.address);
+    if (!address || borrows === null || !(borrows > 0) || !isStableSymbol(row.asset?.symbol)) continue;
+    borrowers.push(address);
+  }
+  const collaterals: Record<string, unknown | null> = {};
+  const concurrency = 6;
+  for (let index = 0; index < borrowers.length; index += concurrency) {
+    const batch = borrowers.slice(index, index + concurrency);
+    const loaded = await Promise.all(
+      batch.map(async (address) => {
+        try {
+          const payload = await getJsonRetry(`${EULER_VAULTS}/${chainId}/${address}/collaterals`);
+          return [address.toLowerCase(), payload] as const;
+        } catch {
+          return [address.toLowerCase(), null] as const;
+        }
+      }),
+    );
+    for (const [address, payload] of loaded) collaterals[address] = payload;
+  }
+  return { vaults, metadata, collaterals };
 }
 
 async function captureVenus(

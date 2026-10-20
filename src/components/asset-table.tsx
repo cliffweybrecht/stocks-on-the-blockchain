@@ -10,6 +10,10 @@ import { PinCompareStrip } from "@/components/pin-compare-strip";
 import { useSolanaFavorites } from "@/components/use-solana-favorites";
 import { type AssetSortKey, sortAssets } from "@/lib/market/aggregate";
 import {
+  compareByEquityCardRangeLiquidity,
+  equityCardLiquidityForRange,
+} from "@/lib/market/equity-card-range-liquidity";
+import {
   compareByEquityCardRangeVolume,
   equityCardRangeTotal,
 } from "@/lib/market/equity-card-range-volume";
@@ -219,15 +223,27 @@ export function AssetTable({
     const searched = query.trim() ? assets.filter((asset) => assetMatchesSearch(asset, query)) : assets;
     const scoped = pinnedOnly ? searched.filter((asset) => favorites.favoriteSet.has(asset.contractAddress)) : searched;
     const range = deskRange.range;
-    const sorted =
-      sortKey === "volume24hUsd" && range !== "24h"
+    const liquidityMode = sortKey === "displayedLiquidityUsd";
+    const sorted = liquidityMode
+      ? [...scoped].sort((a, b) => compareByEquityCardRangeLiquidity(a, b, deskRange.liquidity, range))
+      : sortKey === "volume24hUsd" && range !== "24h"
         ? [...scoped].sort((a, b) => compareByEquityCardRangeVolume(a, b, deskRange.volumes, range))
         : sortAssets(scoped, sortKey);
     if (pinnedOnly || !enableFavorites || favorites.favoriteSet.size === 0) return sorted;
     const pins = sorted.filter((asset) => favorites.favoriteSet.has(asset.contractAddress));
     const rest = sorted.filter((asset) => !favorites.favoriteSet.has(asset.contractAddress));
     return [...pins, ...rest];
-  }, [assets, deskRange.range, deskRange.volumes, enableFavorites, favorites.favoriteSet, pinnedOnly, query, sortKey]);
+  }, [
+    assets,
+    deskRange.liquidity,
+    deskRange.range,
+    deskRange.volumes,
+    enableFavorites,
+    favorites.favoriteSet,
+    pinnedOnly,
+    query,
+    sortKey,
+  ]);
 
   const compareRows = useMemo(() => {
     if (!enableFavorites) return [];
@@ -410,8 +426,12 @@ export function AssetTable({
       {rows.length > 0 ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {rows.map((asset) => {
-            const closedRange = deskRange.range === "24h" || sortKey === "displayedLiquidityUsd" ? null : deskRange.range;
+            const liquidityMode = sortKey === "displayedLiquidityUsd";
+            const closedRange = liquidityMode || deskRange.range === "24h" ? null : deskRange.range;
             const total = closedRange ? equityCardRangeTotal(deskRange.volumes, asset.contractAddress, closedRange) : null;
+            const liquidity = liquidityMode
+              ? equityCardLiquidityForRange(deskRange.liquidity, asset.contractAddress, deskRange.range)
+              : null;
             return (
               <EquityCard
                 key={asset.contractAddress}
@@ -422,6 +442,16 @@ export function AssetTable({
                 rangeVolume={
                   closedRange
                     ? { id: closedRange, volumeUsd: total?.volumeUsd ?? null, days: total?.days ?? 0 }
+                    : null
+                }
+                rangeLiquidity={
+                  liquidityMode
+                    ? {
+                        id: deskRange.range,
+                        liquidityUsd: liquidity?.liquidityUsd ?? null,
+                        days: liquidity?.days ?? 0,
+                        series: liquidity?.series ?? [],
+                      }
                     : null
                 }
                 enableFavorites={enableFavorites}

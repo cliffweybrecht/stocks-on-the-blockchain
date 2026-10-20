@@ -9,8 +9,10 @@ import {
   equityCardDayMovePct,
   equityCardDayVolumeSeries,
   equityCardHeadline,
+  equityCardLiquiditySeries,
   equityCardSpotPriceUsd,
 } from "@/lib/desk/equity-card-view";
+import type { EquityCardLiquidityPoint } from "@/lib/market/equity-card-range-liquidity";
 import type { AssetSortKey } from "@/lib/market/aggregate";
 import { formatPct, formatPrice, formatUsdCompact } from "@/lib/market/format";
 import type { AssetSummary, VolumeHistoryPoint } from "@/lib/market/types";
@@ -50,6 +52,7 @@ export function EquityCard({
   sortKey = "volume24hUsd",
   dayVolumeSeries,
   rangeVolume = null,
+  rangeLiquidity = null,
   enableFavorites,
   pinned,
   onTogglePin,
@@ -58,24 +61,44 @@ export function EquityCard({
   href: string;
   sortKey?: AssetSortKey;
   dayVolumeSeries?: readonly VolumeHistoryPoint[];
-  /** Closed-range total. 24H and liquidity mode leave this unset. */
+  /** Closed-range volume total. 24H and liquidity mode leave this unset. */
   rangeVolume?: {
     id: "7d" | "14d" | "30d";
     volumeUsd: number | null;
     days: number;
+  } | null;
+  /** Closing liquidity for the selected range. Set only in Liquidity mode. */
+  rangeLiquidity?: {
+    id: "24h" | "7d" | "14d" | "30d";
+    liquidityUsd: number | null;
+    days: number;
+    series?: readonly EquityCardLiquidityPoint[];
   } | null;
   enableFavorites?: boolean;
   pinned?: boolean;
   onTogglePin?: () => void;
 }) {
   const priceUsd = equityCardSpotPriceUsd(asset);
-  const sparklinePoints = equityCardDayVolumeSeries(dayVolumeSeries);
-  const headline = equityCardHeadline(asset, sortKey, rangeVolume);
+  const liquidityMode = sortKey === "displayedLiquidityUsd";
+  const sparklinePoints = liquidityMode
+    ? equityCardLiquiditySeries(rangeLiquidity?.series)
+    : equityCardDayVolumeSeries(dayVolumeSeries);
+  const headline = equityCardHeadline(asset, sortKey, rangeVolume, liquidityMode ? rangeLiquidity : null);
+  const rangeId = liquidityMode ? (rangeLiquidity?.id ?? "24h") : rangeVolume ? rangeVolume.id : "24h";
+  const liquidityBasis =
+    !liquidityMode || !rangeLiquidity
+      ? undefined
+      : rangeLiquidity.days > 0 && rangeLiquidity.liquidityUsd !== null && Number.isFinite(rangeLiquidity.liquidityUsd)
+        ? rangeLiquidity.id === "24h"
+          ? "close"
+          : "average"
+        : "current";
 
   return (
     <article
       className="group relative flex min-h-[176px] flex-col overflow-hidden rounded-2xl bg-[#141414] px-4 py-3.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] transition-colors hover:bg-[#1a1a1a]"
-      data-card-range={rangeVolume && sortKey !== "displayedLiquidityUsd" ? rangeVolume.id : "24h"}
+      data-card-range={rangeId}
+      data-card-liq-basis={liquidityBasis}
     >
       <Link
         href={href}
@@ -86,7 +109,13 @@ export function EquityCard({
       />
       <div className="relative z-10 flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-start gap-2.5 pointer-events-none">
-          <AssetLogo logoUrl={asset.logoUrl} name={asset.name} symbol={asset.symbol} size="md" />
+          <AssetLogo
+            logoUrl={asset.logoUrl}
+            name={asset.name}
+            symbol={asset.symbol}
+            issuer={asset.issuer}
+            size="md"
+          />
           <div className="min-w-0 pt-0.5">
             <p className="truncate text-[15px] font-semibold tracking-tight text-white">{asset.symbol}</p>
             <p className="truncate text-xs text-neutral-500">{asset.name}</p>
@@ -125,7 +154,14 @@ export function EquityCard({
         </div>
         <span className="ml-auto shrink-0">
           {sparklinePoints ? (
-            <VolumeSparkline points={sparklinePoints} label={`${asset.symbol} 24h volume trend`} />
+            <VolumeSparkline
+              points={sparklinePoints}
+              label={
+                liquidityMode
+                  ? `${asset.symbol} ${rangeId.toUpperCase()} liquidity`
+                  : `${asset.symbol} 24h volume trend`
+              }
+            />
           ) : null}
         </span>
       </div>

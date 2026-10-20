@@ -71,7 +71,7 @@ describe("lending compare markup", () => {
     expect(html).toContain('aria-pressed="true"');
     expect(html).toContain("7 days");
     expect(html).toContain("30 days");
-    expect(html).toContain("Jupiter Lend and Venus are left out");
+    expect(html).toContain("Jupiter Lend, Venus, and Frankencoin are left out");
     expect(html).toContain("borrowed —");
     expect(html).toContain("Daily snapshots on this desk");
   });
