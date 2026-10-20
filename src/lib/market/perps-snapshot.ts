@@ -44,9 +44,9 @@ export const PERPS_VOL_OI_LIMIT = 25;
 export const PERPS_THIN_OI_USD = 5_000_000;
 export const PERPS_THIN_VOLUME_USD = 100_000_000;
 
-export type PerpsTier = "onchain" | "cex-direct" | "cex-coingecko" | "long-tail";
+export type PerpsTier = "onchain" | "cex-direct" | "cex-coingecko" | "long-tail" | "unverified";
 export type PerpsStoredCategory = PerpsCategory | "preipo";
-export type PerpsVolumeWindow = "rolling-24h" | "et-day" | "lifetime" | "unavailable";
+export type PerpsVolumeWindow = "rolling-24h" | "et-day" | "utc-day" | "lifetime" | "unavailable";
 /** fresh: this capture succeeded. stale: this capture failed and an older good row exists. failed: this capture failed and there is no older good row. */
 export type PerpsVenueQuality = "fresh" | "stale" | "failed";
 
@@ -185,8 +185,8 @@ export interface PerpsSnapshotFile {
 }
 
 const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/;
-const TIERS = new Set<PerpsTier>(["onchain", "cex-direct", "cex-coingecko", "long-tail"]);
-const WINDOWS = new Set<PerpsVolumeWindow>(["rolling-24h", "et-day", "lifetime", "unavailable"]);
+const TIERS = new Set<PerpsTier>(["onchain", "cex-direct", "cex-coingecko", "long-tail", "unverified"]);
+const WINDOWS = new Set<PerpsVolumeWindow>(["rolling-24h", "et-day", "utc-day", "lifetime", "unavailable"]);
 const CATEGORIES = new Set<PerpsStoredCategory>(["stock", "etf", "leveraged-etf", "index", "preipo"]);
 
 export function emptyPerpsSnapshotFile(readError?: string): PerpsSnapshotFile {
@@ -728,6 +728,7 @@ export interface PerpsSharePoint {
   majorCexUsd: number | null;
   binanceBybitUsd: number | null;
   longTailUsd: number | null;
+  unverifiedUsd: number | null;
 }
 
 export interface PerpsFundingRow {
@@ -740,11 +741,13 @@ export interface PerpsRangeView {
   range: VolumeChartRangeId;
   excludeLeveraged: boolean;
   includeLongTail: boolean;
+  includeUnverified: boolean;
   headlineUsd: number | null;
   onchainUsd: number | null;
   cexDirectUsd: number | null;
   cexCoingeckoUsd: number | null;
   longTailUsd: number | null;
+  unverifiedUsd: number | null;
   excludedUsd: number | null;
   leveragedUsd: number | null;
   preipoUsd: number | null;
@@ -776,6 +779,7 @@ interface DayRollup {
   cexDirect: number | null;
   cexCoingecko: number | null;
   longTail: number | null;
+  unverified: number | null;
   excluded: number | null;
   leveraged: number | null;
   preipo: number | null;
@@ -786,23 +790,34 @@ function marketIncluded(category: PerpsStoredCategory, excludeLeveraged: boolean
   return !(excludeLeveraged && category === "leveraged-etf");
 }
 
-/** Credible venues. Long-tail stays out until the desk opts in. */
-export function perpsVenueInHeadline(venue: { tier: PerpsTier; credible: boolean }, includeLongTail: boolean): boolean {
+/** Credible venues. Long-tail and the CoinGecko unverified tier stay out until the desk opts in. */
+export function perpsVenueInHeadline(
+  venue: { tier: PerpsTier; credible: boolean },
+  includeLongTail: boolean,
+  includeUnverified = false,
+): boolean {
   if (!venue.credible) return false;
   if (venue.tier === "long-tail" && !includeLongTail) return false;
+  if (venue.tier === "unverified" && !includeUnverified) return false;
   return true;
 }
 
-function rollupDay(day: PerpsViewDay, excludeLeveraged: boolean, includeLongTail: boolean): DayRollup {
+function rollupDay(
+  day: PerpsViewDay,
+  excludeLeveraged: boolean,
+  includeLongTail: boolean,
+  includeUnverified = false,
+): DayRollup {
   const onchain: (number | null)[] = [];
   const cexDirect: (number | null)[] = [];
   const cexCoingecko: (number | null)[] = [];
   const longTail: (number | null)[] = [];
+  const unverified: (number | null)[] = [];
   const excluded: (number | null)[] = [];
   const leveraged: (number | null)[] = [];
   const preipo: (number | null)[] = [];
   for (const venue of day.venues) {
-    const inHeadline = perpsVenueInHeadline(venue, includeLongTail);
+    const inHeadline = perpsVenueInHeadline(venue, includeLongTail, includeUnverified);
     const volumes: (number | null)[] = [];
     if (venue.parts) {
       if (inHeadline) {
@@ -824,6 +839,7 @@ function rollupDay(day: PerpsViewDay, excludeLeveraged: boolean, includeLongTail
       continue;
     }
     if (venue.tier === "long-tail") longTail.push(venueVolume);
+    else if (venue.tier === "unverified") unverified.push(venueVolume);
     else if (venue.tier === "onchain") onchain.push(venueVolume);
     else if (venue.tier === "cex-direct") cexDirect.push(venueVolume);
     else cexCoingecko.push(venueVolume);
@@ -832,14 +848,17 @@ function rollupDay(day: PerpsViewDay, excludeLeveraged: boolean, includeLongTail
   const cexDirectUsd = sumNullable(cexDirect);
   const cexCoingeckoUsd = sumNullable(cexCoingecko);
   const longTailUsd = sumNullable(longTail);
+  const unverifiedUsd = sumNullable(unverified);
   const parts = [onchainUsd, cexDirectUsd, cexCoingeckoUsd];
   if (includeLongTail) parts.push(longTailUsd);
+  if (includeUnverified) parts.push(unverifiedUsd);
   return {
     total: sumNullable(parts),
     onchain: onchainUsd,
     cexDirect: cexDirectUsd,
     cexCoingecko: cexCoingeckoUsd,
     longTail: longTailUsd,
+    unverified: unverifiedUsd,
     excluded: sumNullable(excluded),
     leveraged: sumNullable(leveraged),
     preipo: sumNullable(preipo),
@@ -942,6 +961,7 @@ export function selectPerpsRange(
   range: VolumeChartRangeId,
   excludeLeveraged: boolean,
   includeLongTail = false,
+  includeUnverified = false,
 ): PerpsRangeView {
   const ordered = [...days].sort((a, b) => a.date.localeCompare(b.date));
   const closed = ordered.filter((day) => day.closed);
@@ -969,13 +989,14 @@ export function selectPerpsRange(
     }
   }
 
-  const rollups = selected.map((day) => rollupDay(day, excludeLeveraged, includeLongTail));
+  const rollups = selected.map((day) => rollupDay(day, excludeLeveraged, includeLongTail, includeUnverified));
   const headlineUsd = sumNullable(rollups.map((row) => row.total));
   const onchainUsd = sumNullable(rollups.map((row) => row.onchain));
   const cexDirectUsd = sumNullable(rollups.map((row) => row.cexDirect));
   const cexCoingeckoUsd = sumNullable(rollups.map((row) => row.cexCoingecko));
   const leveragedUsd = sumNullable(rollups.map((row) => row.leveraged));
   const longTailUsd = sumNullable(rollups.map((row) => row.longTail));
+  const unverifiedUsd = sumNullable(rollups.map((row) => row.unverified));
   const excludedUsd = sumNullable(rollups.map((row) => row.excluded));
   const preipoUsd = sumNullable(rollups.map((row) => row.preipo));
   const reportedDays = rollups.filter((row) => row.total !== null).length;
@@ -1056,7 +1077,12 @@ export function selectPerpsRange(
   }
 
   const venues = [...venueMap.values()].sort((a, b) => {
-    const group = (row: PerpsVenueRow) => (row.credible ? (row.tier === "long-tail" && !includeLongTail ? 1 : 0) : 2);
+    const group = (row: PerpsVenueRow) =>
+      row.credible
+        ? (row.tier === "long-tail" && !includeLongTail) || (row.tier === "unverified" && !includeUnverified)
+          ? 1
+          : 0
+        : 2;
     const byGroup = group(a) - group(b);
     if (byGroup !== 0) return byGroup;
     const byVolume = compareNullableDesc(a.volumeUsd, b.volumeUsd);
@@ -1064,13 +1090,13 @@ export function selectPerpsRange(
     return a.venue.localeCompare(b.venue);
   });
 
-  const facts = collectPerpsFacts(selected, newest, excludeLeveraged, includeLongTail);
+  const facts = collectPerpsFacts(selected, newest, excludeLeveraged, includeLongTail, includeUnverified);
   if (newest && facts.venueCount > 0) {
     caption = `${caption} · ${facts.venueCount} venues · ${facts.marketCount.toLocaleString("en-US")} markets`;
   }
 
   const share: PerpsSharePoint[] = chartDays.map((day) => {
-    const roll = rollupDay(day, excludeLeveraged, includeLongTail);
+    const roll = rollupDay(day, excludeLeveraged, includeLongTail, includeUnverified);
     return {
       date: day.date,
       t: day.t,
@@ -1079,6 +1105,7 @@ export function selectPerpsRange(
       majorCexUsd: roll.cexDirect,
       binanceBybitUsd: roll.cexCoingecko,
       longTailUsd: includeLongTail ? roll.longTail : null,
+      unverifiedUsd: includeUnverified ? roll.unverified : null,
     };
   });
 
@@ -1086,11 +1113,13 @@ export function selectPerpsRange(
     range,
     excludeLeveraged,
     includeLongTail,
+    includeUnverified,
     headlineUsd,
     onchainUsd,
     cexDirectUsd,
     cexCoingeckoUsd,
     longTailUsd,
+    unverifiedUsd,
     excludedUsd,
     leveragedUsd,
     preipoUsd,
@@ -1102,7 +1131,13 @@ export function selectPerpsRange(
     chart: share.map((point) => ({
       date: point.date,
       t: point.t,
-      volumeUsd: sumNullable([point.onchainUsd, point.majorCexUsd, point.binanceBybitUsd, point.longTailUsd]),
+      volumeUsd: sumNullable([
+        point.onchainUsd,
+        point.majorCexUsd,
+        point.binanceBybitUsd,
+        point.longTailUsd,
+        point.unverifiedUsd,
+      ]),
       open: point.open,
     })),
     share,
@@ -1168,6 +1203,7 @@ function collectPerpsFacts(
   newest: PerpsViewDay | null,
   excludeLeveraged: boolean,
   includeLongTail: boolean,
+  includeUnverified = false,
 ): {
   underlyings: PerpsUnderlyingRow[];
   onchainUnderlyings: PerpsUnderlyingRow[];
@@ -1234,9 +1270,9 @@ function collectPerpsFacts(
   for (const day of selected) {
     const newestDay = Boolean(newest && day.date === newest.date);
     if (day.tickers) {
-      const tiers: PerpsTier[] = includeLongTail
-        ? ["onchain", "cex-direct", "cex-coingecko", "long-tail"]
-        : ["onchain", "cex-direct", "cex-coingecko"];
+      const tiers: PerpsTier[] = ["onchain", "cex-direct", "cex-coingecko"];
+      if (includeLongTail) tiers.push("long-tail");
+      if (includeUnverified) tiers.push("unverified");
       for (const ticker of day.tickers) {
         if (!marketIncluded(ticker.category, excludeLeveraged)) continue;
         touchTicker(underlyingMap, ticker, tiers, newestDay);
@@ -1252,7 +1288,7 @@ function collectPerpsFacts(
         }
       }
       for (const venue of day.venues) {
-        if (!perpsVenueInHeadline(venue, includeLongTail) || !venue.parts) continue;
+        if (!perpsVenueInHeadline(venue, includeLongTail, includeUnverified) || !venue.parts) continue;
         const included = partTotals(venue.parts, (category) => marketIncluded(category, excludeLeveraged));
         if (newestDay) {
           if (included.marketCount > 0) venueCount += 1;
@@ -1300,7 +1336,7 @@ function collectPerpsFacts(
       continue;
     }
     for (const venue of day.venues) {
-      if (!perpsVenueInHeadline(venue, includeLongTail)) continue;
+      if (!perpsVenueInHeadline(venue, includeLongTail, includeUnverified)) continue;
       const included = venue.markets.filter((market) => marketIncluded(market.category, excludeLeveraged));
       if (newestDay) {
         if (included.length > 0) venueCount += 1;
@@ -1415,6 +1451,7 @@ export interface PerpsHomeSummary {
   cexDirectUsd: number | null;
   cexCoingeckoUsd: number | null;
   longTailUsd: number | null;
+  unverifiedUsd: number | null;
   excludedUsd: number | null;
   venueCount: number;
   marketCount: number;
@@ -1440,6 +1477,7 @@ export function perpsHomeSummary(model: PerpsDeskModel): PerpsHomeSummary {
     cexDirectUsd: view.cexDirectUsd,
     cexCoingeckoUsd: view.cexCoingeckoUsd,
     longTailUsd: view.longTailUsd,
+    unverifiedUsd: view.unverifiedUsd,
     excludedUsd: view.excludedUsd,
     venueCount: view.venueCount,
     marketCount: view.marketCount,
@@ -1491,6 +1529,8 @@ export function perpsTierLabel(tier: PerpsTier): string {
       return "Binance+Bybit";
     case "long-tail":
       return "Long-tail";
+    case "unverified":
+      return "Unverified";
   }
 }
 

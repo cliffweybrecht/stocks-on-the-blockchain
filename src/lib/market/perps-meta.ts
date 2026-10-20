@@ -334,9 +334,9 @@ export const PERP_PLACES: readonly PerpPlace[] = [
     onchainChain: "Arbitrum",
   },
   {
-    venue: "Avantis",
-    chain: "Base (pool-based)",
-    operator: "Avantis",
+    venue: "Veranta",
+    chain: "Base (pool-based). Renamed from Avantis on 2026-09-14.",
+    operator: "Veranta",
     jurisdiction: "unverified",
     oracle: "Pyth",
     onchainChain: "Base",
@@ -482,9 +482,65 @@ export const PERP_PLACES: readonly PerpPlace[] = [
     jurisdiction: "CG: United States (Bermuda licensing unverified)",
     oracle: "Coinbase index (unverified)",
   },
+  {
+    venue: "Vest",
+    chain: "Vest (zk). Deposits on Base and Arbitrum.",
+    operator: "Vest Markets",
+    jurisdiction: "unverified",
+    oracle: "unverified",
+    onchainChain: "Vest",
+  },
+  {
+    venue: "Helix",
+    chain: "Injective",
+    operator: "Helix",
+    jurisdiction: "unverified",
+    oracle: "Pyth Pro on the derivative market (unverified for equities)",
+    onchainChain: "Injective",
+  },
+  {
+    venue: "Bitstamp",
+    chain: "Centralized exchange",
+    operator: "Bitstamp",
+    jurisdiction: "unverified",
+    oracle: "unverified",
+  },
+  {
+    venue: "StandX",
+    chain: "StandX",
+    operator: "StandX",
+    jurisdiction: "unverified",
+    oracle: "unverified",
+    onchainChain: "StandX",
+  },
+  {
+    venue: "Bitfinex",
+    chain: "Centralized exchange",
+    operator: "Bitfinex",
+    jurisdiction: "unverified",
+    oracle: "unverified",
+  },
+  {
+    venue: "GMX V2 (Arbitrum)",
+    chain: "Arbitrum (GMX V2 pool). Separate from GMX V2 (Solana).",
+    operator: "GMX contributors",
+    jurisdiction: "n/a (DAO)",
+    oracle: "Chainlink Data Streams (unverified for this deployment)",
+    onchainChain: "Arbitrum",
+  },
+  {
+    venue: "Drift",
+    chain: "Solana. Protocol paused since the 2026-04-01 hack.",
+    operator: "Drift",
+    jurisdiction: "unverified",
+    oracle: "unverified",
+    onchainChain: "Solana",
+  },
 ];
 
 for (const place of PERP_PLACES) SNAPSHOT_PLACE[place.venue] = place;
+const verantaPlace = SNAPSHOT_PLACE.Veranta;
+if (verantaPlace) SNAPSHOT_PLACE.Avantis = verantaPlace;
 
 export function perpPlace(venue: string): PerpPlace | null {
   if (venue.startsWith("Hyperliquid HIP-3")) return SNAPSHOT_PLACE["Hyperliquid HIP-3"] ?? null;

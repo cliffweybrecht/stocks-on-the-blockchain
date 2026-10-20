@@ -80,4 +80,9 @@ export const PERPS_CHANGELOG: readonly PerpsChangelogEntry[] = [
     title: "As-of line",
     body: "The home Perps card and the /perps header state the capture time, the Eastern day, and whether that day is closed. Hyperliquid, direct APIs, and CoinGecko each show the latest fresh capture, or the last good time when that group is stale or failed.",
   },
+  {
+    id: "venues-2026-10-20",
+    title: "Direct books, Veranta, Drift, and the unverified tier",
+    body: "The 20 Oct 2026 pass adds direct equity books for Zoomex, Ourbit, Arcus, Vest, Polymarket Perps, BloFin, RISEx, edgeX on edgex-prod-v2, GMX V2 Solana, GMX V2 Arbitrum, Helix, Bitstamp, StandX, and Bitfinex, and tags Crypto.com from get-instruments. Zoomex uses turnover24h as quote USD. CoinGecko is about 0.30× that figure and is not applied. Vest keeps NDX and SPX as indices. Avantis was renamed Veranta on 14 Sep 2026. Veranta volume is the last complete UTC day, not a blend with the partial capture day, and it is counted once. Stored Avantis rows keep their old name. Drift is paused since the 1 Apr 2026 hack and is stored as no equity perps, with no request. LBank and Ourbit go through the volume/OI screen. CoinGecko-only names move to an unverified tier that stays out of the headline until the desk opts in. Deepcoin, BVOX, KCEX, Dipcoin, Hotcoin, Bitrue, BYDFi, BigONE, and TurboFlow stay excluded. gTrade is not counted. A failed request stays blank. Older rows are not rewritten.",
+  },
 ];
