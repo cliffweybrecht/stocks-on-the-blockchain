@@ -31,62 +31,48 @@ export function resetOnchainMarketValueCache(): void {
   cache.clear();
 }
 
-function volumePath(chainId: string, volumeDir: string): string | null {
-  const file = SNAPSHOT_FILE_BY_CHAIN[chainId];
-  if (!file) return null;
-  if (volumeDir === DEFAULT_VOLUME_SNAPSHOT_DIR) {
-    switch (chainId) {
-      case SOLANA_CHAIN_ID:
-        return join(process.cwd(), "data", "volume-snapshots", "solana.json");
-      case ROBINHOOD_CHAIN_ID:
-        return join(process.cwd(), "data", "volume-snapshots", "robinhood.json");
-      case BASE_CHAIN_ID:
-        return join(process.cwd(), "data", "volume-snapshots", "base.json");
-      case BNB_CHAIN_ID:
-        return join(process.cwd(), "data", "volume-snapshots", "bnb.json");
-      default:
-        return null;
-    }
+/** Production snapshot paths. Literals so the server trace stays inside this directory. */
+function defaultVolumePath(chainId: string): string | null {
+  switch (chainId) {
+    case SOLANA_CHAIN_ID:
+      return join(process.cwd(), "data", "volume-snapshots", "solana.json");
+    case ROBINHOOD_CHAIN_ID:
+      return join(process.cwd(), "data", "volume-snapshots", "robinhood.json");
+    case BASE_CHAIN_ID:
+      return join(process.cwd(), "data", "volume-snapshots", "base.json");
+    case BNB_CHAIN_ID:
+      return join(process.cwd(), "data", "volume-snapshots", "bnb.json");
+    default:
+      return null;
   }
-  return join(/*turbopackIgnore: true*/ volumeDir, file);
 }
 
-function backfillPath(chainId: string, volumeDir: string): string | null {
-  const file = SNAPSHOT_FILE_BY_CHAIN[chainId];
-  if (!file) return null;
-  const name = file.replace(/\.json$/, "-asset-daily.json");
-  if (volumeDir === DEFAULT_VOLUME_SNAPSHOT_DIR) {
-    switch (chainId) {
-      case SOLANA_CHAIN_ID:
-        return join(process.cwd(), "data", "volume-snapshots", "solana-asset-daily.json");
-      case ROBINHOOD_CHAIN_ID:
-        return join(process.cwd(), "data", "volume-snapshots", "robinhood-asset-daily.json");
-      case BASE_CHAIN_ID:
-        return join(process.cwd(), "data", "volume-snapshots", "base-asset-daily.json");
-      case BNB_CHAIN_ID:
-        return join(process.cwd(), "data", "volume-snapshots", "bnb-asset-daily.json");
-      default:
-        return null;
-    }
+function defaultBackfillPath(chainId: string): string | null {
+  switch (chainId) {
+    case SOLANA_CHAIN_ID:
+      return join(process.cwd(), "data", "volume-snapshots", "solana-asset-daily.json");
+    case ROBINHOOD_CHAIN_ID:
+      return join(process.cwd(), "data", "volume-snapshots", "robinhood-asset-daily.json");
+    case BASE_CHAIN_ID:
+      return join(process.cwd(), "data", "volume-snapshots", "base-asset-daily.json");
+    case BNB_CHAIN_ID:
+      return join(process.cwd(), "data", "volume-snapshots", "bnb-asset-daily.json");
+    default:
+      return null;
   }
-  return join(/*turbopackIgnore: true*/ volumeDir, name);
 }
 
-function holderPath(chainId: HolderSnapshotChainId, holderDir: string): string {
-  const file = `${chainId}.json`;
-  if (holderDir === "data/holder-snapshots") {
-    switch (chainId) {
-      case "solana":
-        return join(process.cwd(), "data", "holder-snapshots", "solana.json");
-      case "base":
-        return join(process.cwd(), "data", "holder-snapshots", "base.json");
-      case "bnb":
-        return join(process.cwd(), "data", "holder-snapshots", "bnb.json");
-      case "robinhood":
-        return join(process.cwd(), "data", "holder-snapshots", "robinhood.json");
-    }
+function defaultHolderPath(chainId: HolderSnapshotChainId): string {
+  switch (chainId) {
+    case "solana":
+      return join(process.cwd(), "data", "holder-snapshots", "solana.json");
+    case "base":
+      return join(process.cwd(), "data", "holder-snapshots", "base.json");
+    case "bnb":
+      return join(process.cwd(), "data", "holder-snapshots", "bnb.json");
+    case "robinhood":
+      return join(process.cwd(), "data", "holder-snapshots", "robinhood.json");
   }
-  return join(/*turbopackIgnore: true*/ holderDir, file);
 }
 
 /**
@@ -101,8 +87,13 @@ export async function loadOnchainMarketValueHistory(
   holderDir = "data/holder-snapshots",
 ): Promise<OnchainMarketValueHistory> {
   const holderChain = holderSnapshotChainId(chainId);
-  const path = volumePath(chainId, volumeDir);
-  if (!holderChain || !path) return structuredClone(EMPTY_ONCHAIN_MARKET_VALUE);
+  const file = SNAPSHOT_FILE_BY_CHAIN[chainId];
+  if (!holderChain || !file) return structuredClone(EMPTY_ONCHAIN_MARKET_VALUE);
+  const path =
+    volumeDir === DEFAULT_VOLUME_SNAPSHOT_DIR
+      ? defaultVolumePath(chainId)
+      : join(/*turbopackIgnore: true*/ volumeDir, file);
+  if (!path) return structuredClone(EMPTY_ONCHAIN_MARKET_VALUE);
   const dayKey = easternDayKey(nowT);
   if (!dayKey) return structuredClone(EMPTY_ONCHAIN_MARKET_VALUE);
   let volumeMtime = 0;
@@ -113,7 +104,11 @@ export async function loadOnchainMarketValueHistory(
   } catch {
     return structuredClone(EMPTY_ONCHAIN_MARKET_VALUE);
   }
-  const backfill = backfillPath(chainId, volumeDir);
+  const backfillName = file.replace(/\.json$/, "-asset-daily.json");
+  const backfill =
+    volumeDir === DEFAULT_VOLUME_SNAPSHOT_DIR
+      ? defaultBackfillPath(chainId)
+      : join(/*turbopackIgnore: true*/ volumeDir, backfillName);
   let backfillMtime = 0;
   let backfillPayload: unknown = null;
   if (backfill) {
@@ -125,7 +120,10 @@ export async function loadOnchainMarketValueHistory(
       backfillMtime = 0;
     }
   }
-  const holders = holderPath(holderChain, holderDir);
+  const holders =
+    holderDir === "data/holder-snapshots"
+      ? defaultHolderPath(holderChain)
+      : join(/*turbopackIgnore: true*/ holderDir, `${holderChain}.json`);
   let holderMtime = 0;
   let holderFile = null;
   try {
