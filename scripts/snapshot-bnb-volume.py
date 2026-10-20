@@ -41,7 +41,7 @@ Writes data/volume-snapshots/bnb.json.
   (USDT, USDC, WBNB, BNB, BUSD, FDUSD, USD1), else a GeckoTerminal token
   price, else null. Lane totals are publicEquityMarketValueUsd,
   etfIndexMarketValueUsd, privateMarketValueUsd, and combinedMarketValueUsd.
-  Null is not zero. A price far from that pool's history or reserves, or a
+  Null is not zero. A price far from that pool's 24h history, or a
   single-token value above $10B, is null and warned. Past rows are not
   rewritten.
 - One America/New_York calendar day per record (12:00:00 AM–11:59:59 PM Eastern).
@@ -1046,9 +1046,9 @@ def main() -> int:
     kind_counts = {kind: sum(1 for row in rows if row["kind"] == kind) for kind in DESK_KINDS}
     issuers = count_issuers(rows)
     try:
-        market_budget = float(os.environ.get("BNB_MARKET_VALUE_BUDGET_S") or "240")
+        market_budget = float(os.environ.get("BNB_MARKET_VALUE_BUDGET_S") or "360")
     except ValueError:
-        market_budget = 240.0
+        market_budget = 360.0
     if market_budget < 0:
         market_budget = 0.0
     readings, market_warnings, market_nulls, market_notes = collect_market_values(
@@ -1130,7 +1130,7 @@ def main() -> int:
                 "ERC-20 totalSupply/10^decimals from a public BSC RPC, times DexScreener priceUsd "
                 "on the highest-liquidity USDT/USDC/WBNB/BNB/BUSD/FDUSD/USD1 pool that passes the "
                 "liquidity guard, else GeckoTerminal token price. Null when either input is missing. "
-                "A price far from that pool's 24h history or reserves, or a value above $10B, is null."
+                "A price far from that pool's 24h history, or a value above $10B, is null."
             ),
             "issuers": issuers,
             "kindCounts": kind_counts,

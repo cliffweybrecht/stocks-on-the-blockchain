@@ -990,26 +990,32 @@ class BnbMarketValueTest(unittest.TestCase):
     def test_price_far_from_pool_history_falls_through_to_gecko_or_null(self) -> None:
         from bnb_market_value import index_cash_price_candidates, resolve_market_values
 
-        pairs = [price_pair(AAPL, USDT, "0x" + "11" * 20, 100, 10_000, change=950)]
+        pairs = [price_pair(AAPL, USDT, "0x" + "11" * 20, 350, 10_000, change=5000)]
         candidates = index_cash_price_candidates(pairs, {AAPL.lower()})
         row = {"address": AAPL, "symbol": "AAPLB", "kind": "equity", "issuer": "ondo"}
-        near, warnings, _nulls = resolve_market_values([row], {AAPL.lower(): 2}, candidates, {AAPL.lower(): 9.5})
+        near, warnings, nulls = resolve_market_values([row], {AAPL.lower(): 2}, candidates, {AAPL.lower(): 354})
         self.assertEqual(near[AAPL.lower()]["priceSource"], "geckoterminal")
-        self.assertEqual(near[AAPL.lower()]["priceUsd"], 9.5)
-        self.assertEqual(near[AAPL.lower()]["marketValueUsd"], 19)
+        self.assertEqual(near[AAPL.lower()]["priceUsd"], 354)
+        self.assertEqual(near[AAPL.lower()]["marketValueUsd"], 708)
         self.assertEqual(warnings[0]["reason"], "price-far-from-pool-history")
+        self.assertEqual(nulls, {})
 
-        far, far_warnings, nulls = resolve_market_values([row], {AAPL.lower(): 2}, candidates, {AAPL.lower(): 100})
-        self.assertIsNone(far[AAPL.lower()]["marketValueUsd"])
-        self.assertIsNone(far[AAPL.lower()]["priceUsd"])
-        self.assertEqual(far[AAPL.lower()]["supply"], 2)
+        dead = price_pair(NVDA, USDT, "0x" + "12" * 20, 100, 60_000_000, volume=1, change=0)
+        dead_candidates = index_cash_price_candidates([dead], {NVDA.lower()})
+        nvda = {"address": NVDA, "symbol": "NVDAB", "kind": "equity", "issuer": "bstocks"}
+        far, far_warnings, far_nulls = resolve_market_values(
+            [nvda], {NVDA.lower(): 2}, dead_candidates, {NVDA.lower(): 1500}
+        )
+        self.assertIsNone(far[NVDA.lower()]["marketValueUsd"])
+        self.assertIsNone(far[NVDA.lower()]["priceUsd"])
+        self.assertEqual(far[NVDA.lower()]["supply"], 2)
         self.assertIn("gecko-far-from-pool-history", {item["reason"] for item in far_warnings})
-        self.assertEqual(nulls, {"price-far-from-pool-history": 1})
+        self.assertEqual(far_nulls, {"gecko-far-from-pool-history": 1})
 
-    def test_reserve_mismatch_and_ten_billion_cap_stay_null(self) -> None:
+    def test_skewed_reserves_stay_priced_and_ten_billion_cap_stays_null(self) -> None:
         from bnb_market_value import index_cash_price_candidates, resolve_market_values
 
-        broken = price_pair(
+        skewed = price_pair(
             AAPL,
             USDT,
             "0x" + "21" * 20,
@@ -1019,7 +1025,7 @@ class BnbMarketValueTest(unittest.TestCase):
             quote_amt=100,
         )
         huge = price_pair(NVDA, USDT, "0x" + "22" * 20, 6, 10_000)
-        candidates = index_cash_price_candidates([broken, huge], {AAPL.lower(), NVDA.lower()})
+        candidates = index_cash_price_candidates([skewed, huge], {AAPL.lower(), NVDA.lower()})
         rows = [
             {"address": AAPL, "symbol": "AAPLB", "kind": "equity", "issuer": "xstocks"},
             {"address": NVDA, "symbol": "NVDAB", "kind": "equity", "issuer": "bstocks"},
@@ -1032,8 +1038,9 @@ class BnbMarketValueTest(unittest.TestCase):
             candidates,
             {QQQ.lower(): None},
         )
-        self.assertIsNone(readings[AAPL.lower()]["marketValueUsd"])
-        self.assertIsNone(readings[AAPL.lower()]["priceUsd"])
+        self.assertEqual(readings[AAPL.lower()]["marketValueUsd"], 500)
+        self.assertEqual(readings[AAPL.lower()]["priceUsd"], 100)
+        self.assertEqual(readings[AAPL.lower()]["priceSource"], "dexscreener")
         self.assertEqual(readings[AAPL.lower()]["supply"], 5)
         self.assertIsNone(readings[NVDA.lower()]["marketValueUsd"])
         self.assertIsNone(readings[QQQ.lower()]["marketValueUsd"])
@@ -1041,18 +1048,17 @@ class BnbMarketValueTest(unittest.TestCase):
         self.assertIsNone(readings[SPCX.lower()]["marketValueUsd"])
         self.assertIsNone(readings[SPCX.lower()]["priceUsd"])
         reasons = {item["reason"] for item in warnings}
-        self.assertIn("price-far-from-reserves", reasons)
+        self.assertNotIn("price-far-from-reserves", reasons)
         self.assertIn("market-value-above-10b", reasons)
-        self.assertEqual(nulls["price-far-from-reserves"], 1)
         self.assertEqual(nulls["market-value-above-10b"], 1)
         self.assertEqual(nulls["no-price"], 2)
         self.assertNotIn("no-supply-and-no-price", nulls)
 
         values = {addr: reading["marketValueUsd"] for addr, reading in readings.items()}
-        self.assertIsNone(lane_volume(rows, values, "equity"))
+        self.assertEqual(lane_volume(rows, values, "equity"), 500)
         self.assertIsNone(lane_volume(rows, values, "etf"))
         self.assertIsNone(lane_volume(rows, values, "preipo"))
-        self.assertIsNone(sum_nullable([lane_volume(rows, values, kind) for kind in ("equity", "etf", "preipo")]))
+        self.assertEqual(sum_nullable([lane_volume(rows, values, kind) for kind in ("equity", "etf", "preipo")]), 500)
 
     def test_missing_supply_or_price_is_null_and_zero_supply_counts(self) -> None:
         from bnb_market_value import index_cash_price_candidates, resolve_market_values

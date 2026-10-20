@@ -5,8 +5,9 @@ times a USD price. Price preference is DexScreener priceUsd on the mint's
 highest-liquidity cash-quote pool that passes the liquidity sanity guard, then
 a GeckoTerminal token price, then null. A missing supply or a missing price
 stays null. It is not stored as zero. A price that disagrees with that pool's
-own 24h move or its reserves, and a single-token value above $10B, are null
-and warned. They are not counted.
+own 24h move, and a single-token value above $10B, are null and warned. They
+are not counted. Pool token balances are not a price: concentrated-liquidity
+reserves are skewed and are not used.
 """
 
 from __future__ import annotations
@@ -35,24 +36,14 @@ CASH_PRICE_QUOTES = frozenset(
         "0x0000000000000000000000000000000000000000",
     }
 )
-STABLE_PRICE_QUOTES = frozenset(
-    {
-        "0x55d398326f99059ff775485246999027b3197955",
-        "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d",
-        "0xe9e7cea3dedca5984780bafc599bd69add087d56",
-        "0xc5f0f7b66764f6ec8c8dff7ba683102295e16409",
-        "0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d",
-    }
-)
-
 TOTAL_SUPPLY_SELECTOR = "0x18160ddd"
 DECIMALS_SELECTOR = "0x313ce567"
 # One tokenized stock above this is a broken print, not a market.
 MAX_TOKEN_MARKET_VALUE_USD = 10_000_000_000.0
-# Spot vs the pool's own 24h-ago price, or vs reserves, beyond this is not used.
+# Spot vs the pool's own 24h-ago price beyond this is not used.
 PRICE_HISTORY_MAX_RATIO = 10.0
 MARKET_VALUE_SOURCE = "bsc-erc20-totalSupply x dexscreener-cash-pool-else-geckoterminal"
-DEFAULT_BUDGET_S = 240.0
+DEFAULT_BUDGET_S = 360.0
 # Public BSC nodes rate-limit eth_call batches above about 20 calls.
 # Two calls per mint (totalSupply and decimals) keeps a batch at that cap.
 RPC_BATCH = 10
@@ -343,26 +334,6 @@ def index_cash_price_candidates(pairs: list[Any], mints: set[str]) -> dict[str, 
     return grouped
 
 
-def _implied_reserve_price(candidate: dict) -> float | None:
-    price = candidate.get("priceUsd")
-    base_amt = candidate.get("baseReserve")
-    quote_amt = candidate.get("quoteReserve")
-    if not isinstance(base_amt, (int, float)) or not isinstance(quote_amt, (int, float)):
-        return None
-    if isinstance(base_amt, bool) or isinstance(quote_amt, bool):
-        return None
-    if base_amt <= 0 or quote_amt <= 0:
-        return None
-    native = candidate.get("priceNative")
-    if isinstance(native, (int, float)) and not isinstance(native, bool) and native > 0 and isinstance(price, (int, float)) and price > 0:
-        quote_usd = float(price) / float(native)
-        if math.isfinite(quote_usd) and quote_usd > 0:
-            return quote_amt * quote_usd / base_amt
-    if candidate.get("quote") in STABLE_PRICE_QUOTES:
-        return float(quote_amt) / float(base_amt)
-    return None
-
-
 def price_rejection_reason(candidate: dict) -> str | None:
     """Null when this pool's priceUsd can be used. Otherwise a warning reason."""
     price = candidate.get("priceUsd")
@@ -373,27 +344,27 @@ def price_rejection_reason(candidate: dict) -> str | None:
         factor = 1 + float(change) / 100.0
         if factor <= 0 or factor > PRICE_HISTORY_MAX_RATIO or factor < 1 / PRICE_HISTORY_MAX_RATIO:
             return "price-far-from-pool-history"
-    implied = _implied_reserve_price(candidate)
-    if implied is not None and implied > 0 and math.isfinite(implied):
-        ratio = float(price) / implied
-        if ratio > PRICE_HISTORY_MAX_RATIO or ratio < 1 / PRICE_HISTORY_MAX_RATIO:
-            return "price-far-from-reserves"
     return None
 
 
 def _history_anchor(candidate: dict) -> float | None:
+    """Yesterday's price when the 24h move itself is inside 10×.
+
+    A move outside that range is not a usable anchor. Gecko is then accepted
+    on its own, still subject to the $10B cap. Token balances are not a price.
+    """
     price = candidate.get("priceUsd")
     change = candidate.get("priceChangeH24")
-    if isinstance(price, (int, float)) and not isinstance(price, bool) and price > 0:
-        if isinstance(change, (int, float)) and not isinstance(change, bool):
-            factor = 1 + float(change) / 100.0
-            if factor > 0:
-                anchor = float(price) / factor
-                if math.isfinite(anchor) and anchor > 0:
-                    return anchor
-    implied = _implied_reserve_price(candidate)
-    if implied is not None and implied > 0 and math.isfinite(implied):
-        return implied
+    if not isinstance(price, (int, float)) or isinstance(price, bool) or price <= 0:
+        return None
+    if not isinstance(change, (int, float)) or isinstance(change, bool):
+        return None
+    factor = 1 + float(change) / 100.0
+    if factor <= 0 or factor > PRICE_HISTORY_MAX_RATIO or factor < 1 / PRICE_HISTORY_MAX_RATIO:
+        return None
+    anchor = float(price) / factor
+    if math.isfinite(anchor) and anchor > 0:
+        return anchor
     return None
 
 
