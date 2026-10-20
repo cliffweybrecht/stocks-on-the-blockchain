@@ -30,6 +30,8 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from gecko_http import GeckoHttpClient
+
 EASTERN = ZoneInfo("America/New_York")
 WINDOW_SOURCE = "geckoterminal-hourly-et-day"
 BACKFILL_SOURCE = "geckoterminal-hourly-et-day-2026-10-09"
@@ -254,47 +256,29 @@ def page_max_h24(pools: list[dict]) -> float:
 
 
 class GeckoClient:
-    """One shared pace for every GeckoTerminal call. 429 waits, then retries."""
+    """One shared pace for every GeckoTerminal call. 429, 5xx, and timeouts retry."""
 
     def __init__(self, interval: float = GECKO_MIN_INTERVAL_S) -> None:
         self.interval = interval
-        self.last = 0.0
+        self.http = GeckoHttpClient(interval=interval, timeout=90)
         self.requests = 0
         self.retries = 0
 
     def wait(self) -> None:
-        delay = self.last + self.interval - time.monotonic()
-        if delay > 0:
-            time.sleep(delay)
-        self.last = time.monotonic()
+        self.http._pace()
 
     def get_json(self, url: str, retries: int = 6) -> Any:
-        last: Exception | None = None
-        for attempt in range(retries):
-            self.wait()
-            self.requests += 1
-            try:
-                req = urllib.request.Request(url, headers=UA)
-                with urllib.request.urlopen(req, timeout=90) as resp:
-                    return json.loads(resp.read().decode())
-            except urllib.error.HTTPError as exc:
-                last = exc
-                self.retries += 1
-                if exc.code == 429:
-                    time.sleep(21 * (attempt + 1))
-                elif exc.code == 404:
-                    return None
-                else:
-                    time.sleep(1.5 * (attempt + 1))
-            except Exception as exc:  # noqa: BLE001
-                last = exc
-                self.retries += 1
-                message = str(exc)
-                if "429" in message:
-                    time.sleep(21 * (attempt + 1))
-                else:
-                    time.sleep(1.5 * (attempt + 1))
-        raise RuntimeError(f"gecko fetch failed {url}: {last}")
+        self.http.max_attempts = max(1, retries)
+        result = self.http.get_json(url)
+        self.requests = self.http.requests
+        self.retries = self.http.retries
+        if result.ok:
+            return result.body
+        if result.reason == "not-found":
+            return None
+        raise RuntimeError(
+            f"gecko fetch failed {url}: {result.reason} status={result.status} attempts={result.attempts}"
+        )
 
 
 def cache_path(root: Path, kind: str, key: str) -> Path:

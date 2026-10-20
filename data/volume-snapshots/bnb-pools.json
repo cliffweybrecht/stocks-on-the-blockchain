@@ -1491,6 +1491,11 @@
           "uniswapV4": false
         },
         {
+          "pairAddress": "0x452ec83046b0ac72005a50671337e11f11d05fb3",
+          "dexId": "pancakeswap-v3-bsc",
+          "uniswapV4": false
+        },
+        {
           "pairAddress": "0x53c6291d0a5a02c76cedfa1b8f57a8ac3762f7a9",
           "dexId": "uniswap-bsc",
           "uniswapV4": false

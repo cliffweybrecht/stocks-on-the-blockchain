@@ -51,7 +51,9 @@ Writes data/volume-snapshots/bnb.json.
   midnight. The closed-day number is the GeckoTerminal hourly candle sum over
   that window. DexScreener volume.h24 is the fallback and is tagged.
   BNB_SNAPSHOT_DATE or SNAPSHOT_DATE (YYYY-MM-DD) forces the key only; it does
-  not invent volume. SNAPSHOT_GECKO_CANDLES=0 keeps the DexScreener sample.
+  not invent volume. There is no switch that skips the candle overlay.
+  pPOLY pools are wash and stay out of the lanes; their dollars are stored on
+  excludedVolumeUsd and original* .
 - Each night also writes `assets[]` (Base schema) from that same sample:
   address, symbol, issuer, instrumentKind, volume24hUsd,
   displayedLiquidityUsd, pools, and poolCount. Lane totals and issuersByLane stay.
@@ -1001,29 +1003,28 @@ def main() -> int:
     price_pairs: list[dict] = []
     vols, pool_counts, pool_details, vol_warns, pair_h24, known = hydrate_volumes(rows, known, price_pairs=price_pairs)
     closed = None
-    if os.environ.get("SNAPSHOT_GECKO_CANDLES", "1") != "0":
-        dex_pools = []
-        for addr, pools in pool_details.items():
-            for pool in pools:
-                dex_pools.append(
-                    {
-                        "pair": pool.get("pairAddress"),
-                        "base": addr,
-                        "quote": "",
-                        "dex_volume": pool.get("volume24hUsd"),
-                        "liquidity": pool.get("liquidityUsd"),
-                        "dex": pool.get("dexId"),
-                    }
-                )
-        try:
-            closed = overlay_gecko_day("bnb", date, rows, dex_pools)
-        except Exception as exc:  # noqa: BLE001
-            print(f"warn gecko eastern day failed, keeping DexScreener h24: {exc}", file=sys.stderr)
-            closed = None
-        if closed and closed.get("combined") is not None:
-            vols = closed["vols"]
-            pool_details = closed["details"]
-            pool_counts = {addr: len(pools) for addr, pools in pool_details.items()}
+    dex_pools = []
+    for addr, pools in pool_details.items():
+        for pool in pools:
+            dex_pools.append(
+                {
+                    "pair": pool.get("pairAddress"),
+                    "base": addr,
+                    "quote": "",
+                    "dex_volume": pool.get("volume24hUsd"),
+                    "liquidity": pool.get("liquidityUsd"),
+                    "dex": pool.get("dexId"),
+                }
+            )
+    try:
+        closed = overlay_gecko_day("bnb", date, rows, dex_pools)
+    except Exception as exc:  # noqa: BLE001
+        print(f"warn gecko eastern day failed, keeping DexScreener h24: {exc}", file=sys.stderr)
+        closed = None
+    if closed and closed.get("combined") is not None:
+        vols = closed["vols"]
+        pool_details = closed["details"]
+        pool_counts = {addr: len(pools) for addr, pools in pool_details.items()}
     for warning in vol_warns:
         print(f"warn {warning}", file=sys.stderr)
     drops = volume_drop_warnings(rows, vols, known, pair_h24, previous)
@@ -1172,6 +1173,25 @@ def main() -> int:
     if closed and closed.get("crossCheck"):
         record["crossCheck"] = closed["crossCheck"]
         record["gapPct"] = closed.get("gapPct")
+    if closed and closed.get("fallbacks"):
+        record["dexscreenerH24Fallbacks"] = closed["fallbacks"]
+    excluded = None if closed is None else closed.get("excludedVolumeUsd")
+    if excluded:
+        by_kind = closed.get("excludedByKind") or {}
+
+        def plus(value: float | None, extra: float | None) -> float | None:
+            if not extra:
+                return value
+            if value is None:
+                return extra
+            return round(value + extra, 2)
+
+        record["excludedVolumeUsd"] = excluded
+        record["excludedPools"] = closed.get("excludedPools") or []
+        record["originalPublicEquity24hUsd"] = plus(eq_vol, by_kind.get("equity"))
+        record["originalPrivate24hUsd"] = plus(pre_vol, by_kind.get("preipo"))
+        record["originalEtfIndex24hUsd"] = plus(etf_vol, by_kind.get("etf"))
+        record["originalCombined24hUsd"] = plus(combined, excluded)
     if drops:
         record["volumeDropWarnings"] = drops
 

@@ -37,14 +37,15 @@ ROOT = Path(__file__).resolve().parents[1]
 CACHE = Path("/tmp/volume-audit/cache")
 MIN_POOL_H24 = 100.0
 GAP_FRACTION = 0.05
-# Paimon pPOLY (0x1d80…) vs United Stables U (0xce24…666666). Gecko hourly
-# USD on these pools is wash: daily volume runs to the tens of millions while
-# reserve is a few dollars up to a couple million, and buys match sells. U is
-# not a BNB cash quote. The closed-day sum was attributing that volume to
-# pPOLY. The address set is the pools that did so on 2026-09-24..2026-10-08.
-# A newer pPOLY/U pool is the same wash and is excluded by the token pair.
+# Paimon pPOLY (0x1d80…) is wash, including United Stables U (0xce24…666666)
+# quotes and the newer Uniswap v4 / PancakeSwap Infinity pools. Daily volume
+# runs to the tens of millions while reserve is a few dollars up to a few
+# thousand. The address set is the pools that did so on 2026-09-24..2026-10-08.
+# Any pool with pPOLY on either side is the same wash, so a new address does
+# not need to be added to the list. U is not a BNB cash quote.
 PPOLY_TOKEN = "0x1d80392d12caaaf9e333bb0bb7f021eacf297fe6"
 UNITED_STABLES = "0xce24439f2d9c6a2289f741120fe202248b666666"
+PPOLY_WASH_REASON = "ppoly-wash"
 EXCLUDED_VOLUME_POOLS = frozenset(
     {
         "0xe2d5738b246526194b19adf0dcdf5fc511126d276798e8fe5102ed464f7720e2",
@@ -101,15 +102,16 @@ def canon(addr: str) -> str:
 
 
 def volume_pool_excluded(pair: str, base: str = "", quote: str = "") -> bool:
-    """True for pPOLY/United Stables wash pools, including ones labeled as cash.
+    """True for every pPOLY pool, including v4, Infinity, and U quotes.
 
-    Missing sides still match the address list. A new pool address is matched
-    when one side is pPOLY and the other is U.
+    Missing sides still match the address list, including a known wash pool
+    whose sides were labeled as a cash quote. A new pool is excluded when
+    either side is the pPOLY token, so the address list does not have to grow.
     """
     if canon(pair) in EXCLUDED_VOLUME_POOLS:
         return True
-    sides = {canon(base), canon(quote)}
-    return PPOLY_TOKEN in sides and UNITED_STABLES in sides
+    sides = {canon(base), canon(quote)} - {""}
+    return PPOLY_TOKEN in sides
 
 
 def is_perp(symbol: str, name: str = "") -> bool:
@@ -212,6 +214,10 @@ def build_closed_totals(
     overlap_dex = 0.0
     overlap_gecko = 0.0
     overlap_n = 0
+    fallbacks: list[dict] = []
+    excluded_pools: list[dict] = []
+    excluded_usd = 0.0
+    excluded_by_kind = {"equity": 0.0, "etf": 0.0, "preipo": 0.0}
     for pool in pools:
         pair = canon(str(pool.get("pair") or ""))
         if not pair or pair in seen:
@@ -220,6 +226,34 @@ def build_closed_totals(
         quote = str(pool.get("quote") or "")
         if volume_pool_excluded(pair, base, quote):
             seen.add(pair)
+            owner = recipient(base, quote, universe_keys)
+            if owner is not None:
+                dex_volume = _num(pool.get("dex_volume"))
+                gecko_volume, gecko_ok = pool.get("gecko_volume"), bool(pool.get("gecko_ok"))
+                chosen, source = choose_pool_volume(
+                    gecko_volume if isinstance(gecko_volume, (int, float)) else None,
+                    gecko_ok,
+                    dex_volume,
+                )
+                if chosen is not None:
+                    if source == "dexscreener-h24-fallback" and pool.get("from_gecko"):
+                        source = "geckoterminal-h24-fallback"
+                    excluded_usd += chosen
+                    kind = str((universe.get(owner) or {}).get("kind") or "")
+                    if kind in excluded_by_kind:
+                        excluded_by_kind[kind] += chosen
+                    owner_row = universe.get(owner) or {}
+                    excluded_pools.append(
+                        {
+                            "pairAddress": str(pool.get("pair") or pair),
+                            "dexId": str(pool.get("dex") or "unknown"),
+                            "volume24hUsd": round(chosen, 2),
+                            "liquidityUsd": _num(pool.get("liquidity")),
+                            "symbol": str(owner_row.get("symbol") or ""),
+                            "source": source,
+                            "reason": PPOLY_WASH_REASON,
+                        }
+                    )
             continue
         owner = recipient(base, quote, universe_keys)
         if owner is None:
@@ -253,6 +287,18 @@ def build_closed_totals(
             overlap_dex += dex_volume
             overlap_gecko += float(gecko_volume)
             overlap_n += 1
+        if source in ("dexscreener-h24-fallback", "geckoterminal-h24-fallback"):
+            owner_row = universe.get(owner) or {}
+            fallbacks.append(
+                {
+                    "pairAddress": str(pool.get("pair") or pair),
+                    "dexId": str(pool.get("dex") or "unknown"),
+                    "volume24hUsd": round(chosen, 2),
+                    "symbol": str(owner_row.get("symbol") or ""),
+                    "source": source,
+                    "reason": str(pool.get("fallback_reason") or "no-geckoterminal-candles"),
+                }
+            )
         prev = vols.get(owner)
         vols[owner] = chosen if prev is None else prev + chosen
         details[owner].append(
@@ -318,6 +364,12 @@ def build_closed_totals(
         "overlapGeckoUsd": round(overlap_gecko, 2) if overlap_n else None,
         "overlapGapPct": None if overlap_gap is None else round(overlap_gap * 100, 2),
         "overlapPools": overlap_n,
+        "fallbacks": fallbacks,
+        "excludedVolumeUsd": round(excluded_usd, 2) if excluded_pools else None,
+        "excludedByKind": {kind: round(value, 2) for kind, value in excluded_by_kind.items() if value}
+        if excluded_pools
+        else {},
+        "excludedPools": excluded_pools,
     }
 
 
