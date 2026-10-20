@@ -7,6 +7,7 @@ import { chainCombinedVolume24h } from "@/lib/market/aggregate";
 import { isChainEnabled } from "@/lib/market/chain-config";
 import { isRollingVolumeChartRange, type VolumeChartRangeId } from "@/lib/market/daily-volume-view";
 import { homeChainRangeCoverageHint, type HomeClosedRangeBoard, type HomeChainRangeLegs } from "@/lib/market/home-chain-range";
+import { marketValueRangeView } from "@/lib/market/onchain-market-value";
 import { compareNullableDesc, maxNullable } from "@/lib/market/numbers";
 import type { ChainVolume } from "@/lib/market/types";
 
@@ -40,9 +41,17 @@ export function HomeChainVolume({
   chains: readonly ChainVolume[];
   ranges: HomeClosedRangeBoard;
 }) {
-  const { range } = useDeskVolumeRange("7d");
+  const { range, marketValueByChain } = useDeskVolumeRange("7d");
   const rows = useMemo<ChainVolumeRow[]>(() => {
-    const scored = chains.filter((chain) => isChainEnabled(chain.id)).map((chain) => legsFor(chain, range, ranges));
+    const scored = chains.filter((chain) => isChainEnabled(chain.id)).map((chain) => {
+      const legs = legsFor(chain, range, ranges);
+      const market = marketValueRangeView(marketValueByChain[chain.id], range);
+      return {
+        ...legs,
+        marketValueUsd: market.recorded ? market.totalUsd : null,
+        marketValueHint: market.recorded ? market.hint : "No captured supply",
+      };
+    });
     scored.sort((a, b) => {
       const byVolume = compareNullableDesc(a.combinedUsd, b.combinedUsd);
       if (byVolume !== 0) return byVolume;
@@ -55,8 +64,10 @@ export function HomeChainVolume({
       maxVolume,
       combinedUsd: row.combinedUsd,
       coverageHint: row.coverageHint,
+      marketValueUsd: row.marketValueUsd,
+      marketValueHint: row.marketValueHint,
     }));
-  }, [chains, range, ranges]);
+  }, [chains, marketValueByChain, range, ranges]);
 
   if (rows.length === 0) return null;
   return <ChainVolumeTable rows={rows} range={range} />;

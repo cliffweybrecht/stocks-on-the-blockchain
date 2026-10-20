@@ -10,9 +10,11 @@ import {
   equityCardDayVolumeSeries,
   equityCardHeadline,
   equityCardLiquiditySeries,
+  equityCardMarketValueSeries,
   equityCardSpotPriceUsd,
 } from "@/lib/desk/equity-card-view";
 import type { EquityCardLiquidityPoint } from "@/lib/market/equity-card-range-liquidity";
+import type { AssetMarketValuePoint } from "@/lib/market/onchain-market-value";
 import type { AssetSortKey } from "@/lib/market/aggregate";
 import { formatPct, formatPrice, formatUsdCompact } from "@/lib/market/format";
 import type { AssetSummary, VolumeHistoryPoint } from "@/lib/market/types";
@@ -53,6 +55,7 @@ export function EquityCard({
   dayVolumeSeries,
   rangeVolume = null,
   rangeLiquidity = null,
+  rangeMarketValue = null,
   enableFavorites,
   pinned,
   onTogglePin,
@@ -74,17 +77,40 @@ export function EquityCard({
     days: number;
     series?: readonly EquityCardLiquidityPoint[];
   } | null;
+  /** Closing market value for the selected range. Set only in Market value mode. */
+  rangeMarketValue?: {
+    id: "24h" | "7d" | "14d" | "30d";
+    marketValueUsd: number | null;
+    days: number;
+    recorded: boolean;
+    series?: readonly AssetMarketValuePoint[];
+  } | null;
   enableFavorites?: boolean;
   pinned?: boolean;
   onTogglePin?: () => void;
 }) {
   const priceUsd = equityCardSpotPriceUsd(asset);
   const liquidityMode = sortKey === "displayedLiquidityUsd";
-  const sparklinePoints = liquidityMode
-    ? equityCardLiquiditySeries(rangeLiquidity?.series)
-    : equityCardDayVolumeSeries(dayVolumeSeries);
-  const headline = equityCardHeadline(asset, sortKey, rangeVolume, liquidityMode ? rangeLiquidity : null);
-  const rangeId = liquidityMode ? (rangeLiquidity?.id ?? "24h") : rangeVolume ? rangeVolume.id : "24h";
+  const marketMode = sortKey === "marketValueUsd";
+  const sparklinePoints = marketMode
+    ? equityCardMarketValueSeries(rangeMarketValue?.series)
+    : liquidityMode
+      ? equityCardLiquiditySeries(rangeLiquidity?.series)
+      : equityCardDayVolumeSeries(dayVolumeSeries);
+  const headline = equityCardHeadline(
+    asset,
+    sortKey,
+    rangeVolume,
+    liquidityMode ? rangeLiquidity : null,
+    marketMode ? rangeMarketValue : null,
+  );
+  const rangeId = marketMode
+    ? (rangeMarketValue?.id ?? "24h")
+    : liquidityMode
+      ? (rangeLiquidity?.id ?? "24h")
+      : rangeVolume
+        ? rangeVolume.id
+        : "24h";
   const liquidityBasis =
     !liquidityMode || !rangeLiquidity
       ? undefined
@@ -93,12 +119,20 @@ export function EquityCard({
           ? "close"
           : "average"
         : "current";
+  const marketBasis = !marketMode
+    ? undefined
+    : rangeMarketValue?.recorded
+      ? rangeMarketValue.id === "24h"
+        ? "close"
+        : "average"
+      : "missing";
 
   return (
     <article
       className="group relative flex min-h-[176px] flex-col overflow-hidden rounded-2xl bg-[#141414] px-4 py-3.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] transition-colors hover:bg-[#1a1a1a]"
       data-card-range={rangeId}
       data-card-liq-basis={liquidityBasis}
+      data-card-mkt-basis={marketBasis}
     >
       <Link
         href={href}
@@ -157,9 +191,11 @@ export function EquityCard({
             <VolumeSparkline
               points={sparklinePoints}
               label={
-                liquidityMode
-                  ? `${asset.symbol} ${rangeId.toUpperCase()} liquidity`
-                  : `${asset.symbol} 24h volume trend`
+                marketMode
+                  ? `${asset.symbol} market value`
+                  : liquidityMode
+                    ? `${asset.symbol} ${rangeId.toUpperCase()} liquidity`
+                    : `${asset.symbol} 24h volume trend`
               }
             />
           ) : null}

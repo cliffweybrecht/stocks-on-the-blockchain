@@ -82,6 +82,8 @@ export function HolderSupplyPanel({
   showUnits?: boolean;
 }) {
   const { range, setRange } = useDeskVolumeRange("7d");
+  // No snapshot file, or no rows for this asset, is not an empty chart card.
+  if (points.length === 0) return null;
   const slots = holderDaySlots(points, range, (row) => row);
   const latest = [...slots].reverse().find((slot) => !slot.empty && slot.value)?.value ?? null;
   const holderChange = consecutiveChange(slots.map((slot) => ({ ...slot, value: slot.value?.holderCount ?? null })));

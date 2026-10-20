@@ -15,9 +15,11 @@ Commands and landing are listed in `docs/volume-snapshots.md`.
 
 ## What each asset stores
 
-`address`, `symbol`, `issuer`, `instrumentKind`, `totalSupplyRaw`, `totalSupplyDecimals`, `totalSupply` (decimal-adjusted), `supplyUsd`, `holderCount`, `sources` for supply, supplyUsd, holders, and price, `notes` when a field is null, and `capturedAt`.
+`address`, `symbol`, `issuer`, `instrumentKind`, `totalSupplyRaw`, `totalSupplyDecimals`, `totalSupply` (decimal-adjusted), `priceUsd`, `supplyUsd`, `holderCount`, `sources` for supply, supplyUsd, holders, and price, `notes` when a field is null, and `capturedAt`.
 
-`supplyUsd` is decimal-adjusted supply times the DexScreener price already on the desk asset (`dexMedianPriceUsd`). A missing price or supply leaves `supplyUsd` null.
+`priceUsd` is the desk DexScreener price (`dexMedianPriceUsd`). `supplyUsd` is that price times decimal-adjusted supply. That product is the onchain market value. A missing price or supply leaves both `supplyUsd` and the matching lane total null.
+
+The day also stores `publicMarketValueUsd` (equity), `privateMarketValueUsd`, and `etfMarketValueUsd`. Each is the sum of `supplyUsd` in that lane. A lane with no priced supply is null, not zero. `supplyUsd` on the day is the sum across lanes.
 
 Chain `holderCount` is the sum of per-token holder counts. It is not unique wallets. A null token is omitted from the sum, not stored as zero. The same rule applies to `supplyUsd`.
 

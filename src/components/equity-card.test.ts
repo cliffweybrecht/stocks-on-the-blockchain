@@ -42,6 +42,9 @@ describe("EquityCard range headline", () => {
     expect(html).toContain("Vol");
     expect(html).not.toContain("data-card-range-days");
     expect(html).toContain(formatUsdCompact(12_000));
+    expect(html).not.toContain("data-card-holders");
+    expect(html).not.toContain(">Holders<");
+    expect(html).not.toContain("data-card-supply");
   });
 
   it("shows the closed-range sum, its label, and a partial-day hint", () => {
@@ -136,5 +139,43 @@ describe("EquityCard range headline", () => {
     expect(html).toContain(formatUsdCompact(null));
     expect(html).not.toContain("data-card-range-days");
     expect(html).not.toContain(formatUsdCompact(12_000));
+  });
+
+  it("shows captured supply × price and a dash when that snapshot is missing", () => {
+    const recorded = renderToStaticMarkup(
+      createElement(EquityCard, {
+        asset: asset({ volume24hUsd: 12_000, displayedLiquidityUsd: 4_000 }),
+        href: "/chains/solana/assets/AAPLx",
+        sortKey: "marketValueUsd",
+        rangeMarketValue: {
+          id: "14d",
+          marketValueUsd: 88_000,
+          days: 1,
+          recorded: true,
+          series: [{ date: "2026-10-08", t: 1, marketValueUsd: 88_000 }],
+        },
+      }),
+    );
+    expect(recorded).toContain('data-card-metric="market-value"');
+    expect(recorded).toContain('data-card-mkt-basis="average"');
+    expect(recorded).toContain(formatUsdCompact(88_000));
+    expect(recorded).toContain("Mkt");
+    expect(recorded).toContain("avg 14D · 1 of 14 days");
+    expect(recorded).not.toContain("Holders");
+
+    const missing = renderToStaticMarkup(
+      createElement(EquityCard, {
+        asset: asset({ volume24hUsd: 12_000, displayedLiquidityUsd: 4_000 }),
+        href: "/chains/solana/assets/AAPLx",
+        sortKey: "marketValueUsd",
+        rangeMarketValue: { id: "7d", marketValueUsd: null, days: 0, recorded: false, series: [] },
+      }),
+    );
+    expect(missing).toContain('data-card-mkt-basis="missing"');
+    expect(missing).toContain("No captured supply");
+    expect(missing).toContain(formatUsdCompact(null));
+    expect(missing).not.toContain(formatUsdCompact(12_000));
+    expect(missing).not.toContain(formatUsdCompact(4_000));
+    expect(missing).not.toContain("Holders");
   });
 });

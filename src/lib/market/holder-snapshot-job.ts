@@ -278,5 +278,5 @@ export async function captureHolderSnapshot(input: {
 export function formatHolderSnapshotLine(chainId: HolderSnapshotChainId, day: HolderSnapshotDay, filePath: string): string {
   const nullHolders = day.assetCount - day.assetsWithHolders;
   const nullSupply = day.assets.filter((asset) => asset.totalSupply === null).length;
-  return `snapshot:holders wrote ${chainId} ${day.date} holders=${day.holderCount ?? "null"} supplyUsd=${day.supplyUsd ?? "null"} assets=${day.assetCount} nullHolders=${nullHolders} nullSupply=${nullSupply} capturedAt=${day.capturedAt} -> ${filePath}`;
+  return `snapshot:holders wrote ${chainId} ${day.date} holders=${day.holderCount ?? "null"} supplyUsd=${day.supplyUsd ?? "null"} public=${day.publicMarketValueUsd ?? "null"} private=${day.privateMarketValueUsd ?? "null"} etf=${day.etfMarketValueUsd ?? "null"} assets=${day.assetCount} nullHolders=${nullHolders} nullSupply=${nullSupply} capturedAt=${day.capturedAt} -> ${filePath}`;
 }

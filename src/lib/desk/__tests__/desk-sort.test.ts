@@ -2,10 +2,11 @@ import { describe, expect, it } from "vitest";
 import { deskSortOptions, resolveDeskSortKey } from "../desk-sort";
 
 describe("deskSortOptions", () => {
-  it("keeps the Solana desk to Volume and Liquidity", () => {
+  it("puts Market value on the Solana desk after Volume and Liquidity", () => {
     expect(deskSortOptions({ solanaDesk: true, showRobinhoodMarks: false })).toEqual([
       ["volume24hUsd", "Volume"],
       ["displayedLiquidityUsd", "Liquidity"],
+      ["marketValueUsd", "Market value"],
     ]);
   });
 
@@ -13,6 +14,7 @@ describe("deskSortOptions", () => {
     expect(deskSortOptions({ solanaDesk: false, showRobinhoodMarks: true }).map((row) => row[1])).toEqual([
       "Volume",
       "Liquidity",
+      "Market value",
       "Pools",
       "RH vs DEX",
     ]);
