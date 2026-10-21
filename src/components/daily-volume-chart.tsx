@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
+import { DateAxisLabels } from "@/components/date-axis-labels";
 import { useDeskVolumeRange } from "@/components/desk-volume-range";
 import {
   CHART_PLOT_FRAME_CLASS,
@@ -9,12 +10,12 @@ import {
   monotoneLinePath,
   monotoneVolumePaths,
 } from "@/lib/desk/chart-curve";
+import { selectDateAxisLabelTicks } from "@/lib/desk/date-axis";
 import {
   contiguousHourlyRuns,
   deskChartHeadline,
   filterVolumeRange,
   formatHourlyVolumeChartTick,
-  formatVolumeChartTick,
   hourlyVolumeChartXTicks,
   HOURLY_VOLUME_SERIES_ARIA,
   HOURLY_VOLUME_SERIES_CAPTION,
@@ -337,9 +338,10 @@ export function DailyVolumeChart({
   const hasDaily = points.length > 0;
   const showHeadline = headline.volumeUsd !== null;
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((frac) => map.maxY * frac);
+  const dayTicks = volumeChartXTicks(visible);
   const xTicks = showHourlyAxis
     ? hourlyVolumeChartXTicks(hourSlots.map((t) => ({ t, volumeUsd: 0, kind: "rolling_24h" as const })))
-    : volumeChartXTicks(visible);
+    : selectDateAxisLabelTicks(dayTicks, range === "24h" ? "7d" : range, (tick) => map.x(tick));
   const plotBottom = VOLUME_CHART_PAD.top + VOLUME_CHART_INNER_H;
   const closedPaths = monotoneVolumePaths(visible, map, plotBottom);
 
@@ -502,23 +504,13 @@ export function DailyVolumeChart({
                   />
                 ))
               : null}
-            {xTicks.map((tick, index) => {
-              const label = rolling ? formatHourlyVolumeChartTick(tick) : formatVolumeChartTick(tick, xTicks);
-              const crowded = !rolling && xTicks.length > 10;
-              return (
-                <text
-                  key={`${tick}-${index}`}
-                  x={map.x(tick)}
-                  y={crowded && index % 2 === 1 ? VOLUME_CHART_HEIGHT - 4 : VOLUME_CHART_HEIGHT - (crowded ? 16 : 8)}
-                  textAnchor="middle"
-                  className="fill-muted-foreground"
-                  fontSize={crowded ? 9 : 10}
-                  data-volume-tick={label}
-                >
-                  {label}
-                </text>
-              );
-            })}
+            <DateAxisLabels
+              ticks={xTicks}
+              x={(tick) => map.x(tick)}
+              chartHeight={VOLUME_CHART_HEIGHT}
+              label={(tick) => (rolling ? formatHourlyVolumeChartTick(tick) : formatChartDay(tick))}
+              tickAttr="data-volume-tick"
+            />
             {rolling ? (
               <HourlyRollingArea points={hourlyCaptures} map={map} />
             ) : (

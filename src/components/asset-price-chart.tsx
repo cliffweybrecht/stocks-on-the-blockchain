@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useState, type PointerEvent, type ReactNode } from "react";
+import { DateAxisLabels } from "@/components/date-axis-labels";
 import {
   ASSET_CHART_MODES,
   ASSET_PANEL_RANGE_IDS,
@@ -20,6 +21,7 @@ import {
   scaleVolumePoints,
 } from "@/lib/desk/asset-price-view";
 import { CHART_PLOT_FRAME_CLASS, DESK_CHART_STROKE, monotoneAreaPath, monotoneLinePath } from "@/lib/desk/chart-curve";
+import { selectDateAxisLabelTicks } from "@/lib/desk/date-axis";
 import {
   selectAssetVolumeHeadline,
   selectAssetVolumeSeries,
@@ -352,7 +354,7 @@ export function AssetMarketPanel({
   const yTicks = isVolume
     ? [0, 0.33, 0.66, 1].map((frac) => volumeMap.maxY * frac)
     : [0, 0.33, 0.66, 1].map((frac) => priceMap.minY + (priceMap.maxY - priceMap.minY) * frac);
-  const xTicks =
+  const clockTicks =
     visible.length > 1
       ? [0, 0.33, 0.66, 1].map((frac) => {
           const t = map.minT + (map.maxT - map.minT) * frac;
@@ -364,6 +366,14 @@ export function AssetMarketPanel({
       : visible[0]
         ? [visible[0].t]
         : [];
+  const xTicks =
+    range === "24h"
+      ? clockTicks
+      : selectDateAxisLabelTicks(
+          visible.map((point) => point.t),
+          range,
+          (tick) => map.x(tick),
+        );
 
   function setHoverFromClient(plot: Element, clientX: number, clientY: number) {
     const svg = plot.querySelector("svg");
@@ -577,22 +587,13 @@ export function AssetMarketPanel({
                 </text>
               </g>
             ))}
-            {xTicks.map((tick, index) => {
-              const label = formatPriceChartTick(tick, range);
-              return (
-                <text
-                  key={`${tick}-${index}`}
-                  x={map.x(tick)}
-                  y={PRICE_CHART_HEIGHT - 8}
-                  textAnchor="middle"
-                  className="fill-muted-foreground"
-                  fontSize="10"
-                  data-asset-axis-tick={label}
-                >
-                  {label}
-                </text>
-              );
-            })}
+            <DateAxisLabels
+              ticks={xTicks}
+              x={(tick) => map.x(tick)}
+              chartHeight={PRICE_CHART_HEIGHT}
+              label={(tick) => formatPriceChartTick(tick, range)}
+              tickAttr="data-asset-axis-tick"
+            />
             {latestY !== null ? (
               <text
                 x={PRICE_CHART_WIDTH - PRICE_CHART_PAD.right + 8}
