@@ -2,6 +2,8 @@
 
 import { useMemo, useState, type PointerEvent } from "react";
 import { useDeskVolumeRange } from "@/components/desk-volume-range";
+import { HeadlineMetricToggle, type HeadlineMetric } from "@/components/headline-metric-toggle";
+import { MarketValueHeadline, MarketValuePlot, marketValueChartPoints } from "@/components/market-value-plot";
 import { backfillHeadlineNote, countAssetBackfillDays } from "@/lib/market/asset-backfill-desk";
 import { DESK_CHART_PLOT_FRAME_CLASS, monotoneVolumePaths } from "@/lib/desk/chart-curve";
 import { formatChartDay, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
@@ -18,6 +20,8 @@ import {
   formatVolumeChartTick,
   type VolumeChartRangeId,
 } from "@/lib/market/daily-volume-view";
+import { marketValueRangeView } from "@/lib/market/onchain-market-value";
+import { isMarketValueHidden } from "@/lib/site/visibility";
 import {
   ROBINHOOD_DESK_VOLUME_NOTE,
   robinhoodDaysForRange,
@@ -36,7 +40,8 @@ export function RobinhoodVolumeDesk({
   days: readonly RobinhoodDeskDay[];
   initialRange?: VolumeChartRangeId;
 }) {
-  const { range, setRange } = useDeskVolumeRange(initialRange);
+  const { range, setRange, marketValue } = useDeskVolumeRange(initialRange);
+  const [metric, setMetric] = useState<HeadlineMetric>("volume");
   const [hover, setHover] = useState<{ t: number; volumeUsd: number } | null>(null);
   const visibleDays = useMemo(() => robinhoodDaysForRange(days, range), [days, range]);
   const visible = useMemo(() => robinhoodVolumePoints(visibleDays), [visibleDays]);
@@ -50,6 +55,9 @@ export function RobinhoodVolumeDesk({
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((frac) => map.maxY * frac);
   const closedPaths = monotoneVolumePaths(visible, map, VOLUME_CHART_PAD.top + VOLUME_CHART_INNER_H);
   const showHeadline = headline.volumeUsd !== null;
+  const showMarket = !isMarketValueHidden() && metric === "market-value";
+  const marketView = useMemo(() => marketValueRangeView(marketValue, range), [marketValue, range]);
+  const marketPoints = useMemo(() => marketValueChartPoints(marketView), [marketView]);
   const unofficial = issuers.some((row) => !row.official);
 
   function setHoverFromClient(plot: Element, clientX: number, clientY: number) {
@@ -69,9 +77,21 @@ export function RobinhoodVolumeDesk({
       className="rounded-2xl bg-[#141414] px-4 py-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] sm:px-5"
       data-robinhood-volume-desk
       data-volume-live="closed-day"
+      data-headline-metric={metric}
     >
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3">
         <div className="min-w-0">
+          <HeadlineMetricToggle
+            metric={metric}
+            onChange={(next) => {
+              setMetric(next);
+              setHover(null);
+            }}
+          />
+          {showMarket ? (
+            <MarketValueHeadline view={marketView} />
+          ) : (
+            <>
           <h2 className="font-heading text-[9px] leading-tight font-medium tracking-wide text-foreground/90">
             Total Daily Tokenized Stock Volume
           </h2>
@@ -98,6 +118,8 @@ export function RobinhoodVolumeDesk({
               </span>
             ) : null}
           </p>
+            </>
+          )}
         </div>
         <div
           className="flex shrink-0 flex-nowrap items-center justify-end gap-1 justify-self-end self-start"
@@ -125,7 +147,9 @@ export function RobinhoodVolumeDesk({
         </div>
       </div>
 
-      {charting && visible.length > 0 ? (
+      {showMarket ? (
+        <MarketValuePlot points={marketPoints} frameClass={DESK_CHART_PLOT_FRAME_CLASS} />
+      ) : charting && visible.length > 0 ? (
         <div
           className={`relative mt-3 cursor-crosshair ${DESK_CHART_PLOT_FRAME_CLASS}`}
           data-volume-plot
@@ -261,17 +285,20 @@ export function RobinhoodVolumeDesk({
         </div>
       )}
 
+      {!showMarket ? (
       <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-robinhood-volume-note>
         {ROBINHOOD_DESK_VOLUME_NOTE}
       </p>
+      ) : null}
 
-      {liquidity ? (
+      {!showMarket && liquidity ? (
         <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-robinhood-liquidity>
           Displayed liquidity {liquidity.date}: {formatUsdFull(liquidity.usd)}. DexScreener liquidity.usd, not
           executable size. Missing liquidity does not drop the day.
         </p>
       ) : null}
 
+      {!showMarket ? (
       <div className="mt-4" data-issuer-lanes>
         <h3 className="text-[10px] tracking-wide text-muted-foreground uppercase">Issuer × type</h3>
         {issuers.length === 0 ? (
@@ -325,6 +352,7 @@ export function RobinhoodVolumeDesk({
           </p>
         ) : null}
       </div>
+      ) : null}
     </section>
   );
 }

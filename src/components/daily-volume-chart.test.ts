@@ -401,8 +401,36 @@ describe("DailyVolumeChart range shell", () => {
     expect(html).toContain("flex-nowrap");
     expect(html).toContain("justify-self-end");
     expect(html).not.toContain("flex-wrap");
+    expect(html).toContain('data-headline-metric-toggle');
+    expect(html).toContain('data-headline-metric="volume"');
+    expect(html).toContain('aria-pressed="true"');
+    expect(html).toContain('data-headline-metric="market-value"');
+    expect(html).toContain("Total Daily Tokenized Stock Volume");
+    expect(html).not.toContain("Onchain market value");
     for (const id of ["24h", "7d", "14d", "30d"]) {
       expect(html).toContain(`data-volume-range="${id}"`);
+    }
+  });
+
+  it("drops the Volume | Market value switch when marketvalue is hidden", () => {
+    const previous = process.env.NEXT_PUBLIC_HIDE_SECTIONS;
+    process.env.NEXT_PUBLIC_HIDE_SECTIONS = "perps,lending,marketvalue";
+    try {
+      const html = renderToStaticMarkup(
+        createElement(DailyVolumeChart, {
+          history: history([], "Historical volume series is unavailable."),
+          hourlyHistory: history([], "No hourly snapshots."),
+          rolling24h: null,
+        }),
+      );
+      expect(html).not.toContain("data-headline-metric-toggle");
+      expect(html).not.toContain('data-headline-metric="market-value"');
+      expect(html).not.toContain("Onchain market value");
+      expect(html).not.toContain("data-market-value-method");
+      expect(html).toContain("Total Daily Tokenized Stock Volume");
+    } finally {
+      if (previous === undefined) delete process.env.NEXT_PUBLIC_HIDE_SECTIONS;
+      else process.env.NEXT_PUBLIC_HIDE_SECTIONS = previous;
     }
   });
 });

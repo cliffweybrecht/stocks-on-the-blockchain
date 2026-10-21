@@ -46,6 +46,8 @@ import math
 import os
 import re
 import sys
+
+from snapshot_holders_hook import run_holder_snapshot
 import time
 import urllib.error
 import urllib.request
@@ -848,7 +850,8 @@ def main() -> int:
         flush=True,
     )
     print("Next: npm run snapshot:land -- --chain robinhood --push-main", flush=True)
-    return 0
+    holder_code = run_holder_snapshot("robinhood", date)
+    return holder_code if holder_code != 0 else 0
 
 
 if __name__ == "__main__":

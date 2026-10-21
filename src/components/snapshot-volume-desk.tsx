@@ -2,6 +2,8 @@
 
 import { useMemo, useState, type PointerEvent } from "react";
 import { useDeskVolumeRange } from "@/components/desk-volume-range";
+import { HeadlineMetricToggle, type HeadlineMetric } from "@/components/headline-metric-toggle";
+import { MarketValueHeadline, MarketValuePlot, marketValueChartPoints } from "@/components/market-value-plot";
 import { backfillHeadlineNote, countAssetBackfillDays } from "@/lib/market/asset-backfill-desk";
 import { DESK_CHART_PLOT_FRAME_CLASS, monotoneVolumePaths } from "@/lib/desk/chart-curve";
 import { formatChartDay, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
@@ -18,6 +20,8 @@ import {
   formatVolumeChartTick,
   type VolumeChartRangeId,
 } from "@/lib/market/daily-volume-view";
+import { marketValueRangeView } from "@/lib/market/onchain-market-value";
+import { isMarketValueHidden } from "@/lib/site/visibility";
 import {
   snapshotDeskDaysForRange,
   snapshotDeskDisplayedLiquidity,
@@ -42,7 +46,8 @@ export function SnapshotVolumeDesk({
   days: readonly SnapshotDeskDay[];
   initialRange?: VolumeChartRangeId;
 }) {
-  const { range, setRange } = useDeskVolumeRange(initialRange);
+  const { range, setRange, marketValue } = useDeskVolumeRange(initialRange);
+  const [metric, setMetric] = useState<HeadlineMetric>("volume");
   const [hover, setHover] = useState<{ t: number; volumeUsd: number } | null>(null);
   const visibleDays = useMemo(() => snapshotDeskDaysForRange(days, range), [days, range]);
   const visible = useMemo(() => snapshotDeskVolumePoints(visibleDays), [visibleDays]);
@@ -55,6 +60,9 @@ export function SnapshotVolumeDesk({
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((frac) => map.maxY * frac);
   const closedPaths = monotoneVolumePaths(visible, map, VOLUME_CHART_PAD.top + VOLUME_CHART_INNER_H);
   const showHeadline = headline.volumeUsd !== null;
+  const showMarket = !isMarketValueHidden() && metric === "market-value";
+  const marketView = useMemo(() => marketValueRangeView(marketValue, range), [marketValue, range]);
+  const marketPoints = useMemo(() => marketValueChartPoints(marketView), [marketView]);
   const gradientId = `${desk.chainId}-volume-area`;
 
   function setHoverFromClient(plot: Element, clientX: number, clientY: number) {
@@ -75,9 +83,21 @@ export function SnapshotVolumeDesk({
       data-snapshot-volume-desk
       data-chain-id={desk.chainId}
       data-volume-live="closed-day"
+      data-headline-metric={metric}
     >
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3">
         <div className="min-w-0">
+          <HeadlineMetricToggle
+            metric={metric}
+            onChange={(next) => {
+              setMetric(next);
+              setHover(null);
+            }}
+          />
+          {showMarket ? (
+            <MarketValueHeadline view={marketView} />
+          ) : (
+            <>
           <h2 className="font-heading text-[9px] leading-tight font-medium tracking-wide text-foreground/90">
             Total Daily Tokenized Stock Volume
           </h2>
@@ -104,6 +124,8 @@ export function SnapshotVolumeDesk({
               </span>
             ) : null}
           </p>
+            </>
+          )}
         </div>
         <div
           className="flex shrink-0 flex-nowrap items-center justify-end gap-1 justify-self-end self-start"
@@ -131,7 +153,9 @@ export function SnapshotVolumeDesk({
         </div>
       </div>
 
-      {charting && visible.length > 0 ? (
+      {showMarket ? (
+        <MarketValuePlot points={marketPoints} frameClass={DESK_CHART_PLOT_FRAME_CLASS} />
+      ) : charting && visible.length > 0 ? (
         <div
           className={`relative mt-3 cursor-crosshair ${DESK_CHART_PLOT_FRAME_CLASS}`}
           data-volume-plot
@@ -267,7 +291,7 @@ export function SnapshotVolumeDesk({
         </div>
       )}
 
-      {liquidity ? (
+      {!showMarket && liquidity ? (
         <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-snapshot-liquidity>
           Displayed liquidity {liquidity.date}: {formatUsdFull(liquidity.usd)}. Missing liquidity does not drop the
           day.

@@ -7,9 +7,11 @@
  */
 
 export const VOLUME_SNAPSHOT_COMMIT_RE = /^chore: .+ volume snapshot \d{4}-\d{2}-\d{2}$/;
+export const HOLDER_SNAPSHOT_COMMIT_RE = /^chore: .+ holder snapshot \d{4}-\d{2}-\d{2}$/;
 
 const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/;
 const SNAPSHOT_PATH_RE = /^data\/(?:volume-snapshots|perps-snapshots)\/[a-z0-9][a-z0-9-]*\.json$/;
+const HOLDER_SNAPSHOT_PATH_RE = /^data\/holder-snapshots\/[a-z0-9][a-z0-9-]*\.json$/;
 const COMPANION_TEST_RE = /^src\/.*\.test\.tsx?$/;
 
 export interface VolumeSnapshotChain {
@@ -33,6 +35,26 @@ export const VOLUME_SNAPSHOT_CHAINS: readonly VolumeSnapshotChain[] = [
   { id: "perps", label: "Perps", file: "data/perps-snapshots/perps.json" },
 ];
 
+export const HOLDER_SNAPSHOT_LAND_CHAINS: readonly VolumeSnapshotChain[] = [
+  { id: "holders-solana", label: "Solana", file: "data/holder-snapshots/solana.json" },
+  { id: "holders-base", label: "Base", file: "data/holder-snapshots/base.json" },
+  { id: "holders-bnb", label: "BNB", file: "data/holder-snapshots/bnb.json" },
+  { id: "holders-robinhood", label: "Robinhood", file: "data/holder-snapshots/robinhood.json" },
+];
+
+const HOLDER_CHAIN_ALIASES: Record<string, string> = {
+  "holders-solana": "holders-solana",
+  "holder-solana": "holders-solana",
+  "holders-base": "holders-base",
+  "holder-base": "holders-base",
+  "holders-bnb": "holders-bnb",
+  "holder-bnb": "holders-bnb",
+  "holders-bsc": "holders-bnb",
+  "holders-robinhood": "holders-robinhood",
+  "holder-robinhood": "holders-robinhood",
+  "holders-robinhood-chain": "holders-robinhood",
+};
+
 const CHAIN_ALIASES: Record<string, string> = {
   solana: "solana",
   base: "base",
@@ -46,6 +68,14 @@ const CHAIN_ALIASES: Record<string, string> = {
 
 export function isVolumeSnapshotPath(filePath: string): boolean {
   return SNAPSHOT_PATH_RE.test(filePath);
+}
+
+export function isHolderSnapshotPath(filePath: string): boolean {
+  return HOLDER_SNAPSHOT_PATH_RE.test(filePath);
+}
+
+export function isLandableSnapshotPath(filePath: string): boolean {
+  return isVolumeSnapshotPath(filePath) || isHolderSnapshotPath(filePath);
 }
 
 export function isCompanionTestPath(filePath: string): boolean {
@@ -72,12 +102,23 @@ export function volumeSnapshotChain(id: string): VolumeSnapshotChain | null {
   return VOLUME_SNAPSHOT_CHAINS.find((chain) => chain.id === canonical) ?? null;
 }
 
+export function holderSnapshotLandChain(id: string): VolumeSnapshotChain | null {
+  const canonical = HOLDER_CHAIN_ALIASES[id.trim().toLowerCase()];
+  if (!canonical) return null;
+  return HOLDER_SNAPSHOT_LAND_CHAINS.find((chain) => chain.id === canonical) ?? null;
+}
+
 export function snapshotCommitSubject(label: string, day: string): string {
   return `chore: ${label} volume snapshot ${day}`;
 }
 
+export function holderSnapshotCommitSubject(label: string, day: string): string {
+  return `chore: ${label} holder snapshot ${day}`;
+}
+
 export function isSnapshotCommitSubject(subject: string): boolean {
-  return VOLUME_SNAPSHOT_COMMIT_RE.test(subject.trim());
+  const trimmed = subject.trim();
+  return VOLUME_SNAPSHOT_COMMIT_RE.test(trimmed) || HOLDER_SNAPSHOT_COMMIT_RE.test(trimmed);
 }
 
 export function manualMergeComment(mergeSha: string): string {
@@ -98,10 +139,10 @@ export function assertSnapshotWorktree(statusLines: readonly string[]): { ok: tr
   for (const line of statusLines) {
     if (!line.trim()) continue;
     const path = porcelainPath(line);
-    if (!path || !isVolumeSnapshotPath(path)) {
+    if (!path || !isLandableSnapshotPath(path)) {
       return {
         ok: false,
-        reason: `Refusing to land: worktree has a non-snapshot change (${line.trim() || "unparsed"}). Commit only data/volume-snapshots/*.json or data/perps-snapshots/*.json.`,
+        reason: `Refusing to land: worktree has a non-snapshot change (${line.trim() || "unparsed"}). Commit only data/volume-snapshots/*.json, data/perps-snapshots/*.json, or data/holder-snapshots/*.json.`,
       };
     }
   }
@@ -133,12 +174,12 @@ export function assertSnapshotOnlyNameStatus(
         reason: `Refusing push to main: only additions and edits of snapshot JSON are allowed (${line.trim()}).`,
       };
     }
-    const snapshot = isVolumeSnapshotPath(path);
+    const snapshot = isLandableSnapshotPath(path);
     const test = allowTests && isCompanionTestPath(path);
     if (!snapshot && !test) {
       return {
         ok: false,
-        reason: `Refusing push to main: ${path} is outside data/volume-snapshots/*.json and data/perps-snapshots/*.json.`,
+        reason: `Refusing push to main: ${path} is outside data/volume-snapshots/*.json, data/perps-snapshots/*.json, and data/holder-snapshots/*.json.`,
       };
     }
     if (snapshot) snapshotFiles += 1;
@@ -160,7 +201,7 @@ export function assertSnapshotCommitSubjects(
     if (!isSnapshotCommitSubject(subject)) {
       return {
         ok: false,
-        reason: `Refusing push to main: commit subject must match \`chore: … volume snapshot YYYY-MM-DD\` (${subject.trim() || "empty"}).`,
+        reason: `Refusing push to main: commit subject must match \`chore: … volume snapshot YYYY-MM-DD\` or \`chore: … holder snapshot YYYY-MM-DD\` (${subject.trim() || "empty"}).`,
       };
     }
   }

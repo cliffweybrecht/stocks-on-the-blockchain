@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hiddenDeskPaths, hiddenDesks, isSectionHidden, publicSitemapPaths } from "./visibility";
+import { hiddenDeskPaths, hiddenDesks, isMarketValueHidden, isSectionHidden, publicSitemapPaths } from "./visibility";
 
 describe("public desk visibility", () => {
   it("keeps Perps and Lending visible when the flags are unset", () => {
@@ -38,5 +38,14 @@ describe("public desk visibility", () => {
     const paths = publicSitemapPaths({ PUBLIC_SITE: "1" });
     expect(paths.some((path) => path.startsWith("/perps") || path.startsWith("/lending"))).toBe(false);
     expect(hiddenDeskPaths({ PUBLIC_SITE: "1" })).toEqual(["/perps", "/lending"]);
+    expect(isMarketValueHidden({ PUBLIC_SITE: "1" })).toBe(false);
+  });
+
+  it("hides market value only for the marketvalue key", () => {
+    expect(isMarketValueHidden({})).toBe(false);
+    expect(isMarketValueHidden({ NEXT_PUBLIC_HIDE_SECTIONS: "perps,lending" })).toBe(false);
+    expect(isMarketValueHidden({ NEXT_PUBLIC_HIDE_SECTIONS: "perps,lending,marketvalue" })).toBe(true);
+    expect(isMarketValueHidden({ NEXT_PUBLIC_HIDE_SECTIONS: " MarketValue " })).toBe(true);
+    expect(hiddenDesks({ NEXT_PUBLIC_HIDE_SECTIONS: "perps,lending,marketvalue" })).toEqual(["perps", "lending"]);
   });
 });

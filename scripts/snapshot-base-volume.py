@@ -51,6 +51,8 @@ import json
 import os
 import re
 import sys
+
+from snapshot_holders_hook import run_holder_snapshot
 import time
 import urllib.parse
 import urllib.request
@@ -2674,7 +2676,10 @@ def main() -> int:
             "those volumes stay null (not $0) and are omitted from the lane sum",
             flush=True,
         )
-    return 0
+    if dry_run:
+        return 0
+    holder_code = run_holder_snapshot("base", date)
+    return holder_code if holder_code != 0 else 0
 
 
 def self_test() -> None:

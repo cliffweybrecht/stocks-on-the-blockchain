@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 import { useDeskVolumeRange } from "@/components/desk-volume-range";
+import { HeadlineMetricToggle, type HeadlineMetric } from "@/components/headline-metric-toggle";
+import { MarketValueHeadline, MarketValuePlot, marketValueChartPoints } from "@/components/market-value-plot";
 import {
   CHART_PLOT_FRAME_CLASS,
   DESK_CHART_STROKE,
@@ -59,6 +61,8 @@ import { closedSnapshotDeskDays, type SnapshotDeskDay } from "@/lib/market/snaps
 import type { EquityVolumeHistoryResult, VolumeHistoryPoint } from "@/lib/market/types";
 import { easternRollingHourStarts } from "@/lib/market/volume-hourly-snapshots";
 import { ASSET_BACKFILL_DESK_SOURCE, backfillHeadlineNote } from "@/lib/market/asset-backfill-desk";
+import { marketValueRangeView } from "@/lib/market/onchain-market-value";
+import { isMarketValueHidden } from "@/lib/site/visibility";
 import { closedSnapshotVolumePoints } from "@/lib/market/volume-snapshots";
 
 /** Absolute rolling-24h totals. A gap between Eastern hours breaks the curve. */
@@ -156,7 +160,8 @@ export function DailyVolumeChart({
   /** Closed-day ranges stay the default. Tests pin 24H without a click. */
   initialRange?: VolumeChartRangeId;
 }) {
-  const { range, setRange } = useDeskVolumeRange(initialRange);
+  const { range, setRange, marketValue } = useDeskVolumeRange(initialRange);
+  const [metric, setMetric] = useState<HeadlineMetric>("volume");
   const [hover, setHover] = useState<VolumeHistoryPoint | null>(null);
   const [polledHistory, setPolledHistory] = useState<EquityVolumeHistoryResult | null>(null);
   const [polledHourly, setPolledHourly] = useState<EquityVolumeHistoryResult | null>(null);
@@ -342,6 +347,9 @@ export function DailyVolumeChart({
     : volumeChartXTicks(visible);
   const plotBottom = VOLUME_CHART_PAD.top + VOLUME_CHART_INNER_H;
   const closedPaths = monotoneVolumePaths(visible, map, plotBottom);
+  const showMarket = !isMarketValueHidden() && metric === "market-value";
+  const marketView = useMemo(() => marketValueRangeView(marketValue, range), [marketValue, range]);
+  const marketPoints = useMemo(() => marketValueChartPoints(marketView), [marketView]);
 
   function setHoverFromClient(plot: Element, clientX: number, clientY: number) {
     const svg = plot.querySelector("svg");
@@ -371,9 +379,21 @@ export function DailyVolumeChart({
       data-volume-live={rolling ? "24h" : "closed-day"}
       data-volume-includes-robinhood={robinhoodInView ? "true" : "false"}
       data-volume-chain-labels={snapshotContributions.map((row) => row.label).join(" + ")}
+      data-headline-metric={metric}
     >
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3">
         <div className="min-w-0">
+          <HeadlineMetricToggle
+            metric={metric}
+            onChange={(next) => {
+              setMetric(next);
+              setHover(null);
+            }}
+          />
+          {showMarket ? (
+            <MarketValueHeadline view={marketView} />
+          ) : (
+            <>
           <h2 className="font-heading text-[9px] leading-tight font-medium tracking-wide text-foreground/90">
             Total Daily Tokenized Stock Volume
           </h2>
@@ -400,6 +420,8 @@ export function DailyVolumeChart({
               </p>
             </>
           ) : null}
+            </>
+          )}
         </div>
         <div
           className="flex shrink-0 flex-nowrap items-center justify-end gap-1 justify-self-end self-start"
@@ -426,7 +448,9 @@ export function DailyVolumeChart({
           ))}
         </div>
       </div>
-      {showHourlyAxis || (!rolling && visible.length > 0) ? (
+      {showMarket ? (
+        <MarketValuePlot points={marketPoints} frameClass={CHART_PLOT_FRAME_CLASS} />
+      ) : showHourlyAxis || (!rolling && visible.length > 0) ? (
         <div
           className={`relative mt-3 cursor-crosshair ${CHART_PLOT_FRAME_CLASS}`}
           data-volume-plot
@@ -583,12 +607,12 @@ export function DailyVolumeChart({
           </p>
         </div>
       )}
-      {showHourlyAxis ? (
+      {!showMarket && showHourlyAxis ? (
         <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-volume-hourly-note>
           {HOURLY_VOLUME_SERIES_CAPTION}
         </p>
       ) : null}
-      {!rolling && hasDaily && !robinhoodInSeries && !extraInSeries ? (
+      {!showMarket && !rolling && hasDaily && !robinhoodInSeries && !extraInSeries ? (
         <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-volume-history-note>
           History from closed desk DexScreener snapshots. The in-progress Eastern day is omitted until that
           America/New_York date has closed.

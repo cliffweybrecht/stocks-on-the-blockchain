@@ -16,11 +16,17 @@ export const VOLUME_COVERAGE_RANK: Record<VolumeCoverage, number> = {
   no_indexed_pools: 4,
 };
 
-export type AssetSortKey = "volume24hUsd" | "displayedLiquidityUsd" | "poolCount" | "premiumDiscountPct";
+export type AssetSortKey =
+  | "volume24hUsd"
+  | "displayedLiquidityUsd"
+  | "marketValueUsd"
+  | "poolCount"
+  | "premiumDiscountPct";
 
 export interface RankableRow {
   volume24hUsd: number | null;
   displayedLiquidityUsd: number | null;
+  marketValueUsd?: number | null;
   poolCount?: number;
   symbol?: string;
   volumeCoverage?: VolumeCoverage;
@@ -36,7 +42,7 @@ export function coverageSortRank(row: RankableRow): number {
 
 const VOLUME_SORT_CHAIN = ["coverage", "volume24hUsd", "displayedLiquidityUsd", "poolCount", "symbol"] as const;
 
-type RankKey = (typeof VOLUME_SORT_CHAIN)[number] | "premiumDiscountPct";
+type RankKey = (typeof VOLUME_SORT_CHAIN)[number] | "premiumDiscountPct" | "marketValueUsd";
 
 function compareRankKey(a: RankableRow, b: RankableRow, key: RankKey): number {
   switch (key) {
@@ -46,6 +52,8 @@ function compareRankKey(a: RankableRow, b: RankableRow, key: RankKey): number {
       return compareNullableDesc(a.volume24hUsd, b.volume24hUsd);
     case "displayedLiquidityUsd":
       return compareNullableDesc(a.displayedLiquidityUsd, b.displayedLiquidityUsd);
+    case "marketValueUsd":
+      return compareNullableDesc(a.marketValueUsd ?? null, b.marketValueUsd ?? null);
     case "poolCount":
       return (b.poolCount ?? 0) - (a.poolCount ?? 0);
     case "premiumDiscountPct":
@@ -86,6 +94,7 @@ export function sortAssets<T extends RankableRow>(rows: readonly T[], primary: A
 export function parseAssetSortKey(value: string | string[] | undefined): AssetSortKey {
   const raw = Array.isArray(value) ? value[0] : value;
   if (raw === "liquidity" || raw === "displayedLiquidityUsd") return "displayedLiquidityUsd";
+  if (raw === "market-value" || raw === "marketValue" || raw === "marketValueUsd") return "marketValueUsd";
   if (raw === "pools" || raw === "poolCount") return "poolCount";
   if (raw === "premium" || raw === "premiumDiscountPct") return "premiumDiscountPct";
   return "volume24hUsd";
@@ -93,6 +102,7 @@ export function parseAssetSortKey(value: string | string[] | undefined): AssetSo
 
 export function assetSortQueryValue(key: AssetSortKey): string | null {
   if (key === "displayedLiquidityUsd") return "liquidity";
+  if (key === "marketValueUsd") return "market-value";
   if (key === "poolCount") return "pools";
   if (key === "premiumDiscountPct") return "premium";
   return null;
