@@ -74,7 +74,7 @@ describe("selectDateAxisLabelTicks", () => {
     ]);
   });
 
-  it("labels every third 30D day anchored on Oct 19 for the recorded Sep 23–Oct 19 series", () => {
+  it("labels every third 30D day anchored on Oct 19, including a shorter 27-day window", () => {
     const recorded = utcDays("2026-09-23", 27);
     const expected = ["Sep 25", "Sep 28", "Oct 1", "Oct 4", "Oct 7", "Oct 10", "Oct 13", "Oct 16", "Oct 19"];
     expect(labels(selectDateAxisLabelTicks(recorded, "30d", volumeX(recorded.length)))).toEqual(expected);
