@@ -19,7 +19,9 @@ Writes data/volume-snapshots/bnb.json.
   Paimon Prime stay out. Other chains stay out.
 - 24h volume: DexScreener token-pairs/v1/bsc for every mint. tokens/v1/bsc
   returns one pair and is not the snapshot. Only pools quoted in cash or
-  wrapped native (BNB_QUOTE_ASSETS) count. Meme pairs stay out. A pool whose
+  wrapped native (BNB_QUOTE_ASSETS) count. Meme pairs stay out. pPOLY pools
+  quoted in United Stables (U), and the known wash addresses, stay out.
+  A pool whose
   base and quote are both tracked stocks counts once, on the base token.
   Known pools missing from the 30-pair page are refetched via
   /latest/dex/pairs/bsc. New pools, including Uniswap v4, come from
@@ -88,7 +90,7 @@ from bnb_volume_universe import (  # noqa: E402
     issuer_slug,
     load_universe,
 )
-from et_closed_day import overlay_gecko_day  # noqa: E402
+from et_closed_day import overlay_gecko_day, volume_pool_excluded  # noqa: E402
 from snapshot_asset_rows import INSTRUMENT_KIND, assets_for, pool_row, upsert_day_record  # noqa: E402
 from volume_snapshot_day import snapshot_date_override, snapshot_day_key  # noqa: E402
 
@@ -259,6 +261,8 @@ def sum_unique_pool_volumes(
         liquidity = reported_h24(liquidity_raw.get("usd") if isinstance(liquidity_raw, dict) else None)
         base = str(((pair.get("baseToken") or {}).get("address") or "")).lower()
         quote = str(((pair.get("quoteToken") or {}).get("address") or "")).lower()
+        if volume_pool_excluded(pair_address, base, quote):
+            continue
         volume = reported_h24((pair.get("volume") or {}).get("h24"))
         for addr in {base, quote}:
             if addr not in wanted:
@@ -509,6 +513,8 @@ def fold_desk_pools(
             continue
         base = str(((pair.get("baseToken") or {}).get("address") or "")).lower()
         quote = str(((pair.get("quoteToken") or {}).get("address") or "")).lower()
+        if volume_pool_excluded(pair_key, base, quote):
+            continue
         volume = reported_h24((pair.get("volume") or {}).get("h24"))
         if pair_key not in pair_h24 or (pair_h24[pair_key] is None and volume is not None):
             pair_h24[pair_key] = volume

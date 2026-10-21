@@ -10,6 +10,7 @@ the original per-pool figure when that day stored one, and is named on
 backfillGaps.
 
 Does not write other chains and does not change BNB rows outside the range.
+pPOLY/United Stables wash pools are never counted, same as the nightly writer.
 """
 from __future__ import annotations
 
@@ -21,6 +22,12 @@ import urllib.request
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
+
+_SCRIPT_DIR = str(Path(__file__).resolve().parent)
+if _SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPT_DIR)
+
+from et_closed_day import volume_pool_excluded  # noqa: E402
 
 EASTERN = ZoneInfo("America/New_York")
 FROM_DAY = "2026-09-23"
@@ -301,6 +308,7 @@ def rebuild(record: dict, catalog: dict[str, dict], cache: dict[str, list[tuple[
     day = str(record.get("date"))
     gaps: list[dict] = []
     assets: list[dict] = []
+    excluded_notes: list[str] = []
     for token, meta in catalog.items():
         pool_rows = []
         volumes: list[float | None] = []
@@ -308,6 +316,11 @@ def rebuild(record: dict, catalog: dict[str, dict], cache: dict[str, list[tuple[
         for pool in meta["pools"]:
             pair = pool["pairAddress"]
             base, quote = pool_meta(pair)
+            if volume_pool_excluded(pair, base, quote):
+                excluded_notes.append(
+                    f"excluded-pool:{meta['symbol']}:{pair.lower()}:united-stables-wash"
+                )
+                continue
             cash = (not base and not quote) or base in CASH_QUOTES or quote in CASH_QUOTES
             crossed = base in catalog and quote in catalog
             if base and quote and not cash and not crossed:
@@ -401,11 +414,14 @@ def rebuild(record: dict, catalog: dict[str, dict], cache: dict[str, list[tuple[
     )
     rebuilt["backfillSource"] = BACKFILL_SOURCE
     rebuilt["backfilledAt"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-    rebuilt["backfillNote"] = (
+    note = (
         "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. "
         "Pools with reported liquidity under $1000 are excluded. "
         "A pool with no hourly coverage keeps its original slice when this day stored one."
     )
+    if excluded_notes:
+        note = note + " " + "; ".join(excluded_notes)
+    rebuilt["backfillNote"] = note
     if gaps:
         # load_candles appends a generic gap and the caller appends a dated one. Keep the dated rows.
         rebuilt["backfillGaps"] = [gap for gap in gaps if gap.get("date") == day]
