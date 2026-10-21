@@ -7,8 +7,8 @@ export const revalidate = 3600;
 
 /**
  * One range for the volume toggle and the equity cards on every chain desk.
- * Volume totals, closing liquidity, and captured supply × price are read from
- * local snapshot files before the page renders. The read does not write a file.
+ * Volume totals, closing liquidity, captured closes, and supply × price are
+ * read from local snapshot files before the page renders. The read does not write a file.
  */
 export default async function ChainDeskLayout({
   children,
@@ -18,7 +18,7 @@ export default async function ChainDeskLayout({
   params: Promise<{ chainId: string }>;
 }) {
   const { chainId } = await params;
-  const [{ volumes, liquidity }, marketValue] = await Promise.all([
+  const [{ volumes, liquidity, volumeSeries, prices }, marketValue] = await Promise.all([
     loadEquityCardRangeMetrics(chainId),
     loadOnchainMarketValueHistory(chainId),
   ]);
@@ -26,6 +26,8 @@ export default async function ChainDeskLayout({
     <DeskVolumeRangeProvider
       volumes={volumes}
       liquidity={liquidity}
+      volumeSeries={volumeSeries}
+      prices={prices}
       marketValue={marketValue}
       marketValueByChain={{ [chainId]: marketValue }}
     >

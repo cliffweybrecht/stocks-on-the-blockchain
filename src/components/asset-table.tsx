@@ -15,10 +15,12 @@ import {
   equityCardLiquidityForRange,
 } from "@/lib/market/equity-card-range-liquidity";
 import type { VolumeChartRangeId } from "@/lib/market/daily-volume-view";
+import { equityCardPriceForRange } from "@/lib/market/equity-card-range-price";
 import {
   compareByEquityCardRangeVolume,
   equityCardRangeAddressKey,
   equityCardRangeTotal,
+  equityCardVolumeSeriesForRange,
 } from "@/lib/market/equity-card-range-volume";
 import { assetMatchesSearch } from "@/lib/market/asset-search";
 import { deskSortOptions } from "@/lib/desk/desk-sort";
@@ -484,6 +486,11 @@ export function AssetTable({
             const market = marketMode
               ? equityCardMarketValueForRange(deskRange.marketValue, asset.contractAddress, deskRange.range)
               : null;
+            const rangePrice = equityCardPriceForRange(deskRange.prices, asset.contractAddress, deskRange.range);
+            const volumePoints =
+              marketMode || liquidityMode
+                ? []
+                : equityCardVolumeSeriesForRange(deskRange.volumeSeries, asset.contractAddress, deskRange.range);
             return (
               <EquityCard
                 key={asset.contractAddress}
@@ -517,6 +524,20 @@ export function AssetTable({
                       }
                     : null
                 }
+                rangePrice={
+                  rangePrice
+                    ? {
+                        priceUsd: rangePrice.priceUsd,
+                        changePct: rangePrice.changePct,
+                        series: rangePrice.series,
+                      }
+                    : null
+                }
+                rangeVolumeSeries={volumePoints.map((point) => ({
+                  t: point.t,
+                  volumeUsd: point.volumeUsd,
+                  kind: "calendar_day" as const,
+                }))}
                 enableFavorites={enableFavorites}
                 pinned={favorites.isFavorite(asset.contractAddress)}
                 onTogglePin={() => favorites.toggle(asset.contractAddress)}
