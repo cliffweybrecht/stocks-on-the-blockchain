@@ -72,6 +72,7 @@ function renderDesk(range: "7d" | "14d") {
       volumes: {},
       liquidity: history,
       initialRange: range,
+      initialMetric: "liquidity",
       children: createElement(AssetTable, {
         assets: rows,
         chainId: "base",
@@ -91,6 +92,8 @@ describe("AssetTable liquidity range", () => {
     expect(week.indexOf("SPOT")).toBeLessThan(week.indexOf("WIDE"));
     expect(fortnight.indexOf("WIDE")).toBeLessThan(fortnight.indexOf("NARROW"));
     expect(fortnight.indexOf("NARROW")).toBeLessThan(fortnight.indexOf("SPOT"));
+    expect(week).not.toContain("data-desk-sort");
+    expect(week).not.toContain(">Volume<");
     expect(week).toContain("avg 7D");
     expect(fortnight).toContain("avg 14D");
     expect(week).toContain("current");

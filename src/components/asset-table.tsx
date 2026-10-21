@@ -15,12 +15,15 @@ import {
   equityCardLiquidityForRange,
 } from "@/lib/market/equity-card-range-liquidity";
 import type { VolumeChartRangeId } from "@/lib/market/daily-volume-view";
+import { equityCardPriceForRange } from "@/lib/market/equity-card-range-price";
 import {
   compareByEquityCardRangeVolume,
   equityCardRangeAddressKey,
   equityCardRangeTotal,
+  equityCardVolumeSeriesForRange,
 } from "@/lib/market/equity-card-range-volume";
 import { assetMatchesSearch } from "@/lib/market/asset-search";
+import { headlineMetricSortKey } from "@/components/headline-metric-toggle";
 import { deskSortOptions } from "@/lib/desk/desk-sort";
 import { isMarketValueHidden } from "@/lib/site/visibility";
 import { solanaChainHref } from "@/lib/desk/solana-chain-href";
@@ -229,7 +232,17 @@ export function AssetTable({
   }, [chainId]);
 
   const marketValueHidden = isMarketValueHidden();
-  const activeSortKey = marketValueHidden && sortKey === "marketValueUsd" ? "volume24hUsd" : sortKey;
+  const marketsDesk =
+    chainId === SOLANA_CHAIN_ID || chainId === ROBINHOOD_CHAIN_ID || chainId === BASE_CHAIN_ID || chainId === BNB_CHAIN_ID;
+  const metricSortKey = headlineMetricSortKey(deskRange.metric);
+  const activeSortKey =
+    marketsDesk && deskRange.headlineShared
+      ? marketValueHidden && metricSortKey === "marketValueUsd"
+        ? "volume24hUsd"
+        : metricSortKey
+      : marketValueHidden && sortKey === "marketValueUsd"
+        ? "volume24hUsd"
+        : sortKey;
   const hrefFor = (
     next: Partial<{
       lane: InstrumentKind;
@@ -249,8 +262,6 @@ export function AssetTable({
       issuer: next.issuer ?? issuerFilter,
     });
   const solanaDesk = chainId === SOLANA_CHAIN_ID;
-  /** Solana, Robinhood Chain, Base, and BNB Chain share the Volume | Liquidity | Market value strip. */
-  const marketsDesk = solanaDesk || chainId === ROBINHOOD_CHAIN_ID || chainId === BASE_CHAIN_ID || chainId === BNB_CHAIN_ID;
   const showIssuerFilter = (marketsDesk || enableFavorites) && (issuerFacetsShown.length > 0 || unknownIssuerCountShown > 0);
   const activeIssuerLabel = issuerFilterLabel(issuerFilter, issuerFacetsShown);
 
@@ -376,7 +387,6 @@ export function AssetTable({
           ) : (
             <div className="min-w-0" data-lane-issuers />
           )}
-          {sortChips}
         </div>
       ) : laneChips || issuerChips ? (
         <div className="flex flex-col gap-2" data-lane-issuers>
@@ -484,6 +494,11 @@ export function AssetTable({
             const market = marketMode
               ? equityCardMarketValueForRange(deskRange.marketValue, asset.contractAddress, deskRange.range)
               : null;
+            const rangePrice = equityCardPriceForRange(deskRange.prices, asset.contractAddress, deskRange.range);
+            const volumePoints =
+              marketMode || liquidityMode
+                ? []
+                : equityCardVolumeSeriesForRange(deskRange.volumeSeries, asset.contractAddress, deskRange.range);
             return (
               <EquityCard
                 key={asset.contractAddress}
@@ -517,6 +532,20 @@ export function AssetTable({
                       }
                     : null
                 }
+                rangePrice={
+                  rangePrice
+                    ? {
+                        priceUsd: rangePrice.priceUsd,
+                        changePct: rangePrice.changePct,
+                        series: rangePrice.series,
+                      }
+                    : null
+                }
+                rangeVolumeSeries={volumePoints.map((point) => ({
+                  t: point.t,
+                  volumeUsd: point.volumeUsd,
+                  kind: "calendar_day" as const,
+                }))}
                 enableFavorites={enableFavorites}
                 pinned={favorites.isFavorite(asset.contractAddress)}
                 onTogglePin={() => favorites.toggle(asset.contractAddress)}

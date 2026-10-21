@@ -4,10 +4,12 @@ import { useMemo, useState, type PointerEvent } from "react";
 import { DateAxisLabels } from "@/components/date-axis-labels";
 import { useDeskVolumeRange } from "@/components/desk-volume-range";
 import { HeadlineMetricToggle, type HeadlineMetric } from "@/components/headline-metric-toggle";
+import { LiquidityHeadline, LiquidityPlot, liquidityChartPoints } from "@/components/liquidity-plot";
 import { MarketValueHeadline, MarketValuePlot, marketValueChartPoints } from "@/components/market-value-plot";
 import { backfillHeadlineNote, countAssetBackfillDays } from "@/lib/market/asset-backfill-desk";
 import { DESK_CHART_PLOT_FRAME_CLASS, monotoneVolumePaths } from "@/lib/desk/chart-curve";
 import { selectDateAxisLabelTicks } from "@/lib/desk/date-axis";
+import { deskLiquidityClosesFromHistory, deskLiquidityRangeView } from "@/lib/market/desk-liquidity-chart";
 import { formatChartDay, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
 import {
   nearestVolumePoint,
@@ -24,11 +26,9 @@ import {
 import { marketValueRangeView } from "@/lib/market/onchain-market-value";
 import { isMarketValueHidden } from "@/lib/site/visibility";
 import {
-  ROBINHOOD_DESK_VOLUME_NOTE,
   robinhoodDaysForRange,
   robinhoodDeskHeadline,
   robinhoodDisplayedLiquidity,
-  robinhoodIssuerRows,
   robinhoodVolumePoints,
   type RobinhoodDeskDay,
 } from "@/lib/market/robinhood-desk-volume";
@@ -36,19 +36,22 @@ import {
 export function RobinhoodVolumeDesk({
   days,
   initialRange = "7d",
+  initialMetric = "volume",
 }: {
   /** Closed Eastern snapshot days only. The page drops today and later. */
   days: readonly RobinhoodDeskDay[];
   initialRange?: VolumeChartRangeId;
+  initialMetric?: HeadlineMetric;
 }) {
-  const { range, setRange, marketValue } = useDeskVolumeRange(initialRange);
-  const [metric, setMetric] = useState<HeadlineMetric>("volume");
+  const { range, setRange, marketValue, liquidity: liquidityHistory, metric, setMetric } = useDeskVolumeRange(
+    initialRange,
+    initialMetric,
+  );
   const [hover, setHover] = useState<{ t: number; volumeUsd: number } | null>(null);
   const visibleDays = useMemo(() => robinhoodDaysForRange(days, range), [days, range]);
   const visible = useMemo(() => robinhoodVolumePoints(visibleDays), [visibleDays]);
   const headline = robinhoodDeskHeadline(visibleDays, range);
   const backfillNote = backfillHeadlineNote(countAssetBackfillDays(visibleDays));
-  const issuers = useMemo(() => robinhoodIssuerRows(visibleDays), [visibleDays]);
   const liquidity = robinhoodDisplayedLiquidity(visibleDays);
   const charting = range !== "24h";
   const map = useMemo(() => scaleVolumePoints(visible), [visible]);
@@ -61,9 +64,19 @@ export function RobinhoodVolumeDesk({
   const closedPaths = monotoneVolumePaths(visible, map, VOLUME_CHART_PAD.top + VOLUME_CHART_INNER_H);
   const showHeadline = headline.volumeUsd !== null;
   const showMarket = !isMarketValueHidden() && metric === "market-value";
+  const showLiquidity = metric === "liquidity";
   const marketView = useMemo(() => marketValueRangeView(marketValue, range), [marketValue, range]);
   const marketPoints = useMemo(() => marketValueChartPoints(marketView), [marketView]);
-  const unofficial = issuers.some((row) => !row.official);
+  const liquidityView = useMemo(
+    () =>
+      deskLiquidityRangeView(
+        deskLiquidityClosesFromHistory(liquidityHistory),
+        range,
+        visibleDays.map((day) => day.t),
+      ),
+    [liquidityHistory, range, visibleDays],
+  );
+  const liquidityPoints = useMemo(() => liquidityChartPoints(liquidityView), [liquidityView]);
 
   function setHoverFromClient(plot: Element, clientX: number, clientY: number) {
     const svg = plot.querySelector("svg");
@@ -95,6 +108,8 @@ export function RobinhoodVolumeDesk({
           />
           {showMarket ? (
             <MarketValueHeadline view={marketView} />
+          ) : showLiquidity ? (
+            <LiquidityHeadline view={liquidityView} />
           ) : (
             <>
           <h2 className="font-heading text-[9px] leading-tight font-medium tracking-wide text-foreground/90">
@@ -154,6 +169,8 @@ export function RobinhoodVolumeDesk({
 
       {showMarket ? (
         <MarketValuePlot points={marketPoints} frameClass={DESK_CHART_PLOT_FRAME_CLASS} />
+      ) : showLiquidity ? (
+        <LiquidityPlot points={liquidityPoints} frameClass={DESK_CHART_PLOT_FRAME_CLASS} range={range} />
       ) : charting && visible.length > 0 ? (
         <div
           className={`relative mt-3 cursor-crosshair ${DESK_CHART_PLOT_FRAME_CLASS}`}
@@ -280,73 +297,11 @@ export function RobinhoodVolumeDesk({
         </div>
       )}
 
-      {!showMarket ? (
-      <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-robinhood-volume-note>
-        {ROBINHOOD_DESK_VOLUME_NOTE}
-      </p>
-      ) : null}
-
-      {!showMarket && liquidity ? (
+      {!showMarket && !showLiquidity && liquidity ? (
         <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-robinhood-liquidity>
           Displayed liquidity {liquidity.date}: {formatUsdFull(liquidity.usd)}. DexScreener liquidity.usd, not
           executable size. Missing liquidity does not drop the day.
         </p>
-      ) : null}
-
-      {!showMarket ? (
-      <div className="mt-4" data-issuer-lanes>
-        <h3 className="text-[10px] tracking-wide text-muted-foreground uppercase">Issuer × type</h3>
-        {issuers.length === 0 ? (
-          <p className="mt-2 text-sm text-muted-foreground">
-            {days.length === 0
-              ? "No issuer split is recorded yet. The desk does not invent issuers."
-              : "Issuer × type was not recorded on these snapshot days. Lane totals still count. No issuer split is invented."}
-          </p>
-        ) : (
-          <div className="mt-2 overflow-x-auto">
-            <table className="w-full min-w-[28rem] text-left text-sm">
-              <caption className="sr-only">
-                Robinhood Chain volume by issuer and type for the selected range
-              </caption>
-              <thead>
-                <tr className="text-[10px] tracking-wide text-muted-foreground uppercase">
-                  <th scope="col" className="py-1 pr-3 font-medium">
-                    Issuer
-                  </th>
-                  <th scope="col" className="py-1 pr-3 font-medium">
-                    Equity
-                  </th>
-                  <th scope="col" className="py-1 pr-3 font-medium">
-                    ETF
-                  </th>
-                  <th scope="col" className="py-1 font-medium">
-                    Private
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {issuers.map((row) => (
-                  <tr key={row.slug} data-issuer={row.slug} data-issuer-official={row.official ? "true" : "false"}>
-                    <th scope="row" className="py-1.5 pr-3 font-medium text-foreground">
-                      {row.label}
-                    </th>
-                    <td className="num py-1.5 pr-3">{formatUsdCompact(row.equityUsd)}</td>
-                    <td className="num py-1.5 pr-3">{formatUsdCompact(row.etfUsd)}</td>
-                    <td className="num py-1.5">{formatUsdCompact(row.privateUsd)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {unofficial ? (
-          <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-ondo-unverified>
-            Ondo-named (unverified) is not official Ondo. Those chain 4663 tokens use the on-chain name “(Ondo
-            Tokenized)” and stay in the bar until they are dropped. Rialto, launchpad PreStocks/xStock, copycats, and
-            Arcus leveraged tokens are not in this split.
-          </p>
-        ) : null}
-      </div>
       ) : null}
     </section>
   );
