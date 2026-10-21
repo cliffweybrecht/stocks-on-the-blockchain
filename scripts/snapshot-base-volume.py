@@ -6,7 +6,7 @@ Writes data/volume-snapshots/base.json.
 Desk scope is Base mainnet only (chainId 8453). Every public equity, pre-IPO,
 and ETF from any issuer is in the lane totals: Coinbase B20, Dinari, Ondo
 when a Base address is confirmed, Anchored aStocks, Backed, ST0x, Centrifuge
-share tokens, and any later issuer the registries or DexScreener name.
+share tokens, Jarsy, and any later issuer the registries or DexScreener name.
 Robinhood Chain is a different network and is never included. ETF classification
 wins over the pre-IPO lane when a product matches both (Solana private-leg order).
 
@@ -248,6 +248,49 @@ CENTRIFUGE_ETF_SEED = {
     "SPXA": "0x09b61343097c1f9b159a3ae7151298efd10f0db2",
     "deSPXA": "0x9c5C365e764829876243d0b289733B9D2b729685",
 }
+# Jarsy listings on Base. The registry name carries the pre-IPO signal;
+# on-chain name() is only "… - Jarsy". JSHV is the short-treasury ETF and
+# classify_jarsy drops it. Each address was checked with symbol() on Base.
+JARSY_TOKENBANK = "https://tokenbank.world/api/tokens/{ticker}"
+JARSY_SEED: tuple[tuple[str, str, str, str], ...] = (
+    ("JAAPL", "0xc34669e11581919ec2b4f7b61b42328877885473", "Apple Inc. (Jarsy token)", "Tokenized Stocks"),
+    ("JAGIL", "0xc087065df0cb4e1b02d1e3e1f64616d58d25e1b4", "Agility Robotics (Jarsy pre-IPO token)", "Tokenized Stocks"),
+    ("JANDL", "0xd010f9519f029bba1447587aec0c575285310d1d", "Anduril (Jarsy pre-IPO token)", "Tokenized Stocks"),
+    ("JANTH", "0x741f095c933a97f884840ce2200b6feb060d46be", "Anthropic (Jarsy pre-IPO token)", "Tokenized Stocks"),
+    ("JAPTK", "0xaf0aa026b87a66dee42a62454c90e710ed00127f", "Apptronik (Jarsy pre-IPO token)", "Tokenized Stocks"),
+    ("JCHAOS", "0x9342e376658973d7df2060713763a91b0ed80e2d", "Chaos Industries (Jarsy pre-IPO token)", "Tokenized Stocks"),
+    ("JCRCL", "0x5074b9d6ec76dd119059f67793d812dc46bd999f", "Circle Internet Group Inc. (Jarsy token)", "Tokenized Stocks"),
+    ("JCRSO", "0xead81c8bf09f9375837ea4a1dff1cfd1cc0fa381", "Crusoe (Jarsy pre-IPO token)", "Tokenized Stocks"),
+    ("JDATA", "0x7bcd9d50d5690204b7ba283295401e3fb7aa28d0", "Databricks (Jarsy pre-IPO token)", "Tokenized Stocks"),
+    ("JDISC", "0xfeda5a3736c0b2d171ce34a79c599ff4ec5dbedf", "Discord (Jarsy pre-IPO token)", "Tokenized Stocks"),
+    ("JDXYZ", "0x62ce0595fa1f043c6f4eec434181ab374dc8f455", "Destiny Tech100 Inc. (Jarsy token)", "Tokenized Stocks"),
+    ("JFIGR", "0x5cec59b35a9228d4fa3c0960f8a0a333c61e3025", "Figure AI (Jarsy pre-IPO token)", "Tokenized Stocks"),
+    ("JGOOG", "0x19323364229fe806a5f2e93ec6192db9848eccd4", "Alphabet Inc. (Jarsy token)", "Tokenized Stocks"),
+    ("JHVAI", "0x4d2e76040986e8a6910bef750a3b3b3991a47861", "Harvey (Jarsy pre-IPO token)", "Tokenized Stocks"),
+    ("JKALS", "0xb3a8e9297f56d4de59c9a354426b450fcdf630a2", "Kalshi (Jarsy pre-IPO token)", "Tokenized Stocks"),
+    ("JKRAK", "0x5d99bf99ca22495f13c4e9fffd223c11d85b5fe5", "Kraken (Jarsy pre-IPO token)", "Tokenized Stocks"),
+    ("JMERC", "0xb5e58f4ae994c4fb0bc13fb58a3be9cb6f623e50", "Mercury (Jarsy pre-IPO token)", "Tokenized Stocks"),
+    ("JMSFT", "0x467bb61e8a5f248fa2e842e778e8fd22c89fa81e", "Microsoft Corp. (Jarsy token)", "Tokenized Stocks"),
+    ("JNOTE", "0x10a032da01b394d0b580e4598284ecf9a3bcffd4", "Notion (Jarsy pre-IPO token)", "Tokenized Stocks"),
+    ("JNVDA", "0x71914a0887453a22620d53f32e70629e40e731e0", "NVIDIA Corp. (Jarsy token)", "Tokenized Stocks"),
+    ("JOPAI", "0xf5161162bc2b3936c21382eb4da34bffb8ee83bf", "OpenAI (Jarsy pre-IPO token)", "Tokenized Stocks"),
+    ("JPEPX", "0x32800ccdaa4158518019d6e796af34ad8521fca9", "Perplexity (Jarsy pre-IPO token)", "Tokenized Stocks"),
+    ("JPOLY", "0x0df2673700d028ddd16a172cd165f1ca71c28fd6", "Polymarket (Jarsy pre-IPO token)", "Tokenized Stocks"),
+    ("JPSIQ", "0x6ca2ef46c69278d5f176681d1ff89bac7af659ff", "PsiQuantum (Jarsy pre-IPO token)", "Tokenized Stocks"),
+    ("JQQQ", "0x079ef7ac1378dae722b35c15b0ba2b15e1222fbb", "Nasdaq-100 Index (Jarsy token)", "Tokenized ETFs"),
+    ("JREDW", "0x20815a86f57d40d8192b723f94a02f76647f7101", "Redwood Materials (Jarsy pre-IPO token)", "Tokenized Stocks"),
+    ("JREPL", "0x8e542276cf77dca06a7e753a21f40a4f666c0035", "Replit (Jarsy pre-IPO token)", "Tokenized Stocks"),
+    ("JRFLX", "0x7ba1410f37a8372c0c349ca2005b9c0c819750a5", "Reflection AI (Jarsy pre-IPO token)", "Tokenized Stocks"),
+    ("JRIPL", "0x949479b23c4e46d06c811139b62868698001c2df", "Ripple (Jarsy pre-IPO token)", "Tokenized Stocks"),
+    ("JRKLB", "0xe643a8b6ca63680c996215e8781c6e40c3368fd3", "Rocket Lab Corp. (Jarsy token)", "Tokenized Stocks"),
+    ("JSHLD", "0x42294e04e8c6aa4d8bb38c2ce691a2334ae808e4", "Shield AI (Jarsy pre-IPO token)", "Tokenized Stocks"),
+    ("JSHV", "0x45ac94f395dd9daebe422083ca4f8b5428da9a2b", "US Short Treasury Bond ETF (Jarsy token)", "Tokenized ETFs"),
+    ("JSPY", "0x1cb13abd8028632ca20ce86c2d5e755a27512f49", "S&P 500 Index (Jarsy token)", "Tokenized ETFs"),
+    ("JSTRP", "0xda6d5f72572e7d73b983025b19ac55f2b6cadb85", "Stripe (Jarsy pre-IPO token)", "Tokenized Stocks"),
+    ("JTSLA", "0x9df31c7c3dacf9d6213b3752afdcdd599fb554b0", "Tesla Inc. (Jarsy token)", "Tokenized Stocks"),
+    ("JVRCL", "0xd3db79c962970bada323f0dfc3b1fca777279cfd", "Vercel (Jarsy pre-IPO token)", "Tokenized Stocks"),
+)
+JARSY_OFFICIAL_BASE: set[str] = set()
 # BaseScan-verified Backed equities. xStocks publishes no Base deployments.
 # Wrappers (wb*) are the non-rebasing DeFi leg of the same share. Bond-like
 # Backed tickers (bC3M, bHIGH, bZPR1, bCSBGC3) stay out until a name confirms
@@ -358,6 +401,8 @@ def issuer_slug(raw: str) -> str:
         "backed-xstocks": "backed",
         "xstocks": "backed",
         "xstock": "backed",
+        "jarsy": "jarsy",
+        "jarsy-inc": "jarsy",
     }
     if "robinhood" in text:
         return "robinhood"
@@ -510,6 +555,7 @@ ANCHORED_ROW_RE = re.compile(
     re.I,
 )
 ERC20_NAME_SELECTOR = "0x06fdde03"
+ERC20_SYMBOL_SELECTOR = "0x95d89b41"
 
 
 def anchored_underlying(symbol: str) -> str:
@@ -537,6 +583,21 @@ def classify_anchored(symbol: str, name: str) -> str | None:
     ):
         return "etf"
     if is_preipo_text(symbol, name) or underlying == "SPCX":
+        return "preipo"
+    return "equity"
+
+
+def classify_jarsy(symbol: str, name: str, category: str = "") -> str | None:
+    """Jarsy Base tokens. Treasury and bond products are omitted.
+
+    ETF / index is classified before pre-IPO. Private requires a registry
+    pre-IPO signal (the on-chain name omits it). JSHV is a treasury ETF.
+    """
+    if is_fixed_income_or_commodity(symbol, name) or is_fixed_income_or_commodity(symbol, category):
+        return None
+    if is_etf_text(symbol, name) or "etf" in (category or "").lower() or re.search(r"\bindex\b", name or "", re.I):
+        return "etf"
+    if is_preipo_text(symbol, name):
         return "preipo"
     return "equity"
 
@@ -576,8 +637,8 @@ def _decode_abi_string(raw: str | None) -> str | None:
         return None
 
 
-def erc20_names(addresses: list[str]) -> dict[str, str]:
-    """Best-effort Base name() reads. A failed RPC leaves names empty."""
+def erc20_names(addresses: list[str], selector: str = ERC20_NAME_SELECTOR) -> dict[str, str]:
+    """Best-effort Base name() or symbol() reads. A failed RPC leaves that map empty."""
     import urllib.error
     from concurrent.futures import ThreadPoolExecutor
 
@@ -591,7 +652,7 @@ def erc20_names(addresses: list[str]) -> dict[str, str]:
                 "jsonrpc": "2.0",
                 "id": 1,
                 "method": "eth_call",
-                "params": [{"to": addr, "data": ERC20_NAME_SELECTOR}, "latest"],
+                "params": [{"to": addr, "data": selector}, "latest"],
             }
         ).encode()
         req = urllib.request.Request(
@@ -1414,6 +1475,73 @@ def load_anchored(universe: Universe) -> None:
     print(f"snapshot:base anchored tokens={added} omitted={len(skipped)}", flush=True)
 
 
+def load_jarsy(universe: Universe) -> None:
+    """Jarsy public equity, pre-IPO, and equity-index tokens on Base.
+
+    Tokenbank is the listing (it keeps the pre-IPO name). A mint counts only
+    when Base symbol() matches that ticker and name() contains Jarsy. A failed
+    token page keeps the seeded address. Treasury/bond products stay out.
+    No pool data stays null, not $0.
+    """
+    records: list[tuple[str, str, str, str]] = []
+    fetched = 0
+    for ticker, seed_address, seed_name, seed_category in JARSY_SEED:
+        symbol, address, name, category = ticker, seed_address, seed_name, seed_category
+        try:
+            data = fetch_json(JARSY_TOKENBANK.format(ticker=urllib.parse.quote(ticker)))
+        except Exception as e:  # noqa: BLE001
+            universe.warn(f"jarsy tokenbank {ticker}: {e}")
+            data = None
+        if isinstance(data, dict) and str(data.get("ticker") or "").upper() == ticker:
+            fetched += 1
+            universe.mark("jarsy-tokenbank")
+            live_address = str(data.get("contract") or "")
+            network = str(data.get("network") or "")
+            if live_address.startswith("0x") and len(live_address) == 42 and "base" in network.lower():
+                address = live_address
+                name = str(data.get("name") or name)
+                category = str(data.get("category") or category)
+        records.append((symbol, address, name, category))
+
+    addresses = [address for _symbol, address, _name, _category in records]
+    chain_symbols = erc20_names(addresses, ERC20_SYMBOL_SELECTOR)
+    chain_names = erc20_names(addresses)
+    added = 0
+    skipped: list[str] = []
+    unverified: list[str] = []
+    for symbol, address, name, category in records:
+        key = address.lower()
+        chain_symbol = chain_symbols.get(key)
+        chain_name = chain_names.get(key) or ""
+        if chain_symbol != symbol or "jarsy" not in chain_name.lower():
+            unverified.append(symbol)
+            continue
+        kind = classify_jarsy(symbol, name, category)
+        if kind is None:
+            skipped.append(f"{symbol} ({name})")
+            continue
+        before = len(universe.rows)
+        universe.add(_row(symbol, name, address, kind, "jarsy"), "jarsy")
+        if len(universe.rows) != before:
+            added += 1
+        JARSY_OFFICIAL_BASE.add(key)
+    if skipped:
+        universe.warn(
+            "jarsy Base tokens omitted (commodity/treasury/bond/credit, not equity/preipo/etf): "
+            + ", ".join(skipped)
+        )
+    if unverified:
+        universe.warn(
+            "jarsy Base tokens omitted (symbol() or name() did not match the Jarsy listing): "
+            + ", ".join(unverified)
+        )
+    print(
+        f"snapshot:base jarsy tokens={added} tokenbank={fetched} "
+        f"skipped={len(skipped)} unverified={len(unverified)}",
+        flush=True,
+    )
+
+
 _GENERIC_CATEGORY_RE = re.compile(
     r"^(?:tokenized stocks?|xstocks?|ondotokenizedstock|tokenized equity|prestocks)$",
     re.I,
@@ -1464,6 +1592,8 @@ def _dex_search_row(token: dict) -> dict | None:
         issuer = "ondo"
     elif _dex_word(blob, "dshare") or _dex_word(blob, "dshares") or _dex_word(blob, "dinari"):
         issuer = "dinari"
+    elif _dex_word(blob, "jarsy"):
+        issuer = "jarsy"
     elif address.lower().startswith("0xb200000000000000000000"):
         issuer = "coinbase"
     else:
@@ -1492,10 +1622,17 @@ def _dex_search_row(token: dict) -> dict | None:
         # the aStock word and is not another Anchored product.
         _note_lookalike("anchored", symbol, address)
         return None
+    if issuer == "jarsy" and address.lower() not in JARSY_OFFICIAL_BASE:
+        # The verified Jarsy list is the Base list. A pool name that only
+        # contains "Jarsy" is not another product.
+        _note_lookalike("jarsy", symbol, address)
+        return None
     if issuer == "anchored":
         kind = classify_anchored(symbol, name)
     elif issuer == "backed":
         kind = classify_backed(symbol, name)
+    elif issuer == "jarsy":
+        kind = classify_jarsy(symbol, name)
     else:
         kind = classify_named(symbol, name)
     if kind is None:
@@ -1505,7 +1642,7 @@ def _dex_search_row(token: dict) -> dict | None:
 
 def load_dexscreener_search(universe: Universe) -> None:
     """Catch Base listings that registries have not published yet. Search is capped."""
-    queries = ("ST0x", "aStock", "xStock", "Ondo Tokenized", "dShare", "Backed", "tokenized stock")
+    queries = ("ST0x", "aStock", "xStock", "Ondo Tokenized", "dShare", "Backed", "Jarsy", "tokenized stock")
     added = 0
     for query in queries:
         try:
@@ -1551,6 +1688,7 @@ def load_universe() -> Universe:
     load_ondo(desk)
     load_dinari(desk)
     load_anchored(desk)
+    load_jarsy(desk)
     load_dexscreener_search(desk)
     return desk
 
@@ -2712,6 +2850,13 @@ def self_test() -> None:
     assert classify_backed("bERNA", "Backed ERNA $ Ultrashort Bond", "ERNA.L") is None
     assert classify_anchored("aSLV", "iShares Silver Trust aStock") is None
     assert classify_anchored("aBIL", "SPDR Bloomberg 1-3M T-Bill aStock") is None
+    assert classify_jarsy("JTSLA", "Tesla Inc. (Jarsy token)", "Tokenized Stocks") == "equity"
+    assert classify_jarsy("JOPAI", "OpenAI (Jarsy pre-IPO token)", "Tokenized Stocks") == "preipo"
+    assert classify_jarsy("JSPY", "S&P 500 Index (Jarsy token)", "Tokenized ETFs") == "etf"
+    assert classify_jarsy("JQQQ", "Nasdaq-100 Index - Jarsy") == "etf"
+    assert classify_jarsy("JSHV", "US Short Treasury Bond ETF (Jarsy token)", "Tokenized ETFs") is None
+    # ETF before private: an index product that also says pre-IPO stays ETF.
+    assert classify_jarsy("JSPCX", "SpaceX Index ETF pre-IPO", "Tokenized ETFs") == "etf"
     assert classify_anchored("aTLT", "iShares 20+ Year Treasury Bond aStock") is None
     assert classify_anchored("aUSO", "US Oil Fund aStock") is None
     assert classify_anchored("aGDX", "VanEck Gold Miners ETF aStock") == "etf"
