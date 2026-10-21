@@ -141,7 +141,8 @@ describe("DailyVolumeChart closed ranges", () => {
       expect(html).not.toContain('stroke="#B7FF3C"');
       expect(html).not.toContain('data-volume-y="+$');
       expect(html).toContain('fill="url(#volume-area)"');
-      expect(html).toContain("History from closed desk DexScreener snapshots");
+      expect(html).not.toContain("data-volume-history-note");
+      expect(html).not.toContain("History from closed desk DexScreener snapshots");
       expect(html).toContain('data-volume-includes-robinhood="false"');
       expect(html).not.toContain("Robinhood Chain");
       expect(html).toContain(`data-volume-refresh-ms="${DESK_VOLUME_HISTORY_POLL_MS}"`);

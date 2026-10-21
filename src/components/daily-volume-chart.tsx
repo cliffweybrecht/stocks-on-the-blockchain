@@ -338,9 +338,6 @@ export function DailyVolumeChart({
       ? includeHomeSnapshotChainsInDeskHeadline(baseHeadline, range, snapshotContributions)
       : baseHeadline;
   const robinhoodInView = snapshotContributions.some((row) => row.label === "Robinhood Chain");
-  const robinhoodInSeries = snapshotSeriesIncludesRobinhood(points, robinhoodClosed);
-  const extraInSeries = extraClosed.some((desk) => snapshotSeriesIncludesRobinhood(points, desk.days));
-  const hasDaily = points.length > 0;
   const showHeadline = headline.volumeUsd !== null;
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((frac) => map.maxY * frac);
   const dayTicks = volumeChartXTicks(visible);
@@ -602,12 +599,6 @@ export function DailyVolumeChart({
       {!showMarket && showHourlyAxis ? (
         <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-volume-hourly-note>
           {HOURLY_VOLUME_SERIES_CAPTION}
-        </p>
-      ) : null}
-      {!showMarket && !rolling && hasDaily && !robinhoodInSeries && !extraInSeries ? (
-        <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-volume-history-note>
-          History from closed desk DexScreener snapshots. The in-progress Eastern day is omitted until that
-          America/New_York date has closed.
         </p>
       ) : null}
     </section>

@@ -42,8 +42,11 @@ describe("RobinhoodVolumeDesk", () => {
     expect(html).toMatch(/ C /);
     expect(html).toContain("overflow-hidden rounded-2xl");
     expect(html).toContain(formatUsdCompact(1_000_000 + 2_000_000 + 3_000_000 + 1_500_000));
-    expect(html).toContain("Ondo-named (unverified)");
-    expect(html).not.toContain(">Ondo<");
+    expect(html).not.toContain("data-robinhood-volume-note");
+    expect(html).not.toContain("null omitted, not stored as $0");
+    expect(html).not.toContain("data-issuer-lanes");
+    expect(html).not.toContain("Issuer × type");
+    expect(html).not.toContain("Ondo-named (unverified)");
   });
 
   it("keeps the shell and shows the last closed day as a 24H KPI, not a chart", () => {
@@ -61,14 +64,18 @@ describe("RobinhoodVolumeDesk", () => {
     expect(html).toContain("grid-cols-[minmax(0,1fr)_auto]");
     expect(html).toContain("data-robinhood-lane-split");
     expect(html).toContain("data-robinhood-liquidity");
-    expect(html).toContain('data-issuer="ondo"');
-    expect(html).toContain('data-issuer-official="false"');
+    expect(html).not.toContain("data-robinhood-volume-note");
+    expect(html).not.toContain("data-issuer-lanes");
+    expect(html).not.toContain("Issuer × type");
   });
 
   it("still renders the range shell when no bars exist", () => {
     const html = renderToStaticMarkup(createElement(RobinhoodVolumeDesk, { days: [] }));
     expect(html).toContain('data-volume-range="30d"');
     expect(html).toContain("are not invented");
+    expect(html).not.toContain("data-issuer-lanes");
+    expect(html).not.toContain("No issuer split is invented");
+    expect(html).not.toContain("data-robinhood-volume-note");
     expect(html).toContain('data-volume-kind="empty"');
     expect(html).toContain('data-volume-ranges');
     expect(html).toContain("flex-nowrap");
