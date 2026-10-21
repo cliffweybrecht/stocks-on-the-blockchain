@@ -1476,9 +1476,9 @@
       "date": "2026-09-24",
       "t": 1790222400,
       "publicEquity24hUsd": 44863281.19,
-      "private24hUsd": 22687789.57,
+      "private24hUsd": 12029991.59,
       "etfIndex24hUsd": 58128261.33,
-      "combined24hUsd": 125679332.09,
+      "combined24hUsd": 115021534.11,
       "publicMintCount": 1321,
       "publicPoolCount": 82,
       "etfMintCount": 116,
@@ -1595,7 +1595,7 @@
         },
         "private": {
           "paimon": {
-            "usd": 22687789.57,
+            "usd": 12029991.59,
             "mints": 2,
             "pools": 9
           }
@@ -2738,7 +2738,7 @@
           "address": "0x1d80392d12caaaf9e333bb0bb7f021eacf297fe6",
           "symbol": "pPOLY",
           "instrumentKind": "private",
-          "volume24hUsd": 22621537.05,
+          "volume24hUsd": 11963739.07,
           "displayedLiquidityUsd": null,
           "pools": [
             {
@@ -3051,7 +3051,7 @@
       ],
       "backfillSource": "geckoterminal-hourly",
       "backfilledAt": "2026-10-09T15:57:38.008213Z",
-      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one.",
+      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one. Excluded pPOLY/United Stables wash pools and recomputed this asset from the remaining cash-quote pools. excluded-pool:pPOLY:0xe2d5738b246526194b19adf0dcdf5fc511126d276798e8fe5102ed464f7720e2:united-stables-wash; excluded-pool:pPOLY:0xc85069d4fc5bfbb05c31390340f1cb5d93beb0e6:united-stables-wash; excluded-pool:pPOLY:0x92243ce11a066a7733059070b25998b7be980942f06fff1f4a37c7583bb74e87:united-stables-wash",
       "volumeSource": "geckoterminal-hourly-et",
       "geckoCombined24hUsd": 125679332.09,
       "correction": {
@@ -3076,9 +3076,9 @@
       "date": "2026-09-25",
       "t": 1790308800,
       "publicEquity24hUsd": 33964380.82,
-      "private24hUsd": 18828547.0,
+      "private24hUsd": 1831729.02,
       "etfIndex24hUsd": 22328814.65,
-      "combined24hUsd": 75121742.47,
+      "combined24hUsd": 58124924.49,
       "publicMintCount": 1321,
       "publicPoolCount": 82,
       "etfMintCount": 115,
@@ -3197,7 +3197,7 @@
         },
         "private": {
           "paimon": {
-            "usd": 18828547.0,
+            "usd": 1831729.02,
             "mints": 2,
             "pools": 9
           }
@@ -4340,7 +4340,7 @@
           "address": "0x1d80392d12caaaf9e333bb0bb7f021eacf297fe6",
           "symbol": "pPOLY",
           "instrumentKind": "private",
-          "volume24hUsd": 18688730.09,
+          "volume24hUsd": 1691912.11,
           "displayedLiquidityUsd": null,
           "pools": [
             {
@@ -4643,7 +4643,7 @@
       ],
       "backfillSource": "geckoterminal-hourly",
       "backfilledAt": "2026-10-09T15:57:38.066864Z",
-      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one.",
+      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one. Excluded pPOLY/United Stables wash pools and recomputed this asset from the remaining cash-quote pools. excluded-pool:pPOLY:0xe2d5738b246526194b19adf0dcdf5fc511126d276798e8fe5102ed464f7720e2:united-stables-wash; excluded-pool:pPOLY:0x805a5c69dbc7b2af1a7070e7aa90aacc0531f92454be788ab6bf1c5a3ff31568:united-stables-wash; excluded-pool:pPOLY:0xb21a69c49b9db2be06d5afa34530205f19565e75d1db42c0533e0a20e85698b3:united-stables-wash; excluded-pool:pPOLY:0x42ea83ca9e00116dfcd65e257762c66875f3da1da60f515c73b2daeb0439ddd9:united-stables-wash; excluded-pool:pPOLY:0x289bbda2307bc4da4501d2f0d54a76928d4e31c4e9e409e58cccbad052d309a4:united-stables-wash; excluded-pool:pPOLY:0xb87c31b749494d3247477de03570bbcb9db91cae35123f71afa959eaedffa953:united-stables-wash; excluded-pool:pPOLY:0xfd3dc280c0db3cf6ef39f8d6a200e77e0622b8edf70e1712fc3b5f43a0ac9d7b:united-stables-wash; excluded-pool:pPOLY:0x10df8cef0015080c25d34afbc34fb8fc09994ba271ffd28bd6e1df812940351a:united-stables-wash; excluded-pool:pPOLY:0xbf7d259d8c3a3ec22bd9133a3e24fa5b27cba8af3406be3afbe999317a6b1e93:united-stables-wash; excluded-pool:pPOLY:0x92243ce11a066a7733059070b25998b7be980942f06fff1f4a37c7583bb74e87:united-stables-wash; excluded-pool:pPOLY:0x82cbc1b7c077203cb1652fdf43492d0ca3815519c9d2328b256372954b7bf80d:united-stables-wash; excluded-pool:pPOLY:0xc85069d4fc5bfbb05c31390340f1cb5d93beb0e6:united-stables-wash",
       "volumeSource": "geckoterminal-hourly-et",
       "geckoCombined24hUsd": 75121742.47,
       "correction": {
@@ -4668,9 +4668,9 @@
       "date": "2026-09-26",
       "t": 1790395200,
       "publicEquity24hUsd": 18066608.5,
-      "private24hUsd": 20091033.6,
+      "private24hUsd": 1039053.13,
       "etfIndex24hUsd": 11792645.17,
-      "combined24hUsd": 49950287.27,
+      "combined24hUsd": 30898306.8,
       "publicMintCount": 1321,
       "publicPoolCount": 82,
       "etfMintCount": 115,
@@ -4789,7 +4789,7 @@
         },
         "private": {
           "paimon": {
-            "usd": 20091033.61,
+            "usd": 1039053.14,
             "mints": 2,
             "pools": 9
           }
@@ -5913,7 +5913,7 @@
           "address": "0x1d80392d12caaaf9e333bb0bb7f021eacf297fe6",
           "symbol": "pPOLY",
           "instrumentKind": "private",
-          "volume24hUsd": 19517526.35,
+          "volume24hUsd": 465545.88,
           "displayedLiquidityUsd": null,
           "pools": [
             {
@@ -6196,7 +6196,7 @@
       ],
       "backfillSource": "geckoterminal-hourly",
       "backfilledAt": "2026-10-09T15:57:38.131991Z",
-      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one.",
+      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one. Excluded pPOLY/United Stables wash pools and recomputed this asset from the remaining cash-quote pools. excluded-pool:pPOLY:0x289bbda2307bc4da4501d2f0d54a76928d4e31c4e9e409e58cccbad052d309a4:united-stables-wash; excluded-pool:pPOLY:0x1f30b1ca001d41fab5d272bc908c0682de1fa487c9ce3b2d6c2ef8305f7b0214:united-stables-wash; excluded-pool:pPOLY:0xbf7d259d8c3a3ec22bd9133a3e24fa5b27cba8af3406be3afbe999317a6b1e93:united-stables-wash; excluded-pool:pPOLY:0xe2d5738b246526194b19adf0dcdf5fc511126d276798e8fe5102ed464f7720e2:united-stables-wash; excluded-pool:pPOLY:0x10df8cef0015080c25d34afbc34fb8fc09994ba271ffd28bd6e1df812940351a:united-stables-wash; excluded-pool:pPOLY:0x805a5c69dbc7b2af1a7070e7aa90aacc0531f92454be788ab6bf1c5a3ff31568:united-stables-wash; excluded-pool:pPOLY:0xa9dddba7cab89d8dae6c3495660b31684fb77b020b88f0218a111f1318c21b4a:united-stables-wash; excluded-pool:pPOLY:0xeb0d803436725b28ae056346904904e510e61437b7f9d98ed4cadfacc284bd31:united-stables-wash; excluded-pool:pPOLY:0xb87c31b749494d3247477de03570bbcb9db91cae35123f71afa959eaedffa953:united-stables-wash; excluded-pool:pPOLY:0xb21a69c49b9db2be06d5afa34530205f19565e75d1db42c0533e0a20e85698b3:united-stables-wash; excluded-pool:pPOLY:0xfd3dc280c0db3cf6ef39f8d6a200e77e0622b8edf70e1712fc3b5f43a0ac9d7b:united-stables-wash; excluded-pool:pPOLY:0xc85069d4fc5bfbb05c31390340f1cb5d93beb0e6:united-stables-wash; excluded-pool:pPOLY:0x92243ce11a066a7733059070b25998b7be980942f06fff1f4a37c7583bb74e87:united-stables-wash",
       "volumeSource": "geckoterminal-hourly-et",
       "geckoCombined24hUsd": 49950287.27,
       "correction": {
@@ -6221,9 +6221,9 @@
       "date": "2026-09-27",
       "t": 1790481600,
       "publicEquity24hUsd": 19342765.6,
-      "private24hUsd": 34392723.01,
+      "private24hUsd": 671999.84,
       "etfIndex24hUsd": 18488806.48,
-      "combined24hUsd": 72224295.09,
+      "combined24hUsd": 38503571.92,
       "issuersByLane": {
         "equity": {
           "bstocks": {
@@ -6276,7 +6276,7 @@
             "pools": 0
           },
           "paimon": {
-            "usd": 34392723.0,
+            "usd": 671999.83,
             "mints": 5,
             "pools": 9
           },
@@ -7510,7 +7510,7 @@
           "address": "0x1d80392d12caaaf9e333bb0bb7f021eacf297fe6",
           "symbol": "pPOLY",
           "instrumentKind": "private",
-          "volume24hUsd": 34336720.88,
+          "volume24hUsd": 615997.71,
           "displayedLiquidityUsd": null,
           "pools": [
             {
@@ -7783,7 +7783,7 @@
       ],
       "backfillSource": "geckoterminal-hourly",
       "backfilledAt": "2026-10-09T15:57:38.191008Z",
-      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one.",
+      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one. Excluded pPOLY/United Stables wash pools and recomputed this asset from the remaining cash-quote pools. excluded-pool:pPOLY:0x1f30b1ca001d41fab5d272bc908c0682de1fa487c9ce3b2d6c2ef8305f7b0214:united-stables-wash; excluded-pool:pPOLY:0x289bbda2307bc4da4501d2f0d54a76928d4e31c4e9e409e58cccbad052d309a4:united-stables-wash; excluded-pool:pPOLY:0xe2d5738b246526194b19adf0dcdf5fc511126d276798e8fe5102ed464f7720e2:united-stables-wash; excluded-pool:pPOLY:0x10df8cef0015080c25d34afbc34fb8fc09994ba271ffd28bd6e1df812940351a:united-stables-wash; excluded-pool:pPOLY:0xa9dddba7cab89d8dae6c3495660b31684fb77b020b88f0218a111f1318c21b4a:united-stables-wash; excluded-pool:pPOLY:0xeb0d803436725b28ae056346904904e510e61437b7f9d98ed4cadfacc284bd31:united-stables-wash; excluded-pool:pPOLY:0x92243ce11a066a7733059070b25998b7be980942f06fff1f4a37c7583bb74e87:united-stables-wash; excluded-pool:pPOLY:0xc85069d4fc5bfbb05c31390340f1cb5d93beb0e6:united-stables-wash",
       "volumeSource": "geckoterminal-hourly-et",
       "geckoCombined24hUsd": 72224295.09,
       "correction": {
@@ -7808,9 +7808,9 @@
       "date": "2026-09-28",
       "t": 1790568000,
       "publicEquity24hUsd": 40211202.62,
-      "private24hUsd": 28763648.88,
+      "private24hUsd": 766420.73,
       "etfIndex24hUsd": 45182165.02,
-      "combined24hUsd": 114157016.52,
+      "combined24hUsd": 86159788.37,
       "issuersByLane": {
         "equity": {
           "bstocks": {
@@ -7863,7 +7863,7 @@
             "pools": 0
           },
           "paimon": {
-            "usd": 28763648.87,
+            "usd": 766420.72,
             "mints": 5,
             "pools": 9
           },
@@ -9104,7 +9104,7 @@
           "address": "0x1d80392d12caaaf9e333bb0bb7f021eacf297fe6",
           "symbol": "pPOLY",
           "instrumentKind": "private",
-          "volume24hUsd": 28498080.02,
+          "volume24hUsd": 500851.87,
           "displayedLiquidityUsd": null,
           "pools": [
             {
@@ -9427,7 +9427,7 @@
       ],
       "backfillSource": "geckoterminal-hourly",
       "backfilledAt": "2026-10-09T15:57:38.253027Z",
-      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one.",
+      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one. Excluded pPOLY/United Stables wash pools and recomputed this asset from the remaining cash-quote pools. excluded-pool:pPOLY:0xe2d5738b246526194b19adf0dcdf5fc511126d276798e8fe5102ed464f7720e2:united-stables-wash; excluded-pool:pPOLY:0x42ea83ca9e00116dfcd65e257762c66875f3da1da60f515c73b2daeb0439ddd9:united-stables-wash; excluded-pool:pPOLY:0x1f30b1ca001d41fab5d272bc908c0682de1fa487c9ce3b2d6c2ef8305f7b0214:united-stables-wash; excluded-pool:pPOLY:0x82cbc1b7c077203cb1652fdf43492d0ca3815519c9d2328b256372954b7bf80d:united-stables-wash; excluded-pool:pPOLY:0x289bbda2307bc4da4501d2f0d54a76928d4e31c4e9e409e58cccbad052d309a4:united-stables-wash; excluded-pool:pPOLY:0xb87c31b749494d3247477de03570bbcb9db91cae35123f71afa959eaedffa953:united-stables-wash; excluded-pool:pPOLY:0x10df8cef0015080c25d34afbc34fb8fc09994ba271ffd28bd6e1df812940351a:united-stables-wash; excluded-pool:pPOLY:0x92243ce11a066a7733059070b25998b7be980942f06fff1f4a37c7583bb74e87:united-stables-wash; excluded-pool:pPOLY:0xbf7d259d8c3a3ec22bd9133a3e24fa5b27cba8af3406be3afbe999317a6b1e93:united-stables-wash; excluded-pool:pPOLY:0xc85069d4fc5bfbb05c31390340f1cb5d93beb0e6:united-stables-wash",
       "volumeSource": "geckoterminal-hourly-et",
       "geckoCombined24hUsd": 114157016.52,
       "correction": {
@@ -9452,9 +9452,9 @@
       "date": "2026-09-29",
       "t": 1790654400,
       "publicEquity24hUsd": 69103434.58,
-      "private24hUsd": 25987608.29,
+      "private24hUsd": 648636.21,
       "etfIndex24hUsd": 34404911.21,
-      "combined24hUsd": 129495954.08,
+      "combined24hUsd": 104156982.0,
       "issuersByLane": {
         "equity": {
           "bstocks": {
@@ -9507,7 +9507,7 @@
             "pools": 0
           },
           "paimon": {
-            "usd": 25987608.29,
+            "usd": 648636.21,
             "mints": 5,
             "pools": 10
           },
@@ -10755,7 +10755,7 @@
           "address": "0x1d80392d12caaaf9e333bb0bb7f021eacf297fe6",
           "symbol": "pPOLY",
           "instrumentKind": "private",
-          "volume24hUsd": 25651385.03,
+          "volume24hUsd": 312412.95,
           "displayedLiquidityUsd": null,
           "pools": [
             {
@@ -11058,7 +11058,7 @@
       ],
       "backfillSource": "geckoterminal-hourly",
       "backfilledAt": "2026-10-09T15:57:38.311280Z",
-      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one.",
+      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one. Excluded pPOLY/United Stables wash pools and recomputed this asset from the remaining cash-quote pools. excluded-pool:pPOLY:0x10df8cef0015080c25d34afbc34fb8fc09994ba271ffd28bd6e1df812940351a:united-stables-wash; excluded-pool:pPOLY:0xe2d5738b246526194b19adf0dcdf5fc511126d276798e8fe5102ed464f7720e2:united-stables-wash; excluded-pool:pPOLY:0xb87c31b749494d3247477de03570bbcb9db91cae35123f71afa959eaedffa953:united-stables-wash; excluded-pool:pPOLY:0xfd3dc280c0db3cf6ef39f8d6a200e77e0622b8edf70e1712fc3b5f43a0ac9d7b:united-stables-wash; excluded-pool:pPOLY:0x1f30b1ca001d41fab5d272bc908c0682de1fa487c9ce3b2d6c2ef8305f7b0214:united-stables-wash; excluded-pool:pPOLY:0x42ea83ca9e00116dfcd65e257762c66875f3da1da60f515c73b2daeb0439ddd9:united-stables-wash; excluded-pool:pPOLY:0xbf7d259d8c3a3ec22bd9133a3e24fa5b27cba8af3406be3afbe999317a6b1e93:united-stables-wash; excluded-pool:pPOLY:0x92243ce11a066a7733059070b25998b7be980942f06fff1f4a37c7583bb74e87:united-stables-wash; excluded-pool:pPOLY:0xc85069d4fc5bfbb05c31390340f1cb5d93beb0e6:united-stables-wash",
       "volumeSource": "geckoterminal-hourly-et",
       "geckoCombined24hUsd": 129495954.08,
       "correction": {
@@ -11083,9 +11083,9 @@
       "date": "2026-09-30",
       "t": 1790740800,
       "publicEquity24hUsd": 86523532.32,
-      "private24hUsd": 40568840.63,
+      "private24hUsd": 284589.96,
       "etfIndex24hUsd": 43655001.31,
-      "combined24hUsd": 170747374.26,
+      "combined24hUsd": 130463123.59,
       "issuersByLane": {
         "equity": {
           "bstocks": {
@@ -11138,7 +11138,7 @@
             "pools": 0
           },
           "paimon": {
-            "usd": 40568840.63,
+            "usd": 284589.96,
             "mints": 5,
             "pools": 10
           },
@@ -12393,7 +12393,7 @@
           "address": "0x1d80392d12caaaf9e333bb0bb7f021eacf297fe6",
           "symbol": "pPOLY",
           "instrumentKind": "private",
-          "volume24hUsd": 40408198.88,
+          "volume24hUsd": 123948.21,
           "displayedLiquidityUsd": null,
           "pools": [
             {
@@ -12771,7 +12771,7 @@
       ],
       "backfillSource": "geckoterminal-hourly",
       "backfilledAt": "2026-10-09T15:57:38.372770Z",
-      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one.",
+      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one. Excluded pPOLY/United Stables wash pools and recomputed this asset from the remaining cash-quote pools. excluded-pool:pPOLY:0x10df8cef0015080c25d34afbc34fb8fc09994ba271ffd28bd6e1df812940351a:united-stables-wash; excluded-pool:pPOLY:0xe2d5738b246526194b19adf0dcdf5fc511126d276798e8fe5102ed464f7720e2:united-stables-wash; excluded-pool:pPOLY:0x9490375bb6ef2d94fe6e4ec87a435aac30b9671835141a2af1baa8bde0e9fd21:united-stables-wash; excluded-pool:pPOLY:0xfd3dc280c0db3cf6ef39f8d6a200e77e0622b8edf70e1712fc3b5f43a0ac9d7b:united-stables-wash; excluded-pool:pPOLY:0x42ea83ca9e00116dfcd65e257762c66875f3da1da60f515c73b2daeb0439ddd9:united-stables-wash; excluded-pool:pPOLY:0xc85069d4fc5bfbb05c31390340f1cb5d93beb0e6:united-stables-wash; excluded-pool:pPOLY:0x92243ce11a066a7733059070b25998b7be980942f06fff1f4a37c7583bb74e87:united-stables-wash; excluded-pool:pPOLY:0x1f30b1ca001d41fab5d272bc908c0682de1fa487c9ce3b2d6c2ef8305f7b0214:united-stables-wash",
       "volumeSource": "geckoterminal-hourly-et",
       "geckoCombined24hUsd": 170747374.25,
       "correction": {
@@ -12796,9 +12796,9 @@
       "date": "2026-10-01",
       "t": 1790827200,
       "publicEquity24hUsd": 88767855.22,
-      "private24hUsd": 41945048.28,
+      "private24hUsd": 140629.62,
       "etfIndex24hUsd": 44996309.36,
-      "combined24hUsd": 175709212.86,
+      "combined24hUsd": 133904794.2,
       "issuersByLane": {
         "equity": {
           "bstocks": {
@@ -12851,7 +12851,7 @@
             "pools": 0
           },
           "paimon": {
-            "usd": 41945048.28,
+            "usd": 140629.62,
             "mints": 5,
             "pools": 10
           },
@@ -14106,7 +14106,7 @@
           "address": "0x1d80392d12caaaf9e333bb0bb7f021eacf297fe6",
           "symbol": "pPOLY",
           "instrumentKind": "private",
-          "volume24hUsd": 41876550.68,
+          "volume24hUsd": 72132.02,
           "displayedLiquidityUsd": null,
           "pools": [
             {
@@ -14464,7 +14464,7 @@
       ],
       "backfillSource": "geckoterminal-hourly",
       "backfilledAt": "2026-10-09T15:57:38.431422Z",
-      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one.",
+      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one. Excluded pPOLY/United Stables wash pools and recomputed this asset from the remaining cash-quote pools. excluded-pool:pPOLY:0xfd3dc280c0db3cf6ef39f8d6a200e77e0622b8edf70e1712fc3b5f43a0ac9d7b:united-stables-wash; excluded-pool:pPOLY:0x10df8cef0015080c25d34afbc34fb8fc09994ba271ffd28bd6e1df812940351a:united-stables-wash; excluded-pool:pPOLY:0xe2d5738b246526194b19adf0dcdf5fc511126d276798e8fe5102ed464f7720e2:united-stables-wash; excluded-pool:pPOLY:0x9490375bb6ef2d94fe6e4ec87a435aac30b9671835141a2af1baa8bde0e9fd21:united-stables-wash; excluded-pool:pPOLY:0xc85069d4fc5bfbb05c31390340f1cb5d93beb0e6:united-stables-wash; excluded-pool:pPOLY:0x92243ce11a066a7733059070b25998b7be980942f06fff1f4a37c7583bb74e87:united-stables-wash; excluded-pool:pPOLY:0x1f30b1ca001d41fab5d272bc908c0682de1fa487c9ce3b2d6c2ef8305f7b0214:united-stables-wash",
       "volumeSource": "geckoterminal-hourly-et",
       "geckoCombined24hUsd": 175709212.86,
       "correction": {
@@ -14489,9 +14489,9 @@
       "date": "2026-10-02",
       "t": 1790913600,
       "publicEquity24hUsd": 123111272.57,
-      "private24hUsd": 53170312.48,
+      "private24hUsd": 55588.53,
       "etfIndex24hUsd": 40266141.78,
-      "combined24hUsd": 216547726.83,
+      "combined24hUsd": 163433002.88,
       "issuersByLane": {
         "equity": {
           "bstocks": {
@@ -14544,7 +14544,7 @@
             "pools": 0
           },
           "paimon": {
-            "usd": 53170312.49,
+            "usd": 55588.54,
             "mints": 5,
             "pools": 10
           },
@@ -15799,7 +15799,7 @@
           "address": "0x1d80392d12caaaf9e333bb0bb7f021eacf297fe6",
           "symbol": "pPOLY",
           "instrumentKind": "private",
-          "volume24hUsd": 53138827.13,
+          "volume24hUsd": 24103.18,
           "displayedLiquidityUsd": null,
           "pools": [
             {
@@ -16167,7 +16167,7 @@
       ],
       "backfillSource": "geckoterminal-hourly",
       "backfilledAt": "2026-10-09T15:57:38.493415Z",
-      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one.",
+      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one. Excluded pPOLY/United Stables wash pools and recomputed this asset from the remaining cash-quote pools. excluded-pool:pPOLY:0xfd3dc280c0db3cf6ef39f8d6a200e77e0622b8edf70e1712fc3b5f43a0ac9d7b:united-stables-wash; excluded-pool:pPOLY:0x10df8cef0015080c25d34afbc34fb8fc09994ba271ffd28bd6e1df812940351a:united-stables-wash; excluded-pool:pPOLY:0x9490375bb6ef2d94fe6e4ec87a435aac30b9671835141a2af1baa8bde0e9fd21:united-stables-wash; excluded-pool:pPOLY:0xe2d5738b246526194b19adf0dcdf5fc511126d276798e8fe5102ed464f7720e2:united-stables-wash; excluded-pool:pPOLY:0x61c0c0b77683cd1cbb2393e0dcc61afb981a930a51a71ffd0ff4657344b49f46:united-stables-wash; excluded-pool:pPOLY:0xc85069d4fc5bfbb05c31390340f1cb5d93beb0e6:united-stables-wash; excluded-pool:pPOLY:0x92243ce11a066a7733059070b25998b7be980942f06fff1f4a37c7583bb74e87:united-stables-wash; excluded-pool:pPOLY:0x1f30b1ca001d41fab5d272bc908c0682de1fa487c9ce3b2d6c2ef8305f7b0214:united-stables-wash",
       "volumeSource": "geckoterminal-hourly-et",
       "geckoCombined24hUsd": 216547726.83,
       "correction": {
@@ -16192,9 +16192,9 @@
       "date": "2026-10-03",
       "t": 1791000000,
       "publicEquity24hUsd": 80886864.21,
-      "private24hUsd": 44012961.77,
+      "private24hUsd": 88670.73,
       "etfIndex24hUsd": 25790662.19,
-      "combined24hUsd": 150690488.17,
+      "combined24hUsd": 106766197.13,
       "issuersByLane": {
         "equity": {
           "bstocks": {
@@ -16247,7 +16247,7 @@
             "pools": 0
           },
           "paimon": {
-            "usd": 44012961.77,
+            "usd": 88670.73,
             "mints": 5,
             "pools": 10
           },
@@ -17509,7 +17509,7 @@
           "address": "0x1d80392d12caaaf9e333bb0bb7f021eacf297fe6",
           "symbol": "pPOLY",
           "instrumentKind": "private",
-          "volume24hUsd": 43991024.23,
+          "volume24hUsd": 66733.19,
           "displayedLiquidityUsd": null,
           "pools": [
             {
@@ -17860,7 +17860,7 @@
       ],
       "backfillSource": "geckoterminal-hourly",
       "backfilledAt": "2026-10-09T15:57:38.555109Z",
-      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one.",
+      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one. Excluded pPOLY/United Stables wash pools and recomputed this asset from the remaining cash-quote pools. excluded-pool:pPOLY:0xfd3dc280c0db3cf6ef39f8d6a200e77e0622b8edf70e1712fc3b5f43a0ac9d7b:united-stables-wash; excluded-pool:pPOLY:0x10df8cef0015080c25d34afbc34fb8fc09994ba271ffd28bd6e1df812940351a:united-stables-wash; excluded-pool:pPOLY:0xe2d5738b246526194b19adf0dcdf5fc511126d276798e8fe5102ed464f7720e2:united-stables-wash; excluded-pool:pPOLY:0x9490375bb6ef2d94fe6e4ec87a435aac30b9671835141a2af1baa8bde0e9fd21:united-stables-wash; excluded-pool:pPOLY:0x1f30b1ca001d41fab5d272bc908c0682de1fa487c9ce3b2d6c2ef8305f7b0214:united-stables-wash; excluded-pool:pPOLY:0xc85069d4fc5bfbb05c31390340f1cb5d93beb0e6:united-stables-wash; excluded-pool:pPOLY:0x92243ce11a066a7733059070b25998b7be980942f06fff1f4a37c7583bb74e87:united-stables-wash",
       "volumeSource": "geckoterminal-hourly-et",
       "geckoCombined24hUsd": 150690488.17,
       "correction": {
@@ -17885,9 +17885,9 @@
       "date": "2026-10-04",
       "t": 1791086400,
       "publicEquity24hUsd": 103573708.95,
-      "private24hUsd": 64583649.29,
+      "private24hUsd": 269862.25,
       "etfIndex24hUsd": 45888205.26,
-      "combined24hUsd": 214045563.5,
+      "combined24hUsd": 149731776.46,
       "issuersByLane": {
         "equity": {
           "bstocks": {
@@ -17940,7 +17940,7 @@
             "pools": 0
           },
           "paimon": {
-            "usd": 64583649.3,
+            "usd": 269862.26,
             "mints": 5,
             "pools": 10
           },
@@ -19202,7 +19202,7 @@
           "address": "0x1d80392d12caaaf9e333bb0bb7f021eacf297fe6",
           "symbol": "pPOLY",
           "instrumentKind": "private",
-          "volume24hUsd": 64365802.94,
+          "volume24hUsd": 52015.9,
           "displayedLiquidityUsd": null,
           "pools": [
             {
@@ -19543,7 +19543,7 @@
       ],
       "backfillSource": "geckoterminal-hourly",
       "backfilledAt": "2026-10-09T15:57:38.621640Z",
-      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one.",
+      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one. Excluded pPOLY/United Stables wash pools and recomputed this asset from the remaining cash-quote pools. excluded-pool:pPOLY:0xfd3dc280c0db3cf6ef39f8d6a200e77e0622b8edf70e1712fc3b5f43a0ac9d7b:united-stables-wash; excluded-pool:pPOLY:0x10df8cef0015080c25d34afbc34fb8fc09994ba271ffd28bd6e1df812940351a:united-stables-wash; excluded-pool:pPOLY:0xe2d5738b246526194b19adf0dcdf5fc511126d276798e8fe5102ed464f7720e2:united-stables-wash; excluded-pool:pPOLY:0x9490375bb6ef2d94fe6e4ec87a435aac30b9671835141a2af1baa8bde0e9fd21:united-stables-wash; excluded-pool:pPOLY:0xc85069d4fc5bfbb05c31390340f1cb5d93beb0e6:united-stables-wash; excluded-pool:pPOLY:0x92243ce11a066a7733059070b25998b7be980942f06fff1f4a37c7583bb74e87:united-stables-wash",
       "volumeSource": "geckoterminal-hourly-et",
       "geckoCombined24hUsd": 214045563.5,
       "correction": {
@@ -19568,9 +19568,9 @@
       "date": "2026-10-05",
       "t": 1791172800,
       "publicEquity24hUsd": 77778363.48,
-      "private24hUsd": 52466385.21,
+      "private24hUsd": 50095.79,
       "etfIndex24hUsd": 30456663.33,
-      "combined24hUsd": 160701412.02,
+      "combined24hUsd": 108285122.6,
       "issuersByLane": {
         "equity": {
           "bstocks": {
@@ -19623,7 +19623,7 @@
             "pools": 0
           },
           "paimon": {
-            "usd": 52466385.21,
+            "usd": 50095.79,
             "mints": 5,
             "pools": 10
           },
@@ -20885,7 +20885,7 @@
           "address": "0x1d80392d12caaaf9e333bb0bb7f021eacf297fe6",
           "symbol": "pPOLY",
           "instrumentKind": "private",
-          "volume24hUsd": 52426676.83,
+          "volume24hUsd": 10387.41,
           "displayedLiquidityUsd": null,
           "pools": [
             {
@@ -21256,7 +21256,7 @@
       ],
       "backfillSource": "geckoterminal-hourly",
       "backfilledAt": "2026-10-09T15:57:38.683853Z",
-      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one.",
+      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one. Excluded pPOLY/United Stables wash pools and recomputed this asset from the remaining cash-quote pools. excluded-pool:pPOLY:0xfd3dc280c0db3cf6ef39f8d6a200e77e0622b8edf70e1712fc3b5f43a0ac9d7b:united-stables-wash; excluded-pool:pPOLY:0x61c0c0b77683cd1cbb2393e0dcc61afb981a930a51a71ffd0ff4657344b49f46:united-stables-wash; excluded-pool:pPOLY:0x10df8cef0015080c25d34afbc34fb8fc09994ba271ffd28bd6e1df812940351a:united-stables-wash; excluded-pool:pPOLY:0x9490375bb6ef2d94fe6e4ec87a435aac30b9671835141a2af1baa8bde0e9fd21:united-stables-wash; excluded-pool:pPOLY:0xe2d5738b246526194b19adf0dcdf5fc511126d276798e8fe5102ed464f7720e2:united-stables-wash",
       "volumeSource": "geckoterminal-hourly-et",
       "geckoCombined24hUsd": 160701412.03,
       "correction": {
@@ -21281,9 +21281,9 @@
       "date": "2026-10-06",
       "t": 1791259200,
       "publicEquity24hUsd": 73157155.0,
-      "private24hUsd": 45867533.54,
+      "private24hUsd": 223275.58,
       "etfIndex24hUsd": 23721152.4,
-      "combined24hUsd": 142745840.94,
+      "combined24hUsd": 97101582.98,
       "issuersByLane": {
         "equity": {
           "bstocks": {
@@ -21336,7 +21336,7 @@
             "pools": 0
           },
           "paimon": {
-            "usd": 45867533.54,
+            "usd": 223275.58,
             "mints": 5,
             "pools": 10
           },
@@ -22598,7 +22598,7 @@
           "address": "0x1d80392d12caaaf9e333bb0bb7f021eacf297fe6",
           "symbol": "pPOLY",
           "instrumentKind": "private",
-          "volume24hUsd": 45768893.59,
+          "volume24hUsd": 124635.63,
           "displayedLiquidityUsd": null,
           "pools": [
             {
@@ -22939,7 +22939,7 @@
       ],
       "backfillSource": "geckoterminal-hourly",
       "backfilledAt": "2026-10-09T15:57:38.751307Z",
-      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one.",
+      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one. Excluded pPOLY/United Stables wash pools and recomputed this asset from the remaining cash-quote pools. excluded-pool:pPOLY:0xfd3dc280c0db3cf6ef39f8d6a200e77e0622b8edf70e1712fc3b5f43a0ac9d7b:united-stables-wash; excluded-pool:pPOLY:0x61c0c0b77683cd1cbb2393e0dcc61afb981a930a51a71ffd0ff4657344b49f46:united-stables-wash; excluded-pool:pPOLY:0x10df8cef0015080c25d34afbc34fb8fc09994ba271ffd28bd6e1df812940351a:united-stables-wash; excluded-pool:pPOLY:0xe2d5738b246526194b19adf0dcdf5fc511126d276798e8fe5102ed464f7720e2:united-stables-wash; excluded-pool:pPOLY:0x9490375bb6ef2d94fe6e4ec87a435aac30b9671835141a2af1baa8bde0e9fd21:united-stables-wash; excluded-pool:pPOLY:0xbf7d259d8c3a3ec22bd9133a3e24fa5b27cba8af3406be3afbe999317a6b1e93:united-stables-wash; excluded-pool:pPOLY:0xc85069d4fc5bfbb05c31390340f1cb5d93beb0e6:united-stables-wash; excluded-pool:pPOLY:0x92243ce11a066a7733059070b25998b7be980942f06fff1f4a37c7583bb74e87:united-stables-wash; excluded-pool:pPOLY:0x1f30b1ca001d41fab5d272bc908c0682de1fa487c9ce3b2d6c2ef8305f7b0214:united-stables-wash",
       "volumeSource": "geckoterminal-hourly-et",
       "geckoCombined24hUsd": 142745840.94,
       "correction": {
@@ -22964,9 +22964,9 @@
       "date": "2026-10-07",
       "t": 1791345600,
       "publicEquity24hUsd": 41762427.22,
-      "private24hUsd": 76911385.01,
+      "private24hUsd": 38724.35,
       "etfIndex24hUsd": 20789506.96,
-      "combined24hUsd": 139463319.19,
+      "combined24hUsd": 62590658.53,
       "issuersByLane": {
         "equity": {
           "bstocks": {
@@ -23019,7 +23019,7 @@
             "pools": 0
           },
           "paimon": {
-            "usd": 76911385.01,
+            "usd": 38724.35,
             "mints": 5,
             "pools": 10
           },
@@ -24281,7 +24281,7 @@
           "address": "0x1d80392d12caaaf9e333bb0bb7f021eacf297fe6",
           "symbol": "pPOLY",
           "instrumentKind": "private",
-          "volume24hUsd": 76902622.07,
+          "volume24hUsd": 29961.41,
           "displayedLiquidityUsd": null,
           "pools": [
             {
@@ -24678,7 +24678,7 @@
       ],
       "backfillSource": "geckoterminal-hourly",
       "backfilledAt": "2026-10-09T15:57:38.811437Z",
-      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one.",
+      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one. Excluded pPOLY/United Stables wash pools and recomputed this asset from the remaining cash-quote pools. excluded-pool:pPOLY:0xfd3dc280c0db3cf6ef39f8d6a200e77e0622b8edf70e1712fc3b5f43a0ac9d7b:united-stables-wash; excluded-pool:pPOLY:0x61c0c0b77683cd1cbb2393e0dcc61afb981a930a51a71ffd0ff4657344b49f46:united-stables-wash; excluded-pool:pPOLY:0x10df8cef0015080c25d34afbc34fb8fc09994ba271ffd28bd6e1df812940351a:united-stables-wash; excluded-pool:pPOLY:0x1f30b1ca001d41fab5d272bc908c0682de1fa487c9ce3b2d6c2ef8305f7b0214:united-stables-wash; excluded-pool:pPOLY:0xe2d5738b246526194b19adf0dcdf5fc511126d276798e8fe5102ed464f7720e2:united-stables-wash; excluded-pool:pPOLY:0xc35a93ed96bc1cf1cde0844ddc9933431a445bf501ed7b152c93b180864117c4:united-stables-wash; excluded-pool:pPOLY:0x289bbda2307bc4da4501d2f0d54a76928d4e31c4e9e409e58cccbad052d309a4:united-stables-wash; excluded-pool:pPOLY:0x9490375bb6ef2d94fe6e4ec87a435aac30b9671835141a2af1baa8bde0e9fd21:united-stables-wash; excluded-pool:pPOLY:0xc85069d4fc5bfbb05c31390340f1cb5d93beb0e6:united-stables-wash; excluded-pool:pPOLY:0xeb0d803436725b28ae056346904904e510e61437b7f9d98ed4cadfacc284bd31:united-stables-wash; excluded-pool:pPOLY:0x92243ce11a066a7733059070b25998b7be980942f06fff1f4a37c7583bb74e87:united-stables-wash",
       "volumeSource": "geckoterminal-hourly-et",
       "geckoCombined24hUsd": 139463319.18,
       "correction": {
@@ -24703,9 +24703,9 @@
       "date": "2026-10-08",
       "t": 1791432000,
       "publicEquity24hUsd": 37022988.24,
-      "private24hUsd": 43657506.4,
+      "private24hUsd": 127782.38,
       "etfIndex24hUsd": 25079926.03,
-      "combined24hUsd": 105760420.67,
+      "combined24hUsd": 62230696.65,
       "issuersByLane": {
         "equity": {
           "bstocks": {
@@ -24758,7 +24758,7 @@
             "pools": 1
           },
           "paimon": {
-            "usd": 43657506.4,
+            "usd": 127782.38,
             "mints": 5,
             "pools": 11
           },
@@ -25934,7 +25934,7 @@
           "address": "0x1d80392d12caaaf9e333bb0bb7f021eacf297fe6",
           "symbol": "pPOLY",
           "instrumentKind": "private",
-          "volume24hUsd": 43574035.52,
+          "volume24hUsd": 44311.5,
           "displayedLiquidityUsd": null,
           "pools": [
             {
@@ -26716,7 +26716,7 @@
       "originalCombined24hUsd": 20641795.18,
       "backfillSource": "geckoterminal-hourly",
       "backfilledAt": "2026-10-09T15:57:38.875539Z",
-      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one.",
+      "backfillNote": "GeckoTerminal hourly volume summed midnight-to-midnight America/New_York. Pools with reported liquidity under $1000 are excluded. A pool with no hourly coverage keeps its original slice when this day stored one. Excluded pPOLY/United Stables wash pools and recomputed this asset from the remaining cash-quote pools. excluded-pool:pPOLY:0xe2d5738b246526194b19adf0dcdf5fc511126d276798e8fe5102ed464f7720e2:united-stables-wash; excluded-pool:pPOLY:0x22f1883e9a32fd2e52e6e9f767274f5bf37161942bd0424a59ca170e0dd71312:united-stables-wash; excluded-pool:pPOLY:0x45a7f94e056d36b003a0fbd824150138c813125c3f61f3b9ac517c3a619537ce:united-stables-wash; excluded-pool:pPOLY:0x289bbda2307bc4da4501d2f0d54a76928d4e31c4e9e409e58cccbad052d309a4:united-stables-wash; excluded-pool:pPOLY:0xfd3dc280c0db3cf6ef39f8d6a200e77e0622b8edf70e1712fc3b5f43a0ac9d7b:united-stables-wash; excluded-pool:pPOLY:0x1f30b1ca001d41fab5d272bc908c0682de1fa487c9ce3b2d6c2ef8305f7b0214:united-stables-wash; excluded-pool:pPOLY:0x61c0c0b77683cd1cbb2393e0dcc61afb981a930a51a71ffd0ff4657344b49f46:united-stables-wash; excluded-pool:pPOLY:0xc35a93ed96bc1cf1cde0844ddc9933431a445bf501ed7b152c93b180864117c4:united-stables-wash; excluded-pool:pPOLY:0x10df8cef0015080c25d34afbc34fb8fc09994ba271ffd28bd6e1df812940351a:united-stables-wash; excluded-pool:pPOLY:0x577e7e842217230f122d594ffae19ded78d74dbed41c5a9cf9c37c08fa0539fc:united-stables-wash; excluded-pool:pPOLY:0xc85069d4fc5bfbb05c31390340f1cb5d93beb0e6:united-stables-wash; excluded-pool:pPOLY:0x92243ce11a066a7733059070b25998b7be980942f06fff1f4a37c7583bb74e87:united-stables-wash; excluded-pool:pPOLY:0x9490375bb6ef2d94fe6e4ec87a435aac30b9671835141a2af1baa8bde0e9fd21:united-stables-wash",
       "volumeSource": "geckoterminal-hourly-et",
       "geckoCombined24hUsd": 105760420.67,
       "correction": {

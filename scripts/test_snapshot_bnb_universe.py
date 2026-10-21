@@ -732,6 +732,88 @@ class BnbUniverseTest(unittest.TestCase):
         sources = {pool["source"] for pool in details[AAPL.lower()]}
         self.assertEqual(sources, {"dexscreener"})
 
+    def test_ppoly_united_stables_wash_is_excluded_from_the_desk_sum(self) -> None:
+        usdt = "0x55d398326f99059ff775485246999027b3197955"
+        ppoly = "0x1d80392d12caaaf9e333bb0bb7f021eacf297fe6"
+        united = "0xce24439f2d9c6a2289f741120fe202248b666666"
+        wash = "0xe2d5738b246526194b19adf0dcdf5fc511126d276798e8fe5102ed464f7720e2"
+        fresh = "0x" + "ab" * 32
+        pairs = [
+            {
+                "chainId": "bsc",
+                "pairAddress": "0xgoodppoly",
+                "dexId": "pancakeswap",
+                "baseToken": {"address": ppoly},
+                "quoteToken": {"address": usdt},
+                "volume": {"h24": 12.5},
+                "liquidity": {"usd": 200_000},
+            },
+            {
+                "chainId": "bsc",
+                "pairAddress": wash,
+                "dexId": "pancakeswap-infinity-clmm",
+                "baseToken": {"address": ppoly},
+                "quoteToken": {"address": usdt},
+                "volume": {"h24": 9_000_000},
+                "liquidity": {"usd": 2_670_000},
+            },
+            {
+                "chainId": "bsc",
+                "pairAddress": fresh,
+                "dexId": "uniswap-v4-bsc",
+                "baseToken": {"address": ppoly},
+                "quoteToken": {"address": united},
+                "volume": {"h24": 8_000_000},
+                "liquidity": {"usd": 50_000},
+            },
+        ]
+        tracked = {ppoly: {"address": ppoly, "symbol": "pPOLY"}}
+        vols, counts, details, _pair_h24 = _MOD.fold_desk_pools(pairs, tracked)
+        self.assertEqual(vols[ppoly], 12.5)
+        self.assertEqual(counts[ppoly], 1)
+        self.assertEqual([pool["pairAddress"] for pool in details[ppoly]], ["0xgoodppoly"])
+
+    def test_backfill_skips_ppoly_united_stables_pool(self) -> None:
+        path = Path(__file__).resolve().parent / "backfill-bnb-gecko-hourly.py"
+        spec = importlib.util.spec_from_file_location("backfill_bnb_gecko_hourly", path)
+        assert spec is not None and spec.loader is not None
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        day = "2026-10-07"
+        start = mod.eastern_midnight(day)
+        ppoly = "0x1d80392d12caaaf9e333bb0bb7f021eacf297fe6"
+        wash = "0xe2d5738b246526194b19adf0dcdf5fc511126d276798e8fe5102ed464f7720e2"
+        good = "0xb2c8244fbeee2da006b5d9cf09908081f807c649"
+        catalog = {
+            ppoly: {
+                "address": ppoly,
+                "symbol": "pPOLY",
+                "issuer": "paimon",
+                "kind": "preipo",
+                "pools": [
+                    {"pairAddress": wash, "dexId": "pancakeswap-infinity-clmm", "uniswapV4": False},
+                    {"pairAddress": good, "dexId": "pancakeswap-v3-bsc", "uniswapV4": False},
+                ],
+            }
+        }
+        rebuilt = mod.rebuild(
+            {
+                "date": day,
+                "assets": [],
+                "publicEquity24hUsd": None,
+                "etfIndex24hUsd": None,
+                "private24hUsd": None,
+                "combined24hUsd": None,
+            },
+            catalog,
+            {wash: [(start, 50_000_000.0)], good: [(start, 12.5)]},
+        )
+        asset = next(row for row in rebuilt["assets"] if row["symbol"] == "pPOLY")
+        self.assertEqual(asset["volume24hUsd"], 12.5)
+        self.assertEqual([pool["pairAddress"] for pool in asset["pools"]], [good])
+        self.assertEqual(rebuilt["private24hUsd"], 12.5)
+        self.assertIn(f"excluded-pool:pPOLY:{wash}:", rebuilt["backfillNote"])
+
     def test_registry_keeps_cash_pools_and_drops_meme_pairs(self) -> None:
         usdt = "0x55d398326f99059ff775485246999027b3197955"
         meme = "0x" + "ab" * 20
