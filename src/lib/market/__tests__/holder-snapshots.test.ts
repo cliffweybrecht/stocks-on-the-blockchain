@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { BSTOCKS_SEED } from "../bnb-bstocks-seed";
 import { withBstockSeed } from "../holder-snapshot-job";
@@ -11,8 +13,12 @@ import {
   decimalAdjustedSupply,
   holderAssetRangeView,
   holderDaySlots,
+  HOLDER_SUPPLY_DUST_REASON,
+  HOLDER_SUPPLY_LIQUIDITY_REASON,
+  HOLDER_SUPPLY_UNIT_REASON,
   parseHolderSnapshotFile,
   parseStoredHolderSnapshotFile,
+  restateHolderSupplyDay,
   upsertHolderSnapshotDay,
   type HolderSnapshotAsset,
   type HolderSnapshotDay,
@@ -347,6 +353,122 @@ describe("snapshot asset shape", () => {
     expect(row.holderCount).toBeNull();
     expect(row.supplyUsd).toBeNull();
     expect(row.instrumentKind).toBe("equity");
+  });
+});
+
+describe("2026-10-08 supply restatement", () => {
+  function captured(overrides: Partial<HolderSnapshotAsset> = {}): HolderSnapshotAsset {
+    return {
+      address: "Mint1111111111111111111111111111111111",
+      symbol: "NFLXx",
+      issuer: "xStocks",
+      instrumentKind: "equity",
+      totalSupplyRaw: "100000000",
+      totalSupplyDecimals: 8,
+      totalSupply: 10,
+      supplyUsd: 7070,
+      holderCount: 4,
+      sources: {
+        totalSupply: "solana-rpc:getTokenSupply",
+        supplyUsd: "dexscreener:dexMedianPriceUsd×solana-rpc:getTokenSupply",
+        holderCount: "solana-rpc:getProgramAccounts:spl-token",
+        price: "dexscreener:dexMedianPriceUsd",
+      },
+      notes: [],
+      capturedAt: "2026-10-08T21:48:32.989Z",
+      ...overrides,
+      circulatingSupply: overrides.circulatingSupply ?? null,
+      priceUsd: overrides.priceUsd ?? null,
+    };
+  }
+
+  function capturedDay(assets: HolderSnapshotAsset[]): HolderSnapshotDay {
+    const supplyUsd = assets.reduce((sum, asset) => sum + (asset.supplyUsd ?? 0), 0);
+    return {
+      date: "2026-10-08",
+      t: 1,
+      capturedAt: "2026-10-08T21:48:32.989Z",
+      holderCount: 4,
+      supplyUsd,
+      publicMarketValueUsd: null,
+      privateMarketValueUsd: null,
+      etfMarketValueUsd: null,
+      assetCount: assets.length,
+      assetsWithHolders: assets.length,
+      assetsWithSupplyUsd: assets.filter((asset) => asset.supplyUsd !== null).length,
+      limits: ["captured"],
+      assets,
+    };
+  }
+
+  it("reprices the UI amount down to amount/10^decimals and keeps the old dollars", () => {
+    const day = restateHolderSupplyDay(capturedDay([captured()]));
+    const asset = day.assets[0];
+    expect(asset?.supplyUsd).toBeCloseTo(707, 6);
+    expect(asset?.circulatingSupply).toBe(1);
+    expect(asset?.priceUsd).toBeCloseTo(707, 6);
+    expect(asset?.correction).toEqual({ supplyUsd: 7070, reason: HOLDER_SUPPLY_UNIT_REASON });
+    expect(day.supplyUsd).toBeCloseTo(707, 6);
+    expect(day.correction?.supplyUsd).toBe(7070);
+    expect(day.publicMarketValueUsd).toBeCloseTo(707, 6);
+    expect(day.correction?.publicMarketValueUsd).toBe(7070);
+    const again = restateHolderSupplyDay(day);
+    expect(again.supplyUsd).toBe(day.supplyUsd);
+    expect(again.assets[0]?.correction?.supplyUsd).toBe(7070);
+  });
+
+  it("clears a verified sub-$1 clone and a stored reserve under $1", () => {
+    const clone = captured({ address: "clone", symbol: "tOpenAI", supplyUsd: 1_000, totalSupply: 780_000_000, totalSupplyRaw: "780000000000000000", totalSupplyDecimals: 9 });
+    const thin = captured({ address: "thin", symbol: "RACE", supplyUsd: 50, totalSupply: 1, totalSupplyRaw: "100000000", totalSupplyDecimals: 8 });
+    const day = restateHolderSupplyDay(capturedDay([clone, thin]), {
+      dustCloneAddresses: new Set(["clone"]),
+      liquidityByAddress: new Map([["thin", 0]]),
+    });
+    expect(day.assets[0]?.supplyUsd).toBeNull();
+    expect(day.assets[0]?.correction?.supplyUsd).toBe(1_000);
+    expect(day.assets[0]?.correction?.reason).toBe(HOLDER_SUPPLY_DUST_REASON);
+    expect(day.assets[1]?.supplyUsd).toBeNull();
+    expect(day.assets[1]?.correction?.reason).toBe(HOLDER_SUPPLY_LIQUIDITY_REASON);
+    expect(day.supplyUsd).toBeNull();
+    expect(day.correction?.supplyUsd).toBe(1_050);
+  });
+
+  it("leaves an unknown reserve and an already-unscaled supply alone", () => {
+    const row = captured({ totalSupply: 1, totalSupplyRaw: "100000000", totalSupplyDecimals: 8, supplyUsd: 20 });
+    const day = restateHolderSupplyDay(capturedDay([row]));
+    expect(day.assets[0]).toBe(row);
+    expect(day.supplyUsd).toBe(20);
+    expect(day.correction?.supplyUsd).toBe(20);
+    expect(day.correction?.reason).toContain("No asset supplyUsd changed");
+  });
+
+  it("keeps correction through the stored and normalized readers", () => {
+    const day = restateHolderSupplyDay(capturedDay([captured()]));
+    const payload = { version: 1, chainId: "solana", records: [day] };
+    const stored = parseStoredHolderSnapshotFile(payload, "solana");
+    expect(stored.records[0]?.correction?.supplyUsd).toBe(7070);
+    expect(stored.records[0]?.assets[0]?.correction?.supplyUsd).toBe(7070);
+    const read = parseHolderSnapshotFile(payload, "solana");
+    expect(read.records[0]?.assets[0]?.supplyUsd).toBeCloseTo(707, 6);
+    expect(read.records[0]?.assets[0]?.correction?.supplyUsd).toBe(7070);
+  });
+
+  it("restates the stored 2026-10-08 rows and keeps the captured totals on correction", () => {
+    const expected = {
+      solana: { supplyUsd: 1_837_836_239.1666214, correction: 6_577_881_641.967646, priced: 117 },
+      base: { supplyUsd: 33_608_280.08903502, correction: 33_608_280.08903502, priced: 60 },
+      bnb: { supplyUsd: 946_062_313.4110662, correction: 949_285_284.9644314, priced: 84 },
+      robinhood: { supplyUsd: 151_576_650.49862835, correction: 151_576_650.49862835, priced: 179 },
+    } as const;
+    for (const [chain, row] of Object.entries(expected)) {
+      const file = JSON.parse(readFileSync(join(process.cwd(), "data/holder-snapshots", `${chain}.json`), "utf8"));
+      const day = file.records.find((item: { date: string }) => item.date === "2026-10-08");
+      const later = file.records.find((item: { date: string }) => item.date === "2026-10-19");
+      expect(day.supplyUsd).toBe(row.supplyUsd);
+      expect(day.correction.supplyUsd).toBe(row.correction);
+      expect(day.assetsWithSupplyUsd).toBe(row.priced);
+      expect(later.correction).toBeUndefined();
+    }
   });
 });
 

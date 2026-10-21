@@ -8,14 +8,26 @@
       "capturedAt": "2026-10-08T22:27:46.462Z",
       "holderCount": 100617,
       "supplyUsd": 33608280.08903502,
+      "publicMarketValueUsd": 29467529.501963463,
+      "privateMarketValueUsd": 1902096.0585365156,
+      "etfMarketValueUsd": 2238654.5285350396,
       "assetCount": 562,
       "assetsWithHolders": 151,
       "assetsWithSupplyUsd": 60,
       "limits": [
         "Supply is eth_call totalSupply() and decimals() on https://mainnet.base.org. totalSupplyRaw is the integer. totalSupply is raw / 10^decimals. A missing decimals() leaves the adjusted supply null.",
         "Holders are GeckoTerminal token-info holders.count (network base), the same integer this desk already shows on the asset page. Calls are one at a time, at least 6.5 seconds apart, because a faster pace receives HTTP 429 on this host. HTTP 429 is retried and is not stored as a count. Blockscout's public API for this chain returned a Cloudflare challenge from the snapshot host, and Routescan tokenholdercount does not index chain 8453 (response: chain not supported). A 404 or a payload with no holders.count stays null. The chain total sums per-token counts and is not unique wallets.",
-        "supplyUsd is decimal-adjusted total supply times the desk DexScreener price already on the asset. A missing price or supply leaves supplyUsd null. It is not volume."
+        "supplyUsd is decimal-adjusted total supply times the desk DexScreener price already on the asset. A missing price or supply leaves supplyUsd null. It is not volume.",
+        "2026-10-08 supplyUsd was restated to outstanding supply in the captured DEX price's unit. On Solana that unit is amount/10^decimals, not uiAmountString. A stored pool reserve under $1, and a verified sub-$1-liquidity clone, leaves supplyUsd null. This day's pool rows did not store priceUsd, so a qualifying mint keeps the captured desk price. The previous supplyUsd is on correction."
       ],
+      "correction": {
+        "supplyUsd": 33608280.08903502,
+        "publicMarketValueUsd": 29467529.501963463,
+        "privateMarketValueUsd": 1902096.0585365156,
+        "etfMarketValueUsd": 2238654.5285350396,
+        "assetsWithSupplyUsd": 60,
+        "reason": "Reviewed under outstanding supply times the captured DEX price, with a stored reserve under $1 left null. No asset supplyUsd changed. Previous day total is on correction."
+      },
       "assets": [
         {
           "address": "0x4607Dcd569b24e1fd7c62Ec1a53de0ED60611E88",

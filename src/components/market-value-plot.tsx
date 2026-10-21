@@ -14,7 +14,11 @@ import {
   formatVolumeChartTick,
 } from "@/lib/market/daily-volume-view";
 import { formatChartDay, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
-import { marketValueCaption, type MarketValueRangeView } from "@/lib/market/onchain-market-value";
+import {
+  MARKET_VALUE_METHOD_LINE,
+  marketValueCaption,
+  type MarketValueRangeView,
+} from "@/lib/market/onchain-market-value";
 import type { VolumeHistoryPoint } from "@/lib/market/types";
 
 const LANES = [
@@ -27,6 +31,22 @@ export function marketValueChartPoints(view: MarketValueRangeView): VolumeHistor
   return view.series
     .filter((point) => point.t > 0 && Number.isFinite(point.marketValueUsd))
     .map((point) => ({ t: point.t, volumeUsd: point.marketValueUsd, kind: "calendar_day" as const }));
+}
+
+/** Hover readout for one closed day, including how the dollars were built. */
+export function MarketValueTooltip({ point }: { point: VolumeHistoryPoint }) {
+  return (
+    <div
+      className="pointer-events-none absolute top-2 right-2 z-20 rounded-md border border-border bg-background/95 px-2 py-1 text-xs shadow-sm"
+      data-market-value-tooltip
+    >
+      <p>{formatChartDay(point.t)}</p>
+      <p className="num text-foreground">{formatUsdFull(point.volumeUsd)}</p>
+      <p className="mt-1 max-w-[16rem] leading-snug text-muted-foreground" data-market-value-method>
+        {MARKET_VALUE_METHOD_LINE}
+      </p>
+    </div>
+  );
 }
 
 /** Headline number, subtitle, and Public / Private / ETF-Index splits. */
@@ -50,6 +70,9 @@ export function MarketValueHeadline({ view }: { view: MarketValueRangeView }) {
       </p>
       <p className="mt-1 text-[11px] leading-snug text-muted-foreground" data-market-value-caption>
         {marketValueCaption(view)}
+      </p>
+      <p className="mt-1 text-[11px] leading-snug text-muted-foreground" data-market-value-method>
+        {MARKET_VALUE_METHOD_LINE}
       </p>
       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs" data-market-value-splits>
         {LANES.map(([id, label]) => {
@@ -207,15 +230,7 @@ export function MarketValuePlot({
         ) : null}
       </svg>
       <div aria-hidden="true" className="absolute inset-0 z-10 cursor-crosshair" />
-      {hover ? (
-        <div
-          className="pointer-events-none absolute top-2 right-2 z-20 rounded-md border border-border bg-background/95 px-2 py-1 text-xs shadow-sm"
-          data-market-value-tooltip
-        >
-          <p>{formatChartDay(hover.t)}</p>
-          <p className="num text-foreground">{formatUsdFull(hover.volumeUsd)}</p>
-        </div>
-      ) : null}
+      {hover ? <MarketValueTooltip point={hover} /> : null}
     </div>
   );
 }

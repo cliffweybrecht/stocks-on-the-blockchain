@@ -68,6 +68,13 @@ export interface OnchainMarketValueHistory {
 /** Shown with `—` when this range has no captured supply × price. */
 export const MISSING_MARKET_VALUE_NOTE = "No captured supply";
 
+/**
+ * Shown on the market-value headline and its hover tooltip.
+ * Outstanding supply includes issuer and bridge wallets, so it can sit above a published distributed figure.
+ */
+export const MARKET_VALUE_METHOD_LINE =
+  "Outstanding onchain supply x DEX price; includes tokens held by issuers/bridges, so can exceed distributed value.";
+
 export const EMPTY_ONCHAIN_MARKET_VALUE: OnchainMarketValueHistory = {
   lastClosedDay: "",
   snapshotDays: [],

@@ -7,15 +7,27 @@
       "t": 1791417600,
       "capturedAt": "2026-10-08T21:47:43.253Z",
       "holderCount": 1347043,
-      "supplyUsd": 6577881641.967646,
+      "supplyUsd": 1837836239.1666214,
+      "publicMarketValueUsd": 1517442922.4328463,
+      "privateMarketValueUsd": 123634531.70473458,
+      "etfMarketValueUsd": 196758785.02904123,
       "assetCount": 1779,
       "assetsWithHolders": 1778,
-      "assetsWithSupplyUsd": 127,
+      "assetsWithSupplyUsd": 117,
       "limits": [
         "Supply is public Solana RPC getTokenSupply. totalSupplyRaw is the raw amount, totalSupplyDecimals is the mint decimals, and totalSupply is uiAmountString so a Token-2022 scaled UI multiplier is kept. DexScreener prices that UI unit. amount/10^decimals is not substituted when uiAmountString is present.",
         "Holders are public Solana RPC getProgramAccounts on the mint owner (SPL Token or Token-2022), filtered by memcmp of the mint at offset 0, with dataSlice of the u64 amount at offset 64. Non-zero balances are counted. Token-2022 accounts are not dropped for extension size because dataSize is not filtered. A failed call stays null. The chain total sums those per-mint counts and is not unique wallets.",
-        "supplyUsd is decimal-adjusted total supply times the desk DexScreener price already on the asset. A missing price or supply leaves supplyUsd null. It is not volume."
+        "supplyUsd is decimal-adjusted total supply times the desk DexScreener price already on the asset. A missing price or supply leaves supplyUsd null. It is not volume.",
+        "2026-10-08 supplyUsd was restated to outstanding supply in the captured DEX price's unit. On Solana that unit is amount/10^decimals, not uiAmountString. A stored pool reserve under $1, and a verified sub-$1-liquidity clone, leaves supplyUsd null. This day's pool rows did not store priceUsd, so a qualifying mint keeps the captured desk price. The previous supplyUsd is on correction."
       ],
+      "correction": {
+        "supplyUsd": 6577881641.967646,
+        "publicMarketValueUsd": 3928277377.9900293,
+        "privateMarketValueUsd": 2405110061.108778,
+        "etfMarketValueUsd": 244494202.86883742,
+        "assetsWithSupplyUsd": 127,
+        "reason": "Restated to outstanding supply times the captured DEX price. Sub-$1 reserves and verified sub-$1-liquidity clones are null. This day's pools did not store priceUsd, so a qualifying mint keeps the captured desk price. Previous supplyUsd is on correction."
+      },
       "assets": [
         {
           "address": "XsszLiKRejZjtQmo2rMp3by4obgGvSVWGgFxYqU7dVu",
@@ -177,7 +189,9 @@
           "totalSupplyRaw": "378854535267",
           "totalSupplyDecimals": 9,
           "totalSupply": 380.133576114,
-          "supplyUsd": 133031.54629685543,
+          "circulatingSupply": 378.854535267,
+          "priceUsd": 349.96,
+          "supplyUsd": 132583.93316203932,
           "holderCount": 2049,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -185,8 +199,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:32.989Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:32.989Z",
+          "correction": {
+            "supplyUsd": 133031.54629685543,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
@@ -196,7 +216,9 @@
           "totalSupplyRaw": "15376223592754",
           "totalSupplyDecimals": 8,
           "totalSupply": 154264.88660493,
-          "supplyUsd": 52712311.75290459,
+          "circulatingSupply": 153762.23592754,
+          "priceUsd": 341.7,
+          "supplyUsd": 52540556.016440414,
           "holderCount": 38477,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -204,8 +226,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:23.549Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:23.549Z",
+          "correction": {
+            "supplyUsd": 52712311.75290459,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "Xs2XDRGh6AhivmYgaVa8woDGKGccR1WnnGnw9vqSWD9",
@@ -405,7 +433,9 @@
           "totalSupplyRaw": "13944909463991",
           "totalSupplyDecimals": 8,
           "totalSupply": 141885.51835718,
-          "supplyUsd": 14468066.306881644,
+          "circulatingSupply": 139449.09463991,
+          "priceUsd": 101.97,
+          "supplyUsd": 14219624.180431623,
           "holderCount": 208,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -413,8 +443,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:33.523Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:33.523Z",
+          "correction": {
+            "supplyUsd": 14468066.306881644,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "XsLnfjBZ8Sfu3bXRgimm6au1cWJhJYK9piFaQXgxXSS",
@@ -557,7 +593,9 @@
           "totalSupplyRaw": "3709999976482",
           "totalSupplyDecimals": 8,
           "totalSupply": 38147.07782711,
-          "supplyUsd": 7793257.264689438,
+          "circulatingSupply": 37099.99976482,
+          "priceUsd": 204.29500000000002,
+          "supplyUsd": 7579344.451953903,
           "holderCount": 77,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -565,8 +603,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:33.222Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:33.222Z",
+          "correction": {
+            "supplyUsd": 7793257.264689438,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "XsRvuD1mwpmu88JkSpgGa96dEabrWLsv49uAZXXpBMe",
@@ -2913,7 +2957,9 @@
           "totalSupplyRaw": "4558098197986",
           "totalSupplyDecimals": 8,
           "totalSupply": 45861.86648852,
-          "supplyUsd": 16683859.100526245,
+          "circulatingSupply": 45580.98197986,
+          "priceUsd": 363.78499999999997,
+          "supplyUsd": 16581677.529543368,
           "holderCount": 1049,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -2921,8 +2967,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:27.378Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:27.378Z",
+          "correction": {
+            "supplyUsd": 16683859.100526245,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "Xs5DtgsS6w7Ya6ESzKBoSC6EW9fEvtuensctD2w795p",
@@ -3198,7 +3250,9 @@
           "totalSupplyRaw": "16652537946606",
           "totalSupplyDecimals": 8,
           "totalSupply": 85117.15844227,
-          "supplyUsd": 6910662.093927901,
+          "circulatingSupply": 166525.37946606,
+          "priceUsd": 81.19,
+          "supplyUsd": 13520195.558849411,
           "holderCount": 437,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -3206,8 +3260,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:32.428Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:32.428Z",
+          "correction": {
+            "supplyUsd": 6910662.093927901,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "XsfLtqmidw4ouMrdWvH5usSs3r77Usm6rXGygxhRTjz",
@@ -3350,7 +3410,9 @@
           "totalSupplyRaw": "78587395188",
           "totalSupplyDecimals": 9,
           "totalSupply": 79.465796679,
-          "supplyUsd": 4589.94441617904,
+          "circulatingSupply": 78.587395188,
+          "priceUsd": 57.760000000000005,
+          "supplyUsd": 4539.20794605888,
           "holderCount": 40,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -3358,8 +3420,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:33.313Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:33.313Z",
+          "correction": {
+            "supplyUsd": 4589.94441617904,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "XswsQk4duEQmCbGzfqUUWYmi7pV7xpJ9eEmLHXCaEQP",
@@ -4262,16 +4330,24 @@
           "totalSupplyRaw": "780026498742721",
           "totalSupplyDecimals": 6,
           "totalSupply": 780026498.742721,
-          "supplyUsd": 1123238158.1895182,
+          "circulatingSupply": 780026498.742721,
+          "priceUsd": null,
+          "supplyUsd": null,
           "holderCount": 15,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
-            "supplyUsd": "dexscreener:dexMedianPriceUsd×solana-rpc:getTokenSupply",
+            "supplyUsd": null,
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
-            "price": "dexscreener:dexMedianPriceUsd"
+            "price": null
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:33.619Z"
+          "notes": [
+            "Previous supplyUsd cleared. This mint is a verified sub-$1-liquidity clone, so the captured price is not a market price."
+          ],
+          "capturedAt": "2026-10-08T21:48:33.619Z",
+          "correction": {
+            "supplyUsd": 1123238158.1895182,
+            "reason": "Previous supplyUsd cleared. This mint is a verified sub-$1-liquidity clone, so the captured price is not a market price."
+          }
         },
         {
           "address": "BLKKYfF41c6xRPrtX1rdYbxLE1xxEdZUnxQsB5hcZ8Nf",
@@ -6523,7 +6599,9 @@
           "totalSupplyRaw": "52899805460589",
           "totalSupplyDecimals": 8,
           "totalSupply": 581545.25772011,
-          "supplyUsd": 12904489.268809242,
+          "circulatingSupply": 528998.05460589,
+          "priceUsd": 22.19,
+          "supplyUsd": 11738466.831704699,
           "holderCount": 97,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -6531,8 +6609,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:28.728Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:28.728Z",
+          "correction": {
+            "supplyUsd": 12904489.268809242,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "XsD87ikehM9bu4pEdyT32TdMP2J5ph3F1uBCwEFdLUo",
@@ -8176,7 +8260,9 @@
           "totalSupplyRaw": "9478398467928",
           "totalSupplyDecimals": 8,
           "totalSupply": 97585.24792588,
-          "supplyUsd": 20966190.51687532,
+          "circulatingSupply": 94783.98467928,
+          "priceUsd": 214.85000000000002,
+          "supplyUsd": 20364339.10834331,
           "holderCount": 419,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -8184,8 +8270,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:32.178Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:32.178Z",
+          "correction": {
+            "supplyUsd": 20966190.51687532,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "XsrghaUHRttcx5gCB3amjyd4K1HJgYR9mE4VXskeB3n",
@@ -8632,7 +8724,9 @@
           "totalSupplyRaw": "198317243043956",
           "totalSupplyDecimals": 8,
           "totalSupply": 2012382.48034902,
-          "supplyUsd": 9458197.657640396,
+          "circulatingSupply": 1983172.43043956,
+          "priceUsd": 4.7,
+          "supplyUsd": 9320910.423065932,
           "holderCount": 4134,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -8640,8 +8734,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:27.134Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:27.134Z",
+          "correction": {
+            "supplyUsd": 9458197.657640396,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "Xs1wXKkamrcVCAhf3V9nej43Ew278Szc55zKUxJHYvN",
@@ -13059,7 +13159,9 @@
           "totalSupplyRaw": "71986311322213",
           "totalSupplyDecimals": 8,
           "totalSupply": 723684.98698379,
-          "supplyUsd": 18381598.669388264,
+          "circulatingSupply": 719863.11322213,
+          "priceUsd": 25.4,
+          "supplyUsd": 18284523.0758421,
           "holderCount": 21722,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -13067,8 +13169,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:19.338Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:19.338Z",
+          "correction": {
+            "supplyUsd": 18381598.669388264,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "XsSFgHPgZgYNSuz1ttNHNp8zUBBMZGngFcMMfKPK6JQ",
@@ -13154,7 +13262,9 @@
           "totalSupplyRaw": "662011787815",
           "totalSupplyDecimals": 9,
           "totalSupply": 663.64055305,
-          "supplyUsd": 235907.62559544877,
+          "circulatingSupply": 662.011787815,
+          "priceUsd": 355.475,
+          "supplyUsd": 235328.64027353717,
           "holderCount": 354,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -13162,8 +13272,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:33.417Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:33.417Z",
+          "correction": {
+            "supplyUsd": 235907.62559544877,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "XsCPL9dNWBMvFtTmwcCA5v3xWPSMEBCszbQdiLLq6aN",
@@ -13173,7 +13289,9 @@
           "totalSupplyRaw": "16040493626704",
           "totalSupplyDecimals": 8,
           "totalSupply": 160786.25891146,
-          "supplyUsd": 56137718.367641695,
+          "circulatingSupply": 160404.93626704,
+          "priceUsd": 349.145,
+          "supplyUsd": 56004581.47295568,
           "holderCount": 54802,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -13181,8 +13299,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:14.783Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:14.783Z",
+          "correction": {
+            "supplyUsd": 56137718.367641695,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "jcA9zXHWuTuDFDDDDYJTNhersed1B5etkuB6X9Eondo",
@@ -16707,7 +16831,9 @@
           "totalSupplyRaw": "7160318735489",
           "totalSupplyDecimals": 8,
           "totalSupply": 73005.78783732,
-          "supplyUsd": 29275466.93434099,
+          "circulatingSupply": 71603.18735489,
+          "priceUsd": 401.002,
+          "supplyUsd": 28713021.335685603,
           "holderCount": 114,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -16715,8 +16841,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:33.095Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:33.095Z",
+          "correction": {
+            "supplyUsd": 29275466.93434099,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "E5Gczsavxcomqf6Cw1sGCKLabL1xYD2FzKxVoB4ondo",
@@ -16745,7 +16877,9 @@
           "totalSupplyRaw": "4897713249951",
           "totalSupplyDecimals": 8,
           "totalSupply": 49831.33150398,
-          "supplyUsd": 16246160.190922072,
+          "circulatingSupply": 48977.13249951,
+          "priceUsd": 326.023,
+          "supplyUsd": 15967671.66888775,
           "holderCount": 1283,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -16753,8 +16887,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:33.581Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:33.581Z",
+          "correction": {
+            "supplyUsd": 16246160.190922072,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "XsCAXu7xTaZMG9b9KJhNWYapuvNjxPuE4SysZq8uvMq",
@@ -17277,7 +17417,9 @@
           "totalSupplyRaw": "21122266859021",
           "totalSupplyDecimals": 8,
           "totalSupply": 215987.87831721,
-          "supplyUsd": 19398951.291060217,
+          "circulatingSupply": 211222.66859021,
+          "priceUsd": 89.815,
+          "supplyUsd": 18970963.97942971,
           "holderCount": 5954,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -17285,8 +17427,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:24.367Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:24.367Z",
+          "correction": {
+            "supplyUsd": 19398951.291060217,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "XsAiRejKuvLAdq9KtedrMSrabz7SWdzKoVK6Qgac1Ki",
@@ -17923,7 +18071,9 @@
           "totalSupplyRaw": "1477994879211",
           "totalSupplyDecimals": 8,
           "totalSupply": 14858.20233615,
-          "supplyUsd": 17195991.89171984,
+          "circulatingSupply": 14779.94879211,
+          "priceUsd": 1157.34,
+          "supplyUsd": 17105425.935060587,
           "holderCount": 1523,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -17931,8 +18081,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:30.629Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:30.629Z",
+          "correction": {
+            "supplyUsd": 17195991.89171984,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "LMT3i1BHgixFqPUgcyteJhnEz2dpy9i3cYy4pi9BoeV",
@@ -18626,7 +18782,9 @@
           "totalSupplyRaw": "2814445286618",
           "totalSupplyDecimals": 8,
           "totalSupply": 28277.36100109,
-          "supplyUsd": 16968254.629119072,
+          "circulatingSupply": 28144.45286618,
+          "priceUsd": 600.065,
+          "supplyUsd": 16888501.109144304,
           "holderCount": 160,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -18634,8 +18792,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:32.728Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:32.728Z",
+          "correction": {
+            "supplyUsd": 16968254.629119072,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "Xs4f5WDx1EECdjJMXja4BJXUcZyHGdtLLWj9KSJxDYe",
@@ -18740,7 +18904,9 @@
           "totalSupplyRaw": "5463805559909",
           "totalSupplyDecimals": 8,
           "totalSupply": 55795.32788999,
-          "supplyUsd": 13481825.078058284,
+          "circulatingSupply": 54638.05559909,
+          "priceUsd": 241.63,
+          "supplyUsd": 13202193.374408117,
           "holderCount": 24069,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -18748,8 +18914,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:20.355Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:20.355Z",
+          "correction": {
+            "supplyUsd": 13481825.078058284,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "Xs9GioXYhWaR1Pt7HLiNRgkHynWdPPWcdZWdUCHkZNj",
@@ -19006,7 +19178,9 @@
           "totalSupplyRaw": "7237676835381",
           "totalSupplyDecimals": 8,
           "totalSupply": 72583.15384466,
-          "supplyUsd": 52415235.008959696,
+          "circulatingSupply": 72376.76835381,
+          "priceUsd": 722.1405,
+          "supplyUsd": 52266195.68740453,
           "holderCount": 39279,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -19014,8 +19188,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:18.072Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:18.072Z",
+          "correction": {
+            "supplyUsd": 52415235.008959696,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "Xs2UKGPTD9S19rXkSqwJ6ufxAtuCU9Ww3wQumk9MvCn",
@@ -19728,7 +19908,9 @@
           "totalSupplyRaw": "18006894427890",
           "totalSupplyDecimals": 8,
           "totalSupply": 180368.76645842,
-          "supplyUsd": 52615372.863585696,
+          "circulatingSupply": 180068.9442789,
+          "priceUsd": 291.71,
+          "supplyUsd": 52527911.73559791,
           "holderCount": 383,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -19736,8 +19918,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:28.612Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:28.612Z",
+          "correction": {
+            "supplyUsd": 52615372.863585696,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "Xs1U17KN2ddEgLKgd1YaSK3xFeu4uaHZc8Q5SnpsJZe",
@@ -19804,7 +19992,9 @@
           "totalSupplyRaw": "10496963427302",
           "totalSupplyDecimals": 8,
           "totalSupply": 105589.31101254,
-          "supplyUsd": 55511468.47862265,
+          "circulatingSupply": 104969.63427302,
+          "priceUsd": 525.73,
+          "supplyUsd": 55185685.8263548,
           "holderCount": 35404,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -19812,8 +20002,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:15.980Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:15.980Z",
+          "correction": {
+            "supplyUsd": 55511468.47862265,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "XsTBgHm23t7FUnpFqupiQ28hvVgioZnnXXJY8uLG49u",
@@ -20203,7 +20399,9 @@
           "totalSupplyRaw": "4555451781",
           "totalSupplyDecimals": 6,
           "totalSupply": 4555.938935,
-          "supplyUsd": 4725488.202466026,
+          "circulatingSupply": 4555.451781,
+          "priceUsd": 1037.2150000000001,
+          "supplyUsd": 4724982.919029916,
           "holderCount": 6219,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -20211,8 +20409,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:15.039Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:15.039Z",
+          "correction": {
+            "supplyUsd": 4725488.202466026,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "Fz9edBpaURPPzpKVRR1A8PENYDEgHqwx5D5th28ondo",
@@ -20298,7 +20502,9 @@
           "totalSupplyRaw": "4219794164426",
           "totalSupplyDecimals": 8,
           "totalSupply": 42214.88828004,
-          "supplyUsd": 46944855.43737709,
+          "circulatingSupply": 42197.94164426,
+          "priceUsd": 1112.045,
+          "supplyUsd": 46926010.01579111,
           "holderCount": 244,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -20306,8 +20512,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:32.286Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:32.286Z",
+          "correction": {
+            "supplyUsd": 46944855.43737709,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "XsVEdRV17tPdXHamAi6TVFjyeSRHnCjdY5GXqAaevuk",
@@ -20792,7 +21004,9 @@
           "totalSupplyRaw": "15505684087196",
           "totalSupplyDecimals": 8,
           "totalSupply": 1550568.4087196,
-          "supplyUsd": 1096267370.6488442,
+          "circulatingSupply": 155056.84087196,
+          "priceUsd": 707.0099999999999,
+          "supplyUsd": 109626737.06488442,
           "holderCount": 3454,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -20800,8 +21014,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:28.198Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:28.198Z",
+          "correction": {
+            "supplyUsd": 1096267370.6488442,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "Xsa4x5GF2utijLC8uY1DmPYKRpeHk9BT2QXkQD2ZRyz",
@@ -20887,16 +21107,24 @@
           "totalSupplyRaw": "780003642436572",
           "totalSupplyDecimals": 6,
           "totalSupply": 780003642.436572,
-          "supplyUsd": 184158.85997927462,
+          "circulatingSupply": 780003642.436572,
+          "priceUsd": null,
+          "supplyUsd": null,
           "holderCount": 15,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
-            "supplyUsd": "dexscreener:dexMedianPriceUsd×solana-rpc:getTokenSupply",
+            "supplyUsd": null,
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
-            "price": "dexscreener:dexMedianPriceUsd"
+            "price": null
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:34.858Z"
+          "notes": [
+            "Previous supplyUsd cleared. This mint is a verified sub-$1-liquidity clone, so the captured price is not a market price."
+          ],
+          "capturedAt": "2026-10-08T21:48:34.858Z",
+          "correction": {
+            "supplyUsd": 184158.85997927462,
+            "reason": "Previous supplyUsd cleared. This mint is a verified sub-$1-liquidity clone, so the captured price is not a market price."
+          }
         },
         {
           "address": "FiR8RG4JVBoyFMVu9KvRGWS4NmJZ4SBGatEc1xKSbonk",
@@ -20906,16 +21134,24 @@
           "totalSupplyRaw": "780019802125399",
           "totalSupplyDecimals": 6,
           "totalSupply": 780019802.125399,
-          "supplyUsd": 184084.67330159416,
+          "circulatingSupply": 780019802.125399,
+          "priceUsd": null,
+          "supplyUsd": null,
           "holderCount": 16,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
-            "supplyUsd": "dexscreener:dexMedianPriceUsd×solana-rpc:getTokenSupply",
+            "supplyUsd": null,
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
-            "price": "dexscreener:dexMedianPriceUsd"
+            "price": null
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:34.776Z"
+          "notes": [
+            "Previous supplyUsd cleared. This mint is a verified sub-$1-liquidity clone, so the captured price is not a market price."
+          ],
+          "capturedAt": "2026-10-08T21:48:34.776Z",
+          "correction": {
+            "supplyUsd": 184084.67330159416,
+            "reason": "Previous supplyUsd cleared. This mint is a verified sub-$1-liquidity clone, so the captured price is not a market price."
+          }
         },
         {
           "address": "HGC9HUKamUkq5p91z9SdppRC6fZLjx8LWXDf5pZbjups",
@@ -20925,16 +21161,24 @@
           "totalSupplyRaw": "780067779747185",
           "totalSupplyDecimals": 6,
           "totalSupply": 780067779.747185,
-          "supplyUsd": 293695519.07481515,
+          "circulatingSupply": 780067779.747185,
+          "priceUsd": null,
+          "supplyUsd": null,
           "holderCount": 13,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
-            "supplyUsd": "dexscreener:dexMedianPriceUsd×solana-rpc:getTokenSupply",
+            "supplyUsd": null,
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
-            "price": "dexscreener:dexMedianPriceUsd"
+            "price": null
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:33.667Z"
+          "notes": [
+            "Previous supplyUsd cleared. This mint is a verified sub-$1-liquidity clone, so the captured price is not a market price."
+          ],
+          "capturedAt": "2026-10-08T21:48:33.667Z",
+          "correction": {
+            "supplyUsd": 293695519.07481515,
+            "reason": "Previous supplyUsd cleared. This mint is a verified sub-$1-liquidity clone, so the captured price is not a market price."
+          }
         },
         {
           "address": "NKEda5nHhNGgjrE9nDdMvaEmkmJ96qqxzBVZEcKmjSg",
@@ -21457,7 +21701,9 @@
           "totalSupplyRaw": "32126449340906",
           "totalSupplyDecimals": 8,
           "totalSupply": 321811.02753754,
-          "supplyUsd": 74487989.4889767,
+          "circulatingSupply": 321264.49340906,
+          "priceUsd": 231.465,
+          "supplyUsd": 74361485.96692808,
           "holderCount": 182085,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -21465,8 +21711,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:14.576Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:14.576Z",
+          "correction": {
+            "supplyUsd": 74487989.4889767,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "XsrH4d2jVBUbZx5YJ3CyPsiN84ugZQGKCbJAoDn9qEd",
@@ -21533,7 +21785,9 @@
           "totalSupplyRaw": "31615040973613",
           "totalSupplyDecimals": 8,
           "totalSupply": 327865.36024254,
-          "supplyUsd": 12632652.330145067,
+          "circulatingSupply": 316150.40973613,
+          "priceUsd": 38.53,
+          "supplyUsd": 12181275.287133088,
           "holderCount": 1342,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -21541,8 +21795,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:32.462Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:32.462Z",
+          "correction": {
+            "supplyUsd": 12632652.330145067,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "Xso5KNztULjrQZQGzJQEwGcwBLSneMDpunzSu243URw",
@@ -22068,7 +22328,9 @@
           "totalSupplyRaw": "1901610717948",
           "totalSupplyDecimals": 9,
           "totalSupply": 2826.049673834,
-          "supplyUsd": 5591438.191419153,
+          "circulatingSupply": 1901.610717948,
+          "priceUsd": 1978.5349999999999,
+          "supplyUsd": 3762403.361835246,
           "holderCount": 49674,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -22076,8 +22338,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:55:28.786Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:55:28.786Z",
+          "correction": {
+            "supplyUsd": 5591438.191419153,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "ou1uE526v7zmUYP2qCb2LJgfXAyWAtWS9SETtr8ondo",
@@ -22220,7 +22488,9 @@
           "totalSupplyRaw": "9046594008397",
           "totalSupplyDecimals": 8,
           "totalSupply": 91308.96209804,
-          "supplyUsd": 12558634.646964421,
+          "circulatingSupply": 90465.94008397,
+          "priceUsd": 137.54,
+          "supplyUsd": 12442685.399149232,
           "holderCount": 1087,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -22228,8 +22498,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:28.343Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:28.343Z",
+          "correction": {
+            "supplyUsd": 12558634.646964421,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "Xsmvwpih3UPQPMvhXSgWbSjwk6uGg49W8oc8ccX3MKu",
@@ -22980,7 +23256,9 @@
           "totalSupplyRaw": "10425693102442",
           "totalSupplyDecimals": 8,
           "totalSupply": 107843.37926885,
-          "supplyUsd": 14185178.892128184,
+          "circulatingSupply": 104256.93102442,
+          "priceUsd": 131.535,
+          "supplyUsd": 13713435.422297085,
           "holderCount": 174,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -22988,8 +23266,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:30.427Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:30.427Z",
+          "correction": {
+            "supplyUsd": 14185178.892128184,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "PFER6ENqP8r8NF3CqVt4mFowxsin3V5MLidBNQFCC3x",
@@ -23037,7 +23321,9 @@
           "totalSupplyRaw": "60970388931370",
           "totalSupplyDecimals": 8,
           "totalSupply": 642452.89658436,
-          "supplyUsd": 17683515.978484508,
+          "circulatingSupply": 609703.8893137,
+          "priceUsd": 27.524999999999995,
+          "supplyUsd": 16782099.55335959,
           "holderCount": 148,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -23045,8 +23331,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:32.279Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:32.279Z",
+          "correction": {
+            "supplyUsd": 17683515.978484508,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "XsTnXvRqrDisLoYpLDUowPx2HLhd6p44ZAbEKyGsL3g",
@@ -23132,7 +23424,9 @@
           "totalSupplyRaw": "10658388263688",
           "totalSupplyDecimals": 8,
           "totalSupply": 108881.71490344,
-          "supplyUsd": 16412285.29597003,
+          "circulatingSupply": 106583.88263688,
+          "priceUsd": 150.735,
+          "supplyUsd": 16065921.549270106,
           "holderCount": 209,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -23140,8 +23434,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:32.625Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:32.625Z",
+          "correction": {
+            "supplyUsd": 16412285.29597003,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "XsbXgdyGd1uFridzLBSRPfVbNfayY9e6t9s8MsHjfFw",
@@ -24348,7 +24648,9 @@
           "totalSupplyRaw": "8436000748064",
           "totalSupplyDecimals": 8,
           "totalSupply": 84651.56206915,
-          "supplyUsd": 63513220.50486255,
+          "circulatingSupply": 84360.00748064,
+          "priceUsd": 750.29,
+          "supplyUsd": 63294470.01264938,
           "holderCount": 39669,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -24356,8 +24658,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:54:59.523Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:54:59.523Z",
+          "correction": {
+            "supplyUsd": 63513220.50486255,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "XsMa4WMzAvmgiK39y64BCc9rYmeBoty4aF7E43r6Sw1",
@@ -24557,16 +24865,24 @@
           "totalSupplyRaw": "780023741005461",
           "totalSupplyDecimals": 6,
           "totalSupply": 780023741.005461,
-          "supplyUsd": 3376.722774812641,
+          "circulatingSupply": 780023741.005461,
+          "priceUsd": null,
+          "supplyUsd": null,
           "holderCount": 19,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
-            "supplyUsd": "dexscreener:dexMedianPriceUsd×solana-rpc:getTokenSupply",
+            "supplyUsd": null,
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
-            "price": "dexscreener:dexMedianPriceUsd"
+            "price": null
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:28.297Z"
+          "notes": [
+            "Previous supplyUsd cleared. The stored deepest pool reserve is under $1, so the captured price is not a market price."
+          ],
+          "capturedAt": "2026-10-08T21:48:28.297Z",
+          "correction": {
+            "supplyUsd": 3376.722774812641,
+            "reason": "Previous supplyUsd cleared. The stored deepest pool reserve is under $1, so the captured price is not a market price."
+          }
         },
         {
           "address": "RACEyWiM2ztEZcJx2AHXU2eWjhxU57x3vXn92b39dLD",
@@ -27027,7 +27343,9 @@
           "totalSupplyRaw": "7816829855335",
           "totalSupplyDecimals": 8,
           "totalSupply": 78175.14984029,
-          "supplyUsd": 13672833.707066722,
+          "circulatingSupply": 78168.29855335,
+          "priceUsd": 174.9,
+          "supplyUsd": 13671635.416980917,
           "holderCount": 104,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -27035,8 +27353,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:32.163Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:32.163Z",
+          "correction": {
+            "supplyUsd": 13672833.707066722,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "XstZ31nh6HKMkkNgEcXqAJuF2CFmexYkM4tGaNtUVWK",
@@ -27882,7 +28206,9 @@
           "totalSupplyRaw": "8742494443210",
           "totalSupplyDecimals": 9,
           "totalSupply": 43712.47221605,
-          "supplyUsd": 26826125.636628803,
+          "circulatingSupply": 8742.49444321,
+          "priceUsd": 613.6949999999999,
+          "supplyUsd": 5365225.12732576,
           "holderCount": 9787,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -27890,8 +28216,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:55:30.106Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:55:30.106Z",
+          "correction": {
+            "supplyUsd": 26826125.636628803,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "Xsgrm4D6VBTfDx5bs7GNdjtmWDgZ8V79r3YpsYwf5py",
@@ -27939,16 +28271,24 @@
           "totalSupplyRaw": "780026892791487",
           "totalSupplyDecimals": 6,
           "totalSupply": 780026892.791487,
-          "supplyUsd": 6673130.067831171,
+          "circulatingSupply": 780026892.791487,
+          "priceUsd": null,
+          "supplyUsd": null,
           "holderCount": 17,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
-            "supplyUsd": "dexscreener:dexMedianPriceUsd×solana-rpc:getTokenSupply",
+            "supplyUsd": null,
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
-            "price": "dexscreener:dexMedianPriceUsd"
+            "price": null
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:55:29.942Z"
+          "notes": [
+            "Previous supplyUsd cleared. This mint is a verified sub-$1-liquidity clone, so the captured price is not a market price."
+          ],
+          "capturedAt": "2026-10-08T21:55:29.942Z",
+          "correction": {
+            "supplyUsd": 6673130.067831171,
+            "reason": "Previous supplyUsd cleared. This mint is a verified sub-$1-liquidity clone, so the captured price is not a market price."
+          }
         },
         {
           "address": "FoDrP1nj6zFNL5nfUb7rFeS4n7wTHwS8dY5SoBLyjups",
@@ -27958,16 +28298,24 @@
           "totalSupplyRaw": "780200703047562",
           "totalSupplyDecimals": 6,
           "totalSupply": 780200703.047562,
-          "supplyUsd": 293901604.83801657,
+          "circulatingSupply": 780200703.047562,
+          "priceUsd": null,
+          "supplyUsd": null,
           "holderCount": 16,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
-            "supplyUsd": "dexscreener:dexMedianPriceUsd×solana-rpc:getTokenSupply",
+            "supplyUsd": null,
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
-            "price": "dexscreener:dexMedianPriceUsd"
+            "price": null
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:55:30.427Z"
+          "notes": [
+            "Previous supplyUsd cleared. This mint is a verified sub-$1-liquidity clone, so the captured price is not a market price."
+          ],
+          "capturedAt": "2026-10-08T21:55:30.427Z",
+          "correction": {
+            "supplyUsd": 293901604.83801657,
+            "reason": "Previous supplyUsd cleared. This mint is a verified sub-$1-liquidity clone, so the captured price is not a market price."
+          }
         },
         {
           "address": "SPCXxcqXj6e5dJDVNovHN8744zkbhM2bYudU45BimGb",
@@ -28129,7 +28477,9 @@
           "totalSupplyRaw": "1518203800549",
           "totalSupplyDecimals": 9,
           "totalSupply": 1532.585855652,
-          "supplyUsd": 1195401.6415500036,
+          "circulatingSupply": 1518.203800549,
+          "priceUsd": 779.99,
+          "supplyUsd": 1184183.7823902145,
           "holderCount": 1918,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -28137,8 +28487,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:55:01.085Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:55:01.085Z",
+          "correction": {
+            "supplyUsd": 1195401.6415500036,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
@@ -28148,7 +28504,9 @@
           "totalSupplyRaw": "9523078638069",
           "totalSupplyDecimals": 8,
           "totalSupply": 95774.98845056,
-          "supplyUsd": 74590518.75518063,
+          "circulatingSupply": 95230.78638069,
+          "priceUsd": 778.8099999999998,
+          "supplyUsd": 74166688.74114516,
           "holderCount": 82809,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -28156,8 +28514,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:54:58.283Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:54:58.283Z",
+          "correction": {
+            "supplyUsd": 74590518.75518063,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "SQQQAa3gUxgnqcEsdjPA4RQNQBgB97TnG2hJhk2WaGE",
@@ -28490,7 +28854,9 @@
           "totalSupplyRaw": "46991927572307",
           "totalSupplyDecimals": 8,
           "totalSupply": 513063.88543857,
-          "supplyUsd": 55636647.736958526,
+          "circulatingSupply": 469919.27572307,
+          "priceUsd": 108.44,
+          "supplyUsd": 50958046.25940971,
           "holderCount": 4889,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -28498,8 +28864,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:22.390Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:22.390Z",
+          "correction": {
+            "supplyUsd": 55636647.736958526,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "XsaQGz41BEQkS9xAB44uvUtuXcdLJAXEU1dogEzWMZ8",
@@ -29573,16 +29945,24 @@
           "totalSupplyRaw": "780160680856267",
           "totalSupplyDecimals": 6,
           "totalSupply": 780160680.856267,
-          "supplyUsd": 833991767.8353493,
+          "circulatingSupply": 780160680.856267,
+          "priceUsd": null,
+          "supplyUsd": null,
           "holderCount": 18,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
-            "supplyUsd": "dexscreener:dexMedianPriceUsd×solana-rpc:getTokenSupply",
+            "supplyUsd": null,
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
-            "price": "dexscreener:dexMedianPriceUsd"
+            "price": null
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:55:30.253Z"
+          "notes": [
+            "Previous supplyUsd cleared. This mint is a verified sub-$1-liquidity clone, so the captured price is not a market price."
+          ],
+          "capturedAt": "2026-10-08T21:55:30.253Z",
+          "correction": {
+            "supplyUsd": 833991767.8353493,
+            "reason": "Previous supplyUsd cleared. This mint is a verified sub-$1-liquidity clone, so the captured price is not a market price."
+          }
         },
         {
           "address": "6ZnJQLZjMqodq2FMjJvD19AEsEmYZ56u8myECQY8nj59",
@@ -29592,16 +29972,24 @@
           "totalSupplyRaw": "953134545984859",
           "totalSupplyDecimals": 6,
           "totalSupply": 953134545.984859,
-          "supplyUsd": 1028.4321751176628,
+          "circulatingSupply": 953134545.984859,
+          "priceUsd": null,
+          "supplyUsd": null,
           "holderCount": 26,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
-            "supplyUsd": "dexscreener:dexMedianPriceUsd×solana-rpc:getTokenSupply",
+            "supplyUsd": null,
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
-            "price": "dexscreener:dexMedianPriceUsd"
+            "price": null
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:55:30.304Z"
+          "notes": [
+            "Previous supplyUsd cleared. This mint is a verified sub-$1-liquidity clone, so the captured price is not a market price."
+          ],
+          "capturedAt": "2026-10-08T21:55:30.304Z",
+          "correction": {
+            "supplyUsd": 1028.4321751176628,
+            "reason": "Previous supplyUsd cleared. This mint is a verified sub-$1-liquidity clone, so the captured price is not a market price."
+          }
         },
         {
           "address": "GsJP2MKbBTAgeRWQhPJJ96XiX4BTMugZnvD67zGojups",
@@ -29611,16 +29999,24 @@
           "totalSupplyRaw": "780290321452628",
           "totalSupplyDecimals": 6,
           "totalSupply": 780290321.452628,
-          "supplyUsd": 1123618062.8917842,
+          "circulatingSupply": 780290321.452628,
+          "priceUsd": null,
+          "supplyUsd": null,
           "holderCount": 16,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
-            "supplyUsd": "dexscreener:dexMedianPriceUsd×solana-rpc:getTokenSupply",
+            "supplyUsd": null,
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
-            "price": "dexscreener:dexMedianPriceUsd"
+            "price": null
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:55:30.391Z"
+          "notes": [
+            "Previous supplyUsd cleared. This mint is a verified sub-$1-liquidity clone, so the captured price is not a market price."
+          ],
+          "capturedAt": "2026-10-08T21:55:30.391Z",
+          "correction": {
+            "supplyUsd": 1123618062.8917842,
+            "reason": "Previous supplyUsd cleared. This mint is a verified sub-$1-liquidity clone, so the captured price is not a market price."
+          }
         },
         {
           "address": "oPAiAikWTaFj9RYoRFD35ccfwhnMcB3ThgBZRHSkjTZ",
@@ -29744,7 +30140,9 @@
           "totalSupplyRaw": "28722992855264",
           "totalSupplyDecimals": 8,
           "totalSupply": 577817.74671553,
-          "supplyUsd": 93619186.95834361,
+          "circulatingSupply": 287229.92855264,
+          "priceUsd": 162.022,
+          "supplyUsd": 46537567.48395584,
           "holderCount": 756,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -29752,8 +30150,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:55:00.265Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:55:00.265Z",
+          "correction": {
+            "supplyUsd": 93619186.95834361,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "XsmhtZrbnheSvztwRW82ZqZqMjaRnAQqyWERFh1A4Kr",
@@ -30048,7 +30452,9 @@
           "totalSupplyRaw": "4647121423480",
           "totalSupplyDecimals": 8,
           "totalSupply": 46758.75245321,
-          "supplyUsd": 21745905.96840456,
+          "circulatingSupply": 46471.2142348,
+          "priceUsd": 465.066,
+          "supplyUsd": 21612181.719321493,
           "holderCount": 341,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -30056,8 +30462,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:30.662Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:30.662Z",
+          "correction": {
+            "supplyUsd": 21745905.96840456,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "XsWV8voFNehNEbuBW8cEAMWwjicXCYskUT4616PFZ6a",
@@ -30827,7 +31239,9 @@
           "totalSupplyRaw": "4939093987265",
           "totalSupplyDecimals": 8,
           "totalSupply": 50741.67680319,
-          "supplyUsd": 19380783.45497842,
+          "circulatingSupply": 49390.93987265,
+          "priceUsd": 381.95000000000005,
+          "supplyUsd": 18864869.48435867,
           "holderCount": 1901,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -30835,8 +31249,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:30.798Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:30.798Z",
+          "correction": {
+            "supplyUsd": 19380783.45497842,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "XsAhRsoTzG6cpxTxvH9qSze3Kwg2gmYbABi5xqrGm7G",
@@ -32195,7 +32615,9 @@
           "totalSupplyRaw": "4599132809443",
           "totalSupplyDecimals": 8,
           "totalSupply": 46298.08652495,
-          "supplyUsd": 17473823.81624663,
+          "circulatingSupply": 45991.32809443,
+          "priceUsd": 377.42,
+          "supplyUsd": 17358047.04939977,
           "holderCount": 2191,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -32203,8 +32625,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:30.965Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:30.965Z",
+          "correction": {
+            "supplyUsd": 17473823.81624663,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "XsLT5v4DAd1kwViPQh3SZiT5kzJfNLxzJxJN1dySZTe",
@@ -32803,7 +33231,9 @@
           "totalSupplyRaw": "13294787620200",
           "totalSupplyDecimals": 8,
           "totalSupply": 133903.0483316,
-          "supplyUsd": 15000087.280202495,
+          "circulatingSupply": 132947.876202,
+          "priceUsd": 112.02199999999999,
+          "supplyUsd": 14893086.987900445,
           "holderCount": 2053,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -32811,8 +33241,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:30.471Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:30.471Z",
+          "correction": {
+            "supplyUsd": 15000087.280202495,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "XscZ13Vr2dH9GV8vxVAgFsXz2YMoDCAz3QanuCcwsr5",
@@ -33449,7 +33885,9 @@
           "totalSupplyRaw": "11974773294998",
           "totalSupplyDecimals": 8,
           "totalSupply": 121861.15716047,
-          "supplyUsd": 20713959.49413669,
+          "circulatingSupply": 119747.73294998,
+          "priceUsd": 169.98,
+          "supplyUsd": 20354719.6468376,
           "holderCount": 3444,
           "sources": {
             "totalSupply": "solana-rpc:getTokenSupply",
@@ -33457,8 +33895,14 @@
             "holderCount": "solana-rpc:getProgramAccounts:token-2022",
             "price": "dexscreener:dexMedianPriceUsd"
           },
-          "notes": [],
-          "capturedAt": "2026-10-08T21:48:30.313Z"
+          "notes": [
+            "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          ],
+          "capturedAt": "2026-10-08T21:48:30.313Z",
+          "correction": {
+            "supplyUsd": 20713959.49413669,
+            "reason": "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept."
+          }
         },
         {
           "address": "XsAk6BoV4kBXUM6WXodKyM21CN92G9jArwAzFvbh3LX",

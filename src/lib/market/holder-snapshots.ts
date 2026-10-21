@@ -56,6 +56,14 @@ export interface HolderSnapshotAsset {
   /** Why a field is null. Absent when every requested field was read. */
   notes: string[];
   capturedAt: string;
+  /** Previous `supplyUsd` when this row was restated. Readers use `supplyUsd`, not this. */
+  correction?: HolderSupplyCorrection;
+}
+
+/** Previous market-value dollars kept when a stored row is restated. */
+export interface HolderSupplyCorrection {
+  supplyUsd: number | null;
+  reason: string;
 }
 
 export interface HolderSnapshotDay {
@@ -79,6 +87,18 @@ export interface HolderSnapshotDay {
   /** Chain-level source choice and its limits for this capture. */
   limits: string[];
   assets: HolderSnapshotAsset[];
+  /** Previous day dollars when this row was restated. Readers use `supplyUsd`, not this. */
+  correction?: HolderDaySupplyCorrection;
+}
+
+/** Previous day totals kept when a stored holder row is restated. */
+export interface HolderDaySupplyCorrection {
+  supplyUsd: number | null;
+  publicMarketValueUsd: number | null;
+  privateMarketValueUsd: number | null;
+  etfMarketValueUsd: number | null;
+  assetsWithSupplyUsd: number;
+  reason: string;
 }
 
 export interface HolderSnapshotFile {
@@ -266,6 +286,148 @@ export function holderSnapshotTotals(assets: readonly HolderSnapshotAsset[]): {
     assetCount: assets.length,
     assetsWithHolders: assets.filter((asset) => asset.holderCount !== null).length,
     assetsWithSupplyUsd: assets.filter((asset) => asset.supplyUsd !== null).length,
+  };
+}
+
+const HOLDER_RESTATEMENT_LIMIT =
+  "2026-10-08 supplyUsd was restated to outstanding supply in the captured DEX price's unit. On Solana that unit is amount/10^decimals, not uiAmountString. A stored pool reserve under $1, and a verified sub-$1-liquidity clone, leaves supplyUsd null. This day's pool rows did not store priceUsd, so a qualifying mint keeps the captured desk price. The previous supplyUsd is on correction.";
+
+export const HOLDER_SUPPLY_UNIT_REASON =
+  "Previous supplyUsd priced the Token-2022 UI amount. Restated to amount/10^decimals times that captured DEX price. This day's pools did not store priceUsd, so the captured price is kept.";
+
+export const HOLDER_SUPPLY_DUST_REASON =
+  "Previous supplyUsd cleared. This mint is a verified sub-$1-liquidity clone, so the captured price is not a market price.";
+
+export const HOLDER_SUPPLY_LIQUIDITY_REASON =
+  "Previous supplyUsd cleared. The stored deepest pool reserve is under $1, so the captured price is not a market price.";
+
+/**
+ * One-time restatement of a stored holder day.
+ * Outstanding supply is amount/10^decimals. A known reserve under $1, or a
+ * verified sub-$1 clone, clears supplyUsd. Pool prices were not stored on the
+ * historical row, so a qualifying mint keeps the captured desk price
+ * (previous supplyUsd / UI supply). A day that already has `correction` is
+ * returned unchanged.
+ */
+export function restateHolderSupplyDay(
+  day: HolderSnapshotDay,
+  options: {
+    /** Deepest stored pool reserve. Missing key means unknown, which is not $0. */
+    liquidityByAddress?: ReadonlyMap<string, number | null>;
+    /** Mints already checked as sub-$1 clones when this day did not store a reserve. */
+    dustCloneAddresses?: ReadonlySet<string>;
+  } = {},
+): HolderSnapshotDay {
+  if (day.correction) return day;
+  const originalLanes = marketValueLanes(day.assets);
+  const dust = options.dustCloneAddresses ?? new Set<string>();
+  let changed = false;
+  const assets = day.assets.map((asset) => {
+    const next = restateHolderSupplyAsset(asset, options.liquidityByAddress, dust);
+    if (next !== asset) changed = true;
+    return next;
+  });
+  const lanes = changed ? marketValueLanes(assets) : originalLanes;
+  const supplyUsd = changed ? sumReported(assets.map((asset) => asset.supplyUsd)) : day.supplyUsd;
+  const assetsWithSupplyUsd = changed
+    ? assets.filter((asset) => asset.supplyUsd !== null).length
+    : day.assetsWithSupplyUsd;
+  const correction: HolderDaySupplyCorrection = {
+    supplyUsd: day.supplyUsd,
+    publicMarketValueUsd: asUsd(day.publicMarketValueUsd) ?? originalLanes.publicMarketValueUsd,
+    privateMarketValueUsd: asUsd(day.privateMarketValueUsd) ?? originalLanes.privateMarketValueUsd,
+    etfMarketValueUsd: asUsd(day.etfMarketValueUsd) ?? originalLanes.etfMarketValueUsd,
+    assetsWithSupplyUsd: day.assetsWithSupplyUsd,
+    reason: changed
+      ? "Restated to outstanding supply times the captured DEX price. Sub-$1 reserves and verified sub-$1-liquidity clones are null. This day's pools did not store priceUsd, so a qualifying mint keeps the captured desk price. Previous supplyUsd is on correction."
+      : "Reviewed under outstanding supply times the captured DEX price, with a stored reserve under $1 left null. No asset supplyUsd changed. Previous day total is on correction.",
+  };
+  const limits = day.limits.includes(HOLDER_RESTATEMENT_LIMIT) ? day.limits : [...day.limits, HOLDER_RESTATEMENT_LIMIT];
+  return {
+    date: day.date,
+    t: day.t,
+    capturedAt: day.capturedAt,
+    holderCount: day.holderCount,
+    supplyUsd,
+    publicMarketValueUsd: lanes.publicMarketValueUsd,
+    privateMarketValueUsd: lanes.privateMarketValueUsd,
+    etfMarketValueUsd: lanes.etfMarketValueUsd,
+    assetCount: day.assetCount,
+    assetsWithHolders: day.assetsWithHolders,
+    assetsWithSupplyUsd,
+    limits,
+    correction,
+    assets,
+  };
+}
+
+function restateHolderSupplyAsset(
+  asset: HolderSnapshotAsset,
+  liquidityByAddress: ReadonlyMap<string, number | null> | undefined,
+  dust: ReadonlySet<string>,
+): HolderSnapshotAsset {
+  if (asset.correction || asset.supplyUsd === null) return asset;
+  const ui = finiteSupply(asset.totalSupply);
+  const decimals = integerDecimals(asset.totalSupplyDecimals);
+  const raw = rawUint(asset.totalSupplyRaw);
+  const unscaled = raw !== null && decimals !== null ? decimalAdjustedSupply(BigInt(raw), decimals) : null;
+  const key = holderAddressKey(asset.address);
+  const dustClone = dust.has(asset.address) || dust.has(key);
+  const liquidity = liquidityByAddress?.has(key) ? liquidityByAddress.get(key) : undefined;
+  const thin = typeof liquidity === "number" && liquidity < MARKET_PRICE_MIN_LIQUIDITY_USD;
+  if (dustClone || thin) {
+    return correctedHolderAsset(asset, {
+      supplyUsd: null,
+      circulatingSupply: unscaled ?? finiteSupply(asset.circulatingSupply),
+      priceUsd: null,
+      reason: dustClone ? HOLDER_SUPPLY_DUST_REASON : HOLDER_SUPPLY_LIQUIDITY_REASON,
+    });
+  }
+  if (ui === null || ui === 0 || unscaled === null) return asset;
+  if (Math.abs(unscaled - ui) / ui < 1e-9) return asset;
+  const priceUsd = asset.supplyUsd / ui;
+  const supplyUsd = priceTimesSupply(priceUsd, unscaled);
+  if (supplyUsd === null) return asset;
+  return correctedHolderAsset(asset, {
+    supplyUsd,
+    circulatingSupply: unscaled,
+    priceUsd,
+    reason: HOLDER_SUPPLY_UNIT_REASON,
+  });
+}
+
+function correctedHolderAsset(
+  asset: HolderSnapshotAsset,
+  next: {
+    supplyUsd: number | null;
+    circulatingSupply: number | null;
+    priceUsd: number | null;
+    reason: string;
+  },
+): HolderSnapshotAsset {
+  const sources: HolderSnapshotSources = { ...asset.sources };
+  if (next.supplyUsd === null) {
+    sources.supplyUsd = null;
+    sources.price = null;
+  }
+  const note = next.reason;
+  const notes = asset.notes.includes(note) ? asset.notes : [...asset.notes, note];
+  return {
+    address: asset.address,
+    symbol: asset.symbol,
+    issuer: asset.issuer,
+    instrumentKind: asset.instrumentKind,
+    totalSupplyRaw: asset.totalSupplyRaw,
+    totalSupplyDecimals: asset.totalSupplyDecimals,
+    totalSupply: asset.totalSupply,
+    circulatingSupply: next.circulatingSupply,
+    priceUsd: next.priceUsd,
+    supplyUsd: next.supplyUsd,
+    holderCount: asset.holderCount,
+    sources,
+    notes,
+    capturedAt: asset.capturedAt,
+    correction: { supplyUsd: asset.supplyUsd, reason: next.reason },
   };
 }
 
