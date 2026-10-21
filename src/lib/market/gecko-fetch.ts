@@ -12,6 +12,8 @@ export const GECKO_MAX_ATTEMPTS = 6;
 export const GECKO_TIMEOUT_MS = 30_000;
 export const GECKO_BACKOFF_BASE_MS = 1000;
 export const GECKO_BACKOFF_CAP_MS = 60_000;
+/** Map value wrapper so a later day can skip a terminal miss without pacing. */
+export const GECKO_CACHED_FAILURE = "__geckoCachedFailure";
 
 export interface GeckoPace {
   nextAt: number;
@@ -52,8 +54,8 @@ export async function fetchGeckoJson(input: {
   minIntervalMs?: number;
   timeoutMs?: number;
 }): Promise<GeckoFetchResult> {
-  const cached = input.cache?.get(input.url);
-  if (cached !== undefined) return { ok: true, body: cached, attempts: 0, status: 200 };
+  const cached = readGeckoCache(input.cache?.get(input.url));
+  if (cached) return cached;
 
   const sleep = input.sleep ?? ((ms: number) => new Promise((resolve) => setTimeout(resolve, ms)));
   const now = input.now ?? Date.now;
@@ -70,7 +72,14 @@ export async function fetchGeckoJson(input: {
     try {
       const response = await input.fetchImpl(input.url, { signal: AbortSignal.timeout(timeoutMs) });
       const status = response.status;
-      if (status === 404) return { ok: false, reason: "not-found", status, attempts: attempt + 1 };
+      if (status === 404) {
+        return rememberGeckoFailure(input.cache, input.url, {
+          ok: false,
+          reason: "not-found",
+          status,
+          attempts: attempt + 1,
+        });
+      }
       if (status === 429 || status >= 500) {
         lastStatus = status;
         if (attempt + 1 < maxAttempts) {
@@ -80,9 +89,21 @@ export async function fetchGeckoJson(input: {
           input.pace.nextAt = Math.max(input.pace.nextAt, now() + minIntervalMs);
           continue;
         }
-        return { ok: false, reason: "retries-exhausted", status, attempts: attempt + 1 };
+        return rememberGeckoFailure(input.cache, input.url, {
+          ok: false,
+          reason: "retries-exhausted",
+          status,
+          attempts: attempt + 1,
+        });
       }
-      if (!response.ok) return { ok: false, reason: "http-error", status, attempts: attempt + 1 };
+      if (!response.ok) {
+        return rememberGeckoFailure(input.cache, input.url, {
+          ok: false,
+          reason: "http-error",
+          status,
+          attempts: attempt + 1,
+        });
+      }
       const body = await response.json();
       input.cache?.set(input.url, body);
       return { ok: true, body, attempts: attempt + 1, status };
@@ -94,8 +115,35 @@ export async function fetchGeckoJson(input: {
         input.pace.nextAt = Math.max(input.pace.nextAt, now() + minIntervalMs);
         continue;
       }
-      return { ok: false, reason: "retries-exhausted", status: lastStatus, attempts: attempt + 1 };
+      return rememberGeckoFailure(input.cache, input.url, {
+        ok: false,
+        reason: "retries-exhausted",
+        status: lastStatus,
+        attempts: attempt + 1,
+      });
     }
   }
-  return { ok: false, reason: "retries-exhausted", status: lastStatus, attempts: maxAttempts };
+  return rememberGeckoFailure(input.cache, input.url, {
+    ok: false,
+    reason: "retries-exhausted",
+    status: lastStatus,
+    attempts: maxAttempts,
+  });
+}
+
+function readGeckoCache(cached: unknown): GeckoFetchResult | null {
+  if (cached === undefined) return null;
+  if (cached && typeof cached === "object" && GECKO_CACHED_FAILURE in cached) {
+    return (cached as { [GECKO_CACHED_FAILURE]: GeckoFetchFailure })[GECKO_CACHED_FAILURE];
+  }
+  return { ok: true, body: cached, attempts: 0, status: 200 };
+}
+
+function rememberGeckoFailure(
+  cache: Map<string, unknown> | undefined,
+  url: string,
+  failure: GeckoFetchFailure,
+): GeckoFetchFailure {
+  cache?.set(url, { [GECKO_CACHED_FAILURE]: failure });
+  return failure;
 }

@@ -61,6 +61,58 @@ describe("fetchGeckoJson", () => {
     expect(calls).toBe(1);
   });
 
+  it("remembers a 404 so a later day does not pace another request", async () => {
+    let calls = 0;
+    const cache = new Map<string, unknown>();
+    const fetchImpl = async () => {
+      calls += 1;
+      return jsonResponse({}, 404);
+    };
+    const first = await fetchGeckoJson({
+      url: "https://api.geckoterminal.com/missing",
+      fetchImpl,
+      cache,
+      pace: { nextAt: 0 },
+      sleep: async () => {},
+      now: () => 0,
+      minIntervalMs: 0,
+    });
+    const second = await fetchGeckoJson({
+      url: "https://api.geckoterminal.com/missing",
+      fetchImpl,
+      cache,
+      pace: { nextAt: 0 },
+      sleep: async () => {},
+      now: () => 0,
+      minIntervalMs: 0,
+    });
+    expect(first).toMatchObject({ ok: false, reason: "not-found" });
+    expect(second).toMatchObject({ ok: false, reason: "not-found", attempts: 1 });
+    expect(calls).toBe(1);
+  });
+
+  it("returns a seeded terminal failure without calling fetch", async () => {
+    let calls = 0;
+    const cache = new Map<string, unknown>();
+    cache.set("https://api.geckoterminal.com/missing", {
+      __geckoCachedFailure: { ok: false, reason: "not-found", status: 404, attempts: 1 },
+    });
+    const result = await fetchGeckoJson({
+      url: "https://api.geckoterminal.com/missing",
+      fetchImpl: async () => {
+        calls += 1;
+        return jsonResponse({}, 200);
+      },
+      cache,
+      pace: { nextAt: 0 },
+      sleep: async () => {},
+      now: () => 0,
+      minIntervalMs: 0,
+    });
+    expect(result).toMatchObject({ ok: false, reason: "not-found", status: 404, attempts: 1 });
+    expect(calls).toBe(0);
+  });
+
   it("returns retries-exhausted after timeouts", async () => {
     let calls = 0;
     const result = await fetchGeckoJson({
