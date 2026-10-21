@@ -307,10 +307,15 @@ describe("loadEquityCardRangeMetrics", () => {
     expect(second.volumes).toEqual(first.volumes);
     expect(second.liquidity).toEqual(first.liquidity);
     expect(second.liquidity).not.toBe(first.liquidity);
+    expect(second.prices).toEqual(first.prices);
+    expect(second.prices).not.toBe(first.prices);
+    expect(second.volumeSeries).toEqual(first.volumeSeries);
     expect(equityCardLiquidityForRange(first.liquidity, AAPL_X, "7d")?.days).toBe(4);
     expect(await loadEquityCardRangeMetrics("not-a-chain", NOW)).toEqual({
       volumes: {},
       liquidity: { lastClosedDay: "", snapshotDays: [], byAsset: {} },
+      volumeSeries: { snapshotDays: [], byAsset: {} },
+      prices: { latestSnapshotDay: "", snapshotDays: [], byAsset: {} },
     });
     expect((await loadEquityCardRangeMetrics(BNB_CHAIN_ID, NOW)).liquidity.byAsset).toEqual({});
     expect((await loadEquityCardRangeMetrics(ROBINHOOD_CHAIN_ID, NOW)).liquidity.byAsset).toEqual({});

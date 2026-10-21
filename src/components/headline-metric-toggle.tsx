@@ -1,10 +1,21 @@
 "use client";
 
+import type { AssetSortKey } from "@/lib/market/aggregate";
 import { isMarketValueHidden } from "@/lib/site/visibility";
 
-export type HeadlineMetric = "volume" | "market-value";
+export type HeadlineMetric = "volume" | "market-value" | "liquidity";
 
-/** Compact Volume | Market value control. It sits on the left of the headline card. */
+/** Card sort that follows the headline switch. */
+export function headlineMetricSortKey(metric: HeadlineMetric): AssetSortKey {
+  if (metric === "liquidity") return "displayedLiquidityUsd";
+  if (metric === "market-value") return "marketValueUsd";
+  return "volume24hUsd";
+}
+
+/**
+ * Compact Volume | Market value | Liquidity control.
+ * `marketvalue` in NEXT_PUBLIC_HIDE_SECTIONS leaves Volume | Liquidity.
+ */
 export function HeadlineMetricToggle({
   metric,
   onChange,
@@ -12,7 +23,18 @@ export function HeadlineMetricToggle({
   metric: HeadlineMetric;
   onChange: (metric: HeadlineMetric) => void;
 }) {
-  if (isMarketValueHidden()) return null;
+  const hideMarket = isMarketValueHidden();
+  const options: ReadonlyArray<readonly [HeadlineMetric, string]> = hideMarket
+    ? [
+        ["volume", "Volume"],
+        ["liquidity", "Liquidity"],
+      ]
+    : [
+        ["volume", "Volume"],
+        ["market-value", "Market value"],
+        ["liquidity", "Liquidity"],
+      ];
+  const selected = hideMarket && metric === "market-value" ? "volume" : metric;
   return (
     <div
       className="mb-2 inline-flex items-center rounded-full bg-white/5 p-0.5"
@@ -20,20 +42,15 @@ export function HeadlineMetricToggle({
       aria-label="Headline metric"
       data-headline-metric-toggle
     >
-      {(
-        [
-          ["volume", "Volume"],
-          ["market-value", "Market value"],
-        ] as const
-      ).map(([id, label]) => (
+      {options.map(([id, label]) => (
         <button
           key={id}
           type="button"
           data-headline-metric={id}
-          aria-pressed={metric === id}
+          aria-pressed={selected === id}
           onClick={() => onChange(id)}
           className={`rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap ${
-            metric === id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            selected === id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
           }`}
         >
           {label}

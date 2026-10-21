@@ -2,7 +2,7 @@ import { BASE_CHAIN_ID, BNB_CHAIN_ID, ROBINHOOD_CHAIN_ID, SOLANA_CHAIN_ID } from
 
 export const HIDEABLE_DESKS = ["perps", "lending"] as const;
 
-/** Section key for the market-value card, sort, and Volume | Market value switch. */
+/** Section key for the market-value card and the Volume | Market value | Liquidity switch. */
 export const MARKET_VALUE_SECTION = "marketvalue";
 
 export type HideableDesk = (typeof HIDEABLE_DESKS)[number];

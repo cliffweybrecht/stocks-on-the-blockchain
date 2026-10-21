@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AssetLogo } from "@/components/asset-logo";
 import { CopyAddressIcon } from "@/components/copy-address";
 import { PinButton } from "@/components/pin-button";
+import { PriceSparkline } from "@/components/price-sparkline";
 import { VolumeSparkline } from "@/components/volume-sparkline";
 import {
   equityCardDayMovePct,
@@ -17,7 +18,7 @@ import type { EquityCardLiquidityPoint } from "@/lib/market/equity-card-range-li
 import type { AssetMarketValuePoint } from "@/lib/market/onchain-market-value";
 import type { AssetSortKey } from "@/lib/market/aggregate";
 import { formatPct, formatPrice, formatUsdCompact } from "@/lib/market/format";
-import type { AssetSummary, VolumeHistoryPoint } from "@/lib/market/types";
+import type { AssetSummary, PriceHistoryPoint, VolumeHistoryPoint } from "@/lib/market/types";
 
 const warmedAssetRoutes = new Set<string>();
 
@@ -56,6 +57,8 @@ export function EquityCard({
   rangeVolume = null,
   rangeLiquidity = null,
   rangeMarketValue = null,
+  rangePrice = null,
+  rangeVolumeSeries = null,
   enableFavorites,
   pinned,
   onTogglePin,
@@ -85,18 +88,42 @@ export function EquityCard({
     recorded: boolean;
     series?: readonly AssetMarketValuePoint[];
   } | null;
+  /**
+   * Captured closes inside the selected range.
+   * One close has a price and no move. No close leaves the price to the live spot.
+   */
+  rangePrice?: {
+    priceUsd: number | null;
+    changePct: number | null;
+    series?: readonly PriceHistoryPoint[];
+  } | null;
+  /** Recorded daily volume inside a closed range. 24H keeps the hourly series. */
+  rangeVolumeSeries?: readonly VolumeHistoryPoint[] | null;
   enableFavorites?: boolean;
   pinned?: boolean;
   onTogglePin?: () => void;
 }) {
-  const priceUsd = equityCardSpotPriceUsd(asset);
+  const livePriceUsd = equityCardSpotPriceUsd(asset);
+  const capturedPriceUsd =
+    rangePrice?.priceUsd !== null &&
+    rangePrice?.priceUsd !== undefined &&
+    Number.isFinite(rangePrice.priceUsd) &&
+    rangePrice.priceUsd > 0
+      ? rangePrice.priceUsd
+      : null;
   const liquidityMode = sortKey === "displayedLiquidityUsd";
   const marketMode = sortKey === "marketValueUsd";
   const sparklinePoints = marketMode
     ? equityCardMarketValueSeries(rangeMarketValue?.series)
     : liquidityMode
       ? equityCardLiquiditySeries(rangeLiquidity?.series)
-      : equityCardDayVolumeSeries(dayVolumeSeries);
+      : null;
+  const rangeVolumeSparkline =
+    !marketMode && !liquidityMode && rangeVolumeSeries && rangeVolumeSeries.length >= 2 ? rangeVolumeSeries : null;
+  const priceSparkline =
+    !marketMode && !liquidityMode && !rangeVolumeSparkline && rangePrice?.series && rangePrice.series.length >= 2
+      ? rangePrice.series
+      : null;
   const headline = equityCardHeadline(
     asset,
     sortKey,
@@ -126,6 +153,14 @@ export function EquityCard({
         ? "close"
         : "average"
       : "missing";
+  const priceUsd = rangeId === "24h" ? (livePriceUsd ?? capturedPriceUsd) : (capturedPriceUsd ?? livePriceUsd);
+  const rangeMove = equityCardDayMovePct(rangePrice?.changePct);
+  const dayMove = equityCardDayMovePct(asset.priceChange24hPct);
+  const priceMove = rangeId === "24h" ? (dayMove ?? rangeMove) : rangeMove;
+  const hourlySparkline =
+    !marketMode && !liquidityMode && !priceSparkline && !rangeVolumeSparkline
+      ? equityCardDayVolumeSeries(dayVolumeSeries)
+      : null;
 
   return (
     <article
@@ -183,21 +218,34 @@ export function EquityCard({
       ) : null}
       <div className="relative z-10 mt-auto flex min-w-0 items-end gap-2 pt-4 pointer-events-none">
         <div className="flex min-w-0 items-baseline gap-2">
-          <p className="num min-w-0 truncate text-sm text-neutral-200">{formatPrice(priceUsd)}</p>
-          <DayMove value={asset.priceChange24hPct} />
+          <p className="num min-w-0 truncate text-sm text-neutral-200" data-card-price>
+            {formatPrice(priceUsd)}
+          </p>
+          <DayMove value={priceMove} />
         </div>
         <span className="ml-auto shrink-0">
-          {sparklinePoints ? (
+          {priceSparkline ? (
+            <PriceSparkline
+              points={priceSparkline}
+              span="range"
+              label={`${asset.symbol} ${rangeId.toUpperCase()} price`}
+            />
+          ) : sparklinePoints ? (
             <VolumeSparkline
               points={sparklinePoints}
               label={
                 marketMode
                   ? `${asset.symbol} market value`
-                  : liquidityMode
-                    ? `${asset.symbol} ${rangeId.toUpperCase()} liquidity`
-                    : `${asset.symbol} 24h volume trend`
+                  : `${asset.symbol} ${rangeId.toUpperCase()} liquidity`
               }
             />
+          ) : rangeVolumeSparkline ? (
+            <VolumeSparkline
+              points={rangeVolumeSparkline}
+              label={`${asset.symbol} ${rangeId.toUpperCase()} volume`}
+            />
+          ) : hourlySparkline ? (
+            <VolumeSparkline points={hourlySparkline} label={`${asset.symbol} 24h volume trend`} />
           ) : null}
         </span>
       </div>

@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { EquityCard } from "./equity-card";
-import { formatUsdCompact } from "@/lib/market/format";
+import { formatPct, formatPrice, formatUsdCompact } from "@/lib/market/format";
 import type { AssetSummary } from "@/lib/market/types";
 
 function asset(partial: Partial<AssetSummary> = {}): AssetSummary {
@@ -177,5 +177,98 @@ describe("EquityCard range headline", () => {
     expect(missing).not.toContain(formatUsdCompact(12_000));
     expect(missing).not.toContain(formatUsdCompact(4_000));
     expect(missing).not.toContain("Holders");
+  });
+
+  it("shows the captured range price, its direction, and a rounded price chart", () => {
+    const changePct = ((217.95 - 231.465) / 231.465) * 100;
+    const html = renderToStaticMarkup(
+      createElement(EquityCard, {
+        asset: asset({ symbol: "NVDAx", dexMedianPriceUsd: null, priceChange24hPct: null, volume24hUsd: 422_200_000 }),
+        href: "/chains/solana/assets/NVDAx",
+        rangeVolume: { id: "30d", volumeUsd: 422_200_000, days: 27 },
+        rangePrice: {
+          priceUsd: 217.95,
+          changePct,
+          series: [
+            { t: 1, priceUsd: 231.465 },
+            { t: 2, priceUsd: 217.95 },
+          ],
+        },
+        rangeVolumeSeries: [
+          { t: 1, volumeUsd: 4_000_000 },
+          { t: 2, volumeUsd: 6_000_000 },
+        ],
+      }),
+    );
+    expect(html).toContain("30D vol");
+    expect(html).toContain(formatPrice(217.95));
+    expect(html).toContain('data-price-change="down"');
+    expect(html).toContain(formatPct(changePct));
+    expect(html).toContain('aria-label="NVDAx 30D volume"');
+    expect(html).toContain('stroke-linecap="round"');
+    expect(html).not.toContain("$0.00");
+    expect(html).not.toContain("+0.00%");
+  });
+
+  it("uses a rounded price chart when the range has closes but no volume series", () => {
+    const html = renderToStaticMarkup(
+      createElement(EquityCard, {
+        asset: asset({ symbol: "NVDAx", dexMedianPriceUsd: null, priceChange24hPct: null }),
+        href: "/chains/solana/assets/NVDAx",
+        rangeVolume: { id: "30d", volumeUsd: null, days: 0 },
+        rangePrice: {
+          priceUsd: 217.95,
+          changePct: -5,
+          series: [
+            { t: 1, priceUsd: 230 },
+            { t: 2, priceUsd: 217.95 },
+          ],
+        },
+      }),
+    );
+    expect(html).toContain(formatPrice(217.95));
+    expect(html).toContain('data-price-change="down"');
+    expect(html).toContain('aria-label="NVDAx 30D price"');
+    expect(html).toContain('stroke-linejoin="round"');
+  });
+
+  it("draws the range volume chart when only one close was captured", () => {
+    const html = renderToStaticMarkup(
+      createElement(EquityCard, {
+        asset: asset({ symbol: "CRCLx", dexMedianPriceUsd: null, priceChange24hPct: 4.2, volume24hUsd: 1_000 }),
+        href: "/chains/solana/assets/CRCLx",
+        rangeVolume: { id: "30d", volumeUsd: 136_700_000, days: 27 },
+        rangePrice: { priceUsd: 86.085, changePct: null, series: [{ t: 2, priceUsd: 86.085 }] },
+        rangeVolumeSeries: [
+          { t: 1, volumeUsd: 1_000_000 },
+          { t: 2, volumeUsd: 2_000_000 },
+        ],
+      }),
+    );
+    expect(html).toContain(formatPrice(86.085));
+    expect(html).not.toContain('data-price-change');
+    expect(html).not.toContain("+4.20%");
+    expect(html).toContain('aria-label="CRCLx 30D volume"');
+    expect(html).toContain('stroke-linecap="round"');
+    expect(html).not.toContain("$0.00");
+  });
+
+  it("leaves the price row a dash when the range has no close and no live spot", () => {
+    const html = renderToStaticMarkup(
+      createElement(EquityCard, {
+        asset: asset({ symbol: "TSLAx", dexMedianPriceUsd: null, priceChange24hPct: null }),
+        href: "/chains/solana/assets/TSLAx",
+        rangeVolume: { id: "30d", volumeUsd: 85_400_000, days: 20 },
+        rangePrice: null,
+        rangeVolumeSeries: [
+          { t: 1, volumeUsd: 10 },
+          { t: 2, volumeUsd: 12 },
+        ],
+      }),
+    );
+    expect(html).toMatch(/data-card-price="true">\s*—\s*<\/p>/);
+    expect(html).not.toContain('data-price-change');
+    expect(html).toContain('aria-label="TSLAx 30D volume"');
+    expect(html).not.toContain("$0.00");
   });
 });
