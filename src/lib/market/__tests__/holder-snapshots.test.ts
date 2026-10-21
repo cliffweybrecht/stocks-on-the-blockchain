@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { BSTOCKS_SEED } from "../bnb-bstocks-seed";
+import { withBstockSeed } from "../holder-snapshot-job";
 import {
   buildHolderSnapshotAsset,
   combineHolderDeskPoints,
@@ -345,5 +347,24 @@ describe("snapshot asset shape", () => {
     expect(row.holderCount).toBeNull();
     expect(row.supplyUsd).toBeNull();
     expect(row.instrumentKind).toBe("equity");
+  });
+});
+
+describe("bStocks seed", () => {
+  const seed = BSTOCKS_SEED.map((row) => ({
+    address: row.address,
+    symbol: row.symbol,
+    issuer: "bStocks" as const,
+    instrumentKind: row.kind,
+    priceUsd: null,
+    displayedLiquidityUsd: null,
+  }));
+
+  it("fills the issuer only when the live registry returned none", () => {
+    expect(seed.some((row) => row.symbol === "CRCLB")).toBe(true);
+    expect(seed.find((row) => row.symbol === "QQQB")?.instrumentKind).toBe("etf");
+    expect(seed.find((row) => row.symbol === "SPCXB")?.instrumentKind).toBe("private");
+    expect(withBstockSeed([], seed)).toHaveLength(seed.length);
+    expect(withBstockSeed([seed[0]!], seed)).toHaveLength(1);
   });
 });

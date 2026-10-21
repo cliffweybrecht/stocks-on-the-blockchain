@@ -1,6 +1,8 @@
 import { mapWithConcurrency } from "./async-pool";
 import { loadBaseChainMarkets } from "./base-chain-markets";
-import { loadBnbChainMarkets } from "./bnb-chain-markets";
+import { DEFAULT_BNB_DEX_BASE_URL, loadBnbChainMarkets } from "./bnb-chain-markets";
+import { BSTOCKS_SEED } from "./bnb-bstocks-seed";
+import { BNB_DEX_CHAIN_SLUG, BSTOCKS_ISSUER_LABEL, buildBnbMarketLanes, type BnbListedToken } from "./bnb-markets";
 import { createSolanaMarketDataSource, isSolanaMarketEnabled, type MarketEnv } from "./factory";
 import {
   DEXSCREENER_PRICE_SOURCE,
@@ -29,6 +31,8 @@ import {
   type HolderSnapshotDay,
   type HolderUniverseAsset,
 } from "./holder-snapshots";
+import { chunkValues, DEXSCREENER_TOKEN_BATCH_SIZE } from "./solana-discover";
+import { unwrapDexScreenerPairs } from "./map-solana";
 import { utcInstantForDayKey } from "./volume-snapshots";
 import { DEFAULT_GECKOTERMINAL_BASE_URL } from "./solana-geckoterminal";
 import type { FetchLike } from "./solana-http";
@@ -102,6 +106,52 @@ function fromSummary(asset: AssetSummary): HolderUniverseAsset | null {
   };
 }
 
+/**
+ * Jumper's bStocks catalog 403s from this host. When the live registry has
+ * no bStocks row, the volume writer's seed is the name list. DexScreener
+ * still has to price each contract. A miss stays null.
+ */
+export function withBstockSeed(
+  rows: readonly HolderUniverseAsset[],
+  seed: readonly HolderUniverseAsset[],
+): HolderUniverseAsset[] {
+  if (rows.some((row) => row.issuer === "bStocks")) return dedupeUniverse(rows);
+  return dedupeUniverse([...rows, ...seed]);
+}
+
+export async function loadBstockSeedUniverse(fetchImpl: FetchLike = fetch): Promise<HolderUniverseAsset[]> {
+  const tokens: BnbListedToken[] = BSTOCKS_SEED.map((row) => ({
+    address: row.address,
+    symbol: row.symbol,
+    name: row.name,
+    issuer: BSTOCKS_ISSUER_LABEL,
+    kind: row.kind,
+    logoUrl: null,
+  }));
+  const dexBase = DEFAULT_BNB_DEX_BASE_URL.replace(/\/+$/, "");
+  const pairs = [];
+  for (const addresses of chunkValues(
+    tokens.map((token) => token.address),
+    DEXSCREENER_TOKEN_BATCH_SIZE,
+  )) {
+    try {
+      const response = await fetchImpl(`${dexBase}/tokens/v1/${BNB_DEX_CHAIN_SLUG}/${addresses.join(",")}`, {
+        headers: { accept: "application/json" },
+      });
+      const payload = response.ok ? await response.json() : null;
+      pairs.push(...unwrapDexScreenerPairs(payload));
+    } catch {
+      // That batch stays unpriced. Supply can still be read.
+    }
+  }
+  const lanes = buildBnbMarketLanes(tokens, pairs, { volumeHydrated: pairs.length > 0 });
+  return dedupeUniverse(
+    [...lanes.assets, ...lanes.etfAssets, ...lanes.privateAssets]
+      .map(fromSummary)
+      .filter((row): row is HolderUniverseAsset => row !== null),
+  );
+}
+
 function dedupeUniverse(assets: readonly HolderUniverseAsset[]): HolderUniverseAsset[] {
   const byAddress = new Map<string, HolderUniverseAsset>();
   for (const asset of assets) {
@@ -145,11 +195,13 @@ export async function loadHolderUniverse(
   }
   if (chainId === "bnb") {
     const catalog = await loadBnbChainMarkets();
-    return dedupeUniverse(
+    const rows = dedupeUniverse(
       [...catalog.assets, ...catalog.etfAssets, ...catalog.privateAssets]
         .map(fromSummary)
         .filter((row): row is HolderUniverseAsset => row !== null),
     );
+    if (rows.some((row) => row.issuer === "bStocks")) return rows;
+    return withBstockSeed(rows, await loadBstockSeedUniverse());
   }
   const catalog = await loadRobinhoodChainMarkets();
   return dedupeUniverse(

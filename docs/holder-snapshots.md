@@ -76,7 +76,7 @@ The writer uses the desk's existing loaders and does not add tokens:
 
 - Solana: the live classified desk (`getChain("solana")`), with `SOLANA_MARKET_ENABLED=true`
 - Base: `loadBaseChainMarkets`
-- BNB Chain: `loadBnbChainMarkets`
+- BNB Chain: `loadBnbChainMarkets`. When that registry has no bStocks row (Jumper returned 403 on 2026-10-20), the capture also reads `BSTOCKS_SEED` from the volume writer. Those contracts are not given a carried-forward price. DexScreener still has to quote them, and a miss stays null.
 - Robinhood Chain: `loadRobinhoodChainMarkets`
 
 Each row keeps that loader's address, symbol, issuer, instrument kind, and DexScreener price.
