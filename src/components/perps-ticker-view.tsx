@@ -2,7 +2,9 @@
 
 import { useState, type PointerEvent } from "react";
 import Link from "next/link";
+import { DateAxisLabels } from "@/components/date-axis-labels";
 import { CHART_PLOT_FRAME_CLASS, DESK_CHART_STROKE, monotoneLinePath } from "@/lib/desk/chart-curve";
+import { dateAxisRangeForCount, selectDateAxisLabelTicks } from "@/lib/desk/date-axis";
 import {
   VOLUME_CHART_HEIGHT,
   VOLUME_CHART_INNER_H,
@@ -78,6 +80,7 @@ function SeriesChart({
     return { ...row, cx, y: yOf(row.amount) };
   });
   const curve = bars.length >= 2 ? monotoneLinePath(bars.map((bar) => ({ x: bar.cx, y: bar.y }))) : "";
+  const dateLabels = selectDateAxisLabelTicks(bars, dateAxisRangeForCount(bars.length), (bar) => bar.cx);
   const hovered = hover === null ? null : bars.find((bar) => bar.index === hover) ?? null;
 
   function hoverFromClient(plot: HTMLDivElement, clientX: number) {
@@ -124,11 +127,12 @@ function SeriesChart({
         {curve ? (
           <path d={curve} fill="none" stroke={DESK_CHART_STROKE} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
         ) : null}
-        {bars.map((bar) => (
-          <text key={`${bar.point.date}-label`} x={bar.cx} y={VOLUME_CHART_HEIGHT - 8} textAnchor="middle" className="fill-muted-foreground" fontSize="10">
-            {formatChartDay(bar.point.t)}
-          </text>
-        ))}
+        <DateAxisLabels
+          ticks={dateLabels.map((bar) => bar.point.t)}
+          x={(tick) => dateLabels.find((bar) => bar.point.t === tick)?.cx ?? 0}
+          chartHeight={VOLUME_CHART_HEIGHT}
+          label={formatChartDay}
+        />
         {hovered ? <circle cx={hovered.cx} cy={hovered.y} r="4.5" fill={DESK_CHART_STROKE} /> : null}
       </svg>
       {hovered ? (

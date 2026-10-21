@@ -171,16 +171,23 @@ describe("DailyVolumeChart closed ranges", () => {
       return [...html.matchAll(/data-volume-tick="([^"]+)"/g)].map((match) => match[1]);
     };
     expect(ticksOf("7d")).toEqual(["Sep 23", "Sep 24", "Sep 25", "Sep 26", "Sep 27", "Sep 28", "Sep 29"]);
-    expect(ticksOf("14d")).toEqual([
-      "Sep 22",
-      "Sep 23",
-      "Sep 24",
-      "Sep 25",
-      "Sep 26",
-      "Sep 27",
-      "Sep 28",
-      "Sep 29",
-    ]);
+    expect(ticksOf("14d")).toEqual(["Sep 23", "Sep 25", "Sep 27", "Sep 29"]);
+    const fourteenHtml = renderToStaticMarkup(
+      createElement(DailyVolumeChart, {
+        history: history(points),
+        hourlyHistory: history([], "No hourly snapshots."),
+        rolling24h: live,
+        initialRange: "14d",
+      }),
+    );
+    const tickTags = [...fourteenHtml.matchAll(/<text\b[^>]*>/g)]
+      .map((match) => match[0])
+      .filter((tag) => tag.includes("data-volume-tick="));
+    expect(tickTags.length).toBe(4);
+    for (const tag of tickTags) {
+      expect(tag).toContain('y="272"');
+      expect(tag).toContain('font-size="10"');
+    }
     const sevenHtml = renderToStaticMarkup(
       createElement(DailyVolumeChart, {
         history: history(points),
