@@ -21,6 +21,7 @@ import {
   type VolumeChartRangeId,
 } from "@/lib/market/daily-volume-view";
 import { marketValueRangeView } from "@/lib/market/onchain-market-value";
+import { isMarketValueHidden } from "@/lib/site/visibility";
 import {
   snapshotDeskDaysForRange,
   snapshotDeskDisplayedLiquidity,
@@ -59,7 +60,7 @@ export function SnapshotVolumeDesk({
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((frac) => map.maxY * frac);
   const closedPaths = monotoneVolumePaths(visible, map, VOLUME_CHART_PAD.top + VOLUME_CHART_INNER_H);
   const showHeadline = headline.volumeUsd !== null;
-  const showMarket = metric === "market-value";
+  const showMarket = !isMarketValueHidden() && metric === "market-value";
   const marketView = useMemo(() => marketValueRangeView(marketValue, range), [marketValue, range]);
   const marketPoints = useMemo(() => marketValueChartPoints(marketView), [marketView]);
   const gradientId = `${desk.chainId}-volume-area`;

@@ -1,5 +1,7 @@
 "use client";
 
+import { isMarketValueHidden } from "@/lib/site/visibility";
+
 export type HeadlineMetric = "volume" | "market-value";
 
 /** Compact Volume | Market value control. It sits on the left of the headline card. */
@@ -10,6 +12,7 @@ export function HeadlineMetricToggle({
   metric: HeadlineMetric;
   onChange: (metric: HeadlineMetric) => void;
 }) {
+  if (isMarketValueHidden()) return null;
   return (
     <div
       className="mb-2 inline-flex items-center rounded-full bg-white/5 p-0.5"

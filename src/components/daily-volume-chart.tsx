@@ -62,6 +62,7 @@ import type { EquityVolumeHistoryResult, VolumeHistoryPoint } from "@/lib/market
 import { easternRollingHourStarts } from "@/lib/market/volume-hourly-snapshots";
 import { ASSET_BACKFILL_DESK_SOURCE, backfillHeadlineNote } from "@/lib/market/asset-backfill-desk";
 import { marketValueRangeView } from "@/lib/market/onchain-market-value";
+import { isMarketValueHidden } from "@/lib/site/visibility";
 import { closedSnapshotVolumePoints } from "@/lib/market/volume-snapshots";
 
 /** Absolute rolling-24h totals. A gap between Eastern hours breaks the curve. */
@@ -346,7 +347,7 @@ export function DailyVolumeChart({
     : volumeChartXTicks(visible);
   const plotBottom = VOLUME_CHART_PAD.top + VOLUME_CHART_INNER_H;
   const closedPaths = monotoneVolumePaths(visible, map, plotBottom);
-  const showMarket = metric === "market-value";
+  const showMarket = !isMarketValueHidden() && metric === "market-value";
   const marketView = useMemo(() => marketValueRangeView(marketValue, range), [marketValue, range]);
   const marketPoints = useMemo(() => marketValueChartPoints(marketView), [marketView]);
 

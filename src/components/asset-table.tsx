@@ -20,6 +20,7 @@ import {
 } from "@/lib/market/equity-card-range-volume";
 import { assetMatchesSearch } from "@/lib/market/asset-search";
 import { deskSortOptions } from "@/lib/desk/desk-sort";
+import { isMarketValueHidden } from "@/lib/site/visibility";
 import { solanaChainHref } from "@/lib/desk/solana-chain-href";
 import {
   ALL_ISSUERS,
@@ -197,6 +198,8 @@ export function AssetTable({
     };
   }, [chainId]);
 
+  const marketValueHidden = isMarketValueHidden();
+  const activeSortKey = marketValueHidden && sortKey === "marketValueUsd" ? "volume24hUsd" : sortKey;
   const hrefFor = (
     next: Partial<{
       lane: InstrumentKind;
@@ -211,7 +214,7 @@ export function AssetTable({
       lane: next.lane ?? lane,
       coverage: next.coverage ?? coverageFilter,
       defaultCoverage,
-      sortKey: next.sortKey ?? sortKey,
+      sortKey: next.sortKey ?? activeSortKey,
       pinned: next.pinned ?? pinnedOnly,
       issuer: next.issuer ?? issuerFilter,
     });
@@ -225,15 +228,15 @@ export function AssetTable({
     const searched = query.trim() ? assets.filter((asset) => assetMatchesSearch(asset, query)) : assets;
     const scoped = pinnedOnly ? searched.filter((asset) => favorites.favoriteSet.has(asset.contractAddress)) : searched;
     const range = deskRange.range;
-    const liquidityMode = sortKey === "displayedLiquidityUsd";
-    const marketMode = sortKey === "marketValueUsd";
+    const liquidityMode = activeSortKey === "displayedLiquidityUsd";
+    const marketMode = activeSortKey === "marketValueUsd";
     const sorted = marketMode
       ? [...scoped].sort((a, b) => compareByEquityCardMarketValue(a, b, deskRange.marketValue, range))
       : liquidityMode
         ? [...scoped].sort((a, b) => compareByEquityCardRangeLiquidity(a, b, deskRange.liquidity, range))
-        : sortKey === "volume24hUsd" && range !== "24h"
+        : activeSortKey === "volume24hUsd" && range !== "24h"
           ? [...scoped].sort((a, b) => compareByEquityCardRangeVolume(a, b, deskRange.volumes, range))
-          : sortAssets(scoped, sortKey);
+          : sortAssets(scoped, activeSortKey);
     if (pinnedOnly || !enableFavorites || favorites.favoriteSet.size === 0) return sorted;
     const pins = sorted.filter((asset) => favorites.favoriteSet.has(asset.contractAddress));
     const rest = sorted.filter((asset) => !favorites.favoriteSet.has(asset.contractAddress));
@@ -248,7 +251,7 @@ export function AssetTable({
     favorites.favoriteSet,
     pinnedOnly,
     query,
-    sortKey,
+    activeSortKey,
   ]);
 
   const compareRows = useMemo(() => {
@@ -257,7 +260,11 @@ export function AssetTable({
   }, [catalog, enableFavorites, favorites.favoriteMints]);
   const compareHidden = Math.max(0, favorites.favoriteMints.length - compareRows.length);
   const hydratingVisible = rows.filter((asset) => asset.volumeCoverage === "hydrate_incomplete").length;
-  const sortColumns = deskSortOptions({ solanaDesk: marketsDesk, showRobinhoodMarks });
+  const sortColumns = deskSortOptions({
+    solanaDesk: marketsDesk,
+    showRobinhoodMarks,
+    includeMarketValue: !marketValueHidden,
+  });
 
   const coverageChips: Array<[CoverageFilter, string]> = [
     ["all", "All"],
@@ -316,7 +323,7 @@ export function AssetTable({
   const sortChips = (
     <div className={`flex flex-wrap gap-2 text-xs ${solanaDesk ? "shrink-0 justify-end" : ""}`} data-desk-sort>
       {sortColumns.map(([key, label]) => (
-        <Link key={key} href={hrefFor({ sortKey: key })} scroll={false} className={chipClass(sortKey === key)}>
+        <Link key={key} href={hrefFor({ sortKey: key })} scroll={false} className={chipClass(activeSortKey === key)}>
           {label}
         </Link>
       ))}
@@ -380,7 +387,7 @@ export function AssetTable({
       )}
       {enableFavorites ? (
         <DeskHeaderActions>
-          <DeskCsvButton rows={rows} lane={lane} coverage={coverageFilter} sortKey={sortKey} />
+          <DeskCsvButton rows={rows} lane={lane} coverage={coverageFilter} sortKey={activeSortKey} />
         </DeskHeaderActions>
       ) : null}
       {enableFavorites && shouldShowPinCompare(compareRows) ? (
@@ -407,8 +414,8 @@ export function AssetTable({
       )}
       {marketsDesk ? null : (
         <p className="text-xs text-muted-foreground" aria-live="polite">
-          Ranked by {SORT_LABELS[sortKey]}
-          {sortKey === "volume24hUsd" ? " (coverage, then volume, liquidity, pools)" : ""}
+          Ranked by {SORT_LABELS[activeSortKey]}
+          {activeSortKey === "volume24hUsd" ? " (coverage, then volume, liquidity, pools)" : ""}
           {enableFavorites && !pinnedOnly ? " · pinned float to the top" : ""} · showing {rows.length} of {totalInLane}
           {coverageFilter !== "all" ? ` · ${coverageFilter.replace("-", " ")}` : ""}
           {activeIssuerLabel ? ` · ${activeIssuerLabel}` : ""}
@@ -432,8 +439,8 @@ export function AssetTable({
       {rows.length > 0 ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {rows.map((asset) => {
-            const liquidityMode = sortKey === "displayedLiquidityUsd";
-            const marketMode = sortKey === "marketValueUsd";
+            const liquidityMode = activeSortKey === "displayedLiquidityUsd";
+            const marketMode = activeSortKey === "marketValueUsd";
             const closedRange =
               marketMode || liquidityMode || deskRange.range === "24h" ? null : deskRange.range;
             const total = closedRange ? equityCardRangeTotal(deskRange.volumes, asset.contractAddress, closedRange) : null;
@@ -448,7 +455,7 @@ export function AssetTable({
                 key={asset.contractAddress}
                 asset={asset}
                 href={`/chains/${chainId}/assets/${encodeURIComponent(assetRouteKey(asset, catalog))}`}
-                sortKey={sortKey}
+                sortKey={activeSortKey}
                 dayVolumeSeries={dayVolumeByMint[asset.contractAddress]}
                 rangeVolume={
                   closedRange

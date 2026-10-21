@@ -31,6 +31,7 @@ import { toPinCompareAsset } from "@/lib/desk/pin-compare";
 import { displayedIssuerFacets, displayedLaneCount, assetsMatchingListView } from "@/lib/desk/displayed-list-counts";
 import { parseDeskLane } from "@/lib/desk/desk-lane";
 import { resolveDeskSortKey } from "@/lib/desk/desk-sort";
+import { isMarketValueHidden } from "@/lib/site/visibility";
 import { parsePinnedFilter } from "@/lib/desk/solana-chain-href";
 import { selectEquityPriceTicker } from "@/lib/desk/price-ticker";
 import { parseAssetSortKey, sortAssets } from "@/lib/market/aggregate";
@@ -263,7 +264,7 @@ export default async function ChainPage({
       ? "with-volume"
       : "all";
   const coverageFilter = parseCoverageFilter(query.coverage, defaultCoverage);
-  const sortKey = resolveDeskSortKey(parseAssetSortKey(query.sort), marketsDesk);
+  const sortKey = resolveDeskSortKey(parseAssetSortKey(query.sort), marketsDesk, !isMarketValueHidden());
   const pinnedOnly = parsePinnedFilter(query.pinned);
   const issuerFilter = marketsDesk ? parseIssuerFilter(query.issuer) : "all";
   const laneAssets = lane === "etf" ? etfAssets : lane === "private" ? privateAssets : assets;
