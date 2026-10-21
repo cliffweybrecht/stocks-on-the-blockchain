@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import type { HeadlineMetric } from "@/components/headline-metric-toggle";
 import type { VolumeChartRangeId } from "@/lib/market/daily-volume-view";
 import {
   EMPTY_EQUITY_CARD_LIQUIDITY,
@@ -30,6 +31,11 @@ interface DeskVolumeRangeValue {
   marketValue: OnchainMarketValueHistory;
   /** Per desk chain id. Home uses this for the Market value column. */
   marketValueByChain: Record<string, OnchainMarketValueHistory>;
+  /** Volume, market value, or liquidity. Shared by the chart and the cards. */
+  metric: HeadlineMetric;
+  setMetric: (metric: HeadlineMetric) => void;
+  /** True when the chart and the cards share one switch. */
+  headlineShared: boolean;
 }
 
 const DeskVolumeRangeContext = createContext<DeskVolumeRangeValue | null>(null);
@@ -48,6 +54,7 @@ export function DeskVolumeRangeProvider({
   marketValueByChain = EMPTY_BY_CHAIN,
   children,
   initialRange = "7d",
+  initialMetric = "volume",
 }: {
   volumes: EquityCardRangeVolumeMap;
   /** Closing reserves from nightly per-asset rows. Empty on desks that have none. */
@@ -58,11 +65,25 @@ export function DeskVolumeRangeProvider({
   marketValueByChain?: Record<string, OnchainMarketValueHistory>;
   children: ReactNode;
   initialRange?: VolumeChartRangeId;
+  initialMetric?: HeadlineMetric;
 }) {
   const [range, setRange] = useState<VolumeChartRangeId>(initialRange);
+  const [metric, setMetric] = useState<HeadlineMetric>(initialMetric);
   const value = useMemo(
-    () => ({ range, setRange, volumes, liquidity, volumeSeries, prices, marketValue, marketValueByChain }),
-    [range, volumes, liquidity, volumeSeries, prices, marketValue, marketValueByChain],
+    () => ({
+      range,
+      setRange,
+      volumes,
+      liquidity,
+      volumeSeries,
+      prices,
+      marketValue,
+      marketValueByChain,
+      metric,
+      setMetric,
+      headlineShared: true,
+    }),
+    [range, volumes, liquidity, volumeSeries, prices, marketValue, marketValueByChain, metric],
   );
   return <DeskVolumeRangeContext.Provider value={value}>{children}</DeskVolumeRangeContext.Provider>;
 }
@@ -71,9 +92,13 @@ export function DeskVolumeRangeProvider({
  * Inside the chain layout, the toggle and the cards share one range.
  * `initialRange` applies only when no provider is mounted (home chart, tests).
  */
-export function useDeskVolumeRange(initialRange: VolumeChartRangeId = "7d"): DeskVolumeRangeValue {
+export function useDeskVolumeRange(
+  initialRange: VolumeChartRangeId = "7d",
+  initialMetric: HeadlineMetric = "volume",
+): DeskVolumeRangeValue {
   const shared = useContext(DeskVolumeRangeContext);
   const [range, setRange] = useState<VolumeChartRangeId>(initialRange);
+  const [metric, setMetric] = useState<HeadlineMetric>(initialMetric);
   if (shared) return shared;
   return {
     range,
@@ -84,5 +109,8 @@ export function useDeskVolumeRange(initialRange: VolumeChartRangeId = "7d"): Des
     prices: EMPTY_EQUITY_CARD_PRICE,
     marketValue: EMPTY_ONCHAIN_MARKET_VALUE,
     marketValueByChain: EMPTY_BY_CHAIN,
+    metric,
+    setMetric,
+    headlineShared: false,
   };
 }

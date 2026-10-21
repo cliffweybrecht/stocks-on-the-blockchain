@@ -1,9 +1,11 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { DeskVolumeRangeProvider } from "./desk-volume-range";
 import { RobinhoodVolumeDesk } from "./robinhood-volume-desk";
 import { parseRobinhoodDeskDays, type RobinhoodDeskDay } from "@/lib/market/robinhood-desk-volume";
 import { formatUsdCompact } from "@/lib/market/format";
+import { easternMidnightUnix } from "@/lib/market/volume-snapshots";
 
 function days(): RobinhoodDeskDay[] {
   return parseRobinhoodDeskDays({
@@ -82,5 +84,34 @@ describe("RobinhoodVolumeDesk", () => {
     expect(html).toContain("justify-self-end");
     expect(html).not.toContain("flex-wrap");
     expect(html).not.toMatch(/trailing h24/i);
+  });
+
+  it("plots the sum of asset reserves for Liquidity and ignores a null day total", () => {
+    const t = easternMidnightUnix("2026-10-19");
+    const day = days()[0]!;
+    const html = renderToStaticMarkup(
+      createElement(DeskVolumeRangeProvider, {
+        volumes: {},
+        initialMetric: "liquidity",
+        initialRange: "7d",
+        liquidity: {
+          lastClosedDay: "2026-10-19",
+          snapshotDays: ["2026-10-19"],
+          byAsset: {
+            a: [{ date: "2026-10-19", t, liquidityUsd: 25 }],
+            b: [{ date: "2026-10-19", t, liquidityUsd: 15 }],
+          },
+        },
+        children: createElement(RobinhoodVolumeDesk, {
+          days: [{ ...day, date: "2026-10-19", t, displayedLiquidityUsd: null, combined24hUsd: 5 }],
+        }),
+      }),
+    );
+    expect(html).toContain("Total liquidity");
+    expect(html).toContain(formatUsdCompact(40));
+    expect(html).toContain('data-liquidity-plot="series"');
+    expect(html).toContain('data-headline-metric="liquidity"');
+    expect(html).not.toContain("Issuer × type");
+    expect(html).not.toContain("Total Daily Tokenized Stock Volume");
   });
 });

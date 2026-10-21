@@ -4,10 +4,12 @@ import { useMemo, useState, type PointerEvent } from "react";
 import { DateAxisLabels } from "@/components/date-axis-labels";
 import { useDeskVolumeRange } from "@/components/desk-volume-range";
 import { HeadlineMetricToggle, type HeadlineMetric } from "@/components/headline-metric-toggle";
+import { LiquidityHeadline, LiquidityPlot, liquidityChartPoints } from "@/components/liquidity-plot";
 import { MarketValueHeadline, MarketValuePlot, marketValueChartPoints } from "@/components/market-value-plot";
 import { backfillHeadlineNote, countAssetBackfillDays } from "@/lib/market/asset-backfill-desk";
 import { DESK_CHART_PLOT_FRAME_CLASS, monotoneVolumePaths } from "@/lib/desk/chart-curve";
 import { selectDateAxisLabelTicks } from "@/lib/desk/date-axis";
+import { deskLiquidityClosesFromHistory, deskLiquidityRangeView } from "@/lib/market/desk-liquidity-chart";
 import { formatChartDay, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
 import {
   nearestVolumePoint,
@@ -34,13 +36,17 @@ import {
 export function RobinhoodVolumeDesk({
   days,
   initialRange = "7d",
+  initialMetric = "volume",
 }: {
   /** Closed Eastern snapshot days only. The page drops today and later. */
   days: readonly RobinhoodDeskDay[];
   initialRange?: VolumeChartRangeId;
+  initialMetric?: HeadlineMetric;
 }) {
-  const { range, setRange, marketValue } = useDeskVolumeRange(initialRange);
-  const [metric, setMetric] = useState<HeadlineMetric>("volume");
+  const { range, setRange, marketValue, liquidity: liquidityHistory, metric, setMetric } = useDeskVolumeRange(
+    initialRange,
+    initialMetric,
+  );
   const [hover, setHover] = useState<{ t: number; volumeUsd: number } | null>(null);
   const visibleDays = useMemo(() => robinhoodDaysForRange(days, range), [days, range]);
   const visible = useMemo(() => robinhoodVolumePoints(visibleDays), [visibleDays]);
@@ -58,8 +64,19 @@ export function RobinhoodVolumeDesk({
   const closedPaths = monotoneVolumePaths(visible, map, VOLUME_CHART_PAD.top + VOLUME_CHART_INNER_H);
   const showHeadline = headline.volumeUsd !== null;
   const showMarket = !isMarketValueHidden() && metric === "market-value";
+  const showLiquidity = metric === "liquidity";
   const marketView = useMemo(() => marketValueRangeView(marketValue, range), [marketValue, range]);
   const marketPoints = useMemo(() => marketValueChartPoints(marketView), [marketView]);
+  const liquidityView = useMemo(
+    () =>
+      deskLiquidityRangeView(
+        deskLiquidityClosesFromHistory(liquidityHistory),
+        range,
+        visibleDays.map((day) => day.t),
+      ),
+    [liquidityHistory, range, visibleDays],
+  );
+  const liquidityPoints = useMemo(() => liquidityChartPoints(liquidityView), [liquidityView]);
 
   function setHoverFromClient(plot: Element, clientX: number, clientY: number) {
     const svg = plot.querySelector("svg");
@@ -91,6 +108,8 @@ export function RobinhoodVolumeDesk({
           />
           {showMarket ? (
             <MarketValueHeadline view={marketView} />
+          ) : showLiquidity ? (
+            <LiquidityHeadline view={liquidityView} />
           ) : (
             <>
           <h2 className="font-heading text-[9px] leading-tight font-medium tracking-wide text-foreground/90">
@@ -150,6 +169,8 @@ export function RobinhoodVolumeDesk({
 
       {showMarket ? (
         <MarketValuePlot points={marketPoints} frameClass={DESK_CHART_PLOT_FRAME_CLASS} />
+      ) : showLiquidity ? (
+        <LiquidityPlot points={liquidityPoints} frameClass={DESK_CHART_PLOT_FRAME_CLASS} range={range} />
       ) : charting && visible.length > 0 ? (
         <div
           className={`relative mt-3 cursor-crosshair ${DESK_CHART_PLOT_FRAME_CLASS}`}
@@ -276,7 +297,7 @@ export function RobinhoodVolumeDesk({
         </div>
       )}
 
-      {!showMarket && liquidity ? (
+      {!showMarket && !showLiquidity && liquidity ? (
         <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-robinhood-liquidity>
           Displayed liquidity {liquidity.date}: {formatUsdFull(liquidity.usd)}. DexScreener liquidity.usd, not
           executable size. Missing liquidity does not drop the day.

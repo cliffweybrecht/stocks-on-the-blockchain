@@ -35,6 +35,8 @@ import { FileDeskVolumeSnapshotStore } from "@/lib/market/volume-snapshot-store"
 import { closedSnapshotVolumePoints } from "@/lib/market/volume-snapshots";
 import { combineOnchainMarketValueHistories } from "@/lib/market/onchain-market-value";
 import { loadOnchainMarketValueHistory } from "@/lib/market/onchain-market-value-file";
+import { loadEquityCardRangeMetrics } from "@/lib/market/equity-card-range-volume-file";
+import { deskLiquidityClosesFromHistory, mergeDeskLiquidityCloses } from "@/lib/market/desk-liquidity-chart";
 import { canonicalUrl } from "@/lib/site/seo";
 import type { Metadata } from "next";
 
@@ -185,12 +187,17 @@ export default async function HomePage() {
   const baseClosed = closedSnapshotDeskDays(baseDays, deskNowT);
   const bnbClosed = closedSnapshotDeskDays(bnbDays, deskNowT);
   const solanaLanes: HomeDeskLaneDay[] = await loadSolanaDeskLaneDays();
-  const [solanaMarketValue, baseMarketValue, bnbMarketValue, robinhoodMarketValue] = await Promise.all([
-    loadOnchainMarketValueHistory(SOLANA_CHAIN_ID),
-    loadOnchainMarketValueHistory(BASE_CHAIN_ID),
-    loadOnchainMarketValueHistory(BNB_CHAIN_ID),
-    loadOnchainMarketValueHistory(ROBINHOOD_CHAIN_ID),
-  ]);
+  const [solanaMarketValue, baseMarketValue, bnbMarketValue, robinhoodMarketValue, solanaCardMetrics, baseCardMetrics, bnbCardMetrics, robinhoodCardMetrics] =
+    await Promise.all([
+      loadOnchainMarketValueHistory(SOLANA_CHAIN_ID),
+      loadOnchainMarketValueHistory(BASE_CHAIN_ID),
+      loadOnchainMarketValueHistory(BNB_CHAIN_ID),
+      loadOnchainMarketValueHistory(ROBINHOOD_CHAIN_ID),
+      loadEquityCardRangeMetrics(SOLANA_CHAIN_ID),
+      loadEquityCardRangeMetrics(BASE_CHAIN_ID),
+      loadEquityCardRangeMetrics(BNB_CHAIN_ID),
+      loadEquityCardRangeMetrics(ROBINHOOD_CHAIN_ID),
+    ]);
   const marketValue = combineOnchainMarketValueHistories([
     solanaMarketValue,
     baseMarketValue,
@@ -203,6 +210,12 @@ export default async function HomePage() {
     [BNB_CHAIN_ID]: bnbMarketValue,
     [ROBINHOOD_CHAIN_ID]: robinhoodMarketValue,
   };
+  const liquidityCloses = mergeDeskLiquidityCloses([
+    deskLiquidityClosesFromHistory(solanaCardMetrics.liquidity),
+    deskLiquidityClosesFromHistory(robinhoodCardMetrics.liquidity),
+    deskLiquidityClosesFromHistory(baseCardMetrics.liquidity),
+    deskLiquidityClosesFromHistory(bnbCardMetrics.liquidity),
+  ]);
   const chainRanges = homeChainClosedRangeBoard({
     solanaClosed,
     solanaLanes,
@@ -241,6 +254,7 @@ export default async function HomePage() {
               { label: BASE_DESK.name, days: baseDays },
               { label: BNB_DESK.name, days: bnbDays },
             ]}
+            liquidityCloses={liquidityCloses}
           />
           <section className="space-y-3">
             <h2 className="font-heading text-lg font-medium">Chain volume</h2>

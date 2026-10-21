@@ -413,6 +413,10 @@ describe("DailyVolumeChart range shell", () => {
     expect(html).toContain('data-headline-metric="volume"');
     expect(html).toContain('aria-pressed="true"');
     expect(html).toContain('data-headline-metric="market-value"');
+    expect(html).toContain('data-headline-metric="liquidity"');
+    expect(html.indexOf('data-headline-metric="market-value"')).toBeLessThan(
+      html.indexOf('data-headline-metric="liquidity"'),
+    );
     expect(html).toContain("Total Daily Tokenized Stock Volume");
     expect(html).not.toContain("Onchain market value");
     for (const id of ["24h", "7d", "14d", "30d"]) {
@@ -420,7 +424,7 @@ describe("DailyVolumeChart range shell", () => {
     }
   });
 
-  it("drops the Volume | Market value switch when marketvalue is hidden", () => {
+  it("keeps Volume | Liquidity and drops Market value when marketvalue is hidden", () => {
     const previous = process.env.NEXT_PUBLIC_HIDE_SECTIONS;
     process.env.NEXT_PUBLIC_HIDE_SECTIONS = "perps,lending,marketvalue";
     try {
@@ -431,8 +435,11 @@ describe("DailyVolumeChart range shell", () => {
           rolling24h: null,
         }),
       );
-      expect(html).not.toContain("data-headline-metric-toggle");
+      expect(html).toContain("data-headline-metric-toggle");
+      expect(html).toContain('data-headline-metric="volume"');
+      expect(html).toContain('data-headline-metric="liquidity"');
       expect(html).not.toContain('data-headline-metric="market-value"');
+      expect(html).not.toContain(">Market value<");
       expect(html).not.toContain("Onchain market value");
       expect(html).not.toContain("data-market-value-method");
       expect(html).toContain("Total Daily Tokenized Stock Volume");
@@ -440,5 +447,28 @@ describe("DailyVolumeChart range shell", () => {
       if (previous === undefined) delete process.env.NEXT_PUBLIC_HIDE_SECTIONS;
       else process.env.NEXT_PUBLIC_HIDE_SECTIONS = previous;
     }
+  });
+
+  it("switches the chart to the latest liquidity close and leaves the volume series off", () => {
+    const html = renderToStaticMarkup(
+      createElement(DailyVolumeChart, {
+        history: history([{ t: utcInstantForDayKey("2026-09-29"), volumeUsd: 50, kind: "calendar_day" }]),
+        hourlyHistory: history([], "No hourly snapshots."),
+        rolling24h: null,
+        initialRange: "24h",
+        initialMetric: "liquidity",
+        liquidityCloses: [
+          { date: "2026-09-29", t: utcInstantForDayKey("2026-09-29"), liquidityUsd: 12_500 },
+        ],
+      }),
+    );
+    expect(html).toContain('data-headline-metric="liquidity"');
+    expect(html).toContain("Total liquidity");
+    expect(html).toContain("24H · 2026-09-29 · latest 11:59 PM ET close");
+    expect(html).toContain('data-liquidity-plot="series"');
+    expect(html).toContain('data-liquidity-points="1"');
+    expect(html).not.toContain("Total Daily Tokenized Stock Volume");
+    expect(html).not.toContain("data-volume-plot");
+    expect(html).not.toContain("data-volume-hourly-note");
   });
 });
