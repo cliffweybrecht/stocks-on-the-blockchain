@@ -91,7 +91,9 @@ export function MarketValueHeadline({ view }: { view: MarketValueRangeView }) {
 
 /**
  * Rounded market-value series inside the existing headline card.
- * One close is a dot. Missing days are omitted, not drawn as $0.
+ * Several closes are the curve alone. One close is a dot, because a single
+ * point has no segment. Hover draws the highlight. Missing days are omitted,
+ * not drawn as $0 and not bridged through zero.
  */
 export function MarketValuePlot({
   points,
@@ -204,17 +206,16 @@ export function MarketValuePlot({
           strokeLinecap="round"
           pointerEvents="none"
         />
-        {points.map((point) => (
+        {points.length === 1 ? (
           <circle
-            key={point.t}
-            cx={map.x(point.t)}
-            cy={map.y(point.volumeUsd)}
-            r={points.length === 1 ? 4 : 2.5}
+            cx={map.x(points[0]!.t)}
+            cy={map.y(points[0]!.volumeUsd)}
+            r="4"
             fill={DESK_CHART_STROKE}
             pointerEvents="none"
-            data-market-value-point={point.t}
+            data-market-value-point={points[0]!.t}
           />
-        ))}
+        ) : null}
         {hover ? (
           <g pointerEvents="none">
             <line
@@ -226,6 +227,7 @@ export function MarketValuePlot({
               strokeOpacity="0.45"
               strokeDasharray="3 3"
             />
+            <circle cx={map.x(hover.t)} cy={map.y(hover.volumeUsd)} r="3.5" fill={DESK_CHART_STROKE} />
           </g>
         ) : null}
       </svg>

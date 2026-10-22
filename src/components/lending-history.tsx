@@ -92,8 +92,8 @@ function MoneyChart({ points }: { points: readonly LendingHistoryPoint[] }) {
         {borrowed ? <path d={borrowed} fill="none" stroke="currentColor" strokeOpacity="0.4" strokeWidth="2" /> : null}
         {points.map((point, index) => (
           <g key={point.date}>
-            {dot(points, index, point.collateralUsd, max, 1)}
-            {dot(points, index, point.stableBorrowedUsd, max, 0.4)}
+            {isolatedDot(points, index, (row) => row.collateralUsd, max, 1)}
+            {isolatedDot(points, index, (row) => row.stableBorrowedUsd, max, 0.4)}
           </g>
         ))}
       </ChartFrame>
@@ -128,7 +128,7 @@ function FullChart({ points }: { points: readonly LendingHistoryPoint[] }) {
       <ChartFrame label="How full by daily snapshot" maxLabel={formatLendingFractionPct(max)} points={points} max={max}>
         {line ? <path d={line} fill="none" stroke="currentColor" strokeWidth="2" /> : null}
         {points.map((point, index) => (
-          <g key={point.date}>{dot(points, index, point.utilization, max, 1)}</g>
+          <g key={point.date}>{isolatedDot(points, index, (row) => row.utilization, max, 1)}</g>
         ))}
       </ChartFrame>
       <figcaption className="text-sm leading-6 text-muted-foreground">
@@ -224,7 +224,22 @@ function linePath(
   return path.includes("L") ? path : null;
 }
 
-function dot(points: readonly LendingHistoryPoint[], index: number, value: number | null, max: number, opacity: number) {
-  if (value === null || value < 0) return null;
+function reported(value: number | null | undefined): value is number {
+  return value !== null && value !== undefined && value >= 0;
+}
+
+/** A lone close stays visible. Points on a drawn segment do not get a dot. */
+function isolatedDot(
+  points: readonly LendingHistoryPoint[],
+  index: number,
+  pick: (point: LendingHistoryPoint) => number | null,
+  max: number,
+  opacity: number,
+) {
+  const value = pick(points[index]!);
+  if (!reported(value)) return null;
+  const previous = index > 0 ? pick(points[index - 1]!) : null;
+  const next = index + 1 < points.length ? pick(points[index + 1]!) : null;
+  if (reported(previous) || reported(next)) return null;
   return <circle cx={xAt(index, points.length)} cy={yAt(value, max)} r="2.5" fill="currentColor" opacity={opacity} />;
 }

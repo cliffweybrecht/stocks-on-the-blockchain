@@ -48,7 +48,9 @@ export function LiquidityHeadline({ view }: { view: DeskLiquidityRangeView }) {
 }
 
 /**
- * Rounded liquidity series. One close is a dot. Missing days are omitted, not drawn as $0.
+ * Rounded liquidity series. Several closes are the curve alone.
+ * One close is a dot, because a single point has no segment. Hover draws the highlight.
+ * Missing days are omitted, not drawn as $0 and not bridged through zero.
  * 24H is the latest 11:59 PM ET close.
  */
 export function LiquidityPlot({
@@ -158,17 +160,16 @@ export function LiquidityPlot({
           strokeLinecap="round"
           pointerEvents="none"
         />
-        {points.map((point) => (
+        {points.length === 1 ? (
           <circle
-            key={point.t}
-            cx={map.x(point.t)}
-            cy={map.y(point.volumeUsd)}
-            r={points.length === 1 ? 4 : 2.5}
+            cx={map.x(points[0]!.t)}
+            cy={map.y(points[0]!.volumeUsd)}
+            r="4"
             fill={DESK_CHART_STROKE}
             pointerEvents="none"
-            data-liquidity-point={point.t}
+            data-liquidity-point={points[0]!.t}
           />
-        ))}
+        ) : null}
         {hover ? (
           <g pointerEvents="none">
             <line
