@@ -11,11 +11,14 @@ export function PageShell({
   provenance,
   solanaJump,
   priceTicker,
+  showPremiumDiscount = false,
 }: {
   children: React.ReactNode;
   provenance?: DataProvenance;
   solanaJump?: { chainId: string; assets: readonly SearchableAsset[] };
   priceTicker?: readonly EquityPriceTickerItem[];
+  /** True only when this page renders an RH vs DEX premium/discount figure. */
+  showPremiumDiscount?: boolean;
 }) {
   return (
     <DeskHeaderActionsProvider>
@@ -23,7 +26,7 @@ export function PageShell({
         <SiteHeader provenance={provenance} solanaJump={solanaJump} />
         <PriceTicker items={priceTicker ?? []} />
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-8">{children}</main>
-        <SiteFooter />
+        <SiteFooter showPremiumDiscount={showPremiumDiscount} />
       </div>
     </DeskHeaderActionsProvider>
   );

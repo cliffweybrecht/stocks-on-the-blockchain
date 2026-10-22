@@ -67,7 +67,6 @@ import { closedRobinhoodDeskDays, type RobinhoodDeskDay } from "@/lib/market/rob
 import { closedSnapshotDeskDays, type SnapshotDeskDay } from "@/lib/market/snapshot-desk-volume";
 import type { EquityVolumeHistoryResult, VolumeHistoryPoint } from "@/lib/market/types";
 import { easternRollingHourStarts } from "@/lib/market/volume-hourly-snapshots";
-import { ASSET_BACKFILL_DESK_SOURCE, backfillHeadlineNote } from "@/lib/market/asset-backfill-desk";
 import { marketValueRangeView } from "@/lib/market/onchain-market-value";
 import { isMarketValueHidden } from "@/lib/site/visibility";
 import { closedSnapshotVolumePoints } from "@/lib/market/volume-snapshots";
@@ -307,8 +306,8 @@ export function DailyVolumeChart({
     [hourSlots, showHourlyAxis, visible],
   );
   // 24H headline ignores the plotted series and reads the live Solana rollup,
-  // then adds each chain's newest closed snapshot. Closed ranges mention a chain
-  // only when a visible day actually includes it. Hourly points stay Solana.
+  // then adds each chain's newest closed snapshot. Closed ranges include a chain
+  // in the total only when a visible day actually includes it. Hourly points stay Solana.
   const snapshotContributions = useMemo(() => {
     const rows: HomeSnapshotChainContribution[] = [];
     const robinhoodLatest = lastReportedRobinhoodDay(robinhoodClosed);
@@ -326,28 +325,6 @@ export function DailyVolumeChart({
     }
     return rows;
   }, [extraClosed, robinhoodClosed, rolling, visible]);
-  const backfillNote = useMemo(() => {
-    if (rolling) return null;
-    // Merged chart points drop `source`. Count a visible day when any chain
-    // contributed that Eastern date from per-asset backfill.
-    const times = new Set<number>();
-    for (const point of history.points) {
-      if (point.source === ASSET_BACKFILL_DESK_SOURCE) times.add(point.t);
-    }
-    for (const day of robinhoodClosed) {
-      if (day.source === ASSET_BACKFILL_DESK_SOURCE) times.add(day.t);
-    }
-    for (const desk of extraClosed) {
-      for (const day of desk.days) {
-        if (day.source === ASSET_BACKFILL_DESK_SOURCE) times.add(day.t);
-      }
-    }
-    let count = 0;
-    for (const point of visible) {
-      if (times.has(point.t)) count += 1;
-    }
-    return backfillHeadlineNote(count);
-  }, [extraClosed, history.points, robinhoodClosed, rolling, visible]);
   const baseHeadline = deskChartHeadline(range, rolling ? points : visible, rolling24h);
   const headline =
     snapshotContributions.length > 0
@@ -431,28 +408,15 @@ export function DailyVolumeChart({
           <h2 className="font-heading text-[9px] leading-tight font-medium tracking-wide text-foreground/90">
             Total Daily Tokenized Stock Volume
           </h2>
-          {showHeadline || rolling ? (
-            <>
-              {showHeadline ? (
-                <p
-                  className="num mt-1 text-3xl font-medium text-primary"
-                  aria-live="polite"
-                  data-volume-headline
-                  data-volume-kind={headline.kind}
-                >
-                  {formatUsdCompact(headline.volumeUsd)}
-                </p>
-              ) : null}
-              <p className="mt-1 text-[11px] leading-snug text-muted-foreground" data-volume-caption>
-                {headline.caption}
-                {backfillNote ? (
-                  <span className="text-muted-foreground/70" data-backfill-note>
-                    {" "}
-                    · {backfillNote}
-                  </span>
-                ) : null}
-              </p>
-            </>
+          {showHeadline ? (
+            <p
+              className="num mt-1 text-3xl font-medium text-primary"
+              aria-live="polite"
+              data-volume-headline
+              data-volume-kind={headline.kind}
+            >
+              {formatUsdCompact(headline.volumeUsd)}
+            </p>
           ) : null}
             </>
           )}

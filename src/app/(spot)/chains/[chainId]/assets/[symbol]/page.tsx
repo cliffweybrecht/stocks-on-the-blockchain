@@ -178,6 +178,7 @@ export default async function AssetPage({
         provenance={provenance}
         solanaJump={jumpAssets.length > 0 ? { chainId: chain.id, assets: jumpAssets } : undefined}
         priceTicker={selectEquityPriceTicker(catalog?.assets ?? (asset.instrumentKind === "equity" ? [asset] : []))}
+        showPremiumDiscount={!indexedDesk}
       >
         <div className="space-y-5">
           <AssetBreadcrumb chain={chain} symbol={asset.symbol} />
