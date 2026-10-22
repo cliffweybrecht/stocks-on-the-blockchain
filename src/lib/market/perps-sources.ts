@@ -44,7 +44,6 @@ export const DIRECT_CG_MARKETS: ReadonlySet<string> = new Set([
   "Kraken (Futures)",
   "BingX (Futures)",
   "dYdX Chain",
-  "Gate DEX",
   "Toobit Futures",
   "XT.COM (Derivatives)",
   "Bitunix Futures",
@@ -62,6 +61,20 @@ export const DIRECT_CG_MARKETS: ReadonlySet<string> = new Set([
   "Orderly",
   "Paradex",
   "WEEX (Futures)",
+  "Zoomex (Futures)",
+  "Ourbit (Futures)",
+  "Arcus (Futures)",
+  "RISEx",
+  "edgeX",
+  "Polymarket Perps",
+  "GMX Perpetuals V2 (Solana)",
+  "BloFin (Futures)",
+  "Vest Exchange",
+  "Helix",
+  "Bitstamp (Futures)",
+  "StandX",
+  "Bitfinex (Derivatives)",
+  "GMX Perpetuals V2 (Arbitrum)",
 ]);
 
 /** Direct venues whose CoinGecko open interest fills a blank, without a second volume row. */
@@ -81,33 +94,60 @@ export interface PerpsCgSpec {
   note: string;
 }
 
+const UNVERIFIED_NOTE =
+  "CoinGecko only. No usable direct public book from this host. Unverified tier, out of the default headline until the desk opts in.";
+
 export const CG_SPECS: readonly PerpsCgSpec[] = [
   { market: "Binance (Futures)", venue: "Binance", tier: "cex-coingecko", note: "Binance blocks this host. CoinGecko rolling 24h is the headline. The www.binance.com route is not used. A prior-UTC-day archive cross-check is stored beside the row and is not the headline." },
   { market: "Bybit (Futures)", venue: "Bybit", tier: "cex-coingecko", note: "Bybit blocks this host. CoinGecko rolling 24h is the headline. A prior-UTC-day public trade-archive cross-check is stored beside the row and is not the headline." },
-  { market: "Tapbit (Futures)", venue: "Tapbit", tier: "long-tail", note: "CoinGecko only, unverified. Opt-in long-tail. Not in the default headline." },
-  { market: "CoinW (Futures)", venue: "CoinW", tier: "long-tail", note: "CoinGecko only, unverified. Opt-in long-tail. Not in the default headline." },
-  { market: "Ourbit (Futures)", venue: "Ourbit", tier: "long-tail", note: "CoinGecko only, unverified. Opt-in long-tail. Not in the default headline." },
-  { market: "OrangeX Futures", venue: "OrangeX", tier: "long-tail", note: "CoinGecko only, unverified. Opt-in long-tail. Not in the default headline." },
-  { market: "BitKan (Futures)", venue: "BitKan", tier: "long-tail", note: "CoinGecko only, unverified. Opt-in long-tail. Not in the default headline." },
-  { market: "AlphaX (Futures)", venue: "AlphaX", tier: "long-tail", note: "CoinGecko only, unverified. Opt-in long-tail. Not in the default headline." },
-  { market: "Zoomex (Futures)", venue: "Zoomex", tier: "long-tail", note: "CoinGecko only, unverified. Opt-in long-tail. Not in the default headline." },
-  { market: "Arcus (Futures)", venue: "Arcus", tier: "onchain", note: "No public market API found. CoinGecko row for this onchain book." },
   { market: "QFEX", venue: "QFEX", tier: "onchain", note: "Direct market data needs auth. CoinGecko row for this hybrid book." },
-  { market: "RISEx", venue: "RISEx", tier: "onchain", note: "No public market API found. CoinGecko row." },
-  { market: "edgeX", venue: "edgeX", tier: "onchain", note: "Direct API was blocked. CoinGecko row." },
-  { market: "Polymarket Perps", venue: "Polymarket Perps", tier: "onchain", note: "No public perps REST endpoint. CoinGecko row." },
-  { market: "Decibel", venue: "Decibel", tier: "onchain", note: "Aptos gateway needs an API key. CoinGecko row." },
-  { market: "Deepcoin (Derivatives)", venue: "Deepcoin", tier: "long-tail", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
-  { market: "BVOX (Futures)", venue: "BVOX", tier: "long-tail", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
-  { market: "KCEX (Futures)", venue: "KCEX", tier: "long-tail", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
-  { market: "Hotcoin (Futures)", venue: "Hotcoin", tier: "long-tail", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
-  { market: "Bitrue (Futures)", venue: "Bitrue", tier: "long-tail", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
-  { market: "BYDFi (Futures)", venue: "BYDFi", tier: "long-tail", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
-  { market: "BigONE Futures", venue: "BigONE", tier: "long-tail", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
-  { market: "Dipcoin (Futures)", venue: "Dipcoin", tier: "onchain", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
-  { market: "GMX Perpetuals V2 (Solana)", venue: "GMX V2 (Solana)", tier: "onchain", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
-  { market: "TurboFlow", venue: "TurboFlow", tier: "onchain", note: "CoinGecko only. Kept out of the headline when the volume/OI screen fails." },
+  { market: "Tapbit (Futures)", venue: "Tapbit", tier: "unverified", note: `${UNVERIFIED_NOTE} Direct ticker is blocked.` },
+  { market: "CoinW (Futures)", venue: "CoinW", tier: "unverified", note: `${UNVERIFIED_NOTE} Direct ticker volume is not a usable quote.` },
+  { market: "OrangeX Futures", venue: "OrangeX", tier: "unverified", note: `${UNVERIFIED_NOTE} Direct tickers came back empty.` },
+  { market: "BitKan (Futures)", venue: "BitKan", tier: "unverified", note: `${UNVERIFIED_NOTE} Direct host was unreachable.` },
+  { market: "Antarctic ", venue: "Antarctic", tier: "unverified", note: `${UNVERIFIED_NOTE} CoinGecko market name keeps the trailing space. No documented public API.` },
+  { market: "AlphaX (Futures)", venue: "AlphaX", tier: "unverified", note: UNVERIFIED_NOTE },
+  { market: "Flipster", venue: "Flipster", tier: "unverified", note: `${UNVERIFIED_NOTE} Direct ticker returned 403. Mostly leveraged ETFs.` },
+  { market: "LeveX (Futures)", venue: "LeveX", tier: "unverified", note: UNVERIFIED_NOTE },
+  { market: "EVEDEX", venue: "EVEDEX", tier: "unverified", note: `${UNVERIFIED_NOTE} The instrument list has no volume field. Pre-IPO names stay out of the equity total.` },
+  { market: "Coincall", venue: "Coincall", tier: "unverified", note: UNVERIFIED_NOTE },
+  { market: "Decibel", venue: "Decibel", tier: "unverified", note: `${UNVERIFIED_NOTE} Aptos gateway needs an API key.` },
+  { market: "Astros", venue: "Astros", tier: "unverified", note: UNVERIFIED_NOTE },
+  { market: "SoDEX (Futures)", venue: "SoDEX", tier: "unverified", note: UNVERIFIED_NOTE },
+  { market: "Niza.fun (Futures)", venue: "Niza.fun", tier: "unverified", note: UNVERIFIED_NOTE },
+  { market: "Strike Finance", venue: "Strike Finance", tier: "unverified", note: UNVERIFIED_NOTE },
+  { market: "Gate DEX", venue: "Gate DEX", tier: "unverified", note: `${UNVERIFIED_NOTE} Separate from the Gate CEX book.` },
+  { market: "Margin Trade (Futures)", venue: "Margin Trade", tier: "unverified", note: UNVERIFIED_NOTE },
+  { market: "Aevo", venue: "Aevo", tier: "unverified", note: `${UNVERIFIED_NOTE} Direct daily volume was blank on the samples checked.` },
+  { market: "DeriW", venue: "DeriW", tier: "unverified", note: UNVERIFIED_NOTE },
+  { market: "Storm Trade", venue: "Storm Trade", tier: "unverified", note: UNVERIFIED_NOTE },
+  { market: "Deepcoin (Derivatives)", venue: "Deepcoin", tier: "unverified", note: "CoinGecko only. Named outlier. Kept out of the headline." },
+  { market: "BVOX (Futures)", venue: "BVOX", tier: "unverified", note: "CoinGecko only. Named outlier. Kept out of the headline." },
+  { market: "KCEX (Futures)", venue: "KCEX", tier: "unverified", note: "CoinGecko only. Named outlier. Kept out of the headline." },
+  { market: "Hotcoin (Futures)", venue: "Hotcoin", tier: "unverified", note: "CoinGecko only. Named outlier. Kept out of the headline." },
+  { market: "Bitrue (Futures)", venue: "Bitrue", tier: "unverified", note: "CoinGecko only. Named outlier. Open interest larger than volume is not treated as a pass." },
+  { market: "BYDFi (Futures)", venue: "BYDFi", tier: "unverified", note: "CoinGecko only. Named outlier. Kept out of the headline." },
+  { market: "BigONE Futures", venue: "BigONE", tier: "unverified", note: "CoinGecko only. Named outlier. Kept out of the headline." },
+  { market: "Dipcoin (Futures)", venue: "Dipcoin", tier: "unverified", note: "CoinGecko only. Named outlier. Kept out of the headline." },
+  { market: "TurboFlow", venue: "TurboFlow", tier: "unverified", note: "CoinGecko only. Named outlier. Kept out of the headline." },
 ];
+
+/**
+ * CoinGecko venues the 2026-10-20 pass keeps out of the headline even when the
+ * volume/OI ratio does not trip. LBank and Ourbit are not in this list: they
+ * use the direct book and the ordinary screen.
+ */
+export const PERPS_NAMED_OUTLIERS: Readonly<Record<string, string>> = {
+  Deepcoin: "Named outlier: CoinGecko volume is far above open interest.",
+  BVOX: "Named outlier: CoinGecko volume is far above open interest.",
+  KCEX: "Named outlier: CoinGecko volume is far above open interest.",
+  Hotcoin: "Named outlier: CoinGecko volume is far above open interest.",
+  Bitrue: "Named outlier: CoinGecko open interest is not a credible cross-check for this book.",
+  BYDFi: "Named outlier: CoinGecko volume is far above open interest.",
+  BigONE: "Named outlier: CoinGecko volume is far above open interest.",
+  Dipcoin: "Named outlier: CoinGecko volume is far above open interest.",
+  TurboFlow: "Named outlier: CoinGecko volume is far above open interest.",
+};
 
 export interface PerpsDirectSpec {
   venue: string;
@@ -279,8 +319,9 @@ export const PERPS_DIRECT_SPECS: readonly PerpsDirectSpec[] = [
     venue: "Crypto.com",
     tier: "cex-direct",
     volumeWindow: "rolling-24h",
-    source: "GET https://api.crypto.com/exchange/v1/public/get-tickers",
-    note: "Rolling 24h vv on *USD-PERP. No equity tag; ticker plus price band. Open interest is oi × mark.",
+    source:
+      "GET https://api.crypto.com/exchange/v1/public/get-tickers + /exchange/v1/public/get-instruments (product_type EQUITY, EQUITY_IND, PRE_IPO)",
+    note: "Rolling 24h vv. Equity flag is product_type. EQUITY_IND is classified per ticker and is not forced to index. PRE_IPO stays out of the headline. Open interest is oi × mark.",
   },
   {
     venue: "LBank",
@@ -339,11 +380,12 @@ export const PERPS_DIRECT_SPECS: readonly PerpsDirectSpec[] = [
     note: "No 24h field. lifetimeVolumeUsd is cumulative volumeInUsd. Daily volume is the difference between consecutive Eastern snapshots.",
   },
   {
-    venue: "Avantis",
+    venue: "Veranta",
     tier: "onchain",
-    volumeWindow: "unavailable",
-    source: "GET https://socket-api-pub.avantisfi.com/socket-api/v1/data",
-    note: "No public 24h volume. Open interest is the equities group (groupIndex 6). Volume stays blank.",
+    volumeWindow: "utc-day",
+    source:
+      "GET https://api.veranta.xyz/v1/cached/history/analytics/daily-volumes-by-pair/1 + https://socket-api-pub.avantisfi.com/socket-api/v1/data (pairInfos groupIndex 6)",
+    note: "Renamed from Avantis on 2026-09-14. Counted once, under Veranta. Volume is the last complete UTC day (pairVolumes indexed by the pairInfos key). The capture UTC day's row is partial and is not blended in. A weekend can be a real zero. Open interest is openInterest.long + openInterest.short on the equities group. Stored Avantis rows keep the name they were written with.",
   },
   {
     venue: "WEEX",
@@ -359,6 +401,115 @@ export const PERPS_DIRECT_SPECS: readonly PerpsDirectSpec[] = [
     volumeWindow: "rolling-24h",
     source: "GET https://api.international.coinbase.com/api/v1/instruments",
     note: "Paused equity, equity-ETF, and pre-IPO instruments are stored at $0 24h notional. They are not omitted. USD open interest stays blank because this feed's open interest is base size.",
+  },
+  {
+    venue: "Drift",
+    tier: "onchain",
+    volumeWindow: "unavailable",
+    source: "Not fetched. Protocol paused since the 2026-04-01 hack.",
+    note: "No equity perps. Drift has been paused since the 2026-04-01 hack, so this row is not a request. Velocity is a separate program and is not this volume.",
+  },
+  {
+    venue: "Zoomex",
+    tier: "cex-direct",
+    volumeWindow: "rolling-24h",
+    source:
+      "GET https://openapi.zoomex.com/cloud/trade/v3/market/tickers?category=linear + /instruments-info?category=linear&limit=1000 (tag Stock)",
+    note: "Rolling 24h turnover24h. Equity flag is tags Stock. The direct figure is the headline. CoinGecko is about 0.30× and is not a second row.",
+  },
+  {
+    venue: "Ourbit",
+    tier: "cex-direct",
+    volumeWindow: "rolling-24h",
+    source: "GET https://futures.ourbit.com/api/v1/contract/ticker + /api/v1/contract/detail (conceptPlate)",
+    note: "Rolling 24h amount24. Equity flag is conceptPlate ob_trade_zone_stock or ob_trade_zone_etf. Open interest is holdVol × contractSize × fairPrice. The volume/OI screen decides exclusion. This is not a named outlier.",
+  },
+  {
+    venue: "Arcus",
+    tier: "onchain",
+    volumeWindow: "rolling-24h",
+    source: "GET https://api.arcus.xyz/v1/markets (category EQUITIES or INDICES)",
+    note: "Rolling 24h volume24hNotional. Equity flag is category. Open interest is base × mark. This Robinhood Chain book is not added to Robinhood Chain spot or chain volume totals.",
+  },
+  {
+    venue: "Vest",
+    tier: "onchain",
+    volumeWindow: "rolling-24h",
+    source:
+      "GET https://server-prod.hz.vestmarkets.com/v2/exchangeInfo + /v2/ticker/24hr (header xrestservermm: restserver0)",
+    note: "Rolling 24h quoteVolume. Equity flag is asset stock. NDX and SPX stay in the book as indices. They are not dropped.",
+  },
+  {
+    venue: "Polymarket Perps",
+    tier: "onchain",
+    volumeWindow: "rolling-24h",
+    source: "GET https://api.perpetuals.polymarket.com/v1/info/instruments + /v1/info/statistics",
+    note: "Rolling 24h statistics.volume, joined on instrument_id. Equity flag is category equity or index. This feed has no open interest.",
+  },
+  {
+    venue: "BloFin",
+    tier: "cex-direct",
+    volumeWindow: "rolling-24h",
+    source: "GET https://openapi.blofin.com/api/v1/market/instruments + /api/v1/market/tickers",
+    note: "Rolling 24h volCurrency24h × last. Equity flag is assetClass Stocks or Indices. volCurrency24h is already base size, so contractValue is not applied again. No open interest on the ticker.",
+  },
+  {
+    venue: "RISEx",
+    tier: "onchain",
+    volumeWindow: "rolling-24h",
+    source: "GET https://api.rise.trade/v1/markets",
+    note: "Rolling 24h quote_volume_24h. Equity flag is category stocks or index_etf. index_etf is classified per ticker. Open interest is base × mark.",
+  },
+  {
+    venue: "edgeX",
+    tier: "onchain",
+    volumeWindow: "rolling-24h",
+    source:
+      "GET https://edgex-prod-v2.edgex.exchange/api/v2/public/meta/getMetaData + /api/v2/public/quote/getTicker?contractId=",
+    note: "Rolling 24h ticker value (quote notional). Equity flag is isStock on the v2 host. Open interest is base × mark. The old pro.edgex host is not used.",
+  },
+  {
+    venue: "GMX V2 (Solana)",
+    tier: "onchain",
+    volumeWindow: "rolling-24h",
+    source: "GET https://solana.gmxapi.io/v1/pairs",
+    note: "Rolling 24h target_volume. No equity tag; ticker plus price band. open_interest is already USD. GMTrade is this pool, not a second venue.",
+  },
+  {
+    venue: "GMX V2 (Arbitrum)",
+    tier: "onchain",
+    volumeWindow: "rolling-24h",
+    source: "GET https://arbitrum.gmxapi.io/v1/pairs",
+    note: "Rolling 24h target_volume. Separate pool from GMX V2 (Solana). No equity tag; ticker plus price band. open_interest is already USD.",
+  },
+  {
+    venue: "Helix",
+    tier: "onchain",
+    volumeWindow: "rolling-24h",
+    source:
+      "GET https://sentry.lcd.injective.network/injective/exchange/v1beta1/derivative/markets?status=Active + https://sentry.exchange.grpc-web.injective.network/api/chronos/v1/derivative/market_summary_all?resolution=24h",
+    note: "Rolling 24h chronos volume, quote USD, joined on market id. No equity tag; ticker plus price band. Open interest is not on this endpoint.",
+  },
+  {
+    venue: "Bitstamp",
+    tier: "cex-direct",
+    volumeWindow: "rolling-24h",
+    source: "GET https://www.bitstamp.net/api/v2/ticker/",
+    note: "Rolling 24h volume × vwap on market_type PERPETUAL. No equity tag; ticker plus price band. open_interest_value is USD.",
+  },
+  {
+    venue: "StandX",
+    tier: "onchain",
+    volumeWindow: "rolling-24h",
+    source: "GET https://perps.standx.com/api/query_symbol_info + /api/query_symbol_market?symbol=",
+    note: "Rolling 24h volume_quote_24h. No equity tag; ticker plus price band. open_interest_notional is USD. Pre-IPO names stay out of the headline.",
+  },
+  {
+    venue: "Bitfinex",
+    tier: "cex-direct",
+    volumeWindow: "rolling-24h",
+    source: "GET https://api-pub.bitfinex.com/v2/tickers?symbols=ALL",
+    note: "Rolling 24h VOLUME × LAST on t*IXF0:USTF0 index perps. Those names are indices.",
   },
 ];
 
@@ -404,6 +555,20 @@ export const PERPS_DIRECT_CG_MARKET: Readonly<Record<string, string>> = {
   Orderly: "Orderly",
   Paradex: "Paradex",
   WEEX: "WEEX (Futures)",
+  Zoomex: "Zoomex (Futures)",
+  Ourbit: "Ourbit (Futures)",
+  Arcus: "Arcus (Futures)",
+  RISEx: "RISEx",
+  edgeX: "edgeX",
+  "Polymarket Perps": "Polymarket Perps",
+  "GMX V2 (Solana)": "GMX Perpetuals V2 (Solana)",
+  "GMX V2 (Arbitrum)": "GMX Perpetuals V2 (Arbitrum)",
+  BloFin: "BloFin (Futures)",
+  Vest: "Vest Exchange",
+  Helix: "Helix",
+  Bitstamp: "Bitstamp (Futures)",
+  StandX: "StandX",
+  Bitfinex: "Bitfinex (Derivatives)",
 };
 
 /** CoinGecko markets on the skip list that this writer does not fetch another way. */
@@ -475,7 +640,13 @@ export function listPerpsSourceCatalog(): PerpsCatalogRow[] {
     note: row.reason,
     oiFromCoinGecko: false,
   }));
-  const tierOrder: Record<string, number> = { onchain: 0, "cex-coingecko": 1, "cex-direct": 2, "long-tail": 3 };
+  const tierOrder: Record<string, number> = {
+    onchain: 0,
+    "cex-coingecko": 1,
+    "cex-direct": 2,
+    "long-tail": 3,
+    unverified: 4,
+  };
   return [...direct, ...coingecko, ...held].sort((a, b) => {
     const ta = a.tier ? tierOrder[a.tier] ?? 9 : 9;
     const tb = b.tier ? tierOrder[b.tier] ?? 9 : 9;

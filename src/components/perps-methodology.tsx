@@ -72,7 +72,13 @@ const TIERS: { tier: PerpsTier; inHeadline: boolean; detail: string }[] = [
   {
     tier: "long-tail",
     inHeadline: false,
-    detail: "CoinGecko-only venues. Stored, and left out of the headline until the desk opts in.",
+    detail: "Older CoinGecko rows stored as long-tail. Left out of the headline until the desk opts in. New CoinGecko-only books are unverified, not long-tail.",
+  },
+  {
+    tier: "unverified",
+    inHeadline: false,
+    detail:
+      "CoinGecko-only books with no usable direct public feed from this host. Stored, out of the headline until the desk opts in. Named outliers stay excluded even when that toggle is on.",
   },
 ];
 
@@ -84,6 +90,8 @@ function windowLabel(window: PerpsVolumeWindow | null): string {
       return "Rolling 24h";
     case "et-day":
       return "Eastern day";
+    case "utc-day":
+      return "UTC day";
     case "lifetime":
       return "Lifetime";
     case "unavailable":
@@ -116,7 +124,8 @@ export function PerpsMethodology({
   const lighter = catalog.find((row) => row.venue === "Lighter");
   const lighterRh = catalog.find((row) => row.venue === "Lighter on Robinhood Chain");
   const ostium = catalog.find((row) => row.venue === "Ostium");
-  const avantis = catalog.find((row) => row.venue === "Avantis");
+  const veranta = catalog.find((row) => row.venue === "Veranta");
+  const drift = catalog.find((row) => row.venue === "Drift");
   const binance = catalog.find((row) => row.venue === "Binance");
   const bybit = catalog.find((row) => row.venue === "Bybit");
   const weex = catalog.find((row) => row.venue === "WEEX");
@@ -275,7 +284,16 @@ export function PerpsMethodology({
         <h3 className="font-heading text-lg font-medium">Known gaps</h3>
         <div className="grid gap-2">
           <Rule title="Binance and Bybit via CoinGecko" body={`${binance?.note ?? ""} ${bybit?.note ?? ""}`.trim()} />
-          <Rule title="Avantis has no volume" body={avantis?.note ?? "No public 24h volume."} />
+          <Rule title="Veranta is a UTC day" body={veranta?.note ?? "Daily volume for the last complete UTC day. Avantis was renamed on 2026-09-14 and is not counted twice."} />
+          <Rule title="Drift has no equity perps" body={drift?.note ?? "Paused since the 2026-04-01 hack. No fetch."} />
+          <Rule
+            title="gTrade is not counted"
+            body="gTrade 24h volume would have to be reconstructed from trade events, and that reconstruction was about 83% of the stated total. It is approximate, so it is not a venue row."
+          />
+          <Rule
+            title="Unverified CoinGecko books"
+            body="Tapbit, CoinW, OrangeX, BitKan, Antarctic, and the smaller CoinGecko-only names sit in the unverified tier. Deepcoin, BVOX, KCEX, Dipcoin, Hotcoin, Bitrue, BYDFi, BigONE, and TurboFlow are named outliers. The volume/OI screen still wins when it fires. LBank and Ourbit use their direct books and that same screen, not this list."
+          />
           <Rule title="Ostium is a lifetime difference" body={ostium?.note ?? "Daily volume is the difference between consecutive Eastern snapshots."} />
           <Rule title="WEEX uses the direct ticker" body={weex?.note ?? "Direct v3 quote volume. The CoinGecko WEEX row is not added."} />
           <Rule
@@ -397,8 +415,8 @@ export function PerpsMethodology({
         <h3 className="font-heading text-lg font-medium">Downloads</h3>
         <p className="max-w-3xl text-[11px] leading-snug text-muted-foreground">
           CSV and JSON from the stored equity-perps-v2 file. JSON schema {PERPS_JSON_SCHEMA}. {PERPS_JSON_ATTRIBUTION}{" "}
-          Headline is onchain plus major CEX plus Binance and Bybit, with leveraged ETFs included and long-tail
-          left out. Null cells are unreported. Venue rows include quality and last good time. Ticker rows include
+          Headline is onchain plus major CEX plus Binance and Bybit, with leveraged ETFs included. Long-tail and
+          unverified CoinGecko stay out. Null cells are unreported. Venue rows include quality and last good time. Ticker rows include
           a per-venue book only when that day stored one. The top names keep that split. Older days leave it blank.
         </p>
         <div className="flex flex-wrap gap-2">

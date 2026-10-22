@@ -42,6 +42,7 @@ const DAILY_HEADERS = [
   "binanceBybitUsd",
   "majorCexUsd",
   "longTailUsd",
+  "unverifiedUsd",
   "excludedUsd",
   "leveragedEtfUsd",
   "preipoUsd",
@@ -75,6 +76,7 @@ const TICKER_HEADERS = [
   "majorCexUsd",
   "binanceBybitUsd",
   "longTailUsd",
+  "unverifiedUsd",
   "headlineUsd",
   "venues",
   "funding",
@@ -117,6 +119,7 @@ export function buildPerpsDailyCsv(model: PerpsDeskModel): string {
         csvNumber(view.cexCoingeckoUsd),
         csvNumber(view.cexDirectUsd),
         csvNumber(view.longTailUsd),
+        csvNumber(view.unverifiedUsd),
         csvNumber(view.excludedUsd),
         csvNumber(view.leveragedUsd),
         csvNumber(view.preipoUsd),
@@ -188,13 +191,15 @@ function tickerLines(day: PerpsViewDay): string[] {
     const major = tierSlot(ticker, "cex-direct");
     const binanceBybit = tierSlot(ticker, "cex-coingecko");
     const longTail = tierSlot(ticker, "long-tail");
+    const unverified = tierSlot(ticker, "unverified");
     const headline = sumNullable([onchain, major, binanceBybit]);
-    const volume = sumNullable([headline, longTail]);
+    const volume = sumNullable([headline, longTail, unverified]);
     const oi = sumNullable([
       tierOi(ticker, "onchain"),
       tierOi(ticker, "cex-direct"),
       tierOi(ticker, "cex-coingecko"),
       tierOi(ticker, "long-tail"),
+      tierOi(ticker, "unverified"),
     ]);
     return csvRow([
       day.date,
@@ -206,6 +211,7 @@ function tickerLines(day: PerpsViewDay): string[] {
       csvNumber(major),
       csvNumber(binanceBybit),
       csvNumber(longTail),
+      csvNumber(unverified),
       csvNumber(headline),
       tickerVenues(ticker),
       tickerFunding(ticker),

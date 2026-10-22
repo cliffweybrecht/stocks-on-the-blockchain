@@ -21,6 +21,7 @@ export interface PerpsTickerPoint {
   cexDirectUsd: number | null;
   cexCoingeckoUsd: number | null;
   longTailUsd: number | null;
+  unverifiedUsd: number | null;
   cexUsd: number | null;
   funding: { venue: string; rate: number; intervalHours: number | null }[];
   books: { venue: string; volumeUsd: number | null; openInterestUsd: number | null }[];
@@ -59,7 +60,7 @@ export interface PerpsTickerPageModel {
   fundingDate: string | null;
 }
 
-const TIERS: readonly PerpsTier[] = ["onchain", "cex-direct", "cex-coingecko", "long-tail"];
+const TIERS: readonly PerpsTier[] = ["onchain", "cex-direct", "cex-coingecko", "long-tail", "unverified"];
 
 function finite(value: number | undefined): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
@@ -85,6 +86,7 @@ function pointFromTicker(
   const cexDirectUsd = finite(ticker.tiers["cex-direct"]?.volumeUsd);
   const cexCoingeckoUsd = finite(ticker.tiers["cex-coingecko"]?.volumeUsd);
   const longTailUsd = finite(ticker.tiers["long-tail"]?.volumeUsd);
+  const unverifiedUsd = finite(ticker.tiers.unverified?.volumeUsd);
   const funding = Object.entries(ticker.funding ?? {})
     .map(([venue, rate]) => ({
       venue,
@@ -98,13 +100,14 @@ function pointFromTicker(
     t: day.t,
     closed: day.closed,
     category: ticker.category,
-    volumeUsd: sumNullable([onchainUsd, cexDirectUsd, cexCoingeckoUsd, longTailUsd]),
+    volumeUsd: sumNullable([onchainUsd, cexDirectUsd, cexCoingeckoUsd, longTailUsd, unverifiedUsd]),
     openInterestUsd: sumNullable(tiers.map((tier) => tier.openInterestUsd)),
     onchainUsd,
     cexDirectUsd,
     cexCoingeckoUsd,
     longTailUsd,
-    cexUsd: sumNullable([cexDirectUsd, cexCoingeckoUsd, longTailUsd]),
+    unverifiedUsd,
+    cexUsd: sumNullable([cexDirectUsd, cexCoingeckoUsd, longTailUsd, unverifiedUsd]),
     funding,
     books: (ticker.books ?? []).map((book) => ({
       venue: book.venue,

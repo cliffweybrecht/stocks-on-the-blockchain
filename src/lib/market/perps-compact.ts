@@ -20,7 +20,7 @@ import type {
  * per-market book, prices, or raw symbols except Ostium lifetime keys.
  *
  * Ticker rows kept per day are the top {@link PERPS_TICKER_CAP} names for each
- * headline toggle (long-tail, leveraged ETFs, onchain-only) plus every Ostium
+ * headline toggle (long-tail, unverified CoinGecko, leveraged ETFs, onchain-only) plus every Ostium
  * name, so a single closed day still renders the same top-20 lists. A name
  * outside that set on every day can drop out of a multi-day top 20.
  */
@@ -38,13 +38,19 @@ export const PERPS_ROW_BYTE_BUDGET = 140_000;
 
 const CATEGORY_ORDER = ["stock", "etf", "leveraged-etf", "index", "preipo"] as const;
 
-const TIER_ORDER: readonly PerpsTier[] = ["onchain", "cex-direct", "cex-coingecko", "long-tail"];
+const TIER_ORDER: readonly PerpsTier[] = ["onchain", "cex-direct", "cex-coingecko", "long-tail", "unverified"];
+
+const HEADLINE_TIERS: readonly PerpsTier[] = ["onchain", "cex-direct", "cex-coingecko"];
 
 const RANKINGS: readonly { tiers: readonly PerpsTier[]; dropLeveraged: boolean }[] = [
-  { tiers: ["onchain", "cex-direct", "cex-coingecko"], dropLeveraged: false },
-  { tiers: ["onchain", "cex-direct", "cex-coingecko"], dropLeveraged: true },
-  { tiers: ["onchain", "cex-direct", "cex-coingecko", "long-tail"], dropLeveraged: false },
-  { tiers: ["onchain", "cex-direct", "cex-coingecko", "long-tail"], dropLeveraged: true },
+  { tiers: HEADLINE_TIERS, dropLeveraged: false },
+  { tiers: HEADLINE_TIERS, dropLeveraged: true },
+  { tiers: [...HEADLINE_TIERS, "long-tail"], dropLeveraged: false },
+  { tiers: [...HEADLINE_TIERS, "long-tail"], dropLeveraged: true },
+  { tiers: [...HEADLINE_TIERS, "unverified"], dropLeveraged: false },
+  { tiers: [...HEADLINE_TIERS, "unverified"], dropLeveraged: true },
+  { tiers: [...HEADLINE_TIERS, "long-tail", "unverified"], dropLeveraged: false },
+  { tiers: [...HEADLINE_TIERS, "long-tail", "unverified"], dropLeveraged: true },
   { tiers: ["onchain"], dropLeveraged: false },
   { tiers: ["onchain"], dropLeveraged: true },
 ];
@@ -515,8 +521,16 @@ export function parseCompactVenue(value: unknown): PerpsCompactVenue | null {
   const tier = row.tier;
   const volumeWindow = row.volumeWindow;
   if (!venue) return null;
-  if (tier !== "onchain" && tier !== "cex-direct" && tier !== "cex-coingecko" && tier !== "long-tail") return null;
-  if (volumeWindow !== "rolling-24h" && volumeWindow !== "et-day" && volumeWindow !== "lifetime" && volumeWindow !== "unavailable") {
+  if (tier !== "onchain" && tier !== "cex-direct" && tier !== "cex-coingecko" && tier !== "long-tail" && tier !== "unverified") {
+    return null;
+  }
+  if (
+    volumeWindow !== "rolling-24h" &&
+    volumeWindow !== "et-day" &&
+    volumeWindow !== "utc-day" &&
+    volumeWindow !== "lifetime" &&
+    volumeWindow !== "unavailable"
+  ) {
     return null;
   }
   const parts: PerpsCompactVenue["parts"] = {};
@@ -561,12 +575,14 @@ const TIER_CODE: Record<PerpsTier, string> = {
   "cex-direct": "d",
   "cex-coingecko": "g",
   "long-tail": "l",
+  unverified: "u",
 };
 const CODE_TIER: Record<string, PerpsTier> = {
   o: "onchain",
   d: "cex-direct",
   g: "cex-coingecko",
   l: "long-tail",
+  u: "unverified",
 };
 const CATEGORY_CODE: Record<PerpsStoredCategory, string> = {
   stock: "s",
@@ -794,8 +810,16 @@ function decodeWireDay(row: {
       const tier = source.tier;
       const volumeWindow = source.volumeWindow;
       if (!venue) continue;
-      if (tier !== "onchain" && tier !== "cex-direct" && tier !== "cex-coingecko" && tier !== "long-tail") continue;
-      if (volumeWindow !== "rolling-24h" && volumeWindow !== "et-day" && volumeWindow !== "lifetime" && volumeWindow !== "unavailable") {
+      if (tier !== "onchain" && tier !== "cex-direct" && tier !== "cex-coingecko" && tier !== "long-tail" && tier !== "unverified") {
+        continue;
+      }
+      if (
+        volumeWindow !== "rolling-24h" &&
+        volumeWindow !== "et-day" &&
+        volumeWindow !== "utc-day" &&
+        volumeWindow !== "lifetime" &&
+        volumeWindow !== "unavailable"
+      ) {
         continue;
       }
       const parts: PerpsCompactVenue["parts"] = {};

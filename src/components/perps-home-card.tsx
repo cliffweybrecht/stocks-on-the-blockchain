@@ -49,9 +49,10 @@ export function PerpsHomeCard({ summary }: { summary: PerpsHomeSummary }) {
           <Tier label="Major CEX" value={summary.cexDirectUsd} />
           <Tier label="Binance+Bybit" value={summary.cexCoingeckoUsd} />
         </div>
-        {summary.longTailUsd !== null || summary.excludedUsd !== null ? (
+        {summary.longTailUsd !== null || summary.unverifiedUsd !== null || summary.excludedUsd !== null ? (
           <p className="mt-2 text-[11px] text-muted-foreground" data-perps-home-coverage>
             {summary.longTailUsd !== null ? `Long-tail ${formatUsdCompact(summary.longTailUsd)} is not in this total. ` : ""}
+            {summary.unverifiedUsd !== null ? `Unverified ${formatUsdCompact(summary.unverifiedUsd)} is not in this total. ` : ""}
             {summary.excludedUsd !== null ? `Volume/OI screen holds out ${formatUsdCompact(summary.excludedUsd)}.` : ""}
           </p>
         ) : null}

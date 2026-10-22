@@ -203,7 +203,7 @@ describe("equity perp snapshot", () => {
     expect(binance?.tier).toBe("cex-coingecko");
     expect(binance?.markets.map((market) => market.underlying)).toEqual(["NVDA"]);
     const tapbit = day.venues.find((venue) => venue.venue === "Tapbit");
-    expect(tapbit?.tier).toBe("long-tail");
+    expect(tapbit?.tier).toBe("unverified");
     expect(tapbit?.credible).toBe(true);
     expect(tapbit?.markets[0]?.volume24hUsd).toBe(999999);
     const deepcoin = day.venues.find((venue) => venue.venue === "Deepcoin");
@@ -221,10 +221,14 @@ describe("equity perp snapshot", () => {
     expect(view.headlineUsd).toBe(1000 + 250 + 400 + 30 + 40);
     expect(view.onchainUsd).toBe(1000 + 250 + 400 + 30);
     expect(view.cexCoingeckoUsd).toBe(40);
-    expect(view.longTailUsd).toBe(999999);
+    expect(view.longTailUsd).toBeNull();
+    expect(view.unverifiedUsd).toBe(999999);
     expect(view.includeLongTail).toBe(false);
+    expect(view.includeUnverified).toBe(false);
     const withTail = selectPerpsRange(model.days, "24h", false, true);
-    expect(withTail.headlineUsd).toBe(1000 + 250 + 400 + 30 + 40 + 999999);
+    expect(withTail.headlineUsd).toBe(1000 + 250 + 400 + 30 + 40);
+    const withUnverified = selectPerpsRange(model.days, "24h", false, false, true);
+    expect(withUnverified.headlineUsd).toBe(1000 + 250 + 400 + 30 + 40 + 999999);
     const hidden = selectPerpsRange(model.days, "24h", true);
     expect(hidden.headlineUsd).toBe(1000 + 400 + 30 + 40);
     expect(hidden.leveragedUsd).toBe(250);
