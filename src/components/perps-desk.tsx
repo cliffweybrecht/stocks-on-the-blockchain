@@ -117,11 +117,12 @@ export function PerpsDesk({ model }: { model: PerpsDeskModel }) {
   const [range, setRange] = useState<VolumeChartRangeId>("24h");
   const [excludeLeveraged, setExcludeLeveraged] = useState(false);
   const [includeLongTail, setIncludeLongTail] = useState(false);
+  const [includeUnverified, setIncludeUnverified] = useState(false);
   const [onchainOnly, setOnchainOnly] = useState(false);
   const [hover, setHover] = useState<number | null>(null);
   const view = useMemo(
-    () => selectPerpsRange(model.days, range, excludeLeveraged, includeLongTail),
-    [model.days, range, excludeLeveraged, includeLongTail],
+    () => selectPerpsRange(model.days, range, excludeLeveraged, includeLongTail, includeUnverified),
+    [model.days, range, excludeLeveraged, includeLongTail, includeUnverified],
   );
   const plotted = view.chart.filter((point) => point.volumeUsd !== null);
   const maxY = Math.max(maxNullable(plotted.map((point) => point.volumeUsd)) ?? 0, 1);
@@ -278,6 +279,19 @@ export function PerpsDesk({ model }: { model: PerpsDeskModel }) {
           >
             {includeLongTail ? "Long-tail included" : "Include long-tail"}
           </button>
+          <button
+            type="button"
+            data-perps-unverified
+            aria-pressed={includeUnverified}
+            onClick={() => setIncludeUnverified((current) => !current)}
+            className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+              includeUnverified
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground ring-1 ring-border hover:text-foreground"
+            }`}
+          >
+            {includeUnverified ? "Unverified included" : "Include unverified"}
+          </button>
           {view.leveragedUsd !== null ? (
             <p className="text-[11px] text-muted-foreground" data-perps-leveraged-note>
               {excludeLeveraged
@@ -290,6 +304,11 @@ export function PerpsDesk({ model }: { model: PerpsDeskModel }) {
               Long-tail {formatUsdCompact(view.longTailUsd)} is not in this total.
             </p>
           ) : null}
+          {view.unverifiedUsd !== null && !includeUnverified ? (
+            <p className="text-[11px] text-muted-foreground" data-perps-unverified-note>
+              Unverified {formatUsdCompact(view.unverifiedUsd)} is not in this total.
+            </p>
+          ) : null}
           {view.excludedUsd !== null ? (
             <p className="text-[11px] text-muted-foreground" data-perps-excluded-note>
               Excluded by the volume/OI screen {formatUsdCompact(view.excludedUsd)}.
@@ -297,11 +316,12 @@ export function PerpsDesk({ model }: { model: PerpsDeskModel }) {
           ) : null}
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4" data-perps-tiers>
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5" data-perps-tiers>
           <TierStat label="Onchain" value={view.onchainUsd} />
           <TierStat label="Binance+Bybit" value={view.cexCoingeckoUsd} />
           <TierStat label="Major CEX" value={view.cexDirectUsd} />
           <TierStat label={includeLongTail ? "Long-tail" : "Long-tail (out)"} value={view.longTailUsd} />
+          <TierStat label={includeUnverified ? "Unverified" : "Unverified (out)"} value={view.unverifiedUsd} />
         </div>
 
         {bars.length > 0 ? (
@@ -410,7 +430,11 @@ export function PerpsDesk({ model }: { model: PerpsDeskModel }) {
                 key={venue.venue}
                 rank={index + 1}
                 venue={venue}
-                inHeadline={venue.credible && (includeLongTail || venue.tier !== "long-tail")}
+                inHeadline={
+                  venue.credible &&
+                  (includeLongTail || venue.tier !== "long-tail") &&
+                  (includeUnverified || venue.tier !== "unverified")
+                }
               />
             ))}
           </div>
@@ -427,7 +451,11 @@ export function PerpsDesk({ model }: { model: PerpsDeskModel }) {
                   rank={index + 1}
                   venue={venue}
                   maxVolume={maxVenue}
-                  inHeadline={venue.credible && (includeLongTail || venue.tier !== "long-tail")}
+                  inHeadline={
+                  venue.credible &&
+                  (includeLongTail || venue.tier !== "long-tail") &&
+                  (includeUnverified || venue.tier !== "unverified")
+                }
                 />
               ))}
             </div>
@@ -495,10 +523,20 @@ export function PerpsDesk({ model }: { model: PerpsDeskModel }) {
         )}
       </section>
 
-      <OiSection days={model.days} excludeLeveraged={excludeLeveraged} includeLongTail={includeLongTail} />
+      <OiSection
+        days={model.days}
+        excludeLeveraged={excludeLeveraged}
+        includeLongTail={includeLongTail}
+        includeUnverified={includeUnverified}
+      />
       <ListingSection days={model.days} />
       <ShareSection points={view.share} empty={model.days.length === 0} range={range} />
-      <HistoryShareSection days={model.days} excludeLeveraged={excludeLeveraged} includeLongTail={includeLongTail} />
+      <HistoryShareSection
+        days={model.days}
+        excludeLeveraged={excludeLeveraged}
+        includeLongTail={includeLongTail}
+        includeUnverified={includeUnverified}
+      />
       <ChainSection view={view} empty={model.days.length === 0} />
       <CategorySection view={view} empty={model.days.length === 0} />
       <FundingSection view={view} empty={model.days.length === 0} />
@@ -515,11 +553,16 @@ function EmptyPanel({ children }: { children: string }) {
   );
 }
 
-const SHARE_LAYERS: { key: keyof Pick<PerpsSharePoint, "onchainUsd" | "majorCexUsd" | "binanceBybitUsd" | "longTailUsd">; label: string; color: string }[] = [
+const SHARE_LAYERS: {
+  key: keyof Pick<PerpsSharePoint, "onchainUsd" | "majorCexUsd" | "binanceBybitUsd" | "longTailUsd" | "unverifiedUsd">;
+  label: string;
+  color: string;
+}[] = [
   { key: "onchainUsd", label: "Onchain", color: "var(--chart-1)" },
   { key: "binanceBybitUsd", label: "Binance+Bybit", color: "var(--chart-3)" },
   { key: "majorCexUsd", label: "Major CEX", color: "var(--chart-2)" },
   { key: "longTailUsd", label: "Long-tail", color: "var(--chart-4)" },
+  { key: "unverifiedUsd", label: "Unverified", color: "var(--chart-5)" },
 ];
 
 function ShareSection({
@@ -860,12 +903,14 @@ function OiSection({
   days,
   excludeLeveraged,
   includeLongTail,
+  includeUnverified,
 }: {
   days: PerpsDeskModel["days"];
   excludeLeveraged: boolean;
   includeLongTail: boolean;
+  includeUnverified: boolean;
 }) {
-  const series = perpsOiSeries(days, excludeLeveraged, includeLongTail);
+  const series = perpsOiSeries(days, excludeLeveraged, includeLongTail, includeUnverified);
   const latest = series[series.length - 1] ?? null;
   return (
     <section className="space-y-3" data-perps-oi>
@@ -946,13 +991,15 @@ function HistoryShareSection({
   days,
   excludeLeveraged,
   includeLongTail,
+  includeUnverified,
 }: {
   days: PerpsDeskModel["days"];
   excludeLeveraged: boolean;
   includeLongTail: boolean;
+  includeUnverified: boolean;
 }) {
-  const venues = perpsVenueShareSeries(days, excludeLeveraged, includeLongTail);
-  const chains = perpsChainShareSeries(days, excludeLeveraged, includeLongTail);
+  const venues = perpsVenueShareSeries(days, excludeLeveraged, includeLongTail, 8, includeUnverified);
+  const chains = perpsChainShareSeries(days, excludeLeveraged, includeLongTail, includeUnverified);
   const dates = venues.map((column) => column.date);
   return (
     <section className="space-y-3" data-perps-share-history>

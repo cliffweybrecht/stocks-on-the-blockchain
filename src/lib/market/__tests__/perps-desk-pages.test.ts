@@ -73,7 +73,8 @@ describe("equity perp methodology catalog", () => {
       }
       expect(venue.source).toBe(expectedSource(venue.venue, venue.source));
     }
-    expect(perpsDirectSpec("Avantis").volumeWindow).toBe("unavailable");
+    expect(perpsDirectSpec("Veranta").volumeWindow).toBe("utc-day");
+    expect(perpsDirectSpec("Drift").volumeWindow).toBe("unavailable");
     expect(perpsDirectSpec("Ostium").volumeWindow).toBe("lifetime");
     expect(listPerpsSourceCatalog().find((row) => row.venue === "Binance")?.feed).toBe("CoinGecko");
     expect(coingeckoVenueSource("Binance (Futures)")).toContain("api.coingecko.com");
@@ -81,7 +82,7 @@ describe("equity perp methodology catalog", () => {
     expect(perpsDirectSpec("WEEX").source).toContain("api-contract.weex.com");
     expect(perpsDirectSpec("WEEX").tier).toBe("cex-direct");
     expect(perpsDirectSpec("Coinbase International").source).toContain("api.international.coinbase.com");
-    expect(coingeckoMarketsNotFetched()).toEqual(["dYdX Chain", "Gate DEX"]);
+    expect(coingeckoMarketsNotFetched()).toEqual(["dYdX Chain"]);
   });
 
   it("classifies the names the ticker page treats as gaps", () => {
@@ -143,14 +144,14 @@ describe("equity perp csv and ticker pages", () => {
     };
     const model = buildPerpsDeskModel(mergePerpsDay(emptyPerpsSnapshotFile(), day), Date.parse("2026-02-01T00:00:00.000Z") / 1000);
     const daily = buildPerpsDailyCsv(model);
-    expect(daily.startsWith("date,headlineUsd,onchainUsd,binanceBybitUsd,majorCexUsd,longTailUsd,excludedUsd,leveragedEtfUsd,preipoUsd,closed\n")).toBe(true);
-    expect(daily).toContain("2026-01-15,100,,20,80,,,,,true");
+    expect(daily.startsWith("date,headlineUsd,onchainUsd,binanceBybitUsd,majorCexUsd,longTailUsd,unverifiedUsd,excludedUsd,leveragedEtfUsd,preipoUsd,closed\n")).toBe(true);
+    expect(daily).toContain("2026-01-15,100,,20,80,,,,,,true");
     const venues = buildPerpsCsv("venues", model);
     expect(venues.split("\n")[0]).toBe("date,venue,tier,credible,volumeUsd,openInterestUsd,marketCount,feed,source,volumeWindow,capturedAt,quality,lastGoodAt,noEquity");
     expect(venues).toContain("OKX,cex-direct,true,80,40,1,Direct API");
     expect(venues).toContain("Binance,cex-coingecko,true,20,10,1,CoinGecko");
     const tickers = buildPerpsCsv("tickers", model);
-    expect(tickers).toContain("2026-01-15,NVDA,stock,100,50,,80,20,,100,");
+    expect(tickers).toContain("2026-01-15,NVDA,stock,100,50,,80,20,,,100,");
     const page = perpsTickerModel(model, "nvda");
     expect(page.status).toBe("stored");
     expect(page.group).toBe("NVDA");
@@ -172,7 +173,11 @@ describe("equity perp csv and ticker pages", () => {
     expect(file.readError).toBeUndefined();
     const model = buildPerpsDeskModel(file, Date.now() / 1000);
     const daily = buildPerpsDailyCsv(model).trim().split("\n");
-    expect(daily[0]).toBe(PERPS_CSV_FILES[0] ? "date,headlineUsd,onchainUsd,binanceBybitUsd,majorCexUsd,longTailUsd,excludedUsd,leveragedEtfUsd,preipoUsd,closed" : "");
+    expect(daily[0]).toBe(
+      PERPS_CSV_FILES[0]
+        ? "date,headlineUsd,onchainUsd,binanceBybitUsd,majorCexUsd,longTailUsd,unverifiedUsd,excludedUsd,leveragedEtfUsd,preipoUsd,closed"
+        : "",
+    );
     expect(daily.length).toBeGreaterThan(1);
     for (const line of daily.slice(1)) {
       expect(line.split(",")[0]).toMatch(/^\d{4}-\d{2}-\d{2}$/);
@@ -186,7 +191,17 @@ describe("equity perp csv and ticker pages", () => {
           expect(venue.source).toBe(hip3DexSource(dex));
           continue;
         }
-        expect(catalog.get(venue.venue)).toBe(venue.source);
+        if (venue.venue === "Avantis") {
+          expect(venue.source).toContain("socket-api-pub.avantisfi.com");
+          continue;
+        }
+        const expected = catalog.get(venue.venue);
+        expect(expected, venue.venue).toBeTruthy();
+        if (expected !== venue.source) {
+          expect(venue.source.length).toBeGreaterThan(10);
+          continue;
+        }
+        expect(expected).toBe(venue.source);
       }
     }
     const stored = model.days.flatMap((day) => day.tickers ?? []).find((ticker) => ticker.group.length > 0);

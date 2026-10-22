@@ -19,8 +19,9 @@ function included(
   venue: PerpsViewVenue,
   excludeLeveraged: boolean,
   includeLongTail: boolean,
+  includeUnverified = false,
 ): { volumeUsd: number | null; openInterestUsd: number | null } {
-  if (!perpsVenueInHeadline(venue, includeLongTail)) return { volumeUsd: null, openInterestUsd: null };
+  if (!perpsVenueInHeadline(venue, includeLongTail, includeUnverified)) return { volumeUsd: null, openInterestUsd: null };
   if (!venue.parts) {
     const volumes: (number | null)[] = [];
     const ois: (number | null)[] = [];
@@ -57,6 +58,7 @@ export function perpsOiSeries(
   days: readonly PerpsViewDay[],
   excludeLeveraged: boolean,
   includeLongTail: boolean,
+  includeUnverified = false,
 ): PerpsOiPoint[] {
   return [...days]
     .filter((day) => day.closed)
@@ -65,7 +67,7 @@ export function perpsOiSeries(
       const volumes: (number | null)[] = [];
       const ois: (number | null)[] = [];
       for (const venue of day.venues) {
-        const row = included(venue, excludeLeveraged, includeLongTail);
+        const row = included(venue, excludeLeveraged, includeLongTail, includeUnverified);
         volumes.push(row.volumeUsd);
         ois.push(row.openInterestUsd);
       }
@@ -94,6 +96,7 @@ function shareColumns(
   days: readonly PerpsViewDay[],
   excludeLeveraged: boolean,
   includeLongTail: boolean,
+  includeUnverified: boolean,
   keyOf: (venue: PerpsViewVenue) => string | null,
   limit: number,
 ): PerpsShareColumn[] {
@@ -104,7 +107,7 @@ function shareColumns(
     for (const venue of latest.venues) {
       const name = keyOf(venue);
       if (!name) continue;
-      const volume = included(venue, excludeLeveraged, includeLongTail).volumeUsd;
+      const volume = included(venue, excludeLeveraged, includeLongTail, includeUnverified).volumeUsd;
       if (volume === null) continue;
       rank.set(name, (rank.get(name) ?? 0) + volume);
     }
@@ -117,7 +120,7 @@ function shareColumns(
     const byName = new Map<string, (number | null)[]>();
     const headline: (number | null)[] = [];
     for (const venue of day.venues) {
-      const row = included(venue, excludeLeveraged, includeLongTail);
+      const row = included(venue, excludeLeveraged, includeLongTail, includeUnverified);
       headline.push(row.volumeUsd);
       const name = keyOf(venue);
       if (!name || !names.includes(name)) continue;
@@ -144,19 +147,22 @@ export function perpsVenueShareSeries(
   excludeLeveraged: boolean,
   includeLongTail: boolean,
   limit = 8,
+  includeUnverified = false,
 ): PerpsShareColumn[] {
-  return shareColumns(days, excludeLeveraged, includeLongTail, (venue) => venue.venue, limit);
+  return shareColumns(days, excludeLeveraged, includeLongTail, includeUnverified, (venue) => venue.venue, limit);
 }
 
 export function perpsChainShareSeries(
   days: readonly PerpsViewDay[],
   excludeLeveraged: boolean,
   includeLongTail: boolean,
+  includeUnverified = false,
 ): PerpsShareColumn[] {
   return shareColumns(
     days,
     excludeLeveraged,
     includeLongTail,
+    includeUnverified,
     (venue) => (venue.tier === "onchain" ? venue.onchainChain || perpPlace(venue.venue)?.onchainChain || null : null),
     12,
   );

@@ -306,6 +306,113 @@ async function fetchArchiveCheck(day: PerpsDaySnapshot): Promise<PerpsArchiveChe
   return archiveCheck(utcDate, first, "The official archive for the prior UTC day was not published.");
 }
 
+async function fetchZoomex(): Promise<NonNullable<PerpsFeeds["zoomex"]>> {
+  const tickers = await settle(() =>
+    getJson("https://openapi.zoomex.com/cloud/trade/v3/market/tickers?category=linear"),
+  );
+  const pages: unknown[] = [];
+  let cursor = "";
+  let error: string | null = null;
+  for (let page = 0; page < 8; page += 1) {
+    const url = `https://openapi.zoomex.com/cloud/trade/v3/market/instruments-info?category=linear&limit=1000${
+      cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""
+    }`;
+    const body = await settle(() => getJson(url));
+    if (body.error || body.data === null) {
+      error = body.error ?? "empty response";
+      break;
+    }
+    pages.push(body.data);
+    const next = asRecord(asRecord(body.data)?.result)?.nextPageCursor;
+    if (typeof next !== "string" || next.length === 0 || next === cursor) break;
+    cursor = next;
+  }
+  const list: unknown[] = [];
+  for (const page of pages) {
+    const rows = asRecord(asRecord(page)?.result)?.list;
+    if (Array.isArray(rows)) list.push(...rows);
+  }
+  const failed = tickers.error ?? error;
+  return {
+    tickers: tickers.data,
+    instruments: list.length > 0 ? { result: { list } } : null,
+    error: failed ?? (list.length === 0 || tickers.data === null ? "empty response" : null),
+  };
+}
+
+async function fetchEdgex(): Promise<NonNullable<PerpsFeeds["edgex"]>> {
+  const meta = await settle(() => getJson("https://edgex-prod-v2.edgex.exchange/api/v2/public/meta/getMetaData"));
+  if (meta.error || meta.data === null) return { meta: meta.data, tickers: [], error: meta.error ?? "empty response" };
+  const contracts = asRecord(asRecord(meta.data)?.data)?.contractList;
+  const ids: string[] = [];
+  if (Array.isArray(contracts)) {
+    for (const row of contracts) {
+      const contract = asRecord(row);
+      if (!contract || contract.isStock !== true) continue;
+      const id = contract.contractId;
+      if (typeof id === "string" && id) ids.push(id);
+      else if (typeof id === "number") ids.push(String(id));
+    }
+  }
+  const tickers = await mapPool(ids, 8, async (contractId) => {
+    try {
+      return await getJson(
+        `https://edgex-prod-v2.edgex.exchange/api/v2/public/quote/getTicker?contractId=${encodeURIComponent(contractId)}`,
+        undefined,
+        20_000,
+      );
+    } catch {
+      return null;
+    }
+  });
+  return { meta: meta.data, tickers, error: null };
+}
+
+async function fetchStandx(): Promise<NonNullable<PerpsFeeds["standx"]>> {
+  const info = await settle(() => getJson("https://perps.standx.com/api/query_symbol_info"));
+  if (info.error || info.data === null) return { symbols: info.data, markets: [], error: info.error ?? "empty response" };
+  const symbols: string[] = [];
+  if (Array.isArray(info.data)) {
+    for (const row of info.data) {
+      const symbol = asRecord(row)?.symbol;
+      if (typeof symbol === "string" && symbol) symbols.push(symbol);
+    }
+  }
+  const markets = await mapPool(symbols, 4, async (symbol) => {
+    try {
+      return await getJson(
+        `https://perps.standx.com/api/query_symbol_market?symbol=${encodeURIComponent(symbol)}`,
+        undefined,
+        20_000,
+      );
+    } catch {
+      return null;
+    }
+  });
+  return { symbols: info.data, markets, error: null };
+}
+
+function trimVerantaVolumes(payload: unknown): unknown {
+  const root = asRecord(payload);
+  if (!root || !Array.isArray(root.history)) return payload;
+  const history = root.history.slice(-8).map((row) => {
+    const item = asRecord(row);
+    if (!item) return row;
+    return { date: item.date, pairVolumes: item.pairVolumes };
+  });
+  return { history };
+}
+
+async function fetchVerantaVolumes(): Promise<PerpsFeedResult<unknown>> {
+  const body = await settle(() =>
+    getJson("https://api.veranta.xyz/v1/cached/history/analytics/daily-volumes-by-pair/1", undefined, 60_000),
+  );
+  if (body.error || body.data === null) return body;
+  return { data: trimVerantaVolumes(body.data), error: null };
+}
+
+const VEST_HEADERS = { "xrestservermm": "restserver0" };
+
 function dexNames(payload: unknown): string[] {
   if (!Array.isArray(payload)) return [];
   const names: string[] = [];
@@ -358,6 +465,23 @@ export async function fetchEquityPerpsFeeds(capturedAt: string): Promise<PerpsFe
     paradex,
     weex,
     coinbase,
+    zoomex,
+    ourbit,
+    arcus,
+    vestInfo,
+    vestTickers,
+    polymarket,
+    blofin,
+    risex,
+    edgex,
+    gmxSolana,
+    gmxArbitrum,
+    helix,
+    bitstamp,
+    standx,
+    bitfinex,
+    veranta,
+    cryptoInstruments,
   ] = await Promise.all([
     settle(() => postInfo({ type: "perpDexs" })),
     pair(
@@ -422,6 +546,43 @@ export async function fetchEquityPerpsFeeds(capturedAt: string): Promise<PerpsFe
     settle(() => getJson("https://api.prod.paradex.trade/v1/markets/summary?market=ALL")),
     fetchWeex(),
     settle(() => getJson("https://api.international.coinbase.com/api/v1/instruments")),
+    fetchZoomex(),
+    pair(
+      () => getJson("https://futures.ourbit.com/api/v1/contract/ticker"),
+      () => getJson("https://futures.ourbit.com/api/v1/contract/detail"),
+    ),
+    settle(() => getJson("https://api.arcus.xyz/v1/markets")),
+    settle(() =>
+      getJson("https://server-prod.hz.vestmarkets.com/v2/exchangeInfo", { headers: VEST_HEADERS }),
+    ),
+    settle(() => getJson("https://server-prod.hz.vestmarkets.com/v2/ticker/24hr", { headers: VEST_HEADERS })),
+    pair(
+      () => getJson("https://api.perpetuals.polymarket.com/v1/info/instruments"),
+      () => getJson("https://api.perpetuals.polymarket.com/v1/info/statistics"),
+    ),
+    pair(
+      () => getJson("https://openapi.blofin.com/api/v1/market/instruments"),
+      () => getJson("https://openapi.blofin.com/api/v1/market/tickers"),
+    ),
+    settle(() => getJson("https://api.rise.trade/v1/markets")),
+    fetchEdgex(),
+    settle(() => getJson("https://solana.gmxapi.io/v1/pairs")),
+    settle(() => getJson("https://arbitrum.gmxapi.io/v1/pairs")),
+    pair(
+      () =>
+        getJson(
+          "https://sentry.lcd.injective.network/injective/exchange/v1beta1/derivative/markets?status=Active",
+        ),
+      () =>
+        getJson(
+          "https://sentry.exchange.grpc-web.injective.network/api/chronos/v1/derivative/market_summary_all?resolution=24h",
+        ),
+    ),
+    settle(() => getJson("https://www.bitstamp.net/api/v2/ticker/")),
+    fetchStandx(),
+    settle(() => getJson("https://api-pub.bitfinex.com/v2/tickers?symbols=ALL")),
+    fetchVerantaVolumes(),
+    settle(() => getJson("https://api.crypto.com/exchange/v1/public/get-instruments")),
   ]);
 
   let hyperliquid: PerpsFeeds["hyperliquid"] = { dexs: [], error: hyperliquidDexs.error };
@@ -473,7 +634,11 @@ export async function fetchEquityPerpsFeeds(capturedAt: string): Promise<PerpsFe
     btse,
     deribit,
     htx,
-    crypto,
+    crypto: {
+      tickers: crypto.data,
+      instruments: cryptoInstruments.data,
+      error: crypto.error ?? cryptoInstruments.error,
+    },
     lbank,
     grvt,
     apex,
@@ -483,6 +648,21 @@ export async function fetchEquityPerpsFeeds(capturedAt: string): Promise<PerpsFe
     paradex,
     weex,
     coinbase,
+    zoomex,
+    ourbit: { ticker: ourbit.left, detail: ourbit.right, error: ourbit.error },
+    arcus,
+    vest: { info: vestInfo.data, tickers: vestTickers.data, error: vestInfo.error ?? vestTickers.error },
+    polymarket: { instruments: polymarket.left, statistics: polymarket.right, error: polymarket.error },
+    blofin: { instruments: blofin.left, tickers: blofin.right, error: blofin.error },
+    risex,
+    edgex,
+    gmxSolana,
+    gmxArbitrum,
+    helix: { markets: helix.left, summary: helix.right, error: helix.error },
+    bitstamp,
+    standx,
+    bitfinex,
+    veranta,
   };
 }
 

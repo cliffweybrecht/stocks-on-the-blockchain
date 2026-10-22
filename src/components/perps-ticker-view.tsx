@@ -29,7 +29,7 @@ function tierGroups(rows: readonly PerpsTickerVenueShare[], tickerVolume: number
   share: number | null;
   venues: string[];
 }[] {
-  const order: PerpsTier[] = ["onchain", "cex-direct", "cex-coingecko", "long-tail"];
+  const order: PerpsTier[] = ["onchain", "cex-direct", "cex-coingecko", "long-tail", "unverified"];
   return order.flatMap((tier) => {
     const group = rows.filter((row) => row.tier === tier);
     const first = group[0];
@@ -203,14 +203,14 @@ export function PerpsTickerView({ model }: { model: PerpsTickerPageModel }) {
       <section className="space-y-3" data-perps-ticker-split>
         <h3 className="font-heading text-lg font-medium">Onchain vs CEX</h3>
         <p className="max-w-3xl text-[11px] leading-snug text-muted-foreground">
-          Latest stored day. CEX here is major CEX, Binance+Bybit, and long-tail together. Long-tail is not in the desk headline.
+          Latest stored day. CEX here is major CEX, Binance+Bybit, long-tail, and unverified CoinGecko together. Long-tail and unverified are not in the desk headline.
         </p>
         {latest && ((onchain ?? 0) > 0 || (cex ?? 0) > 0) ? (
           <div className="space-y-2 rounded-xl bg-card px-4 py-3 text-sm ring-1 ring-foreground/10">
             <SplitRow label="Onchain" value={onchain} max={splitMax} color="var(--chart-1)" />
             <SplitRow label="CEX" value={cex} max={splitMax} color="var(--chart-2)" />
             <p className="text-[11px] text-muted-foreground">
-              Major CEX {formatUsdCompact(latest.cexDirectUsd)} · Binance+Bybit {formatUsdCompact(latest.cexCoingeckoUsd)} · Long-tail {formatUsdCompact(latest.longTailUsd)}
+              Major CEX {formatUsdCompact(latest.cexDirectUsd)} · Binance+Bybit {formatUsdCompact(latest.cexCoingeckoUsd)} · Long-tail {formatUsdCompact(latest.longTailUsd)} · Unverified {formatUsdCompact(latest.unverifiedUsd)}
             </p>
           </div>
         ) : (
