@@ -3,7 +3,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { DailyVolumeChart } from "./daily-volume-chart";
 import { HOURLY_VOLUME_SERIES_CAPTION } from "@/lib/market/daily-volume-view";
-import { HOME_24H_ROBINHOOD_HEADLINE } from "@/lib/market/home-desk-volume";
 import { parseRobinhoodDeskDays, type RobinhoodDeskDay } from "@/lib/market/robinhood-desk-volume";
 import { parseSnapshotDeskDays, type SnapshotDeskDay } from "@/lib/market/snapshot-desk-volume";
 import { BASE_DESK } from "@/lib/market/base-desk-volume";
@@ -83,7 +82,9 @@ describe("DailyVolumeChart 24H rolling area", () => {
   it("keeps the live rolling headline and plots absolute hourly totals", () => {
     expect(html).toContain('data-volume-kind="combined_24h"');
     expect(html).toContain(`>${formatUsdCompact(220_500_000)}<`);
-    expect(html).toContain("24h · public + private + ETF/index");
+    expect(html).toContain("Total Daily Tokenized Stock Volume");
+    expect(html).not.toContain("data-volume-caption");
+    expect(html).not.toContain("24h · public + private + ETF/index");
     expect(html).not.toContain(formatUsdCompact(999_000_000));
     expect(html).toContain('data-volume-series="hourly-rolling"');
     expect(html).toContain(`>${HOURLY_VOLUME_SERIES_CAPTION}<`);
@@ -142,6 +143,8 @@ describe("DailyVolumeChart closed ranges", () => {
       expect(html).not.toContain('data-volume-y="+$');
       expect(html).toContain('fill="url(#volume-area)"');
       expect(html).not.toContain("data-volume-history-note");
+      expect(html).not.toContain("data-volume-caption");
+      expect(html).not.toContain("sum of desk snapshot days");
       expect(html).not.toContain("History from closed desk DexScreener snapshots");
       expect(html).toContain('data-volume-includes-robinhood="false"');
       expect(html).not.toContain("Robinhood Chain");
@@ -285,7 +288,10 @@ describe("DailyVolumeChart home Robinhood days", () => {
     expect(html).not.toMatch(/trailing h24/i);
     expect(html).not.toContain("12:00");
     expect(html).toContain('data-volume-includes-robinhood="true"');
-    expect(html).toContain("Solana + Robinhood Chain");
+    expect(html).toContain('data-volume-chain-labels="Robinhood Chain"');
+    expect(html).not.toContain("data-volume-caption");
+    expect(html).not.toContain("Solana + Robinhood Chain");
+    expect(html).not.toContain("sum of desk snapshot days");
     expect(html).toContain('data-volume-ranges');
     expect(html).toContain("flex-nowrap");
     expect(html).toContain("justify-self-end");
@@ -295,7 +301,8 @@ describe("DailyVolumeChart home Robinhood days", () => {
     const html = withRobinhood("24h");
     expect(html).toContain(`>${formatUsdCompact(220_500_000 + 5_000_000)}<`);
     expect(html).not.toContain(`>${formatUsdCompact(220_500_000)}<`);
-    expect(html).toContain(HOME_24H_ROBINHOOD_HEADLINE);
+    expect(html).not.toContain("data-volume-caption");
+    expect(html).not.toContain("last closed Robinhood Chain snapshot");
     expect(html).not.toContain("data-volume-robinhood-24h-note");
     expect(html).not.toMatch(/trailing h24/i);
     expect(html).toContain('data-volume-usd="200000000"');
@@ -374,11 +381,13 @@ describe("DailyVolumeChart Base and BNB days", () => {
     );
   }
 
-  it("adds Base and BNB to the 7D sum and the chain list in the caption", () => {
+  it("adds Base and BNB to the 7D sum and records the chain list without a caption", () => {
     const html = withExtras("7d");
     const solanaSum = closedDays.reduce((sum, point) => sum + point.volumeUsd, 0);
     expect(html).toContain(`>${formatUsdCompact(solanaSum + 1_000_000 + 5_000_000 + 1_000_000 + 2_000_000)}<`);
-    expect(html).toContain("Solana + Robinhood Chain + Base + BNB Chain");
+    expect(html).not.toContain("Solana + Robinhood Chain + Base + BNB Chain");
+    expect(html).not.toContain("sum of desk snapshot days");
+    expect(html).not.toContain("data-volume-caption");
     expect(html).toContain('data-volume-chain-labels="Robinhood Chain + Base + BNB Chain"');
     expect(html).not.toMatch(/trailing h24/i);
     expect(html).not.toContain("data-volume-history-note");
@@ -387,7 +396,8 @@ describe("DailyVolumeChart Base and BNB days", () => {
   it("adds the last closed Base and BNB days to the 24H headline and leaves hourly points on Solana", () => {
     const html = withExtras("24h");
     expect(html).toContain(`>${formatUsdCompact(220_500_000 + 5_000_000 + 1_000_000 + 2_000_000)}<`);
-    expect(html).toContain("Robinhood Chain, Base, and BNB Chain");
+    expect(html).not.toContain("Robinhood Chain, Base, and BNB Chain");
+    expect(html).not.toContain("data-volume-caption");
     expect(html).not.toMatch(/trailing h24/i);
     expect(html).toContain('data-volume-usd="200000000"');
     expect(html).not.toContain('data-volume-usd="1000000"');

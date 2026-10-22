@@ -1,6 +1,14 @@
 export const PRODUCT_DISCLAIMER =
   "Read-only market data. This is not a trading venue, wallet, or order router. Nothing here is executable Robinhood trading, arbitrage, or a profitability claim.";
 
+/** Site footer on every page. The volume desk does not show a premium/discount figure. */
+export const FOOTER_DISCLAIMER =
+  "For information only. This is onchain DEX trading data, not a trading venue or investment advice. A dash means no data was reported, not zero.";
+
+/** Asset pages that render an RH vs DEX premium/discount figure keep this sentence in the footer. */
+export const PREMIUM_DISCOUNT_FOOTER_NOTE =
+  "Premium/discount is labeled interpretive because it is derived from two independently observed marks.";
+
 export const DISPLAYED_LIQUIDITY_NOTE =
   "Displayed liquidity is provider-reported pool liquidity. It is not executable size and does not mean that amount can be bought or sold without material price impact.";
 
