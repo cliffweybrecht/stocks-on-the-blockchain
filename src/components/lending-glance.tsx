@@ -5,6 +5,7 @@ import { formatAddress, formatTokenAmount, formatUsdCompact } from "@/lib/market
 import {
   LENDING_DROP_FRACTIONS,
   lendingDropKey,
+  lendingDropLoanTags,
   lendingDropPercentLabel,
   type LendingDepth,
   type LendingDepthChain,
@@ -248,6 +249,7 @@ export function LendingGlancePanel({
   const scope = scopes.find((item) => item.id === scopeId) ?? scopes[0];
   const venues = scopes.filter((item) => item.kind === "venue");
   const stocks = scopes.filter((item) => item.kind === "stock");
+  const loanTags = lendingDropLoanTags(scope?.id ?? "all", depth);
 
   function toggleChains(metric: Metric) {
     setDrill((current) => (current?.kind === "chains" && current.metric === metric ? null : { kind: "chains", metric }));
@@ -439,6 +441,22 @@ export function LendingGlancePanel({
           <p className="text-sm leading-6 text-muted-foreground" data-lending-drop-method>
             {answer.methodLine}
           </p>
+        ) : null}
+        {loanTags.length > 0 ? (
+          <ul className="flex flex-wrap gap-2" data-lending-drop-tags>
+            {loanTags.map((tag) => (
+              <li
+                key={tag.venueId}
+                data-lending-drop-tag={tag.kind}
+                data-lending-drop-venue={tag.venueId}
+                className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-sm"
+              >
+                <span className="text-muted-foreground">{tag.label}</span>
+                <span className="text-foreground">{tag.kind === "real" ? "Real loans" : "Estimated"}</span>
+                {tag.stale ? <span className="text-foreground">Stale</span> : null}
+              </li>
+            ))}
+          </ul>
         ) : null}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           {scope && scope.kind !== "all" ? (

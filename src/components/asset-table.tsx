@@ -9,12 +9,23 @@ import { EquityCard } from "@/components/equity-card";
 import { PinCompareStrip } from "@/components/pin-compare-strip";
 import { useSolanaFavorites } from "@/components/use-solana-favorites";
 import { type AssetSortKey, sortAssets } from "@/lib/market/aggregate";
+import { compareByEquityCardMarketValue, equityCardMarketValueForRange } from "@/lib/market/onchain-market-value";
+import {
+  compareByEquityCardRangeLiquidity,
+  equityCardLiquidityForRange,
+} from "@/lib/market/equity-card-range-liquidity";
+import type { VolumeChartRangeId } from "@/lib/market/daily-volume-view";
+import { equityCardPriceForRange } from "@/lib/market/equity-card-range-price";
 import {
   compareByEquityCardRangeVolume,
+  equityCardRangeAddressKey,
   equityCardRangeTotal,
+  equityCardVolumeSeriesForRange,
 } from "@/lib/market/equity-card-range-volume";
 import { assetMatchesSearch } from "@/lib/market/asset-search";
+import { headlineMetricSortKey } from "@/components/headline-metric-toggle";
 import { deskSortOptions } from "@/lib/desk/desk-sort";
+import { isMarketValueHidden } from "@/lib/site/visibility";
 import { solanaChainHref } from "@/lib/desk/solana-chain-href";
 import {
   ALL_ISSUERS,
@@ -35,6 +46,7 @@ const CARD_VOLUME_POLL_ATTEMPTS = 100;
 const SORT_LABELS: Record<AssetSortKey, string> = {
   volume24hUsd: "24h volume",
   displayedLiquidityUsd: "Displayed liq",
+  marketValueUsd: "Market value",
   poolCount: "Pools",
   premiumDiscountPct: "RH vs DEX",
 };
@@ -121,6 +133,7 @@ export function AssetTable({
   privateChipVisible,
   showRobinhoodMarks = true,
   enableFavorites = false,
+  rangeViews,
 }: {
   assets: AssetSummary[];
   catalogAssets?: Array<
@@ -155,12 +168,39 @@ export function AssetTable({
   privateChipVisible?: boolean;
   showRobinhoodMarks?: boolean;
   enableFavorites?: boolean;
+  /**
+   * BNB Chain windows. When set, the grid, lane counts, and issuer chips follow the
+   * selected 24H/7D/14D/30D range instead of one fixed registry list.
+   */
+  rangeViews?: Partial<
+    Record<
+      VolumeChartRangeId,
+      {
+        addresses: readonly string[];
+        equityCount: number;
+        etfCount: number;
+        privateCount: number;
+        issuerFacets: readonly IssuerFacet[];
+        unknownIssuerCount: number;
+      }
+    >
+  >;
 }) {
   const [query, setQuery] = useState("");
   const [dayVolumeByMint, setDayVolumeByMint] = useState<Record<string, VolumeHistoryPoint[]>>({});
   const favorites = useSolanaFavorites();
   const catalog = catalogAssets ?? assets;
   const deskRange = useDeskVolumeRange("24h");
+  const rangeView = rangeViews?.[deskRange.range] ?? null;
+  const rangeAddresses = useMemo(() => {
+    if (!rangeView) return null;
+    return new Set(rangeView.addresses.map((address) => equityCardRangeAddressKey(address)));
+  }, [rangeView]);
+  const equityCountShown = rangeView?.equityCount ?? equityCount;
+  const etfCountShown = rangeView?.etfCount ?? etfCount;
+  const privateCountShown = rangeView?.privateCount ?? privateCount;
+  const issuerFacetsShown = rangeView?.issuerFacets ?? issuerFacets;
+  const unknownIssuerCountShown = rangeView?.unknownIssuerCount ?? unknownIssuerCount;
 
   useEffect(() => {
     if (chainId !== SOLANA_CHAIN_ID) return;
@@ -191,6 +231,18 @@ export function AssetTable({
     };
   }, [chainId]);
 
+  const marketValueHidden = isMarketValueHidden();
+  const marketsDesk =
+    chainId === SOLANA_CHAIN_ID || chainId === ROBINHOOD_CHAIN_ID || chainId === BASE_CHAIN_ID || chainId === BNB_CHAIN_ID;
+  const metricSortKey = headlineMetricSortKey(deskRange.metric);
+  const activeSortKey =
+    marketsDesk && deskRange.headlineShared
+      ? marketValueHidden && metricSortKey === "marketValueUsd"
+        ? "volume24hUsd"
+        : metricSortKey
+      : marketValueHidden && sortKey === "marketValueUsd"
+        ? "volume24hUsd"
+        : sortKey;
   const hrefFor = (
     next: Partial<{
       lane: InstrumentKind;
@@ -205,29 +257,47 @@ export function AssetTable({
       lane: next.lane ?? lane,
       coverage: next.coverage ?? coverageFilter,
       defaultCoverage,
-      sortKey: next.sortKey ?? sortKey,
+      sortKey: next.sortKey ?? activeSortKey,
       pinned: next.pinned ?? pinnedOnly,
       issuer: next.issuer ?? issuerFilter,
     });
   const solanaDesk = chainId === SOLANA_CHAIN_ID;
-  /** Solana, Robinhood Chain, Base, and BNB Chain share the Volume | Liquidity markets strip. */
-  const marketsDesk = solanaDesk || chainId === ROBINHOOD_CHAIN_ID || chainId === BASE_CHAIN_ID || chainId === BNB_CHAIN_ID;
-  const showIssuerFilter = (marketsDesk || enableFavorites) && (issuerFacets.length > 0 || unknownIssuerCount > 0);
-  const activeIssuerLabel = issuerFilterLabel(issuerFilter, issuerFacets);
+  const showIssuerFilter = (marketsDesk || enableFavorites) && (issuerFacetsShown.length > 0 || unknownIssuerCountShown > 0);
+  const activeIssuerLabel = issuerFilterLabel(issuerFilter, issuerFacetsShown);
 
   const rows = useMemo(() => {
-    const searched = query.trim() ? assets.filter((asset) => assetMatchesSearch(asset, query)) : assets;
+    const inWindow = rangeAddresses
+      ? assets.filter((asset) => rangeAddresses.has(equityCardRangeAddressKey(asset.contractAddress)))
+      : assets;
+    const searched = query.trim() ? inWindow.filter((asset) => assetMatchesSearch(asset, query)) : inWindow;
     const scoped = pinnedOnly ? searched.filter((asset) => favorites.favoriteSet.has(asset.contractAddress)) : searched;
     const range = deskRange.range;
-    const sorted =
-      sortKey === "volume24hUsd" && range !== "24h"
-        ? [...scoped].sort((a, b) => compareByEquityCardRangeVolume(a, b, deskRange.volumes, range))
-        : sortAssets(scoped, sortKey);
+    const liquidityMode = activeSortKey === "displayedLiquidityUsd";
+    const marketMode = activeSortKey === "marketValueUsd";
+    const sorted = marketMode
+      ? [...scoped].sort((a, b) => compareByEquityCardMarketValue(a, b, deskRange.marketValue, range))
+      : liquidityMode
+        ? [...scoped].sort((a, b) => compareByEquityCardRangeLiquidity(a, b, deskRange.liquidity, range))
+        : activeSortKey === "volume24hUsd" && range !== "24h"
+          ? [...scoped].sort((a, b) => compareByEquityCardRangeVolume(a, b, deskRange.volumes, range))
+          : sortAssets(scoped, activeSortKey);
     if (pinnedOnly || !enableFavorites || favorites.favoriteSet.size === 0) return sorted;
     const pins = sorted.filter((asset) => favorites.favoriteSet.has(asset.contractAddress));
     const rest = sorted.filter((asset) => !favorites.favoriteSet.has(asset.contractAddress));
     return [...pins, ...rest];
-  }, [assets, deskRange.range, deskRange.volumes, enableFavorites, favorites.favoriteSet, pinnedOnly, query, sortKey]);
+  }, [
+    assets,
+    deskRange.liquidity,
+    deskRange.marketValue,
+    deskRange.range,
+    deskRange.volumes,
+    enableFavorites,
+    favorites.favoriteSet,
+    pinnedOnly,
+    query,
+    rangeAddresses,
+    activeSortKey,
+  ]);
 
   const compareRows = useMemo(() => {
     if (!enableFavorites) return [];
@@ -235,7 +305,11 @@ export function AssetTable({
   }, [catalog, enableFavorites, favorites.favoriteMints]);
   const compareHidden = Math.max(0, favorites.favoriteMints.length - compareRows.length);
   const hydratingVisible = rows.filter((asset) => asset.volumeCoverage === "hydrate_incomplete").length;
-  const sortColumns = deskSortOptions({ solanaDesk: marketsDesk, showRobinhoodMarks });
+  const sortColumns = deskSortOptions({
+    solanaDesk: marketsDesk,
+    showRobinhoodMarks,
+    includeMarketValue: !marketValueHidden,
+  });
 
   const coverageChips: Array<[CoverageFilter, string]> = [
     ["all", "All"],
@@ -243,22 +317,22 @@ export function AssetTable({
     ["no-pools", "Confirmed no pools"],
   ];
 
-  const showEtfChip = etfChipVisible ?? etfCount > 0;
-  const showPrivateChip = privateChipVisible ?? privateCount > 0;
+  const showEtfChip = etfChipVisible ?? etfCountShown > 0;
+  const showPrivateChip = privateChipVisible ?? privateCountShown > 0;
   const laneChips =
     showEtfChip || showPrivateChip ? (
       <div className="flex flex-wrap gap-2">
         <Link href={hrefFor({ lane: "equity" })} scroll={false} className={chipClass(lane === "equity")}>
-          Equities ({equityCount})
+          Equities ({equityCountShown})
         </Link>
         {showEtfChip ? (
           <Link href={hrefFor({ lane: "etf" })} scroll={false} className={chipClass(lane === "etf")}>
-            ETF / index ({etfCount})
+            ETF / index ({etfCountShown})
           </Link>
         ) : null}
         {showPrivateChip ? (
           <Link href={hrefFor({ lane: "private" })} scroll={false} className={chipClass(lane === "private")}>
-            Private market ({privateCount})
+            Private market ({privateCountShown})
           </Link>
         ) : null}
       </div>
@@ -269,7 +343,7 @@ export function AssetTable({
       <Link href={hrefFor({ issuer: ALL_ISSUERS })} scroll={false} className={chipClass(issuerFilter === ALL_ISSUERS)}>
         All issuers
       </Link>
-      {issuerFacets.map((facet) => (
+      {issuerFacetsShown.map((facet) => (
         <Link
           key={facet.slug}
           href={hrefFor({ issuer: facet.slug })}
@@ -279,13 +353,13 @@ export function AssetTable({
           {facet.label} ({facet.count})
         </Link>
       ))}
-      {unknownIssuerCount > 0 ? (
+      {unknownIssuerCountShown > 0 ? (
         <Link
           href={hrefFor({ issuer: UNKNOWN_ISSUER })}
           scroll={false}
           className={chipClass(issuerFilter === UNKNOWN_ISSUER)}
         >
-          Unknown ({unknownIssuerCount})
+          Unknown ({unknownIssuerCountShown})
         </Link>
       ) : null}
     </div>
@@ -294,7 +368,7 @@ export function AssetTable({
   const sortChips = (
     <div className={`flex flex-wrap gap-2 text-xs ${solanaDesk ? "shrink-0 justify-end" : ""}`} data-desk-sort>
       {sortColumns.map(([key, label]) => (
-        <Link key={key} href={hrefFor({ sortKey: key })} scroll={false} className={chipClass(sortKey === key)}>
+        <Link key={key} href={hrefFor({ sortKey: key })} scroll={false} className={chipClass(activeSortKey === key)}>
           {label}
         </Link>
       ))}
@@ -313,7 +387,6 @@ export function AssetTable({
           ) : (
             <div className="min-w-0" data-lane-issuers />
           )}
-          {sortChips}
         </div>
       ) : laneChips || issuerChips ? (
         <div className="flex flex-col gap-2" data-lane-issuers>
@@ -358,7 +431,7 @@ export function AssetTable({
       )}
       {enableFavorites ? (
         <DeskHeaderActions>
-          <DeskCsvButton rows={rows} lane={lane} coverage={coverageFilter} sortKey={sortKey} />
+          <DeskCsvButton rows={rows} lane={lane} coverage={coverageFilter} sortKey={activeSortKey} />
         </DeskHeaderActions>
       ) : null}
       {enableFavorites && shouldShowPinCompare(compareRows) ? (
@@ -385,8 +458,8 @@ export function AssetTable({
       )}
       {marketsDesk ? null : (
         <p className="text-xs text-muted-foreground" aria-live="polite">
-          Ranked by {SORT_LABELS[sortKey]}
-          {sortKey === "volume24hUsd" ? " (coverage, then volume, liquidity, pools)" : ""}
+          Ranked by {SORT_LABELS[activeSortKey]}
+          {activeSortKey === "volume24hUsd" ? " (coverage, then volume, liquidity, pools)" : ""}
           {enableFavorites && !pinnedOnly ? " · pinned float to the top" : ""} · showing {rows.length} of {totalInLane}
           {coverageFilter !== "all" ? ` · ${coverageFilter.replace("-", " ")}` : ""}
           {activeIssuerLabel ? ` · ${activeIssuerLabel}` : ""}
@@ -410,20 +483,69 @@ export function AssetTable({
       {rows.length > 0 ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {rows.map((asset) => {
-            const closedRange = deskRange.range === "24h" || sortKey === "displayedLiquidityUsd" ? null : deskRange.range;
+            const liquidityMode = activeSortKey === "displayedLiquidityUsd";
+            const marketMode = activeSortKey === "marketValueUsd";
+            const closedRange =
+              marketMode || liquidityMode || deskRange.range === "24h" ? null : deskRange.range;
             const total = closedRange ? equityCardRangeTotal(deskRange.volumes, asset.contractAddress, closedRange) : null;
+            const liquidity = liquidityMode
+              ? equityCardLiquidityForRange(deskRange.liquidity, asset.contractAddress, deskRange.range)
+              : null;
+            const market = marketMode
+              ? equityCardMarketValueForRange(deskRange.marketValue, asset.contractAddress, deskRange.range)
+              : null;
+            const rangePrice = equityCardPriceForRange(deskRange.prices, asset.contractAddress, deskRange.range);
+            const volumePoints =
+              marketMode || liquidityMode
+                ? []
+                : equityCardVolumeSeriesForRange(deskRange.volumeSeries, asset.contractAddress, deskRange.range);
             return (
               <EquityCard
                 key={asset.contractAddress}
                 asset={asset}
                 href={`/chains/${chainId}/assets/${encodeURIComponent(assetRouteKey(asset, catalog))}`}
-                sortKey={sortKey}
+                sortKey={activeSortKey}
                 dayVolumeSeries={dayVolumeByMint[asset.contractAddress]}
                 rangeVolume={
                   closedRange
                     ? { id: closedRange, volumeUsd: total?.volumeUsd ?? null, days: total?.days ?? 0 }
                     : null
                 }
+                rangeLiquidity={
+                  liquidityMode
+                    ? {
+                        id: deskRange.range,
+                        liquidityUsd: liquidity?.liquidityUsd ?? null,
+                        days: liquidity?.days ?? 0,
+                        series: liquidity?.series ?? [],
+                      }
+                    : null
+                }
+                rangeMarketValue={
+                  marketMode
+                    ? {
+                        id: deskRange.range,
+                        marketValueUsd: market?.marketValueUsd ?? null,
+                        days: market?.days ?? 0,
+                        recorded: market !== null,
+                        series: market?.series ?? [],
+                      }
+                    : null
+                }
+                rangePrice={
+                  rangePrice
+                    ? {
+                        priceUsd: rangePrice.priceUsd,
+                        changePct: rangePrice.changePct,
+                        series: rangePrice.series,
+                      }
+                    : null
+                }
+                rangeVolumeSeries={volumePoints.map((point) => ({
+                  t: point.t,
+                  volumeUsd: point.volumeUsd,
+                  kind: "calendar_day" as const,
+                }))}
                 enableFavorites={enableFavorites}
                 pinned={favorites.isFavorite(asset.contractAddress)}
                 onTogglePin={() => favorites.toggle(asset.contractAddress)}
@@ -435,7 +557,15 @@ export function AssetTable({
 
       {rows.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-          {emptyCopy({ totalInLane, lane, query, pinnedOnly, coverageFilter, issuerFilter, chainId })}
+          {emptyCopy({
+            totalInLane: rangeView ? rangeView.addresses.length : totalInLane,
+            lane,
+            query,
+            pinnedOnly,
+            coverageFilter,
+            issuerFilter,
+            chainId,
+          })}
         </p>
       ) : null}
     </div>

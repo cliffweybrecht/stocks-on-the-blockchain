@@ -19,7 +19,9 @@ Writes data/volume-snapshots/bnb.json.
   Paimon Prime stay out. Other chains stay out.
 - 24h volume: DexScreener token-pairs/v1/bsc for every mint. tokens/v1/bsc
   returns one pair and is not the snapshot. Only pools quoted in cash or
-  wrapped native (BNB_QUOTE_ASSETS) count. Meme pairs stay out. A pool whose
+  wrapped native (BNB_QUOTE_ASSETS) count. Meme pairs stay out. pPOLY pools
+  quoted in United Stables (U), and the known wash addresses, stay out.
+  A pool whose
   base and quote are both tracked stocks counts once, on the base token.
   Known pools missing from the 30-pair page are refetched via
   /latest/dex/pairs/bsc. New pools, including Uniswap v4, come from
@@ -35,12 +37,23 @@ Writes data/volume-snapshots/bnb.json.
   (equity, etf, private). Each issuer keeps usd, mint count, and pool count.
   An issuer with mints but no reported h24 stays in the map with usd null.
   Missing liquidity does not blank the day.
+- Market value is on-chain totalSupply / 10^decimals times a USD price, for
+  every mint, not only mints with volume. Price is DexScreener priceUsd on
+  the highest-liquidity cash-quote pool that passes the liquidity guard
+  (USDT, USDC, WBNB, BNB, BUSD, FDUSD, USD1), else a GeckoTerminal token
+  price, else null. Lane totals are publicEquityMarketValueUsd,
+  etfIndexMarketValueUsd, privateMarketValueUsd, and combinedMarketValueUsd.
+  Null is not zero. A price far from that pool's 24h history, or a
+  single-token value above $10B, is null and warned. Past rows are not
+  rewritten.
 - One America/New_York calendar day per record (12:00:00 AM–11:59:59 PM Eastern).
   The day key is that Eastern date, not UTC. `t` is unix seconds for Eastern
   midnight. The closed-day number is the GeckoTerminal hourly candle sum over
   that window. DexScreener volume.h24 is the fallback and is tagged.
   BNB_SNAPSHOT_DATE or SNAPSHOT_DATE (YYYY-MM-DD) forces the key only; it does
-  not invent volume. SNAPSHOT_GECKO_CANDLES=0 keeps the DexScreener sample.
+  not invent volume. There is no switch that skips the candle overlay.
+  pPOLY pools are wash and stay out of the lanes; their dollars are stored on
+  excludedVolumeUsd and original* .
 - Each night also writes `assets[]` (Base schema) from that same sample:
   address, symbol, issuer, instrumentKind, volume24hUsd,
   displayedLiquidityUsd, pools, and poolCount. Lane totals and issuersByLane stay.
@@ -55,6 +68,8 @@ import json
 import math
 import os
 import sys
+
+from snapshot_holders_hook import run_holder_snapshot
 import time
 import urllib.parse
 import urllib.request
@@ -66,6 +81,11 @@ _SCRIPT_DIR = str(Path(__file__).resolve().parent)
 if _SCRIPT_DIR not in sys.path:
     sys.path.insert(0, _SCRIPT_DIR)
 
+from bnb_market_value import (  # noqa: E402
+    MARKET_VALUE_SOURCE,
+    bsc_rpc_urls,
+    collect_market_values,
+)
 from bnb_volume_universe import (  # noqa: E402
     CHAIN_ID,
     CHAIN_SLUG,
@@ -74,8 +94,8 @@ from bnb_volume_universe import (  # noqa: E402
     issuer_slug,
     load_universe,
 )
-from et_closed_day import overlay_gecko_day  # noqa: E402
-from snapshot_asset_rows import assets_for, pool_row, upsert_day_record  # noqa: E402
+from et_closed_day import overlay_gecko_day, volume_pool_excluded  # noqa: E402
+from snapshot_asset_rows import INSTRUMENT_KIND, assets_for, pool_row, upsert_day_record  # noqa: E402
 from volume_snapshot_day import snapshot_date_override, snapshot_day_key  # noqa: E402
 
 UA = {"User-Agent": "Mozilla/5.0 (compatible; BnbVolumeSnapshot/1.0)"}
@@ -245,6 +265,8 @@ def sum_unique_pool_volumes(
         liquidity = reported_h24(liquidity_raw.get("usd") if isinstance(liquidity_raw, dict) else None)
         base = str(((pair.get("baseToken") or {}).get("address") or "")).lower()
         quote = str(((pair.get("quoteToken") or {}).get("address") or "")).lower()
+        if volume_pool_excluded(pair_address, base, quote):
+            continue
         volume = reported_h24((pair.get("volume") or {}).get("h24"))
         for addr in {base, quote}:
             if addr not in wanted:
@@ -495,6 +517,8 @@ def fold_desk_pools(
             continue
         base = str(((pair.get("baseToken") or {}).get("address") or "")).lower()
         quote = str(((pair.get("quoteToken") or {}).get("address") or "")).lower()
+        if volume_pool_excluded(pair_key, base, quote):
+            continue
         volume = reported_h24((pair.get("volume") or {}).get("h24"))
         if pair_key not in pair_h24 or (pair_h24[pair_key] is None and volume is not None):
             pair_h24[pair_key] = volume
@@ -690,6 +714,7 @@ def hydrate_volumes(
     *,
     fetch: Any = None,
     discover_gecko: bool = True,
+    price_pairs: list[dict] | None = None,
 ) -> tuple[
     dict[str, float | None],
     dict[str, int],
@@ -724,6 +749,8 @@ def hydrate_volumes(
                 continue
             collected[pair_key] = pair
             seen.add(pair_key)
+            if price_pairs is not None:
+                price_pairs.append(pair)
             remember_attributed_pair(known, pair, by_addr)
         if token_key is not None:
             returned_by_token[token_key] = seen
@@ -840,6 +867,7 @@ def issuers_by_lane(
     rows: list[dict],
     vols: dict[str, float | None],
     pool_counts: dict[str, int],
+    market_values: dict[str, float | None] | None = None,
 ) -> dict[str, dict[str, dict[str, Any]]]:
     """Partition each lane by issuer. usd uses the same sumNullable as the lane total.
 
@@ -847,6 +875,10 @@ def issuers_by_lane(
     reported h24 stays, with usd null (null is not zero). Pool count is the
     sum of unique BNB pools already counted for those mints. Issuer keys are
     sorted so the file is stable across nights.
+
+    When market_values is passed, each issuer also keeps marketValueUsd (the
+    same nullable sum) and marketValueMints (how many of its mints had a
+    value). Omitted when the caller did not compute market value.
     """
     kind_to_field = {kind: field for kind, field in LANE_FIELDS}
     grouped: dict[tuple[str, str], list[dict]] = {}
@@ -861,12 +893,63 @@ def issuers_by_lane(
     for (field, issuer), group in grouped.items():
         addresses = [str(row["address"]).lower() for row in group]
         usd = sum_nullable([vols.get(addr) for addr in addresses])
-        lanes[field][issuer] = {
+        cell: dict[str, Any] = {
             "usd": None if usd is None else round(usd, 2),
             "mints": len(group),
             "pools": sum(pool_counts.get(addr, 0) for addr in addresses),
         }
+        if market_values is not None:
+            values = [market_values.get(addr) for addr in addresses]
+            market = sum_nullable(values)
+            cell["marketValueUsd"] = None if market is None else round(market, 2)
+            cell["marketValueMints"] = sum(1 for value in values if value is not None)
+        lanes[field][issuer] = cell
     return {field: dict(sorted(lanes[field].items())) for _, field in LANE_FIELDS}
+
+
+def attach_market_values(assets: list[dict], rows: list[dict], readings: dict[str, dict]) -> list[dict]:
+    """Write supply, price, and market value onto this night's asset rows.
+
+    A mint with a market value and no volume row is added so the figure is
+    stored. A mint with no volume and no market value stays out. Fields on a
+    row that is already there are null when that input was missing. Past rows
+    are not touched.
+    """
+    by_addr = {str(asset.get("address") or "").lower(): asset for asset in assets}
+    for row in rows:
+        address = str(row.get("address") or "")
+        key = address.lower()
+        if not key.startswith("0x"):
+            continue
+        reading = readings.get(key) or {}
+        supply = reading.get("supply")
+        price = reading.get("priceUsd")
+        source = reading.get("priceSource")
+        market = reading.get("marketValueUsd")
+        item = by_addr.get(key)
+        if item is None:
+            # A quiet mint is stored only when it has a market value to record.
+            if market is None:
+                continue
+            item = {
+                "address": address,
+                "symbol": row.get("symbol") or "",
+                "instrumentKind": INSTRUMENT_KIND.get(row.get("kind") or "", "equity"),
+                "volume24hUsd": None,
+                "displayedLiquidityUsd": None,
+                "pools": [],
+            }
+            issuer = row.get("issuer")
+            if isinstance(issuer, str) and issuer.strip():
+                item["issuer"] = issuer.strip()
+            assets.append(item)
+            by_addr[key] = item
+        item["supply"] = supply
+        item["priceUsd"] = price
+        item["priceSource"] = source
+        item["marketValueUsd"] = market
+    assets.sort(key=lambda item: (str(item.get("symbol") or "").upper(), str(item.get("address") or "").lower()))
+    return assets
 
 
 def main() -> int:
@@ -917,31 +1000,31 @@ def main() -> int:
     previous = previous_token_volumes(prior_records, date)
 
     dry_run = "--dry-run" in sys.argv
-    vols, pool_counts, pool_details, vol_warns, pair_h24, known = hydrate_volumes(rows, known)
+    price_pairs: list[dict] = []
+    vols, pool_counts, pool_details, vol_warns, pair_h24, known = hydrate_volumes(rows, known, price_pairs=price_pairs)
     closed = None
-    if os.environ.get("SNAPSHOT_GECKO_CANDLES", "1") != "0":
-        dex_pools = []
-        for addr, pools in pool_details.items():
-            for pool in pools:
-                dex_pools.append(
-                    {
-                        "pair": pool.get("pairAddress"),
-                        "base": addr,
-                        "quote": "",
-                        "dex_volume": pool.get("volume24hUsd"),
-                        "liquidity": pool.get("liquidityUsd"),
-                        "dex": pool.get("dexId"),
-                    }
-                )
-        try:
-            closed = overlay_gecko_day("bnb", date, rows, dex_pools)
-        except Exception as exc:  # noqa: BLE001
-            print(f"warn gecko eastern day failed, keeping DexScreener h24: {exc}", file=sys.stderr)
-            closed = None
-        if closed and closed.get("combined") is not None:
-            vols = closed["vols"]
-            pool_details = closed["details"]
-            pool_counts = {addr: len(pools) for addr, pools in pool_details.items()}
+    dex_pools = []
+    for addr, pools in pool_details.items():
+        for pool in pools:
+            dex_pools.append(
+                {
+                    "pair": pool.get("pairAddress"),
+                    "base": addr,
+                    "quote": "",
+                    "dex_volume": pool.get("volume24hUsd"),
+                    "liquidity": pool.get("liquidityUsd"),
+                    "dex": pool.get("dexId"),
+                }
+            )
+    try:
+        closed = overlay_gecko_day("bnb", date, rows, dex_pools)
+    except Exception as exc:  # noqa: BLE001
+        print(f"warn gecko eastern day failed, keeping DexScreener h24: {exc}", file=sys.stderr)
+        closed = None
+    if closed and closed.get("combined") is not None:
+        vols = closed["vols"]
+        pool_details = closed["details"]
+        pool_counts = {addr: len(pools) for addr, pools in pool_details.items()}
     for warning in vol_warns:
         print(f"warn {warning}", file=sys.stderr)
     drops = volume_drop_warnings(rows, vols, known, pair_h24, previous)
@@ -971,8 +1054,45 @@ def main() -> int:
 
     kind_counts = {kind: sum(1 for row in rows if row["kind"] == kind) for kind in DESK_KINDS}
     issuers = count_issuers(rows)
-    by_lane = issuers_by_lane(rows, vols, pool_counts)
+    try:
+        market_budget = float(os.environ.get("BNB_MARKET_VALUE_BUDGET_S") or "360")
+    except ValueError:
+        market_budget = 360.0
+    if market_budget < 0:
+        market_budget = 0.0
+    readings, market_warnings, market_nulls, market_notes = collect_market_values(
+        rows,
+        price_pairs,
+        pool_details,
+        budget_s=market_budget,
+        rpcs=bsc_rpc_urls(os.environ.get("BSC_RPC_URL")),
+    )
+    for note in market_notes:
+        print(f"warn {note}", file=sys.stderr)
+    for warning in market_warnings:
+        print(
+            "warn market value {symbol} {address} {reason} price={priceUsd} supply={supply} "
+            "rejected={marketValueUsd} pool={pairAddress}".format(**warning),
+            file=sys.stderr,
+        )
+    market_values = {addr: reading.get("marketValueUsd") for addr, reading in readings.items()}
+    market_read_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+    def lane_market(kind: str) -> float | None:
+        total = sum_nullable(
+            [market_values.get(row["address"].lower()) for row in rows if row["kind"] == kind]
+        )
+        return None if total is None else round(total, 2)
+
+    eq_mv = lane_market("equity")
+    etf_mv = lane_market("etf")
+    pre_mv = lane_market("preipo")
+    combined_mv = sum_nullable([eq_mv, etf_mv, pre_mv])
+    if combined_mv is not None:
+        combined_mv = round(combined_mv, 2)
+    by_lane = issuers_by_lane(rows, vols, pool_counts, market_values)
     assets = assets_for(rows, vols, pool_details)
+    assets = attach_market_values(assets, rows, readings)
     for asset in assets:
         asset["poolCount"] = len(asset.get("pools") or [])
 
@@ -983,6 +1103,12 @@ def main() -> int:
         "private24hUsd": pre_vol,
         "etfIndex24hUsd": etf_vol,
         "combined24hUsd": combined,
+        "publicEquityMarketValueUsd": eq_mv,
+        "privateMarketValueUsd": pre_mv,
+        "etfIndexMarketValueUsd": etf_mv,
+        "combinedMarketValueUsd": combined_mv,
+        "marketValueSource": MARKET_VALUE_SOURCE,
+        "marketValueReadAt": market_read_at,
         "issuersByLane": by_lane,
         "assets": assets,
         "publicMintCount": eq_mints,
@@ -1009,6 +1135,12 @@ def main() -> int:
             ),
             "chainId": CHAIN_ID,
             "chainSlug": CHAIN_SLUG,
+            "marketValue": (
+                "ERC-20 totalSupply/10^decimals from a public BSC RPC, times DexScreener priceUsd "
+                "on the highest-liquidity USDT/USDC/WBNB/BNB/BUSD/FDUSD/USD1 pool that passes the "
+                "liquidity guard, else GeckoTerminal token price. Null when either input is missing. "
+                "A price far from that pool's 24h history, or a value above $10B, is null."
+            ),
             "issuers": issuers,
             "kindCounts": kind_counts,
             "registries": meta.get("registries") or {},
@@ -1029,12 +1161,37 @@ def main() -> int:
             "a token down more than 90% while its main pool still has volume is warned and kept; "
             "issuersByLane is that sum partitioned by issuer inside equity, etf, and private; "
             "assets[] includes poolCount; "
-            "null means no reported volume (not zero)"
+            "null means no reported volume (not zero); "
+            "market value is on-chain supply times a cash-pool DexScreener price or a GeckoTerminal "
+            "token price, summed with the same nullable rule; past rows are left unchanged"
         ),
     }
+    if market_warnings:
+        record["marketValueWarnings"] = market_warnings
+    if market_nulls:
+        record["marketValueNulls"] = dict(sorted(market_nulls.items()))
     if closed and closed.get("crossCheck"):
         record["crossCheck"] = closed["crossCheck"]
         record["gapPct"] = closed.get("gapPct")
+    if closed and closed.get("fallbacks"):
+        record["dexscreenerH24Fallbacks"] = closed["fallbacks"]
+    excluded = None if closed is None else closed.get("excludedVolumeUsd")
+    if excluded:
+        by_kind = closed.get("excludedByKind") or {}
+
+        def plus(value: float | None, extra: float | None) -> float | None:
+            if not extra:
+                return value
+            if value is None:
+                return extra
+            return round(value + extra, 2)
+
+        record["excludedVolumeUsd"] = excluded
+        record["excludedPools"] = closed.get("excludedPools") or []
+        record["originalPublicEquity24hUsd"] = plus(eq_vol, by_kind.get("equity"))
+        record["originalPrivate24hUsd"] = plus(pre_vol, by_kind.get("preipo"))
+        record["originalEtfIndex24hUsd"] = plus(etf_vol, by_kind.get("etf"))
+        record["originalCombined24hUsd"] = plus(combined, excluded)
     if drops:
         record["volumeDropWarnings"] = drops
 
@@ -1053,6 +1210,12 @@ def main() -> int:
             parts.append(f"{slug}:{fmt(stats['usd'])}/{stats['mints']}m/{stats['pools']}p")
         return ",".join(parts) if parts else "none"
 
+    def lane_market_issuers(field: str) -> str:
+        parts = []
+        for slug, stats in by_lane[field].items():
+            parts.append(f"{slug}:{fmt(stats.get('marketValueUsd'))}/{stats.get('marketValueMints')}v")
+        return ",".join(parts) if parts else "none"
+
     print(
         f"snapshot:bnb {'dry-run' if dry_run else 'wrote'} {date} combined={fmt(combined)} "
         f"equity={fmt(eq_vol)} etf={fmt(etf_vol)} preipo={fmt(pre_vol)} "
@@ -1061,10 +1224,48 @@ def main() -> int:
         f"issuers={issuers} "
         f"equityByIssuer={lane_issuers('equity')} "
         f"etfByIssuer={lane_issuers('etf')} "
-        f"privateByIssuer={lane_issuers('private')} -> {out_file}",
+        f"privateByIssuer={lane_issuers('private')} "
+        f"marketCombined={fmt(combined_mv)} marketEquity={fmt(eq_mv)} marketEtf={fmt(etf_mv)} "
+        f"marketPrivate={fmt(pre_mv)} "
+        f"marketEquityByIssuer={lane_market_issuers('equity')} "
+        f"marketEtfByIssuer={lane_market_issuers('etf')} "
+        f"marketPrivateByIssuer={lane_market_issuers('private')} "
+        f"marketNulls={market_nulls} -> {out_file}",
         flush=True,
     )
-    return 0
+    print(
+        "snapshot:bnb market-value "
+        + json.dumps(
+            {
+                "date": date,
+                "readAt": market_read_at,
+                "source": MARKET_VALUE_SOURCE,
+                "publicEquityMarketValueUsd": eq_mv,
+                "etfIndexMarketValueUsd": etf_mv,
+                "privateMarketValueUsd": pre_mv,
+                "combinedMarketValueUsd": combined_mv,
+                "issuersByLane": {
+                    field: {
+                        slug: {
+                            "marketValueUsd": stats.get("marketValueUsd"),
+                            "marketValueMints": stats.get("marketValueMints"),
+                            "mints": stats.get("mints"),
+                        }
+                        for slug, stats in by_lane[field].items()
+                    }
+                    for field in ("equity", "etf", "private")
+                },
+                "nulls": market_nulls,
+                "warnings": market_warnings,
+            },
+            separators=(",", ":"),
+        ),
+        flush=True,
+    )
+    if dry_run:
+        return 0
+    holder_code = run_holder_snapshot("bnb", date)
+    return holder_code if holder_code != 0 else 0
 
 
 if __name__ == "__main__":

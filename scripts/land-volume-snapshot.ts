@@ -14,6 +14,9 @@ import {
   isDailySnapshotPath,
   parseOriginPrListNumber,
   parseOriginPrView,
+  holderSnapshotCommitSubject,
+  holderSnapshotLandChain,
+  isHolderSnapshotPath,
   porcelainPath,
   snapshotCommitSubject,
   volumeSnapshotChain,
@@ -33,12 +36,16 @@ Usage:
   npm run snapshot:land -- --pr 371
   npm run snapshot:land -- --check
 
-  --chain solana|base|bnb|robinhood|perps
+  --chain solana|base|bnb|robinhood|perps|holders-solana|holders-base|holders-bnb|holders-robinhood
   Commit that chain's snapshot JSON when it has uncommitted edits.
   BNB also commits data/volume-snapshots/bnb-pools.json when that registry is dirty.
   Perps writes data/perps-snapshots/perps.json (not a spot total).
   Subject: chore: <Chain> volume snapshot YYYY-MM-DD
   Refuses if any non-snapshot file is dirty.
+
+--chain holders-solana|holders-base|holders-bnb|holders-robinhood
+  Commit data/holder-snapshots/<chain>.json the same way.
+  Subject: chore: <Chain> holder snapshot YYYY-MM-DD
 
 --push-main
   Push the snapshot branch, open a ready PR, and try \`origin pr merge\`.
@@ -166,7 +173,7 @@ function verifyAppendOnly(
 ): { ok: true; added: string[] } | { ok: false; reason: string } {
   const added: string[] = [];
   for (const file of files) {
-    if (!isDailySnapshotPath(file) && !file.startsWith("data/perps-snapshots/")) continue;
+    if (!isDailySnapshotPath(file) && !file.startsWith("data/perps-snapshots/") && !isHolderSnapshotPath(file)) continue;
     let beforeText = "";
     try {
       beforeText = git(["show", `origin/main:${file}`], cwd);
@@ -300,7 +307,9 @@ function commitChain(cwd: string, chain: VolumeSnapshotChain): string | null {
     console.error(`Refusing to commit ${chain.file}: no YYYY-MM-DD record date.`);
     return null;
   }
-  const subject = snapshotCommitSubject(chain.label, day);
+  const subject = chain.id.startsWith("holders-")
+    ? holderSnapshotCommitSubject(chain.label, day)
+    : snapshotCommitSubject(chain.label, day);
   let branch = currentBranch(cwd);
   if (branch === "main" || branch === "HEAD") {
     const suffix = randomBytes(2).toString("hex");
@@ -377,13 +386,17 @@ function main(): number {
   }
 
   if (!chainId) {
-    console.error("snapshot:land requires --chain solana|base|bnb|robinhood|perps, --pr <number>, or --check.");
+    console.error(
+      "snapshot:land requires --chain solana|base|bnb|robinhood|perps|holders-solana|holders-base|holders-bnb|holders-robinhood, --pr <number>, or --check.",
+    );
     console.error(HELP);
     return 1;
   }
-  const chain = volumeSnapshotChain(chainId);
+  const chain = volumeSnapshotChain(chainId) ?? holderSnapshotLandChain(chainId);
   if (!chain) {
-    console.error(`Unknown volume snapshot chain ${chainId}. Use solana, base, bnb, robinhood, or perps.`);
+    console.error(
+      `Unknown snapshot chain ${chainId}. Use solana, base, bnb, robinhood, perps, or holders-solana, holders-base, holders-bnb, holders-robinhood.`,
+    );
     return 1;
   }
 

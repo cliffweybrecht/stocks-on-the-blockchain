@@ -1065,6 +1065,7 @@ export const MOCK_CHAINS: ChainVolume[] = sortByVolumeThenLiquidity(
         privateVolume24hUsd: sumNullable((MOCK_PRIVATE_ASSETS.solana ?? []).map((asset) => asset.volume24hUsd)),
       },
     ),
+    // Kept for re-enable. Hidden while ETHEREUM_CHAIN.enabled is false in chain-config.ts.
     rollupChainFromAssets(
       chainShell(
         "ethereum",

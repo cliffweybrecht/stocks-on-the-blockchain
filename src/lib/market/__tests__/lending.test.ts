@@ -46,6 +46,7 @@ import {
   attributeVenusBorrow,
   chooseVenusEstimate,
   collectHolderAddresses,
+  loanFromVenusAccount,
   missingVenusLogRanges,
   parseVenusHolderCache,
   venusCacheMatches,
@@ -914,6 +915,8 @@ describe("lending stock view", () => {
     expect(classifyLendingSymbol("SPCX", "robinhood-chain").ticker).toBe("SPCX");
     expect(classifyLendingSymbol("SPCXB", "bnb")).toEqual({ ticker: "SPCX", wrapper: "bStocks" });
     expect(classifyLendingSymbol("deSPXA", "base")).toEqual({ ticker: "SPXA", wrapper: "Centrifuge" });
+    expect(classifyLendingSymbol("wtCOIN", "base")).toEqual({ ticker: "COIN", wrapper: "ST0x" });
+    expect(classifyLendingSymbol("wtSPYM", "base")).toEqual({ ticker: "SPYM", wrapper: "ST0x" });
     expect(classifyLendingSymbol("wbCOIN", "base").wrapper).toBe("Not named");
 
     const groups = lendingStockGroups([
@@ -1168,6 +1171,28 @@ describe("venus log scan", () => {
     expect(venusCacheMatches(cache, 1, ["0xabc"])).toBe(false);
     expect(parseVenusHolderCache({ ...cache, schema: "nope" })).toBeNull();
     expect(parseVenusHolderCache(cache)?.addresses).toEqual(["0x1111111111111111111111111111111111111111"]);
+  });
+
+  it("keeps other collateral in the cushion and marks a loan already past the line", () => {
+    const mixed = loanFromVenusAccount({
+      borrowUsd: 100,
+      bstockBorrowPowerUsd: 80,
+      totalBorrowPowerUsd: 200,
+      bstockCollateralUsd: 150,
+    });
+    expect(mixed.unpriced).toBe(false);
+    expect(mixed.loan?.alreadyPast).toBe(false);
+    expect(mixed.loan?.cushion).toBe(1);
+    expect(mixed.loan?.collateralUsd).toBe(150);
+    const past = loanFromVenusAccount({
+      borrowUsd: 300,
+      bstockBorrowPowerUsd: 80,
+      totalBorrowPowerUsd: 200,
+      bstockCollateralUsd: 150,
+    });
+    expect(past.loan).toEqual({ collateralUsd: 150, cushion: 0, alreadyPast: true });
+    expect(loanFromVenusAccount({ borrowUsd: 40, bstockBorrowPowerUsd: 10, totalBorrowPowerUsd: 10 }).unpriced).toBe(true);
+    expect(loanFromVenusAccount({ borrowUsd: 40, bstockBorrowPowerUsd: 0, totalBorrowPowerUsd: 20, bstockCollateralUsd: 0 }).unpriced).toBe(false);
   });
 });
 

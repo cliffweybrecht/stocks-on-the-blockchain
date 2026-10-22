@@ -2,6 +2,9 @@
   "name": "stocks-on-the-blockchain",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "scripts": {
     "dev": "next dev --port 43147",
     "build": "next build",
@@ -16,12 +19,14 @@
     "snapshot:base-volume": "python3 scripts/snapshot-base-volume.py",
     "snapshot:perps": "tsx scripts/snapshot-perps.ts",
     "snapshot:lending": "tsx scripts/snapshot-lending.ts",
-    "snapshot:land": "tsx scripts/land-volume-snapshot.ts"
+    "snapshot:land": "tsx scripts/land-volume-snapshot.ts",
+    "snapshot:holders": "tsx scripts/snapshot-holders.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.2.6",
+    "geist": "^1.8.1",
     "lucide-react": "^1.41.0",
     "next": "16.3.4",
     "react": "19.2.8",

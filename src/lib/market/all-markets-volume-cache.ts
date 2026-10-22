@@ -142,7 +142,7 @@ async function readStoredFile(input: {
   const path = cacheFilePath(input.directory, input.mint);
   if (!path) return null;
   try {
-    const raw = await readFile(path, "utf8");
+    const raw = await readFile(/*turbopackIgnore: true*/ path, "utf8");
     return parseStored(
       JSON.parse(raw) as unknown,
       input.mint.trim(),
@@ -216,7 +216,7 @@ async function writeCompleteAllMarketsDailyBody(input: {
   let preservedHourly: VolumeHistoryPoint[] | undefined;
   let preservedHourlyPools: AllMarketsStoredPool[] | undefined;
   try {
-    const parsed = JSON.parse(await readFile(path, "utf8")) as Partial<StoredAllMarketsVolume>;
+    const parsed = JSON.parse(await readFile(/*turbopackIgnore: true*/ path, "utf8")) as Partial<StoredAllMarketsVolume>;
     if (
       parsed.mint === mint &&
       Array.isArray(parsed.pairAddresses) &&
@@ -246,10 +246,10 @@ async function writeCompleteAllMarketsDailyBody(input: {
     ...(preservedHourlyPools ? { hourlyPools: preservedHourlyPools } : {}),
   };
   try {
-    await mkdir(dirname(path), { recursive: true });
+    await mkdir(/*turbopackIgnore: true*/ dirname(path), { recursive: true });
     const tmp = `${path}.${process.pid}.tmp`;
-    await writeFile(tmp, `${JSON.stringify(stored)}\n`, "utf8");
-    await rename(tmp, path);
+    await writeFile(/*turbopackIgnore: true*/ tmp, `${JSON.stringify(stored)}\n`, "utf8");
+    await rename(/*turbopackIgnore: true*/ tmp, path);
     return true;
   } catch {
     // A cache miss retries later. The page does not wait on this file.
@@ -285,7 +285,7 @@ async function writeCompleteAllMarketsHourlyBody(input: {
   const { mint, path } = input;
   let existing: StoredAllMarketsVolume;
   try {
-    const parsed = JSON.parse(await readFile(path, "utf8")) as Partial<StoredAllMarketsVolume>;
+    const parsed = JSON.parse(await readFile(/*turbopackIgnore: true*/ path, "utf8")) as Partial<StoredAllMarketsVolume>;
     if (parsed.mint !== mint || !Array.isArray(parsed.pairAddresses) || !Array.isArray(parsed.daily)) return false;
     if (!allMarketsPoolSetCompatible(parsed.pairAddresses, input.pairAddresses)) return false;
     if (typeof parsed.fetchedAt !== "number" || !Number.isFinite(parsed.fetchedAt)) return false;
@@ -312,10 +312,10 @@ async function writeCompleteAllMarketsHourlyBody(input: {
       : {}),
   };
   try {
-    await mkdir(dirname(path), { recursive: true });
+    await mkdir(/*turbopackIgnore: true*/ dirname(path), { recursive: true });
     const tmp = `${path}.${process.pid}.tmp`;
-    await writeFile(tmp, `${JSON.stringify(stored)}\n`, "utf8");
-    await rename(tmp, path);
+    await writeFile(/*turbopackIgnore: true*/ tmp, `${JSON.stringify(stored)}\n`, "utf8");
+    await rename(/*turbopackIgnore: true*/ tmp, path);
     return true;
   } catch {
     return false;
@@ -398,7 +398,7 @@ export async function readAllMarketsProgress(input: {
   const path = progressFilePath(input.directory, input.mint, input.suffix);
   if (!path) return null;
   try {
-    const raw = await readFile(path, "utf8");
+    const raw = await readFile(/*turbopackIgnore: true*/ path, "utf8");
     return parseProgress(
       JSON.parse(raw) as unknown,
       input.mint.trim(),
@@ -435,10 +435,10 @@ export async function writeAllMarketsProgress(input: {
     })),
   };
   try {
-    await mkdir(dirname(path), { recursive: true });
+    await mkdir(/*turbopackIgnore: true*/ dirname(path), { recursive: true });
     const tmp = `${path}.${process.pid}.tmp`;
-    await writeFile(tmp, `${JSON.stringify(stored)}\n`, "utf8");
-    await rename(tmp, path);
+    await writeFile(/*turbopackIgnore: true*/ tmp, `${JSON.stringify(stored)}\n`, "utf8");
+    await rename(/*turbopackIgnore: true*/ tmp, path);
     return true;
   } catch {
     return false;
@@ -455,7 +455,7 @@ export async function deleteAllMarketsProgress(input: {
   const path = progressFilePath(input.directory, input.mint, input.suffix);
   if (!path) return;
   try {
-    await unlink(path);
+    await unlink(/*turbopackIgnore: true*/ path);
   } catch {
     // Already gone. The complete file is the source of truth after that.
   }

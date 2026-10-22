@@ -5,6 +5,7 @@ import {
   buildLendingDepth,
   lendingDropAnswer,
   lendingDropKey,
+  lendingDropLoanTags,
   lendingDropScopes,
   lendingDropTable,
   lendingFillingFlags,
@@ -331,6 +332,17 @@ describe("lending glance", () => {
     expect(badges[0]?.text).toMatch(/90\.0% full/);
     expect(lendingHowFull(jupiter)).toBeNull();
     expect(lendingHowFull(venus)).toBeNull();
+    expect(
+      lendingHowFull(
+        row({
+          id: "frankencoin-ethereum",
+          venue: "Frankencoin",
+          stableBorrowedUsd: 3_000_000,
+          lendSupplyUsd: 5_000_000,
+          utilization: 0.6,
+        }),
+      ),
+    ).toBeNull();
     expect(badges[1]?.text).toMatch(/1\.5 points/);
     const quiet = lendingSimpleBadges([row({ id: "lista-bnb", venue: "Lista", borrowApy: 0.021, stableBorrowedUsd: 100_000, lendSupplyUsd: 200_000 })], [row({ id: "lista-bnb", venue: "Lista", borrowApy: 0.02 })]);
     expect(quiet).toEqual([]);
@@ -401,5 +413,60 @@ describe("lending glance", () => {
     expect(depth.chains.map((chain) => chain.chainId)).toContain("solana");
     expect(depth.chains.find((chain) => chain.chainId === "hyperevm")?.collateralUsd).toBeGreaterThan(0);
     expect(lendingRiskLine(latest.rows)).toMatch(/Most of the stock in these loans|not figured yet/);
+  });
+
+  it("tags each venue as real loans or estimated, and stale when the read failed", () => {
+    const real = row({
+      id: "kamino-sentora",
+      venue: "Kamino Sentora / Kraken",
+      loanHealth: positionLoanHealth({
+        asOf: "2026-10-20T16:00:00.000Z",
+        source: "https://api.mainnet-beta.solana.com",
+        loans: [{ collateralUsd: 100, cushion: 0.2, alreadyPast: false }],
+        unpricedLoanCount: 0,
+      }),
+    });
+    const estimated = row({
+      id: "kamino-xstocks",
+      venue: "Kamino xStocks",
+      loanHealth: poolLoanHealth({
+        asOf: "2026-10-20T16:00:00.000Z",
+        source: "kamino",
+        fallback: "No priced stock loan came back, so this is the pool estimate.",
+      }),
+    });
+    const stale = row({
+      id: "jupiter-lend",
+      venue: "Jupiter Lend",
+      loanHealth: poolLoanHealth({
+        asOf: "2026-10-20T16:00:00.000Z",
+        source: "jupiter",
+        fallback: "Jupiter loans did not load, so this is the pool estimate.",
+        stale: true,
+      }),
+    });
+    const depth = buildLendingDepth([
+      {
+        schema: "equity-lending-v1",
+        date: "2026-10-20",
+        capturedAt: "2026-10-20T16:00:00.000Z",
+        rows: [real, estimated, stale],
+        failures: [],
+      },
+    ]);
+    expect(lendingDropLoanTags("all", depth).map((tag) => [tag.venueId, tag.kind, tag.stale])).toEqual([
+      ["jupiter-lend", "estimated", true],
+      ["kamino-sentora", "real", false],
+      ["kamino-xstocks", "estimated", false],
+    ]);
+    expect(lendingDropLoanTags("jupiter-lend", depth)).toEqual([
+      { venueId: "jupiter-lend", label: "Jupiter Lend", kind: "estimated", stale: true },
+    ]);
+    expect(lendingDropLoanTags("stock:NVDA", depth).map((tag) => tag.venueId)).toEqual(["jupiter-lend", "kamino-sentora", "kamino-xstocks"]);
+    expect(depth.venues.find((venue) => venue.id === "jupiter-lend")?.positionsNote.startsWith("Stale.")).toBe(true);
+    const notes = lendingStaleNotes([stale]);
+    expect(notes[0]?.label).toBe("Stale");
+    expect(notes[0]?.text).toMatch(/did not finish loading/);
+    expect(notes[0]?.text).toMatch(/EDT/);
   });
 });

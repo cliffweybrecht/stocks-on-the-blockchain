@@ -205,10 +205,10 @@ describe("BNB snapshot file", () => {
   it("keeps the 2026-10-05 lanes and drops the in-progress Eastern day", () => {
     const day = closed[closed.length - 1];
     expect(day?.date).toBe("2026-10-05");
-    expect(day?.combined24hUsd).toBeCloseTo(160_701_412.02, 2);
-    expect(day?.publicEquity24hUsd).toBeCloseTo(77_778_363.48, 2);
-    expect(day?.etfIndex24hUsd).toBeCloseTo(30_456_663.33, 2);
-    expect(day?.private24hUsd).toBeCloseTo(52_466_385.21, 2);
+    expect(day?.combined24hUsd).toBeCloseTo(108_285_122.64, 2);
+    expect(day?.publicEquity24hUsd).toBeCloseTo(77_778_363.51, 2);
+    expect(day?.etfIndex24hUsd).toBeCloseTo(30_456_663.34, 2);
+    expect(day?.private24hUsd).toBeCloseTo(50_095.79, 2);
     const duringOct5 = Date.parse("2026-10-05T12:00:00-04:00") / 1000;
     expect(closedSnapshotDeskDays(days, duringOct5).at(-1)?.date).toBe("2026-10-04");
   });
@@ -225,7 +225,7 @@ describe("BNB snapshot file", () => {
       privateUsd: null,
     });
     expect(rows.find((row) => row.slug === "xstocks")?.equityUsd).toBeCloseTo(45.74, 2);
-    expect(rows.find((row) => row.slug === "paimon")?.privateUsd).toBeCloseTo(52_466_385.21, 2);
+    expect(rows.find((row) => row.slug === "paimon")?.privateUsd).toBeCloseTo(50_095.79, 2);
     expect(rows.find((row) => row.slug === "colb")?.privateUsd).toBeNull();
     expect(bnbIssuerPresentation("ondo").official).toBe(true);
     expect(bnbIssuerPresentation("fourmeme")).toEqual({ label: "Four.meme 4Stock", official: true });
@@ -286,6 +286,8 @@ describe("home snapshot desks", () => {
     const bnb = snapshotHomeChainVolume(BNB_DESK, bnbClosed);
     const lastBnb = bnbClosed.at(-1);
     expect(chainCombinedVolume24h(base)).toBeCloseTo(73_051_020.44, 1);
+    expect(lastBnb?.date).toBe("2026-10-07");
+    expect(chainCombinedVolume24h(bnb)).toBeCloseTo(62_590_658.53, 1);
     expect(chainCombinedVolume24h(bnb)).toBeCloseTo(
       (lastBnb?.publicEquity24hUsd ?? 0) + (lastBnb?.private24hUsd ?? 0) + (lastBnb?.etfIndex24hUsd ?? 0),
       1,
@@ -305,7 +307,7 @@ describe("home snapshot desks", () => {
         bnb,
       ],
     );
-    expect(ranked.map((row) => row.id)).toEqual(["bnb", "solana", "base", "robinhood-chain"]);
+    expect(ranked.map((row) => row.id)).toEqual(["solana", "base", "bnb", "robinhood-chain"]);
     expect(ranked.filter((row) => row.id === "base")).toHaveLength(1);
     expect(ranked.find((row) => row.id === "base")?.name).toBe("Base");
   });

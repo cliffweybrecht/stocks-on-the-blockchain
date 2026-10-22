@@ -563,6 +563,19 @@
         }
       ]
     },
+    "0x317bf42b43a394860718266dec445dcc9fd9da49": {
+      "address": "0x317bF42b43A394860718266Dec445DCC9FD9dA49",
+      "symbol": "JPMon",
+      "issuer": "ondo",
+      "kind": "equity",
+      "pools": [
+        {
+          "pairAddress": "0xd451bb20038C9C304b197E60C9D3ecae706a6a17",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        }
+      ]
+    },
     "0x33e7317e17838fee56b10fe8d0b9ca6ca3090c95": {
       "address": "0x33e7317e17838fee56b10fe8d0b9ca6ca3090c95",
       "symbol": "CRWVB",
@@ -1478,6 +1491,11 @@
           "uniswapV4": false
         },
         {
+          "pairAddress": "0x452ec83046b0ac72005a50671337e11f11d05fb3",
+          "dexId": "pancakeswap-v3-bsc",
+          "uniswapV4": false
+        },
+        {
           "pairAddress": "0x53c6291d0a5a02c76cedfa1b8f57a8ac3762f7a9",
           "dexId": "uniswap-bsc",
           "uniswapV4": false
@@ -2084,6 +2102,11 @@
       "issuer": "xstocks",
       "kind": "equity",
       "pools": [
+        {
+          "pairAddress": "0x452ec83046b0AC72005A50671337E11f11d05fb3",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        },
         {
           "pairAddress": "0x5E12d6EdB2b7D5330e474ea2D2694A3b3E35d492",
           "dexId": "pancakeswap",
@@ -2764,6 +2787,24 @@
         }
       ]
     },
+    "0xc16f47c4a7ed39372b9a0e3e2016cede9b4cb83a": {
+      "address": "0xC16f47C4A7eD39372B9a0e3e2016cEDe9b4cB83a",
+      "symbol": "REMXon",
+      "issuer": "ondo",
+      "kind": "etf",
+      "pools": [
+        {
+          "pairAddress": "0x063cac6924d8b9df8c806fadc6974e8f8e5c86de2f6ddb49b81079fcd585b920",
+          "dexId": "uniswap-v4-bsc",
+          "uniswapV4": true
+        },
+        {
+          "pairAddress": "0x80532aA1A46a5084a117a779387F90030d5d4Ae7",
+          "dexId": "pancakeswap",
+          "uniswapV4": false
+        }
+      ]
+    },
     "0xc8da12cbcce7c45180692a6420b0076e03a5179a": {
       "address": "0xc8da12cbcce7c45180692a6420b0076e03a5179a",
       "symbol": "RKLBB",
@@ -2801,6 +2842,11 @@
         {
           "pairAddress": "0xd7d30f434b12f7ed9b0ae11ff1c754745a10ad52",
           "dexId": "pancakeswap-v3-bsc",
+          "uniswapV4": false
+        },
+        {
+          "pairAddress": "0xD7e34aF3De50b003747309c92f636c2bD3888AF4",
+          "dexId": "metric",
           "uniswapV4": false
         },
         {

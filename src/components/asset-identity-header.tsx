@@ -64,7 +64,7 @@ export function AssetIdentityHeader({
       {showBreadcrumb ? <AssetBreadcrumb chain={chain} symbol={asset.symbol} /> : null}
 
       <div className="flex items-start gap-3 sm:gap-4">
-        <AssetLogo logoUrl={asset.logoUrl} name={asset.name} symbol={asset.symbol} />
+        <AssetLogo logoUrl={asset.logoUrl} name={asset.name} symbol={asset.symbol} issuer={asset.issuer} />
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <h2 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">{asset.name}</h2>

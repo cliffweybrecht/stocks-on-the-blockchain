@@ -6,6 +6,8 @@ from __future__ import annotations
 import unittest
 
 from et_closed_day import (
+    PPOLY_TOKEN,
+    UNITED_STABLES,
     attach_gecko_candles,
     build_closed_totals,
     cross_check_tag,
@@ -14,6 +16,7 @@ from et_closed_day import (
     rank_pools,
     recipient,
     sum_candles_for_day,
+    volume_pool_excluded,
 )
 
 
@@ -103,6 +106,8 @@ class ClosedDayTest(unittest.TestCase):
         self.assertEqual(totals["combined"], 15)
         self.assertEqual(totals["volumeSource"], "dexscreener-h24-fallback")
         self.assertIsNone(totals["crossCheck"])
+        self.assertEqual(totals["fallbacks"][0]["pairAddress"], "only-dex")
+        self.assertEqual(totals["fallbacks"][0]["reason"], "no-geckoterminal-candles")
         self.assertEqual(totals["barMethod"], "dex")
         self.assertEqual(totals["geckoCoveragePct"], 0.0)
 
@@ -195,6 +200,72 @@ class CandleBudgetTest(unittest.TestCase):
         self.assertEqual(result["stats"]["cacheHits"], 1)
         self.assertEqual(result["stats"]["geckoOk"], 0)
         self.assertEqual(result["stats"]["networkFetches"], 0)
+
+    def test_ppoly_united_stables_wash_is_not_counted(self) -> None:
+        wash = "0xe2d5738b246526194b19adf0dcdf5fc511126d276798e8fe5102ed464f7720e2"
+        fresh = "0x" + "ab" * 32
+        other = "0x" + "11" * 20
+        self.assertTrue(volume_pool_excluded(wash, PPOLY_TOKEN, "0x55d398326f99059ff775485246999027b3197955"))
+        self.assertTrue(volume_pool_excluded(fresh, PPOLY_TOKEN, UNITED_STABLES))
+        # Cash-quoted and quote-less pPOLY pools are the same wash. The address
+        # list is not required once either side is the token.
+        self.assertTrue(volume_pool_excluded("0x" + "cd" * 32, PPOLY_TOKEN, "0x55d398326f99059ff775485246999027b3197955"))
+        self.assertTrue(volume_pool_excluded("0x" + "ef" * 32, PPOLY_TOKEN, ""))
+        self.assertFalse(volume_pool_excluded("0x" + "11" * 20, other, UNITED_STABLES))
+        rows = [
+            {"address": PPOLY_TOKEN, "kind": "preipo", "symbol": "pPOLY"},
+            {"address": other, "kind": "preipo", "symbol": "xOPAI"},
+        ]
+        totals = build_closed_totals(
+            rows,
+            [
+                {
+                    "pair": "0xgoodppoly",
+                    "base": PPOLY_TOKEN,
+                    "quote": "0x55d398326f99059ff775485246999027b3197955",
+                    "dex_volume": 40,
+                    "gecko_volume": 12.5,
+                    "gecko_ok": True,
+                    "dex": "pancakeswap-v3-bsc",
+                },
+                {
+                    "pair": wash,
+                    "base": PPOLY_TOKEN,
+                    "quote": "0x55d398326f99059ff775485246999027b3197955",
+                    "dex_volume": 9_000_000,
+                    "gecko_volume": 50_000_000,
+                    "gecko_ok": True,
+                    "dex": "pancakeswap-infinity-clmm",
+                },
+                {
+                    "pair": fresh,
+                    "base": PPOLY_TOKEN,
+                    "quote": UNITED_STABLES,
+                    "dex_volume": 8_000_000,
+                    "gecko_volume": 8_000_000,
+                    "gecko_ok": True,
+                    "from_gecko": True,
+                    "dex": "uniswap-v4-bsc",
+                },
+                {
+                    "pair": "0xother",
+                    "base": other,
+                    "quote": "0x55d398326f99059ff775485246999027b3197955",
+                    "dex_volume": 9,
+                    "gecko_volume": 7,
+                    "gecko_ok": True,
+                    "dex": "pancakeswap-v3-bsc",
+                },
+            ],
+        )
+        self.assertIsNone(totals["vols"][PPOLY_TOKEN])
+        self.assertEqual(totals["vols"][other], 7)
+        self.assertEqual(totals["lanes"]["preipo"], 7)
+        self.assertEqual(totals["details"][PPOLY_TOKEN], [])
+        self.assertEqual(totals["excludedVolumeUsd"], 58_000_012.5)
+        self.assertEqual(totals["excludedByKind"], {"preipo": 58_000_012.5})
+        self.assertEqual(len(totals["excludedPools"]), 3)
+        self.assertTrue(all(row["reason"] == "ppoly-wash" for row in totals["excludedPools"]))
 
 
 if __name__ == "__main__":

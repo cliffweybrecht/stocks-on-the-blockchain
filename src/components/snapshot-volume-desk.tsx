@@ -1,9 +1,15 @@
 "use client";
 
 import { useMemo, useState, type PointerEvent } from "react";
+import { DateAxisLabels } from "@/components/date-axis-labels";
 import { useDeskVolumeRange } from "@/components/desk-volume-range";
+import { HeadlineMetricToggle, type HeadlineMetric } from "@/components/headline-metric-toggle";
+import { LiquidityHeadline, LiquidityPlot, liquidityChartPoints } from "@/components/liquidity-plot";
+import { MarketValueHeadline, MarketValuePlot, marketValueChartPoints } from "@/components/market-value-plot";
 import { backfillHeadlineNote, countAssetBackfillDays } from "@/lib/market/asset-backfill-desk";
 import { DESK_CHART_PLOT_FRAME_CLASS, monotoneVolumePaths } from "@/lib/desk/chart-curve";
+import { selectDateAxisLabelTicks } from "@/lib/desk/date-axis";
+import { deskLiquidityClosesFromHistory, deskLiquidityRangeView } from "@/lib/market/desk-liquidity-chart";
 import { formatChartDay, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
 import {
   nearestVolumePoint,
@@ -15,9 +21,10 @@ import {
   VOLUME_CHART_PAD,
   VOLUME_CHART_RANGES,
   VOLUME_CHART_WIDTH,
-  formatVolumeChartTick,
   type VolumeChartRangeId,
 } from "@/lib/market/daily-volume-view";
+import { marketValueRangeView } from "@/lib/market/onchain-market-value";
+import { isMarketValueHidden } from "@/lib/site/visibility";
 import {
   snapshotDeskDaysForRange,
   snapshotDeskDisplayedLiquidity,
@@ -35,14 +42,19 @@ export function SnapshotVolumeDesk({
   desk,
   days,
   initialRange = "7d",
+  initialMetric = "volume",
 }: {
   /** Serializable chain identity. Issuer labels are already on `days`. */
   desk: SnapshotDeskView;
   /** Closed Eastern snapshot days only. The page drops today and later. */
   days: readonly SnapshotDeskDay[];
   initialRange?: VolumeChartRangeId;
+  initialMetric?: HeadlineMetric;
 }) {
-  const { range, setRange } = useDeskVolumeRange(initialRange);
+  const { range, setRange, marketValue, liquidity: liquidityHistory, metric, setMetric } = useDeskVolumeRange(
+    initialRange,
+    initialMetric,
+  );
   const [hover, setHover] = useState<{ t: number; volumeUsd: number } | null>(null);
   const visibleDays = useMemo(() => snapshotDeskDaysForRange(days, range), [days, range]);
   const visible = useMemo(() => snapshotDeskVolumePoints(visibleDays), [visibleDays]);
@@ -51,10 +63,28 @@ export function SnapshotVolumeDesk({
   const liquidity = snapshotDeskDisplayedLiquidity(visibleDays);
   const charting = range !== "24h";
   const map = useMemo(() => scaleVolumePoints(visible), [visible]);
-  const xTicks = volumeChartXTicks(visible);
+  const xTicks = selectDateAxisLabelTicks(
+    volumeChartXTicks(visible),
+    range === "24h" ? "7d" : range,
+    (tick) => map.x(tick),
+  );
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((frac) => map.maxY * frac);
   const closedPaths = monotoneVolumePaths(visible, map, VOLUME_CHART_PAD.top + VOLUME_CHART_INNER_H);
   const showHeadline = headline.volumeUsd !== null;
+  const showMarket = !isMarketValueHidden() && metric === "market-value";
+  const showLiquidity = metric === "liquidity";
+  const marketView = useMemo(() => marketValueRangeView(marketValue, range), [marketValue, range]);
+  const marketPoints = useMemo(() => marketValueChartPoints(marketView), [marketView]);
+  const liquidityView = useMemo(
+    () =>
+      deskLiquidityRangeView(
+        deskLiquidityClosesFromHistory(liquidityHistory),
+        range,
+        visibleDays.map((day) => day.t),
+      ),
+    [liquidityHistory, range, visibleDays],
+  );
+  const liquidityPoints = useMemo(() => liquidityChartPoints(liquidityView), [liquidityView]);
   const gradientId = `${desk.chainId}-volume-area`;
 
   function setHoverFromClient(plot: Element, clientX: number, clientY: number) {
@@ -75,9 +105,23 @@ export function SnapshotVolumeDesk({
       data-snapshot-volume-desk
       data-chain-id={desk.chainId}
       data-volume-live="closed-day"
+      data-headline-metric={metric}
     >
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3">
         <div className="min-w-0">
+          <HeadlineMetricToggle
+            metric={metric}
+            onChange={(next) => {
+              setMetric(next);
+              setHover(null);
+            }}
+          />
+          {showMarket ? (
+            <MarketValueHeadline view={marketView} />
+          ) : showLiquidity ? (
+            <LiquidityHeadline view={liquidityView} />
+          ) : (
+            <>
           <h2 className="font-heading text-[9px] leading-tight font-medium tracking-wide text-foreground/90">
             Total Daily Tokenized Stock Volume
           </h2>
@@ -104,6 +148,8 @@ export function SnapshotVolumeDesk({
               </span>
             ) : null}
           </p>
+            </>
+          )}
         </div>
         <div
           className="flex shrink-0 flex-nowrap items-center justify-end gap-1 justify-self-end self-start"
@@ -131,7 +177,11 @@ export function SnapshotVolumeDesk({
         </div>
       </div>
 
-      {charting && visible.length > 0 ? (
+      {showMarket ? (
+        <MarketValuePlot points={marketPoints} frameClass={DESK_CHART_PLOT_FRAME_CLASS} />
+      ) : showLiquidity ? (
+        <LiquidityPlot points={liquidityPoints} frameClass={DESK_CHART_PLOT_FRAME_CLASS} range={range} />
+      ) : charting && visible.length > 0 ? (
         <div
           className={`relative mt-3 cursor-crosshair ${DESK_CHART_PLOT_FRAME_CLASS}`}
           data-volume-plot
@@ -179,23 +229,13 @@ export function SnapshotVolumeDesk({
                 </text>
               </g>
             ))}
-            {xTicks.map((tick, index) => {
-              const label = formatVolumeChartTick(tick, xTicks);
-              const crowded = xTicks.length > 10;
-              return (
-                <text
-                  key={`${tick}-${index}`}
-                  x={map.x(tick)}
-                  y={crowded && index % 2 === 1 ? VOLUME_CHART_HEIGHT - 4 : VOLUME_CHART_HEIGHT - (crowded ? 16 : 8)}
-                  textAnchor="middle"
-                  className="fill-muted-foreground"
-                  fontSize={crowded ? 9 : 10}
-                  data-volume-tick={label}
-                >
-                  {label}
-                </text>
-              );
-            })}
+            <DateAxisLabels
+              ticks={xTicks}
+              x={(tick) => map.x(tick)}
+              chartHeight={VOLUME_CHART_HEIGHT}
+              label={formatChartDay}
+              tickAttr="data-volume-tick"
+            />
             <path d={closedPaths.area} fill={`url(#${gradientId})`} pointerEvents="none" />
             <path
               d={closedPaths.line}
@@ -267,7 +307,7 @@ export function SnapshotVolumeDesk({
         </div>
       )}
 
-      {liquidity ? (
+      {!showMarket && !showLiquidity && liquidity ? (
         <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-snapshot-liquidity>
           Displayed liquidity {liquidity.date}: {formatUsdFull(liquidity.usd)}. Missing liquidity does not drop the
           day.

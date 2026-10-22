@@ -1,6 +1,7 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { bscBatchRotating, bscRpcUrls, padAddress, topicAddress, tryEachUrl } from "./lending-bsc";
+import { LENDING_PAST_LIMIT_USD, type PricedLoan } from "./lending-health";
 
 export const VENUS_CORE_COMPTROLLER = "0xfd36e2c2a6789db23113685031d7f16329158384";
 export const VENUS_CORE_POOL = "https://api.venus.io/markets/core-pool?chainId=56&limit=100";
@@ -33,6 +34,8 @@ export interface VenusAccountBorrow {
   borrowUsd: number;
   bstockBorrowPowerUsd: number;
   totalBorrowPowerUsd: number;
+  /** bStock deposited and switched on as collateral. Missing means the loan cannot be priced. */
+  bstockCollateralUsd?: number;
 }
 
 export interface VenusBorrowEstimate {
@@ -43,6 +46,9 @@ export interface VenusBorrowEstimate {
   block: number | null;
   /** True when this figure was kept from an earlier scan. */
   stale?: boolean;
+  /** Priced bStock loans from the same scan. Absent when the scan did not finish. */
+  loans?: PricedLoan[];
+  unpricedLoanCount?: number;
 }
 
 /**
@@ -80,6 +86,45 @@ export function attributeVenusBorrow(accounts: readonly VenusAccountBorrow[]): {
     }
   }
   return { estimateUsd: estimate, lowerBoundUsd: lower, onlyBstockAccounts: only };
+}
+
+/**
+ * How far stocks can fall before this account is past the line.
+ * Only bStock collateral falls. Other collateral stays.
+ * The dollars reported are the bStock, not the borrowing power.
+ */
+export function loanFromVenusAccount(account: VenusAccountBorrow): { loan: PricedLoan | null; unpriced: boolean } {
+  if (!(account.borrowUsd > LENDING_PAST_LIMIT_USD)) return { loan: null, unpriced: false };
+  const stock = account.bstockCollateralUsd;
+  if (stock === undefined || !Number.isFinite(stock) || !(stock > 0)) {
+    if (account.bstockBorrowPowerUsd > 0) return { loan: null, unpriced: true };
+    return { loan: null, unpriced: false };
+  }
+  const otherPower = account.totalBorrowPowerUsd - account.bstockBorrowPowerUsd;
+  if (!(account.bstockBorrowPowerUsd > 0) || !Number.isFinite(otherPower) || otherPower < -0.01) {
+    return { loan: null, unpriced: true };
+  }
+  const steady = Math.max(0, otherPower);
+  const limit = account.bstockBorrowPowerUsd + steady;
+  if (account.borrowUsd - limit > LENDING_PAST_LIMIT_USD) {
+    return { loan: { collateralUsd: stock, cushion: 0, alreadyPast: true }, unpriced: false };
+  }
+  const numer = account.borrowUsd - steady;
+  const cushion = numer <= 0 ? 1 : 1 - numer / account.bstockBorrowPowerUsd;
+  if (!Number.isFinite(cushion)) return { loan: null, unpriced: true };
+  if (cushion <= 0) return { loan: { collateralUsd: stock, cushion: 0, alreadyPast: true }, unpriced: false };
+  return { loan: { collateralUsd: stock, cushion: Math.min(1, cushion), alreadyPast: false }, unpriced: false };
+}
+
+export function loansFromVenusAccounts(accounts: readonly VenusAccountBorrow[]): { loans: PricedLoan[]; unpricedLoanCount: number } {
+  const loans: PricedLoan[] = [];
+  let unpricedLoanCount = 0;
+  for (const account of accounts) {
+    const read = loanFromVenusAccount(account);
+    if (read.loan) loans.push(read.loan);
+    else if (read.unpriced) unpricedLoanCount += 1;
+  }
+  return { loans, unpricedLoanCount };
 }
 
 interface CoreMarket {
@@ -571,6 +616,7 @@ export async function scanVenusBStockBorrow(nowMs = Date.now(), cachePath = defa
       let borrow = 0;
       let power = 0;
       let bPower = 0;
+      let bCollateral = 0;
       markets.forEach((market, index) => {
         const borrowed = borrowUsd(word(results[index * 3]), market);
         const supply = supplyUsd(word(results[index * 3 + 1]), market);
@@ -580,10 +626,13 @@ export async function scanVenusBStockBorrow(nowMs = Date.now(), cachePath = defa
         if (entered) {
           const borrowPower = supply * market.collateralFactor;
           power += borrowPower;
-          if (market.category === "bstocks") bPower += borrowPower;
+          if (market.category === "bstocks") {
+            bPower += borrowPower;
+            bCollateral += supply;
+          }
         }
       });
-      accounts.push({ borrowUsd: borrow, bstockBorrowPowerUsd: bPower, totalBorrowPowerUsd: power });
+      accounts.push({ borrowUsd: borrow, bstockBorrowPowerUsd: bPower, totalBorrowPowerUsd: power, bstockCollateralUsd: bCollateral });
     }
     if (collateralHintUsd !== null && collateralHintUsd > 0) {
       const ratio = supplied / collateralHintUsd;
@@ -591,11 +640,14 @@ export async function scanVenusBStockBorrow(nowMs = Date.now(), cachePath = defa
     }
     const attributed = attributeVenusBorrow(accounts);
     if (!attributed) return null;
+    const priced = loansFromVenusAccounts(accounts);
     return {
       usd: attributed.estimateUsd,
       lowerBoundUsd: attributed.lowerBoundUsd,
       asOf: new Date(nowMs).toISOString(),
       block: endBlock,
+      loans: priced.loans,
+      unpricedLoanCount: priced.unpricedLoanCount,
       method: `Pro-rata from onchain balances at BSC block ${endBlock.toLocaleString("en-US")}. Each account's borrow is multiplied by the share of its borrowing power that comes from bStock collateral.`,
     };
   } catch {

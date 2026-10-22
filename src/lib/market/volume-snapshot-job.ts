@@ -67,6 +67,14 @@ export async function runDeskVolumeSnapshotJob(input: {
     geckoCombined24hUsd?: number | null;
     crossCheck?: string | null;
     gapPct?: number | null;
+    dexscreenerH24Fallbacks?: {
+      pairAddress: string;
+      dexId: string;
+      volume24hUsd: number | null;
+      symbol: string;
+      source: string;
+      reason: string;
+    }[];
   } = {};
   if (input.closedDay) {
     const nowT = input.closedDay.nowT ?? Date.parse(generatedAt) / 1000;
@@ -116,6 +124,9 @@ export async function runDeskVolumeSnapshotJob(input: {
           geckoCombined24hUsd: totals.geckoCombined24hUsd,
           crossCheck: totals.crossCheck,
           gapPct: totals.gapPct,
+          ...(totals.dexscreenerH24Fallbacks.length
+            ? { dexscreenerH24Fallbacks: totals.dexscreenerH24Fallbacks }
+            : {}),
         };
       }
     } catch (error) {

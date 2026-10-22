@@ -2,7 +2,9 @@
 
 import { useMemo, useState, type PointerEvent } from "react";
 import Link from "next/link";
+import { DateAxisLabels } from "@/components/date-axis-labels";
 import { CHART_PLOT_FRAME_CLASS, DESK_CHART_STROKE, monotoneLinePath } from "@/lib/desk/chart-curve";
+import { selectDateAxisLabelTicks } from "@/lib/desk/date-axis";
 import {
   VOLUME_CHART_HEIGHT,
   VOLUME_CHART_INNER_H,
@@ -150,6 +152,7 @@ export function PerpsDesk({ model }: { model: PerpsDeskModel }) {
   const underlyings = onchainOnly ? view.onchainUnderlyings : view.underlyings;
   const maxUnderlying = maxNullable(underlyings.map((row) => row.volumeUsd));
   const hovered = hover === null ? null : bars.find((bar) => bar.index === hover) ?? null;
+  const dateLabels = range === "24h" ? bars : selectDateAxisLabelTicks(bars, range, (bar) => bar.cx);
   const historyDates = [...model.days].map((day) => day.date).sort((a, b) => a.localeCompare(b));
   const latestDay = historyDates.length > 0 ? (model.days.find((day) => day.date === historyDates[historyDates.length - 1]) ?? null) : null;
 
@@ -371,18 +374,12 @@ export function PerpsDesk({ model }: { model: PerpsDeskModel }) {
                   strokeLinecap="round"
                 />
               ) : null}
-              {bars.map((bar) => (
-                <text
-                  key={`${bar.date}-label`}
-                  x={bar.cx}
-                  y={VOLUME_CHART_HEIGHT - 8}
-                  textAnchor="middle"
-                  className="fill-muted-foreground"
-                  fontSize="10"
-                >
-                  {formatChartDay(bar.t)}
-                </text>
-              ))}
+              <DateAxisLabels
+                ticks={dateLabels.map((bar) => bar.t)}
+                x={(tick) => dateLabels.find((bar) => bar.t === tick)?.cx ?? 0}
+                chartHeight={VOLUME_CHART_HEIGHT}
+                label={formatChartDay}
+              />
               {hovered ? (
                 <circle cx={hovered.cx} cy={hovered.y} r="3.5" fill={DESK_CHART_STROKE} />
               ) : null}
@@ -533,7 +530,7 @@ export function PerpsDesk({ model }: { model: PerpsDeskModel }) {
         includeUnverified={includeUnverified}
       />
       <ListingSection days={model.days} />
-      <ShareSection points={view.share} empty={model.days.length === 0} />
+      <ShareSection points={view.share} empty={model.days.length === 0} range={range} />
       <HistoryShareSection
         days={model.days}
         excludeLeveraged={excludeLeveraged}
@@ -568,7 +565,15 @@ const SHARE_LAYERS: {
   { key: "unverifiedUsd", label: "Unverified", color: "var(--chart-5)" },
 ];
 
-function ShareSection({ points, empty }: { points: PerpsSharePoint[]; empty: boolean }) {
+function ShareSection({
+  points,
+  empty,
+  range,
+}: {
+  points: PerpsSharePoint[];
+  empty: boolean;
+  range: VolumeChartRangeId;
+}) {
   const rows = points.filter((point) => SHARE_LAYERS.some((layer) => point[layer.key] !== null));
   const maxY = Math.max(
     ...rows.map((point) => SHARE_LAYERS.reduce((sum, layer) => sum + (point[layer.key] ?? 0), 0)),
@@ -579,6 +584,10 @@ function ShareSection({ points, empty }: { points: PerpsSharePoint[]; empty: boo
   const plotWidth = VOLUME_CHART_WIDTH - VOLUME_CHART_PAD.left - VOLUME_CHART_PAD.right;
   const slot = rows.length > 0 ? plotWidth / rows.length : plotWidth;
   const barWidth = Math.min(36, slot * 0.62);
+  const labelRows =
+    range === "24h"
+      ? rows
+      : selectDateAxisLabelTicks(rows, range, (_point, index) => plotLeft + slot * index + slot / 2);
   return (
     <section className="space-y-3" data-perps-share>
       <h3 className="font-heading text-lg font-medium">Onchain vs CEX</h3>
@@ -606,12 +615,18 @@ function ShareSection({ points, empty }: { points: PerpsSharePoint[]; empty: boo
                     cursor -= height;
                     return <rect key={layer.key} x={x} y={cursor} width={barWidth} height={height} fill={layer.color} />;
                   })}
-                  <text x={x + barWidth / 2} y={VOLUME_CHART_HEIGHT - 8} textAnchor="middle" className="fill-muted-foreground" fontSize="10">
-                    {formatChartDay(point.t)}
-                  </text>
                 </g>
               );
             })}
+            <DateAxisLabels
+              ticks={labelRows.map((point) => point.t)}
+              x={(tick) => {
+                const index = rows.findIndex((point) => point.t === tick);
+                return plotLeft + slot * index + slot / 2;
+              }}
+              chartHeight={VOLUME_CHART_HEIGHT}
+              label={formatChartDay}
+            />
           </svg>
           <div className="mt-2 flex flex-wrap gap-3 px-2 text-[11px] text-muted-foreground">
             {SHARE_LAYERS.map((layer) => (

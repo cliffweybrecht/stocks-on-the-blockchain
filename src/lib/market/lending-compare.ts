@@ -36,6 +36,8 @@ export interface LendingComparePlace {
   lendSupplyUsd: number | null;
   /** True when borrowed dollars are an estimate, as on Venus. */
   estimate: boolean;
+  /** Plain note from the venue row, such as debt in ZCHF or a mixed pool left blank. */
+  note: string | null;
   source: string;
   sourceHost: string;
   sourceHref: string | null;
@@ -70,6 +72,7 @@ type CompareRow = Pick<
   | "borrowEstimate"
   | "source"
   | "assets"
+  | "note"
 >;
 
 export type LendingFigureKind = "collateral" | "borrowed" | "full" | "cost";
@@ -226,6 +229,7 @@ function placeFrom(
     howFull,
     lendSupplyUsd: row.lendSupplyUsd,
     estimate: Boolean(row.borrowEstimate),
+    note: row.note ?? null,
     source: row.source,
     sourceHost: source.host,
     sourceHref: source.href,

@@ -71,4 +71,26 @@ describe("selectEquityPriceTicker", () => {
     ]);
     expect(items.map((item) => item.symbol)).toEqual(["AAPLx", "NVDAx"]);
   });
+
+  it("omits placeholder Ethereum names while that chain is disabled", () => {
+    const items = selectEquityPriceTicker([
+      row({ symbol: "TSLAx", contractAddress: "mint-tsla", volume24hUsd: 2_000_000, dexMedianPriceUsd: 248.2 }),
+      row({
+        symbol: "AAPLon",
+        chainId: "ethereum",
+        contractAddress: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        volume24hUsd: 9_000_000,
+        dexMedianPriceUsd: 226.05,
+      }),
+      row({
+        symbol: "TSLAon",
+        chainId: "ethereum",
+        contractAddress: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        volume24hUsd: 8_000_000,
+        dexMedianPriceUsd: 248.2,
+      }),
+    ]);
+    expect(items.map((item) => item.symbol)).toEqual(["TSLAx"]);
+    expect(items.some((item) => item.href.includes("/chains/ethereum"))).toBe(false);
+  });
 });

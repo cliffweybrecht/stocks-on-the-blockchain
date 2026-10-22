@@ -4,17 +4,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const LINKS = [
-  { href: "/", label: "Spot", match: (path: string) => path === "/" || path.startsWith("/chains") },
-  { href: "/perps", label: "Perps", match: (path: string) => path.startsWith("/perps") },
-  { href: "/lending", label: "Lending", match: (path: string) => path.startsWith("/lending") },
+  { href: "/", label: "Spot", id: "spot", match: (path: string) => path === "/" || path.startsWith("/chains") },
+  { href: "/perps", label: "Perps", id: "perps", match: (path: string) => path.startsWith("/perps") },
+  { href: "/lending", label: "Lending", id: "lending", match: (path: string) => path.startsWith("/lending") },
 ] as const;
 
 /** Desk switch. Perps and lending stay off the tokenized-stock spot totals. */
-export function DeskNav() {
+export function DeskNav({ hidden = [] }: { hidden?: readonly string[] }) {
   const path = usePathname() ?? "/";
+  const hiddenIds = new Set(hidden);
+  const links = LINKS.filter((link) => !hiddenIds.has(link.id));
   return (
     <nav aria-label="Desk" className="flex items-center gap-1" data-desk-nav>
-      {LINKS.map((link) => {
+      {links.map((link) => {
         const active = link.match(path);
         return (
           <Link

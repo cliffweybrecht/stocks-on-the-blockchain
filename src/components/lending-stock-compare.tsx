@@ -128,6 +128,11 @@ function VenueCompare({ ticker, places }: { ticker: string; places: readonly Len
                 Borrowed dollars are a pro-rata estimate.
               </p>
             ) : null}
+            {place.note ? (
+              <p className="mt-2 text-sm leading-6 text-muted-foreground" data-lending-place-note>
+                {place.note}
+              </p>
+            ) : null}
             {place.howFull === null ? (
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
                 {place.lendSupplyUsd === null

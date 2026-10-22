@@ -103,7 +103,7 @@ export function positionLoanHealth(input: {
   };
 }
 
-export function poolLoanHealth(input: { asOf: string; source: string; fallback: string }): LendingLoanHealth {
+export function poolLoanHealth(input: { asOf: string; source: string; fallback: string; stale?: boolean }): LendingLoanHealth {
   return {
     method: "pool",
     asOf: input.asOf,
@@ -113,6 +113,7 @@ export function poolLoanHealth(input: { asOf: string; source: string; fallback: 
     unpricedLoanCount: null,
     bands: [],
     fallback: input.fallback,
+    ...(input.stale ? { stale: true as const } : {}),
   };
 }
 

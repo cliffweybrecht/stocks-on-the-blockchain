@@ -1,9 +1,11 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { DeskVolumeRangeProvider } from "./desk-volume-range";
 import { RobinhoodVolumeDesk } from "./robinhood-volume-desk";
 import { parseRobinhoodDeskDays, type RobinhoodDeskDay } from "@/lib/market/robinhood-desk-volume";
 import { formatUsdCompact } from "@/lib/market/format";
+import { easternMidnightUnix } from "@/lib/market/volume-snapshots";
 
 function days(): RobinhoodDeskDay[] {
   return parseRobinhoodDeskDays({
@@ -42,8 +44,11 @@ describe("RobinhoodVolumeDesk", () => {
     expect(html).toMatch(/ C /);
     expect(html).toContain("overflow-hidden rounded-2xl");
     expect(html).toContain(formatUsdCompact(1_000_000 + 2_000_000 + 3_000_000 + 1_500_000));
-    expect(html).toContain("Ondo-named (unverified)");
-    expect(html).not.toContain(">Ondo<");
+    expect(html).not.toContain("data-robinhood-volume-note");
+    expect(html).not.toContain("null omitted, not stored as $0");
+    expect(html).not.toContain("data-issuer-lanes");
+    expect(html).not.toContain("Issuer × type");
+    expect(html).not.toContain("Ondo-named (unverified)");
   });
 
   it("keeps the shell and shows the last closed day as a 24H KPI, not a chart", () => {
@@ -61,19 +66,52 @@ describe("RobinhoodVolumeDesk", () => {
     expect(html).toContain("grid-cols-[minmax(0,1fr)_auto]");
     expect(html).toContain("data-robinhood-lane-split");
     expect(html).toContain("data-robinhood-liquidity");
-    expect(html).toContain('data-issuer="ondo"');
-    expect(html).toContain('data-issuer-official="false"');
+    expect(html).not.toContain("data-robinhood-volume-note");
+    expect(html).not.toContain("data-issuer-lanes");
+    expect(html).not.toContain("Issuer × type");
   });
 
   it("still renders the range shell when no bars exist", () => {
     const html = renderToStaticMarkup(createElement(RobinhoodVolumeDesk, { days: [] }));
     expect(html).toContain('data-volume-range="30d"');
     expect(html).toContain("are not invented");
+    expect(html).not.toContain("data-issuer-lanes");
+    expect(html).not.toContain("No issuer split is invented");
+    expect(html).not.toContain("data-robinhood-volume-note");
     expect(html).toContain('data-volume-kind="empty"');
     expect(html).toContain('data-volume-ranges');
     expect(html).toContain("flex-nowrap");
     expect(html).toContain("justify-self-end");
     expect(html).not.toContain("flex-wrap");
     expect(html).not.toMatch(/trailing h24/i);
+  });
+
+  it("plots the sum of asset reserves for Liquidity and ignores a null day total", () => {
+    const t = easternMidnightUnix("2026-10-19");
+    const day = days()[0]!;
+    const html = renderToStaticMarkup(
+      createElement(DeskVolumeRangeProvider, {
+        volumes: {},
+        initialMetric: "liquidity",
+        initialRange: "7d",
+        liquidity: {
+          lastClosedDay: "2026-10-19",
+          snapshotDays: ["2026-10-19"],
+          byAsset: {
+            a: [{ date: "2026-10-19", t, liquidityUsd: 25 }],
+            b: [{ date: "2026-10-19", t, liquidityUsd: 15 }],
+          },
+        },
+        children: createElement(RobinhoodVolumeDesk, {
+          days: [{ ...day, date: "2026-10-19", t, displayedLiquidityUsd: null, combined24hUsd: 5 }],
+        }),
+      }),
+    );
+    expect(html).toContain("Total liquidity");
+    expect(html).toContain(formatUsdCompact(40));
+    expect(html).toContain('data-liquidity-plot="series"');
+    expect(html).toContain('data-headline-metric="liquidity"');
+    expect(html).not.toContain("Issuer × type");
+    expect(html).not.toContain("Total Daily Tokenized Stock Volume");
   });
 });

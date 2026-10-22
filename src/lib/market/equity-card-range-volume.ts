@@ -1,8 +1,8 @@
 import { combinedPublicPrivateVolume24h, compareAssetsByRank, type RankableRow } from "./aggregate";
-import type { ClosedVolumeChartRangeId } from "./daily-volume-view";
+import type { ClosedVolumeChartRangeId, VolumeChartRangeId } from "./daily-volume-view";
 import { GECKO_HOURLY_ET_BACKFILL_SOURCE } from "./gecko-hourly-et";
 import { asNonNegativeNumber, compareNullableDesc } from "./numbers";
-import { easternDayKey } from "./volume-snapshots";
+import { easternDayKey, easternMidnightUnix } from "./volume-snapshots";
 
 /**
  * Closed-day window for an equity card, matching the desk toggle.
@@ -101,6 +101,73 @@ interface ClosedAssetDay {
  * The in-progress Eastern day is left out. Days before per-asset rows began
  * stay missing. Nothing is invented.
  */
+export interface EquityCardVolumePoint {
+  date: string;
+  /** Unix seconds of America/New_York midnight on `date`. */
+  t: number;
+  /** Recorded `volume24hUsd` for that Eastern day. An explicit 0 stays 0. */
+  volumeUsd: number;
+}
+
+export interface EquityCardVolumeHistory {
+  /** Closed snapshot days, oldest first. Same dates the volume totals use. */
+  snapshotDays: string[];
+  byAsset: Record<string, EquityCardVolumePoint[]>;
+}
+
+export const EMPTY_EQUITY_CARD_VOLUME_SERIES: EquityCardVolumeHistory = {
+  snapshotDays: [],
+  byAsset: {},
+};
+
+/**
+ * Per-asset daily volume for the card sparkline.
+ * A day with no row for this asset is omitted, not drawn as $0.
+ * The in-progress Eastern day is left out. Nothing is invented.
+ */
+export function equityCardVolumeHistoryFromSnapshot(
+  payload: unknown,
+  nowT: number,
+  backfill: unknown = null,
+): EquityCardVolumeHistory {
+  const days = closedAssetDays(payload, nowT, backfill);
+  const byAsset: Record<string, EquityCardVolumePoint[]> = {};
+  for (const day of days) {
+    const t = easternMidnightUnix(day.date);
+    if (t <= 0) continue;
+    for (const [key, volumeUsd] of day.byAsset) {
+      const series = byAsset[key] ?? [];
+      series.push({ date: day.date, t, volumeUsd });
+      byAsset[key] = series;
+    }
+  }
+  return { snapshotDays: days.map((day) => day.date), byAsset };
+}
+
+/** Recorded closes inside the selected window, oldest first. 24H is the newest snapshot day only. */
+export function equityCardVolumeSeriesForRange(
+  history: EquityCardVolumeHistory | null | undefined,
+  address: string,
+  range: VolumeChartRangeId,
+): EquityCardVolumePoint[] {
+  if (!history) return [];
+  const points = history.byAsset[equityCardRangeAddressKey(address)];
+  if (!points || points.length === 0) return [];
+  const allowed = new Set(windowDates(history.snapshotDays, range));
+  if (allowed.size === 0) return [];
+  return points.filter((point) => allowed.has(point.date));
+}
+
+function windowDates(snapshotDays: readonly string[], range: VolumeChartRangeId): string[] {
+  if (snapshotDays.length === 0) return [];
+  if (range === "24h") {
+    const latest = snapshotDays[snapshotDays.length - 1];
+    return latest ? [latest] : [];
+  }
+  const windowDays = EQUITY_CARD_RANGE_WINDOW[range];
+  return snapshotDays.length > windowDays ? snapshotDays.slice(snapshotDays.length - windowDays) : [...snapshotDays];
+}
+
 export function equityCardRangeVolumesFromSnapshot(
   payload: unknown,
   nowT: number,
@@ -128,6 +195,19 @@ export function equityCardRangeVolumesFromSnapshot(
     }
   }
   return volumes;
+}
+
+/**
+ * Closed snapshot dates the equity-card ranges share, oldest first.
+ * Includes Gecko backfill days the volume window counts, and omits the
+ * in-progress Eastern day. Liquidity readings are not taken from this list.
+ */
+export function equityCardClosedSnapshotDates(
+  payload: unknown,
+  nowT: number,
+  backfill: unknown = null,
+): string[] {
+  return closedAssetDays(payload, nowT, backfill).map((day) => day.date);
 }
 
 function closedAssetDays(payload: unknown, nowT: number, backfill: unknown): ClosedAssetDay[] {

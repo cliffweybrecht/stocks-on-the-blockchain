@@ -56,6 +56,8 @@ export interface LendingRow {
   assets?: LendingAsset[];
   /** Plain note about a gap in the row. Not a place for invented numbers. */
   note?: string | null;
+  /** One footnote line for the page footer. Not a place for invented numbers. */
+  footnote?: string | null;
   /**
    * How a price drop is figured for this venue.
    * Positions store bucketed health, not wallets. Absent on snapshots taken before loan health was captured.
@@ -110,6 +112,8 @@ export interface LendingLoanHealth {
   bands: LendingHealthBand[];
   /** Why this venue uses the pool estimate. Null when each loan was counted. */
   fallback: string | null;
+  /** The live loan read failed and this pool estimate was kept. */
+  stale?: boolean;
 }
 
 export interface LendingSourceNote {
@@ -473,6 +477,7 @@ function parseRow(value: unknown): LendingRow | null {
     stockBorrowedUsd: nullableUsd(row.stockBorrowedUsd),
     assets: parseAssets(row.assets),
     note: asNonEmptyString(row.note),
+    footnote: asNonEmptyString(row.footnote),
     borrowEstimate: parseBorrowEstimate(row.borrowEstimate),
     loanHealth: parseLoanHealth(row.loanHealth),
     source: asNonEmptyString(row.source) ?? "",
@@ -528,6 +533,7 @@ function parseLoanHealth(value: unknown): LendingLoanHealth | null {
     unpricedLoanCount: nullableCount(health.unpricedLoanCount),
     bands,
     fallback: asNonEmptyString(health.fallback),
+    ...(health.stale === true ? { stale: true as const } : {}),
   };
 }
 

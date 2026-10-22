@@ -5,6 +5,7 @@ import {
   equityCardDayPriceSeries,
   equityCardDayVolumeSeries,
   equityCardHeadline,
+  equityCardLiquiditySeries,
   equityCardPriceSparklineDirection,
   equityCardSpotPriceUsd,
 } from "../equity-card-view";
@@ -22,6 +23,47 @@ describe("equityCardHeadline", () => {
     });
     expect(equityCardHeadline(row, "poolCount").label).toBe("Vol");
     expect(equityCardHeadline(row, "premiumDiscountPct").amountUsd).toBe(row.volume24hUsd);
+  });
+
+  it("uses a recorded market-value close and leaves a missing supply snapshot blank", () => {
+    const row = {
+      volume24hUsd: 10,
+      displayedLiquidityUsd: 4,
+      dexMedianPriceUsd: 2,
+      circulatingSupply: 5,
+    };
+    expect(
+      equityCardHeadline(row, "marketValueUsd", null, null, {
+        id: "7d",
+        marketValueUsd: 40,
+        days: 3,
+        recorded: true,
+      }),
+    ).toEqual({
+      amountUsd: 40,
+      label: "Mkt",
+      kind: "market-value",
+      coverageHint: "avg 7D · 3 of 7 days",
+    });
+    expect(
+      equityCardHeadline(row, "marketValueUsd", null, null, {
+        id: "24h",
+        marketValueUsd: null,
+        days: 0,
+        recorded: false,
+      }),
+    ).toEqual({
+      amountUsd: null,
+      label: "Mkt",
+      kind: "market-value",
+      coverageHint: "No captured supply",
+    });
+    expect(equityCardHeadline({ volume24hUsd: 1, displayedLiquidityUsd: null }, "marketValueUsd")).toEqual({
+      amountUsd: null,
+      label: "Mkt",
+      kind: "market-value",
+      coverageHint: "No captured supply",
+    });
   });
 
   it("does not invent a liquidity figure when the feed left it missing", () => {
@@ -95,7 +137,7 @@ describe("equityCardHeadline", () => {
     });
   });
 
-  it("keeps the live 24h figure and the liquidity figure when a range is also passed", () => {
+  it("keeps the live 24h figure and the liquidity figure when a volume range is also passed", () => {
     const row = { volume24hUsd: 10, displayedLiquidityUsd: 4 };
     expect(equityCardHeadline(row, "volume24hUsd", { id: "24h", volumeUsd: 99, days: 1 })).toEqual({
       amountUsd: 10,
@@ -108,6 +150,47 @@ describe("equityCardHeadline", () => {
       label: "Liq",
       kind: "liquidity",
       coverageHint: null,
+    });
+  });
+
+  it("labels a recorded liquidity close, an average, partial coverage, and the current fallback", () => {
+    const row = { volume24hUsd: 10, displayedLiquidityUsd: 4 };
+    expect(equityCardHeadline(row, "displayedLiquidityUsd", null, { id: "24h", liquidityUsd: 9, days: 1 })).toEqual({
+      amountUsd: 9,
+      label: "Liq",
+      kind: "liquidity",
+      coverageHint: "24H",
+    });
+    expect(equityCardHeadline(row, "displayedLiquidityUsd", null, { id: "7d", liquidityUsd: 6, days: 7 })).toEqual({
+      amountUsd: 6,
+      label: "Liq",
+      kind: "liquidity",
+      coverageHint: "avg 7D",
+    });
+    expect(equityCardHeadline(row, "displayedLiquidityUsd", null, { id: "14d", liquidityUsd: 5, days: 5 })).toEqual({
+      amountUsd: 5,
+      label: "Liq",
+      kind: "liquidity",
+      coverageHint: "avg 14D · 5 of 14 days",
+    });
+    expect(equityCardHeadline(row, "displayedLiquidityUsd", null, { id: "30d", liquidityUsd: null, days: 0 })).toEqual({
+      amountUsd: 4,
+      label: "Liq",
+      kind: "liquidity",
+      coverageHint: "current",
+    });
+    expect(
+      equityCardHeadline(
+        { volume24hUsd: 10, displayedLiquidityUsd: null },
+        "displayedLiquidityUsd",
+        null,
+        { id: "7d", liquidityUsd: null, days: 0 },
+      ),
+    ).toEqual({
+      amountUsd: null,
+      label: "Liq",
+      kind: "liquidity",
+      coverageHint: "current",
     });
   });
 });
@@ -177,6 +260,22 @@ describe("equityCardDayVolumeSeries", () => {
       ),
     ).toHaveLength(2);
     expect(equityCardDayVolumeSeries([{ t: NOW - 3600, volumeUsd: 12 }], NOW)).toBeNull();
+  });
+});
+
+describe("equityCardLiquiditySeries", () => {
+  it("draws a recorded closing series and hides a single close", () => {
+    expect(
+      equityCardLiquiditySeries([
+        { date: "2026-10-01", t: 100, liquidityUsd: 2 },
+        { date: "2026-10-02", t: 200, liquidityUsd: 4 },
+      ]),
+    ).toEqual([
+      { t: 100, volumeUsd: 2, kind: "calendar_day" },
+      { t: 200, volumeUsd: 4, kind: "calendar_day" },
+    ]);
+    expect(equityCardLiquiditySeries([{ date: "2026-10-01", t: 100, liquidityUsd: 2 }])).toBeNull();
+    expect(equityCardLiquiditySeries(undefined)).toBeNull();
   });
 });
 

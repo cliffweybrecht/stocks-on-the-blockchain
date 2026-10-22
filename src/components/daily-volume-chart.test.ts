@@ -3,7 +3,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { DailyVolumeChart } from "./daily-volume-chart";
 import { HOURLY_VOLUME_SERIES_CAPTION } from "@/lib/market/daily-volume-view";
-import { HOME_24H_ROBINHOOD_HEADLINE } from "@/lib/market/home-desk-volume";
 import { parseRobinhoodDeskDays, type RobinhoodDeskDay } from "@/lib/market/robinhood-desk-volume";
 import { parseSnapshotDeskDays, type SnapshotDeskDay } from "@/lib/market/snapshot-desk-volume";
 import { BASE_DESK } from "@/lib/market/base-desk-volume";
@@ -83,7 +82,9 @@ describe("DailyVolumeChart 24H rolling area", () => {
   it("keeps the live rolling headline and plots absolute hourly totals", () => {
     expect(html).toContain('data-volume-kind="combined_24h"');
     expect(html).toContain(`>${formatUsdCompact(220_500_000)}<`);
-    expect(html).toContain("24h · public + private + ETF/index");
+    expect(html).toContain("Total Daily Tokenized Stock Volume");
+    expect(html).not.toContain("data-volume-caption");
+    expect(html).not.toContain("24h · public + private + ETF/index");
     expect(html).not.toContain(formatUsdCompact(999_000_000));
     expect(html).toContain('data-volume-series="hourly-rolling"');
     expect(html).toContain(`>${HOURLY_VOLUME_SERIES_CAPTION}<`);
@@ -141,7 +142,10 @@ describe("DailyVolumeChart closed ranges", () => {
       expect(html).not.toContain('stroke="#B7FF3C"');
       expect(html).not.toContain('data-volume-y="+$');
       expect(html).toContain('fill="url(#volume-area)"');
-      expect(html).toContain("History from closed desk DexScreener snapshots");
+      expect(html).not.toContain("data-volume-history-note");
+      expect(html).not.toContain("data-volume-caption");
+      expect(html).not.toContain("sum of desk snapshot days");
+      expect(html).not.toContain("History from closed desk DexScreener snapshots");
       expect(html).toContain('data-volume-includes-robinhood="false"');
       expect(html).not.toContain("Robinhood Chain");
       expect(html).toContain(`data-volume-refresh-ms="${DESK_VOLUME_HISTORY_POLL_MS}"`);
@@ -171,16 +175,23 @@ describe("DailyVolumeChart closed ranges", () => {
       return [...html.matchAll(/data-volume-tick="([^"]+)"/g)].map((match) => match[1]);
     };
     expect(ticksOf("7d")).toEqual(["Sep 23", "Sep 24", "Sep 25", "Sep 26", "Sep 27", "Sep 28", "Sep 29"]);
-    expect(ticksOf("14d")).toEqual([
-      "Sep 22",
-      "Sep 23",
-      "Sep 24",
-      "Sep 25",
-      "Sep 26",
-      "Sep 27",
-      "Sep 28",
-      "Sep 29",
-    ]);
+    expect(ticksOf("14d")).toEqual(["Sep 23", "Sep 25", "Sep 27", "Sep 29"]);
+    const fourteenHtml = renderToStaticMarkup(
+      createElement(DailyVolumeChart, {
+        history: history(points),
+        hourlyHistory: history([], "No hourly snapshots."),
+        rolling24h: live,
+        initialRange: "14d",
+      }),
+    );
+    const tickTags = [...fourteenHtml.matchAll(/<text\b[^>]*>/g)]
+      .map((match) => match[0])
+      .filter((tag) => tag.includes("data-volume-tick="));
+    expect(tickTags.length).toBe(4);
+    for (const tag of tickTags) {
+      expect(tag).toContain('y="272"');
+      expect(tag).toContain('font-size="10"');
+    }
     const sevenHtml = renderToStaticMarkup(
       createElement(DailyVolumeChart, {
         history: history(points),
@@ -277,7 +288,10 @@ describe("DailyVolumeChart home Robinhood days", () => {
     expect(html).not.toMatch(/trailing h24/i);
     expect(html).not.toContain("12:00");
     expect(html).toContain('data-volume-includes-robinhood="true"');
-    expect(html).toContain("Solana + Robinhood Chain");
+    expect(html).toContain('data-volume-chain-labels="Robinhood Chain"');
+    expect(html).not.toContain("data-volume-caption");
+    expect(html).not.toContain("Solana + Robinhood Chain");
+    expect(html).not.toContain("sum of desk snapshot days");
     expect(html).toContain('data-volume-ranges');
     expect(html).toContain("flex-nowrap");
     expect(html).toContain("justify-self-end");
@@ -287,7 +301,8 @@ describe("DailyVolumeChart home Robinhood days", () => {
     const html = withRobinhood("24h");
     expect(html).toContain(`>${formatUsdCompact(220_500_000 + 5_000_000)}<`);
     expect(html).not.toContain(`>${formatUsdCompact(220_500_000)}<`);
-    expect(html).toContain(HOME_24H_ROBINHOOD_HEADLINE);
+    expect(html).not.toContain("data-volume-caption");
+    expect(html).not.toContain("last closed Robinhood Chain snapshot");
     expect(html).not.toContain("data-volume-robinhood-24h-note");
     expect(html).not.toMatch(/trailing h24/i);
     expect(html).toContain('data-volume-usd="200000000"');
@@ -366,11 +381,13 @@ describe("DailyVolumeChart Base and BNB days", () => {
     );
   }
 
-  it("adds Base and BNB to the 7D sum and the chain list in the caption", () => {
+  it("adds Base and BNB to the 7D sum and records the chain list without a caption", () => {
     const html = withExtras("7d");
     const solanaSum = closedDays.reduce((sum, point) => sum + point.volumeUsd, 0);
     expect(html).toContain(`>${formatUsdCompact(solanaSum + 1_000_000 + 5_000_000 + 1_000_000 + 2_000_000)}<`);
-    expect(html).toContain("Solana + Robinhood Chain + Base + BNB Chain");
+    expect(html).not.toContain("Solana + Robinhood Chain + Base + BNB Chain");
+    expect(html).not.toContain("sum of desk snapshot days");
+    expect(html).not.toContain("data-volume-caption");
     expect(html).toContain('data-volume-chain-labels="Robinhood Chain + Base + BNB Chain"');
     expect(html).not.toMatch(/trailing h24/i);
     expect(html).not.toContain("data-volume-history-note");
@@ -379,7 +396,8 @@ describe("DailyVolumeChart Base and BNB days", () => {
   it("adds the last closed Base and BNB days to the 24H headline and leaves hourly points on Solana", () => {
     const html = withExtras("24h");
     expect(html).toContain(`>${formatUsdCompact(220_500_000 + 5_000_000 + 1_000_000 + 2_000_000)}<`);
-    expect(html).toContain("Robinhood Chain, Base, and BNB Chain");
+    expect(html).not.toContain("Robinhood Chain, Base, and BNB Chain");
+    expect(html).not.toContain("data-volume-caption");
     expect(html).not.toMatch(/trailing h24/i);
     expect(html).toContain('data-volume-usd="200000000"');
     expect(html).not.toContain('data-volume-usd="1000000"');
@@ -401,8 +419,66 @@ describe("DailyVolumeChart range shell", () => {
     expect(html).toContain("flex-nowrap");
     expect(html).toContain("justify-self-end");
     expect(html).not.toContain("flex-wrap");
+    expect(html).toContain('data-headline-metric-toggle');
+    expect(html).toContain('data-headline-metric="volume"');
+    expect(html).toContain('aria-pressed="true"');
+    expect(html).toContain('data-headline-metric="market-value"');
+    expect(html).toContain('data-headline-metric="liquidity"');
+    expect(html.indexOf('data-headline-metric="market-value"')).toBeLessThan(
+      html.indexOf('data-headline-metric="liquidity"'),
+    );
+    expect(html).toContain("Total Daily Tokenized Stock Volume");
+    expect(html).not.toContain("Onchain market value");
     for (const id of ["24h", "7d", "14d", "30d"]) {
       expect(html).toContain(`data-volume-range="${id}"`);
     }
+  });
+
+  it("keeps Volume | Liquidity and drops Market value when marketvalue is hidden", () => {
+    const previous = process.env.NEXT_PUBLIC_HIDE_SECTIONS;
+    process.env.NEXT_PUBLIC_HIDE_SECTIONS = "perps,lending,marketvalue";
+    try {
+      const html = renderToStaticMarkup(
+        createElement(DailyVolumeChart, {
+          history: history([], "Historical volume series is unavailable."),
+          hourlyHistory: history([], "No hourly snapshots."),
+          rolling24h: null,
+        }),
+      );
+      expect(html).toContain("data-headline-metric-toggle");
+      expect(html).toContain('data-headline-metric="volume"');
+      expect(html).toContain('data-headline-metric="liquidity"');
+      expect(html).not.toContain('data-headline-metric="market-value"');
+      expect(html).not.toContain(">Market value<");
+      expect(html).not.toContain("Onchain market value");
+      expect(html).not.toContain("data-market-value-method");
+      expect(html).toContain("Total Daily Tokenized Stock Volume");
+    } finally {
+      if (previous === undefined) delete process.env.NEXT_PUBLIC_HIDE_SECTIONS;
+      else process.env.NEXT_PUBLIC_HIDE_SECTIONS = previous;
+    }
+  });
+
+  it("switches the chart to the latest liquidity close and leaves the volume series off", () => {
+    const html = renderToStaticMarkup(
+      createElement(DailyVolumeChart, {
+        history: history([{ t: utcInstantForDayKey("2026-09-29"), volumeUsd: 50, kind: "calendar_day" }]),
+        hourlyHistory: history([], "No hourly snapshots."),
+        rolling24h: null,
+        initialRange: "24h",
+        initialMetric: "liquidity",
+        liquidityCloses: [
+          { date: "2026-09-29", t: utcInstantForDayKey("2026-09-29"), liquidityUsd: 12_500 },
+        ],
+      }),
+    );
+    expect(html).toContain('data-headline-metric="liquidity"');
+    expect(html).toContain("Total liquidity");
+    expect(html).toContain("24H · 2026-09-29 · latest 11:59 PM ET close");
+    expect(html).toContain('data-liquidity-plot="series"');
+    expect(html).toContain('data-liquidity-points="1"');
+    expect(html).not.toContain("Total Daily Tokenized Stock Volume");
+    expect(html).not.toContain("data-volume-plot");
+    expect(html).not.toContain("data-volume-hourly-note");
   });
 });

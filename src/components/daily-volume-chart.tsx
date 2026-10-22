@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
+import { DateAxisLabels } from "@/components/date-axis-labels";
 import { useDeskVolumeRange } from "@/components/desk-volume-range";
+import { HeadlineMetricToggle, type HeadlineMetric } from "@/components/headline-metric-toggle";
+import { LiquidityHeadline, LiquidityPlot, liquidityChartPoints } from "@/components/liquidity-plot";
+import { MarketValueHeadline, MarketValuePlot, marketValueChartPoints } from "@/components/market-value-plot";
 import {
   CHART_PLOT_FRAME_CLASS,
   DESK_CHART_STROKE,
@@ -9,12 +13,12 @@ import {
   monotoneLinePath,
   monotoneVolumePaths,
 } from "@/lib/desk/chart-curve";
+import { selectDateAxisLabelTicks } from "@/lib/desk/date-axis";
 import {
   contiguousHourlyRuns,
   deskChartHeadline,
   filterVolumeRange,
   formatHourlyVolumeChartTick,
-  formatVolumeChartTick,
   hourlyVolumeChartXTicks,
   HOURLY_VOLUME_SERIES_ARIA,
   HOURLY_VOLUME_SERIES_CAPTION,
@@ -45,6 +49,11 @@ import {
   preferFresherClosedHistory,
   preferFresherHourlyHistory,
 } from "@/lib/market/desk-volume-live";
+import {
+  deskLiquidityClosesFromHistory,
+  deskLiquidityRangeView,
+  type DeskLiquidityClose,
+} from "@/lib/market/desk-liquidity-chart";
 import { formatChartDay, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
 import {
   includeHomeSnapshotChainsInDeskHeadline,
@@ -58,7 +67,8 @@ import { closedRobinhoodDeskDays, type RobinhoodDeskDay } from "@/lib/market/rob
 import { closedSnapshotDeskDays, type SnapshotDeskDay } from "@/lib/market/snapshot-desk-volume";
 import type { EquityVolumeHistoryResult, VolumeHistoryPoint } from "@/lib/market/types";
 import { easternRollingHourStarts } from "@/lib/market/volume-hourly-snapshots";
-import { ASSET_BACKFILL_DESK_SOURCE, backfillHeadlineNote } from "@/lib/market/asset-backfill-desk";
+import { marketValueRangeView } from "@/lib/market/onchain-market-value";
+import { isMarketValueHidden } from "@/lib/site/visibility";
 import { closedSnapshotVolumePoints } from "@/lib/market/volume-snapshots";
 
 /** Absolute rolling-24h totals. A gap between Eastern hours breaks the curve. */
@@ -130,7 +140,9 @@ export function DailyVolumeChart({
   rolling24h: rolling24hProp = null,
   robinhoodDays = null,
   extraDeskDays = null,
+  liquidityCloses = null,
   initialRange = "7d",
+  initialMetric = "volume",
 }: {
   history: EquityVolumeHistoryResult;
   /**
@@ -153,10 +165,19 @@ export function DailyVolumeChart({
    * headline. They have no hourly series, so the 24H area stays Solana.
    */
   extraDeskDays?: readonly { label: string; days: readonly SnapshotDeskDay[] }[] | null;
+  /**
+   * Pre-merged 11:59 PM ET closes. Home passes Solana plus the other desks.
+   * Omit on a single chain so the chart sums that chain's card history.
+   */
+  liquidityCloses?: readonly DeskLiquidityClose[] | null;
   /** Closed-day ranges stay the default. Tests pin 24H without a click. */
   initialRange?: VolumeChartRangeId;
+  initialMetric?: HeadlineMetric;
 }) {
-  const { range, setRange } = useDeskVolumeRange(initialRange);
+  const { range, setRange, marketValue, liquidity, metric, setMetric } = useDeskVolumeRange(
+    initialRange,
+    initialMetric,
+  );
   const [hover, setHover] = useState<VolumeHistoryPoint | null>(null);
   const [polledHistory, setPolledHistory] = useState<EquityVolumeHistoryResult | null>(null);
   const [polledHourly, setPolledHourly] = useState<EquityVolumeHistoryResult | null>(null);
@@ -285,8 +306,8 @@ export function DailyVolumeChart({
     [hourSlots, showHourlyAxis, visible],
   );
   // 24H headline ignores the plotted series and reads the live Solana rollup,
-  // then adds each chain's newest closed snapshot. Closed ranges mention a chain
-  // only when a visible day actually includes it. Hourly points stay Solana.
+  // then adds each chain's newest closed snapshot. Closed ranges include a chain
+  // in the total only when a visible day actually includes it. Hourly points stay Solana.
   const snapshotContributions = useMemo(() => {
     const rows: HomeSnapshotChainContribution[] = [];
     const robinhoodLatest = lastReportedRobinhoodDay(robinhoodClosed);
@@ -304,44 +325,40 @@ export function DailyVolumeChart({
     }
     return rows;
   }, [extraClosed, robinhoodClosed, rolling, visible]);
-  const backfillNote = useMemo(() => {
-    if (rolling) return null;
-    // Merged chart points drop `source`. Count a visible day when any chain
-    // contributed that Eastern date from per-asset backfill.
-    const times = new Set<number>();
-    for (const point of history.points) {
-      if (point.source === ASSET_BACKFILL_DESK_SOURCE) times.add(point.t);
-    }
-    for (const day of robinhoodClosed) {
-      if (day.source === ASSET_BACKFILL_DESK_SOURCE) times.add(day.t);
-    }
-    for (const desk of extraClosed) {
-      for (const day of desk.days) {
-        if (day.source === ASSET_BACKFILL_DESK_SOURCE) times.add(day.t);
-      }
-    }
-    let count = 0;
-    for (const point of visible) {
-      if (times.has(point.t)) count += 1;
-    }
-    return backfillHeadlineNote(count);
-  }, [extraClosed, history.points, robinhoodClosed, rolling, visible]);
   const baseHeadline = deskChartHeadline(range, rolling ? points : visible, rolling24h);
   const headline =
     snapshotContributions.length > 0
       ? includeHomeSnapshotChainsInDeskHeadline(baseHeadline, range, snapshotContributions)
       : baseHeadline;
   const robinhoodInView = snapshotContributions.some((row) => row.label === "Robinhood Chain");
-  const robinhoodInSeries = snapshotSeriesIncludesRobinhood(points, robinhoodClosed);
-  const extraInSeries = extraClosed.some((desk) => snapshotSeriesIncludesRobinhood(points, desk.days));
-  const hasDaily = points.length > 0;
   const showHeadline = headline.volumeUsd !== null;
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((frac) => map.maxY * frac);
+  const dayTicks = volumeChartXTicks(visible);
   const xTicks = showHourlyAxis
     ? hourlyVolumeChartXTicks(hourSlots.map((t) => ({ t, volumeUsd: 0, kind: "rolling_24h" as const })))
-    : volumeChartXTicks(visible);
+    : selectDateAxisLabelTicks(dayTicks, range === "24h" ? "7d" : range, (tick) => map.x(tick));
   const plotBottom = VOLUME_CHART_PAD.top + VOLUME_CHART_INNER_H;
   const closedPaths = monotoneVolumePaths(visible, map, plotBottom);
+  const showMarket = !isMarketValueHidden() && metric === "market-value";
+  const showLiquidity = metric === "liquidity";
+  const marketView = useMemo(() => marketValueRangeView(marketValue, range), [marketValue, range]);
+  const marketPoints = useMemo(() => marketValueChartPoints(marketView), [marketView]);
+  const liquidityWindow = useMemo(() => {
+    if (range === "24h") {
+      const latest = points[points.length - 1];
+      return latest ? [latest.t] : [];
+    }
+    return filterVolumeRange(points, range).map((point) => point.t);
+  }, [points, range]);
+  const liquiditySeries = useMemo(
+    () => liquidityCloses ?? deskLiquidityClosesFromHistory(liquidity),
+    [liquidity, liquidityCloses],
+  );
+  const liquidityView = useMemo(
+    () => deskLiquidityRangeView(liquiditySeries, range, liquidityWindow),
+    [liquiditySeries, liquidityWindow, range],
+  );
+  const liquidityPoints = useMemo(() => liquidityChartPoints(liquidityView), [liquidityView]);
 
   function setHoverFromClient(plot: Element, clientX: number, clientY: number) {
     const svg = plot.querySelector("svg");
@@ -371,35 +388,38 @@ export function DailyVolumeChart({
       data-volume-live={rolling ? "24h" : "closed-day"}
       data-volume-includes-robinhood={robinhoodInView ? "true" : "false"}
       data-volume-chain-labels={snapshotContributions.map((row) => row.label).join(" + ")}
+      data-headline-metric={metric}
     >
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3">
         <div className="min-w-0">
+          <HeadlineMetricToggle
+            metric={metric}
+            onChange={(next) => {
+              setMetric(next);
+              setHover(null);
+            }}
+          />
+          {showMarket ? (
+            <MarketValueHeadline view={marketView} />
+          ) : showLiquidity ? (
+            <LiquidityHeadline view={liquidityView} />
+          ) : (
+            <>
           <h2 className="font-heading text-[9px] leading-tight font-medium tracking-wide text-foreground/90">
             Total Daily Tokenized Stock Volume
           </h2>
-          {showHeadline || rolling ? (
-            <>
-              {showHeadline ? (
-                <p
-                  className="num mt-1 text-3xl font-medium text-primary"
-                  aria-live="polite"
-                  data-volume-headline
-                  data-volume-kind={headline.kind}
-                >
-                  {formatUsdCompact(headline.volumeUsd)}
-                </p>
-              ) : null}
-              <p className="mt-1 text-[11px] leading-snug text-muted-foreground" data-volume-caption>
-                {headline.caption}
-                {backfillNote ? (
-                  <span className="text-muted-foreground/70" data-backfill-note>
-                    {" "}
-                    · {backfillNote}
-                  </span>
-                ) : null}
-              </p>
-            </>
+          {showHeadline ? (
+            <p
+              className="num mt-1 text-3xl font-medium text-primary"
+              aria-live="polite"
+              data-volume-headline
+              data-volume-kind={headline.kind}
+            >
+              {formatUsdCompact(headline.volumeUsd)}
+            </p>
           ) : null}
+            </>
+          )}
         </div>
         <div
           className="flex shrink-0 flex-nowrap items-center justify-end gap-1 justify-self-end self-start"
@@ -426,7 +446,11 @@ export function DailyVolumeChart({
           ))}
         </div>
       </div>
-      {showHourlyAxis || (!rolling && visible.length > 0) ? (
+      {showMarket ? (
+        <MarketValuePlot points={marketPoints} frameClass={CHART_PLOT_FRAME_CLASS} />
+      ) : showLiquidity ? (
+        <LiquidityPlot points={liquidityPoints} frameClass={CHART_PLOT_FRAME_CLASS} range={range} />
+      ) : showHourlyAxis || (!rolling && visible.length > 0) ? (
         <div
           className={`relative mt-3 cursor-crosshair ${CHART_PLOT_FRAME_CLASS}`}
           data-volume-plot
@@ -502,23 +526,13 @@ export function DailyVolumeChart({
                   />
                 ))
               : null}
-            {xTicks.map((tick, index) => {
-              const label = rolling ? formatHourlyVolumeChartTick(tick) : formatVolumeChartTick(tick, xTicks);
-              const crowded = !rolling && xTicks.length > 10;
-              return (
-                <text
-                  key={`${tick}-${index}`}
-                  x={map.x(tick)}
-                  y={crowded && index % 2 === 1 ? VOLUME_CHART_HEIGHT - 4 : VOLUME_CHART_HEIGHT - (crowded ? 16 : 8)}
-                  textAnchor="middle"
-                  className="fill-muted-foreground"
-                  fontSize={crowded ? 9 : 10}
-                  data-volume-tick={label}
-                >
-                  {label}
-                </text>
-              );
-            })}
+            <DateAxisLabels
+              ticks={xTicks}
+              x={(tick) => map.x(tick)}
+              chartHeight={VOLUME_CHART_HEIGHT}
+              label={(tick) => (rolling ? formatHourlyVolumeChartTick(tick) : formatChartDay(tick))}
+              tickAttr="data-volume-tick"
+            />
             {rolling ? (
               <HourlyRollingArea points={hourlyCaptures} map={map} />
             ) : (
@@ -583,15 +597,9 @@ export function DailyVolumeChart({
           </p>
         </div>
       )}
-      {showHourlyAxis ? (
+      {!showMarket && !showLiquidity && showHourlyAxis ? (
         <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-volume-hourly-note>
           {HOURLY_VOLUME_SERIES_CAPTION}
-        </p>
-      ) : null}
-      {!rolling && hasDaily && !robinhoodInSeries && !extraInSeries ? (
-        <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-volume-history-note>
-          History from closed desk DexScreener snapshots. The in-progress Eastern day is omitted until that
-          America/New_York date has closed.
         </p>
       ) : null}
     </section>

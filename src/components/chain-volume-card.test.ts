@@ -17,7 +17,7 @@ vi.mock("next/link", () => ({
   },
 }));
 
-import { CHAIN_VOLUME_TRACKS, ChainVolumeCard, ChainVolumeTable } from "./chain-volume-card";
+import { CHAIN_VOLUME_TRACKS, CHAIN_VOLUME_TRACKS_WITHOUT_MARKET, ChainVolumeCard, ChainVolumeTable } from "./chain-volume-card";
 import { formatUsdCompact } from "@/lib/market/format";
 import { robinhoodHomeChainVolume } from "@/lib/market/home-desk-volume";
 import { parseRobinhoodDeskDays, robinhoodSnapshotChainShell } from "@/lib/market/robinhood-desk-volume";
@@ -127,10 +127,32 @@ describe("ChainVolumeCard", () => {
     expect(html.match(/>ETF\/Index 24H</g)?.length).toBe(1);
     expect(html).not.toContain(">Snapshot<");
     expect(html).not.toContain("last closed snapshot");
+    expect(html).toContain(">Market value<");
     expect(html).toContain(">Chain<");
     expect(html).toContain(">#<");
     expect(html.indexOf(">#1<")).toBeGreaterThan(headerAt);
     expect(html.indexOf(">#2<")).toBeGreaterThan(html.indexOf(">#1<"));
+  });
+
+  it("drops the Market value column when marketvalue is hidden", () => {
+    const previous = process.env.NEXT_PUBLIC_HIDE_SECTIONS;
+    process.env.NEXT_PUBLIC_HIDE_SECTIONS = "perps,lending,marketvalue";
+    try {
+      const html = renderToStaticMarkup(
+        createElement(ChainVolumeTable, {
+          rows: [{ chain: solanaChain(), rank: 1, maxVolume: 103_700_000, marketValueUsd: 1_880_563_778.85 }],
+        }),
+      );
+      expect(html).not.toContain(">Market value<");
+      expect(html).not.toContain("data-market-value=");
+      expect(html).not.toContain("data-market-value-hint");
+      expect(html).toContain('data-market-value-column="hidden"');
+      expect(html).toContain(CHAIN_VOLUME_TRACKS_WITHOUT_MARKET);
+      expect(html).not.toContain(formatUsdCompact(1_880_563_778.85));
+    } finally {
+      if (previous === undefined) delete process.env.NEXT_PUBLIC_HIDE_SECTIONS;
+      else process.env.NEXT_PUBLIC_HIDE_SECTIONS = previous;
+    }
   });
 
   it("renders an empty Robinhood row without inventing zero", () => {

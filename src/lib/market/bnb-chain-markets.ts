@@ -4,6 +4,7 @@ import type { FetchLike } from "./solana-http";
 import { fetchJsonOrText } from "./solana-http";
 import { mapWithConcurrency } from "./async-pool";
 import { BNB_DESK } from "./bnb-desk-volume";
+import { loadBnbSnapshotDetail, overlayBnbSnapshotIdentity } from "./bnb-snapshot-cards";
 import { snapshotDeskChainShell } from "./snapshot-desk-volume";
 import {
   BNB_DEX_CHAIN_SLUG,
@@ -110,7 +111,7 @@ function cacheKey(options: LoadBnbChainMarketsOptions): string {
  * Live BNB Chain issuer registries plus DexScreener chain-56 markets.
  * One registry failing does not blank the others.
  * Throws only when every name source produced no tokens.
- * `bnb.json` is not a name source.
+ * The desk card grid does not use this list. Snapshot assets in `bnb.json` do.
  */
 export async function loadBnbChainMarkets(
   options: LoadBnbChainMarketsOptions = {},
@@ -290,16 +291,26 @@ export async function lookupBnbChainAsset(
   key: string,
   options?: LoadBnbChainMarketsOptions,
 ): Promise<AssetDetailResult | null> {
-  const catalog = await loadBnbChainMarkets(options);
-  const asset = findBnbDetail(catalog.details, key);
-  if (!asset) return null;
-  const chain = {
-    ...snapshotDeskChainShell(BNB_DESK),
-    sourceId: "bnb" as const,
-    sourceLabel: BNB_MARKETS_SOURCE_LABEL,
-    coverageNote: BNB_MARKETS_NOTE,
-  };
-  return { chain, asset, provenance: catalog.provenance };
+  const [live, stored] = await Promise.all([
+    loadBnbChainMarkets(options)
+      .then((catalog) => {
+        const asset = findBnbDetail(catalog.details, key);
+        if (!asset) return null;
+        const chain = {
+          ...snapshotDeskChainShell(BNB_DESK),
+          sourceId: "bnb" as const,
+          sourceLabel: BNB_MARKETS_SOURCE_LABEL,
+          coverageNote: BNB_MARKETS_NOTE,
+        };
+        return { chain, asset, provenance: catalog.provenance };
+      })
+      .catch(() => null),
+    loadBnbSnapshotDetail(key),
+  ]);
+  if (live && stored) {
+    return { ...live, asset: overlayBnbSnapshotIdentity(stored.asset, live.asset) };
+  }
+  return live ?? stored;
 }
 
 export function bnbCatalogCount(

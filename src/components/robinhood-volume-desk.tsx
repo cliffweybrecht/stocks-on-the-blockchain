@@ -1,9 +1,15 @@
 "use client";
 
 import { useMemo, useState, type PointerEvent } from "react";
+import { DateAxisLabels } from "@/components/date-axis-labels";
 import { useDeskVolumeRange } from "@/components/desk-volume-range";
+import { HeadlineMetricToggle, type HeadlineMetric } from "@/components/headline-metric-toggle";
+import { LiquidityHeadline, LiquidityPlot, liquidityChartPoints } from "@/components/liquidity-plot";
+import { MarketValueHeadline, MarketValuePlot, marketValueChartPoints } from "@/components/market-value-plot";
 import { backfillHeadlineNote, countAssetBackfillDays } from "@/lib/market/asset-backfill-desk";
 import { DESK_CHART_PLOT_FRAME_CLASS, monotoneVolumePaths } from "@/lib/desk/chart-curve";
+import { selectDateAxisLabelTicks } from "@/lib/desk/date-axis";
+import { deskLiquidityClosesFromHistory, deskLiquidityRangeView } from "@/lib/market/desk-liquidity-chart";
 import { formatChartDay, formatUsdCompact, formatUsdFull } from "@/lib/market/format";
 import {
   nearestVolumePoint,
@@ -15,15 +21,14 @@ import {
   VOLUME_CHART_PAD,
   VOLUME_CHART_RANGES,
   VOLUME_CHART_WIDTH,
-  formatVolumeChartTick,
   type VolumeChartRangeId,
 } from "@/lib/market/daily-volume-view";
+import { marketValueRangeView } from "@/lib/market/onchain-market-value";
+import { isMarketValueHidden } from "@/lib/site/visibility";
 import {
-  ROBINHOOD_DESK_VOLUME_NOTE,
   robinhoodDaysForRange,
   robinhoodDeskHeadline,
   robinhoodDisplayedLiquidity,
-  robinhoodIssuerRows,
   robinhoodVolumePoints,
   type RobinhoodDeskDay,
 } from "@/lib/market/robinhood-desk-volume";
@@ -31,26 +36,47 @@ import {
 export function RobinhoodVolumeDesk({
   days,
   initialRange = "7d",
+  initialMetric = "volume",
 }: {
   /** Closed Eastern snapshot days only. The page drops today and later. */
   days: readonly RobinhoodDeskDay[];
   initialRange?: VolumeChartRangeId;
+  initialMetric?: HeadlineMetric;
 }) {
-  const { range, setRange } = useDeskVolumeRange(initialRange);
+  const { range, setRange, marketValue, liquidity: liquidityHistory, metric, setMetric } = useDeskVolumeRange(
+    initialRange,
+    initialMetric,
+  );
   const [hover, setHover] = useState<{ t: number; volumeUsd: number } | null>(null);
   const visibleDays = useMemo(() => robinhoodDaysForRange(days, range), [days, range]);
   const visible = useMemo(() => robinhoodVolumePoints(visibleDays), [visibleDays]);
   const headline = robinhoodDeskHeadline(visibleDays, range);
   const backfillNote = backfillHeadlineNote(countAssetBackfillDays(visibleDays));
-  const issuers = useMemo(() => robinhoodIssuerRows(visibleDays), [visibleDays]);
   const liquidity = robinhoodDisplayedLiquidity(visibleDays);
   const charting = range !== "24h";
   const map = useMemo(() => scaleVolumePoints(visible), [visible]);
-  const xTicks = volumeChartXTicks(visible);
+  const xTicks = selectDateAxisLabelTicks(
+    volumeChartXTicks(visible),
+    range === "24h" ? "7d" : range,
+    (tick) => map.x(tick),
+  );
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((frac) => map.maxY * frac);
   const closedPaths = monotoneVolumePaths(visible, map, VOLUME_CHART_PAD.top + VOLUME_CHART_INNER_H);
   const showHeadline = headline.volumeUsd !== null;
-  const unofficial = issuers.some((row) => !row.official);
+  const showMarket = !isMarketValueHidden() && metric === "market-value";
+  const showLiquidity = metric === "liquidity";
+  const marketView = useMemo(() => marketValueRangeView(marketValue, range), [marketValue, range]);
+  const marketPoints = useMemo(() => marketValueChartPoints(marketView), [marketView]);
+  const liquidityView = useMemo(
+    () =>
+      deskLiquidityRangeView(
+        deskLiquidityClosesFromHistory(liquidityHistory),
+        range,
+        visibleDays.map((day) => day.t),
+      ),
+    [liquidityHistory, range, visibleDays],
+  );
+  const liquidityPoints = useMemo(() => liquidityChartPoints(liquidityView), [liquidityView]);
 
   function setHoverFromClient(plot: Element, clientX: number, clientY: number) {
     const svg = plot.querySelector("svg");
@@ -69,9 +95,23 @@ export function RobinhoodVolumeDesk({
       className="rounded-2xl bg-[#141414] px-4 py-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] sm:px-5"
       data-robinhood-volume-desk
       data-volume-live="closed-day"
+      data-headline-metric={metric}
     >
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3">
         <div className="min-w-0">
+          <HeadlineMetricToggle
+            metric={metric}
+            onChange={(next) => {
+              setMetric(next);
+              setHover(null);
+            }}
+          />
+          {showMarket ? (
+            <MarketValueHeadline view={marketView} />
+          ) : showLiquidity ? (
+            <LiquidityHeadline view={liquidityView} />
+          ) : (
+            <>
           <h2 className="font-heading text-[9px] leading-tight font-medium tracking-wide text-foreground/90">
             Total Daily Tokenized Stock Volume
           </h2>
@@ -98,6 +138,8 @@ export function RobinhoodVolumeDesk({
               </span>
             ) : null}
           </p>
+            </>
+          )}
         </div>
         <div
           className="flex shrink-0 flex-nowrap items-center justify-end gap-1 justify-self-end self-start"
@@ -125,7 +167,11 @@ export function RobinhoodVolumeDesk({
         </div>
       </div>
 
-      {charting && visible.length > 0 ? (
+      {showMarket ? (
+        <MarketValuePlot points={marketPoints} frameClass={DESK_CHART_PLOT_FRAME_CLASS} />
+      ) : showLiquidity ? (
+        <LiquidityPlot points={liquidityPoints} frameClass={DESK_CHART_PLOT_FRAME_CLASS} range={range} />
+      ) : charting && visible.length > 0 ? (
         <div
           className={`relative mt-3 cursor-crosshair ${DESK_CHART_PLOT_FRAME_CLASS}`}
           data-volume-plot
@@ -173,23 +219,13 @@ export function RobinhoodVolumeDesk({
                 </text>
               </g>
             ))}
-            {xTicks.map((tick, index) => {
-              const label = formatVolumeChartTick(tick, xTicks);
-              const crowded = xTicks.length > 10;
-              return (
-                <text
-                  key={`${tick}-${index}`}
-                  x={map.x(tick)}
-                  y={crowded && index % 2 === 1 ? VOLUME_CHART_HEIGHT - 4 : VOLUME_CHART_HEIGHT - (crowded ? 16 : 8)}
-                  textAnchor="middle"
-                  className="fill-muted-foreground"
-                  fontSize={crowded ? 9 : 10}
-                  data-volume-tick={label}
-                >
-                  {label}
-                </text>
-              );
-            })}
+            <DateAxisLabels
+              ticks={xTicks}
+              x={(tick) => map.x(tick)}
+              chartHeight={VOLUME_CHART_HEIGHT}
+              label={formatChartDay}
+              tickAttr="data-volume-tick"
+            />
             <path d={closedPaths.area} fill="url(#robinhood-volume-area)" pointerEvents="none" />
             <path
               d={closedPaths.line}
@@ -261,70 +297,12 @@ export function RobinhoodVolumeDesk({
         </div>
       )}
 
-      <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-robinhood-volume-note>
-        {ROBINHOOD_DESK_VOLUME_NOTE}
-      </p>
-
-      {liquidity ? (
+      {!showMarket && !showLiquidity && liquidity ? (
         <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-robinhood-liquidity>
           Displayed liquidity {liquidity.date}: {formatUsdFull(liquidity.usd)}. DexScreener liquidity.usd, not
           executable size. Missing liquidity does not drop the day.
         </p>
       ) : null}
-
-      <div className="mt-4" data-issuer-lanes>
-        <h3 className="text-[10px] tracking-wide text-muted-foreground uppercase">Issuer × type</h3>
-        {issuers.length === 0 ? (
-          <p className="mt-2 text-sm text-muted-foreground">
-            {days.length === 0
-              ? "No issuer split is recorded yet. The desk does not invent issuers."
-              : "Issuer × type was not recorded on these snapshot days. Lane totals still count. No issuer split is invented."}
-          </p>
-        ) : (
-          <div className="mt-2 overflow-x-auto">
-            <table className="w-full min-w-[28rem] text-left text-sm">
-              <caption className="sr-only">
-                Robinhood Chain volume by issuer and type for the selected range
-              </caption>
-              <thead>
-                <tr className="text-[10px] tracking-wide text-muted-foreground uppercase">
-                  <th scope="col" className="py-1 pr-3 font-medium">
-                    Issuer
-                  </th>
-                  <th scope="col" className="py-1 pr-3 font-medium">
-                    Equity
-                  </th>
-                  <th scope="col" className="py-1 pr-3 font-medium">
-                    ETF
-                  </th>
-                  <th scope="col" className="py-1 font-medium">
-                    Private
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {issuers.map((row) => (
-                  <tr key={row.slug} data-issuer={row.slug} data-issuer-official={row.official ? "true" : "false"}>
-                    <th scope="row" className="py-1.5 pr-3 font-medium text-foreground">
-                      {row.label}
-                    </th>
-                    <td className="num py-1.5 pr-3">{formatUsdCompact(row.equityUsd)}</td>
-                    <td className="num py-1.5 pr-3">{formatUsdCompact(row.etfUsd)}</td>
-                    <td className="num py-1.5">{formatUsdCompact(row.privateUsd)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {unofficial ? (
-          <p className="mt-2 text-[11px] leading-snug text-muted-foreground" data-ondo-unverified>
-            Ondo-named (unverified) is not official Ondo. Those chain 4663 tokens use the on-chain name “(Ondo
-            Tokenized)” and stay in the bar until they are dropped. Rialto, launchpad PreStocks/xStock, copycats, and
-            Arcus leveraged tokens are not in this split.
-          </p>
-        ) : null}
-      </div>
     </section>
   );
 }

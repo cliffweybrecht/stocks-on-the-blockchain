@@ -1,3 +1,4 @@
+import { isChainEnabled } from "../market/chain-config";
 import { formatPrice } from "../market/format";
 import { assetRouteKey } from "../market/identity";
 import type { AssetSummary } from "../market/types";
@@ -33,7 +34,9 @@ export function selectEquityPriceTicker(
     "symbol" | "chainId" | "contractAddress" | "volume24hUsd" | "dexMedianPriceUsd" | "instrumentKind"
   >[],
 ): EquityPriceTickerItem[] {
-  const catalog = assets.filter((asset) => (asset.instrumentKind ?? "equity") === "equity");
+  const catalog = assets.filter(
+    (asset) => (asset.instrumentKind ?? "equity") === "equity" && isChainEnabled(asset.chainId),
+  );
   const items: EquityPriceTickerItem[] = [];
   for (const asset of catalog) {
     const volume = asset.volume24hUsd;
