@@ -1,7 +1,10 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { MarketValueHeadline, MarketValueTooltip } from "./market-value-plot";
+import { MarketValueHeadline, MarketValuePlot, MarketValueTooltip } from "./market-value-plot";
+import { monotoneVolumePaths } from "@/lib/desk/chart-curve";
+import { scaleVolumePoints, VOLUME_CHART_INNER_H, VOLUME_CHART_PAD } from "@/lib/market/daily-volume-view";
+import type { VolumeHistoryPoint } from "@/lib/market/types";
 import { MARKET_VALUE_METHOD_LINE, type MarketValueRangeView } from "@/lib/market/onchain-market-value";
 
 const view: MarketValueRangeView = {
@@ -32,5 +35,39 @@ describe("Market value methodology", () => {
     );
     expect(html).toContain("data-market-value-tooltip");
     expect(html).toContain(MARKET_VALUE_METHOD_LINE);
+  });
+});
+
+describe("Market value series markers", () => {
+  const day = 86_400;
+  const closes: VolumeHistoryPoint[] = [
+    { t: 1_700_000_000, volumeUsd: 100, kind: "calendar_day" },
+    { t: 1_700_000_000 + day, volumeUsd: 140, kind: "calendar_day" },
+    { t: 1_700_000_000 + 3 * day, volumeUsd: 90, kind: "calendar_day" },
+  ];
+
+  it("draws the smooth area without a dot on every close", () => {
+    const html = renderToStaticMarkup(
+      createElement(MarketValuePlot, { points: closes, frameClass: "overflow-hidden rounded-xl" }),
+    );
+    const map = scaleVolumePoints(closes, { xInset: 0 });
+    const paths = monotoneVolumePaths(closes, map, VOLUME_CHART_PAD.top + VOLUME_CHART_INNER_H);
+    expect(html).toContain('data-market-value-points="3"');
+    expect(html).toContain('fill="url(#market-value-area)"');
+    expect(html).toContain(`d="${paths.line}"`);
+    expect(html).toContain(`d="${paths.area}"`);
+    expect(html).not.toContain("<circle");
+    expect(html).not.toContain("data-market-value-point=");
+  });
+
+  it("keeps one dot when a single close has no segment", () => {
+    const html = renderToStaticMarkup(
+      createElement(MarketValuePlot, {
+        points: [closes[0]!],
+        frameClass: "overflow-hidden rounded-xl",
+      }),
+    );
+    expect(html.match(/<circle /g)).toHaveLength(1);
+    expect(html).toContain(`data-market-value-point="${closes[0]!.t}"`);
   });
 });

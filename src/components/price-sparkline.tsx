@@ -75,7 +75,6 @@ export function PriceSparkline({
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <circle cx={geometry.lastX} cy={geometry.lastY} r="2.4" fill={color} />
     </svg>
   );
 }

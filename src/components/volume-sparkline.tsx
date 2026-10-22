@@ -9,7 +9,7 @@ const DIRECTION_COLOR: Record<VolumeSparklineDirection, string> = {
   flat: "#737373",
 };
 
-const CARD = { width: 104, height: 32, className: "h-8 w-[104px]", stroke: 1.7, dot: 2.1 } as const;
+const CARD = { width: 104, height: 32, className: "h-8 w-[104px]", stroke: 1.7 } as const;
 
 export function VolumeSparkline({
   points,
@@ -52,7 +52,6 @@ export function VolumeSparkline({
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <circle cx={geometry.lastX} cy={geometry.lastY} r={CARD.dot} fill={color} />
     </svg>
   );
 }

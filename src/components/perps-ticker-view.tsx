@@ -121,9 +121,9 @@ function SeriesChart({
         role="img"
         aria-label={label}
       >
-        {bars.map((bar) => (
-          <circle key={bar.point.date} cx={bar.cx} cy={bar.y} r="3" fill="var(--volume)" />
-        ))}
+        {bars.length === 1 ? (
+          <circle cx={bars[0]!.cx} cy={bars[0]!.y} r="3.5" fill={DESK_CHART_STROKE} />
+        ) : null}
         {curve ? (
           <path d={curve} fill="none" stroke={DESK_CHART_STROKE} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
         ) : null}

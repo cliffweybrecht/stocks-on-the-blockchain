@@ -74,5 +74,7 @@ describe("lending compare markup", () => {
     expect(html).toContain("Jupiter Lend, Venus, and Frankencoin are left out");
     expect(html).toContain("borrowed —");
     expect(html).toContain("Daily snapshots on this desk");
+    // Collateral is a line. Borrowed and how-full each have one stored day, so each keeps a single dot.
+    expect(html.match(/<circle /g)).toHaveLength(2);
   });
 });
