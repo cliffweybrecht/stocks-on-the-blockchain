@@ -4,10 +4,10 @@
     {
       "date": "2026-09-23",
       "t": 1790136000,
-      "publicEquity24hUsd": 56704058.87,
+      "publicEquity24hUsd": 56704058.88,
       "private24hUsd": 149399.82,
-      "etfIndex24hUsd": 23323932.06,
-      "combined24hUsd": 80177390.75,
+      "etfIndex24hUsd": 23323932.04,
+      "combined24hUsd": 80177390.74,
       "publicMintCount": 779,
       "publicPoolCount": 82,
       "etfMintCount": 104,
@@ -1475,10 +1475,10 @@
     {
       "date": "2026-09-24",
       "t": 1790222400,
-      "publicEquity24hUsd": 44863281.19,
+      "publicEquity24hUsd": 44863281.16,
       "private24hUsd": 12029991.59,
       "etfIndex24hUsd": 58128261.33,
-      "combined24hUsd": 115021534.11,
+      "combined24hUsd": 115021534.08,
       "publicMintCount": 1321,
       "publicPoolCount": 82,
       "etfMintCount": 116,
@@ -3075,10 +3075,10 @@
     {
       "date": "2026-09-25",
       "t": 1790308800,
-      "publicEquity24hUsd": 33964380.82,
+      "publicEquity24hUsd": 33964380.84,
       "private24hUsd": 1831729.02,
-      "etfIndex24hUsd": 22328814.65,
-      "combined24hUsd": 58124924.49,
+      "etfIndex24hUsd": 22328814.64,
+      "combined24hUsd": 58124924.5,
       "publicMintCount": 1321,
       "publicPoolCount": 82,
       "etfMintCount": 115,
@@ -4667,10 +4667,10 @@
     {
       "date": "2026-09-26",
       "t": 1790395200,
-      "publicEquity24hUsd": 18066608.5,
-      "private24hUsd": 1039053.13,
-      "etfIndex24hUsd": 11792645.17,
-      "combined24hUsd": 30898306.8,
+      "publicEquity24hUsd": 18066608.48,
+      "private24hUsd": 1039053.14,
+      "etfIndex24hUsd": 11792645.15,
+      "combined24hUsd": 30898306.77,
       "publicMintCount": 1321,
       "publicPoolCount": 82,
       "etfMintCount": 115,
@@ -6220,10 +6220,10 @@
     {
       "date": "2026-09-27",
       "t": 1790481600,
-      "publicEquity24hUsd": 19342765.6,
-      "private24hUsd": 671999.84,
-      "etfIndex24hUsd": 18488806.48,
-      "combined24hUsd": 38503571.92,
+      "publicEquity24hUsd": 19342765.62,
+      "private24hUsd": 671999.83,
+      "etfIndex24hUsd": 18488806.49,
+      "combined24hUsd": 38503571.94,
       "issuersByLane": {
         "equity": {
           "bstocks": {
@@ -7807,10 +7807,10 @@
     {
       "date": "2026-09-28",
       "t": 1790568000,
-      "publicEquity24hUsd": 40211202.62,
-      "private24hUsd": 766420.73,
-      "etfIndex24hUsd": 45182165.02,
-      "combined24hUsd": 86159788.37,
+      "publicEquity24hUsd": 40211202.6,
+      "private24hUsd": 766420.72,
+      "etfIndex24hUsd": 45182165.03,
+      "combined24hUsd": 86159788.35,
       "issuersByLane": {
         "equity": {
           "bstocks": {
@@ -9451,10 +9451,10 @@
     {
       "date": "2026-09-29",
       "t": 1790654400,
-      "publicEquity24hUsd": 69103434.58,
+      "publicEquity24hUsd": 69103434.59,
       "private24hUsd": 648636.21,
-      "etfIndex24hUsd": 34404911.21,
-      "combined24hUsd": 104156982.0,
+      "etfIndex24hUsd": 34404911.2,
+      "combined24hUsd": 104156982,
       "issuersByLane": {
         "equity": {
           "bstocks": {
@@ -11084,8 +11084,8 @@
       "t": 1790740800,
       "publicEquity24hUsd": 86523532.32,
       "private24hUsd": 284589.96,
-      "etfIndex24hUsd": 43655001.31,
-      "combined24hUsd": 130463123.59,
+      "etfIndex24hUsd": 43655001.32,
+      "combined24hUsd": 130463123.6,
       "issuersByLane": {
         "equity": {
           "bstocks": {
@@ -12795,10 +12795,10 @@
     {
       "date": "2026-10-01",
       "t": 1790827200,
-      "publicEquity24hUsd": 88767855.22,
+      "publicEquity24hUsd": 88767855.2,
       "private24hUsd": 140629.62,
       "etfIndex24hUsd": 44996309.36,
-      "combined24hUsd": 133904794.2,
+      "combined24hUsd": 133904794.18,
       "issuersByLane": {
         "equity": {
           "bstocks": {
@@ -14488,10 +14488,10 @@
     {
       "date": "2026-10-02",
       "t": 1790913600,
-      "publicEquity24hUsd": 123111272.57,
-      "private24hUsd": 55588.53,
-      "etfIndex24hUsd": 40266141.78,
-      "combined24hUsd": 163433002.88,
+      "publicEquity24hUsd": 123111272.53,
+      "private24hUsd": 55588.54,
+      "etfIndex24hUsd": 40266141.79,
+      "combined24hUsd": 163433002.86,
       "issuersByLane": {
         "equity": {
           "bstocks": {
@@ -16191,10 +16191,10 @@
     {
       "date": "2026-10-03",
       "t": 1791000000,
-      "publicEquity24hUsd": 80886864.21,
+      "publicEquity24hUsd": 80886864.22,
       "private24hUsd": 88670.73,
       "etfIndex24hUsd": 25790662.19,
-      "combined24hUsd": 106766197.13,
+      "combined24hUsd": 106766197.14,
       "issuersByLane": {
         "equity": {
           "bstocks": {
@@ -17884,10 +17884,10 @@
     {
       "date": "2026-10-04",
       "t": 1791086400,
-      "publicEquity24hUsd": 103573708.95,
-      "private24hUsd": 269862.25,
-      "etfIndex24hUsd": 45888205.26,
-      "combined24hUsd": 149731776.46,
+      "publicEquity24hUsd": 103573708.92,
+      "private24hUsd": 269862.26,
+      "etfIndex24hUsd": 45888205.25,
+      "combined24hUsd": 149731776.43,
       "issuersByLane": {
         "equity": {
           "bstocks": {
@@ -19567,10 +19567,10 @@
     {
       "date": "2026-10-05",
       "t": 1791172800,
-      "publicEquity24hUsd": 77778363.48,
+      "publicEquity24hUsd": 77778363.51,
       "private24hUsd": 50095.79,
-      "etfIndex24hUsd": 30456663.33,
-      "combined24hUsd": 108285122.6,
+      "etfIndex24hUsd": 30456663.34,
+      "combined24hUsd": 108285122.64,
       "issuersByLane": {
         "equity": {
           "bstocks": {
@@ -21280,9 +21280,9 @@
     {
       "date": "2026-10-06",
       "t": 1791259200,
-      "publicEquity24hUsd": 73157155.0,
+      "publicEquity24hUsd": 73157154.99,
       "private24hUsd": 223275.58,
-      "etfIndex24hUsd": 23721152.4,
+      "etfIndex24hUsd": 23721152.41,
       "combined24hUsd": 97101582.98,
       "issuersByLane": {
         "equity": {
@@ -22963,9 +22963,9 @@
     {
       "date": "2026-10-07",
       "t": 1791345600,
-      "publicEquity24hUsd": 41762427.22,
+      "publicEquity24hUsd": 41762427.23,
       "private24hUsd": 38724.35,
-      "etfIndex24hUsd": 20789506.96,
+      "etfIndex24hUsd": 20789506.95,
       "combined24hUsd": 62590658.53,
       "issuersByLane": {
         "equity": {
@@ -24702,9 +24702,9 @@
     {
       "date": "2026-10-08",
       "t": 1791432000,
-      "publicEquity24hUsd": 37022988.24,
+      "publicEquity24hUsd": 37022988.25,
       "private24hUsd": 127782.38,
-      "etfIndex24hUsd": 25079926.03,
+      "etfIndex24hUsd": 25079926.02,
       "combined24hUsd": 62230696.65,
       "issuersByLane": {
         "equity": {

@@ -205,9 +205,9 @@ describe("BNB snapshot file", () => {
   it("keeps the 2026-10-05 lanes and drops the in-progress Eastern day", () => {
     const day = closed[closed.length - 1];
     expect(day?.date).toBe("2026-10-05");
-    expect(day?.combined24hUsd).toBeCloseTo(108_285_122.6, 2);
-    expect(day?.publicEquity24hUsd).toBeCloseTo(77_778_363.48, 2);
-    expect(day?.etfIndex24hUsd).toBeCloseTo(30_456_663.33, 2);
+    expect(day?.combined24hUsd).toBeCloseTo(108_285_122.64, 2);
+    expect(day?.publicEquity24hUsd).toBeCloseTo(77_778_363.51, 2);
+    expect(day?.etfIndex24hUsd).toBeCloseTo(30_456_663.34, 2);
     expect(day?.private24hUsd).toBeCloseTo(50_095.79, 2);
     const duringOct5 = Date.parse("2026-10-05T12:00:00-04:00") / 1000;
     expect(closedSnapshotDeskDays(days, duringOct5).at(-1)?.date).toBe("2026-10-04");
