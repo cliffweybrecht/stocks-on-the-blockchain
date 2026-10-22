@@ -1,3 +1,4 @@
+import { fetchGeckoJson, type GeckoPace } from "./gecko-fetch";
 import { easternDayKey, easternMidnightUnix } from "./volume-snapshots";
 
 /** Pools quieter than this are left on the DexScreener sample. Their h24 is dust. */
@@ -19,6 +20,18 @@ export interface ClosedDayPool {
   geckoOk: boolean;
   /** False for pools that came from GeckoTerminal rather than DexScreener. */
   includeInDexSample?: boolean;
+  /** Why the pool kept h24 instead of an Eastern candle sum. */
+  fallbackReason?: string;
+  symbol?: string;
+}
+
+export interface ClosedDayFallback {
+  pairAddress: string;
+  dexId: string;
+  volume24hUsd: number | null;
+  symbol: string;
+  source: string;
+  reason: string;
 }
 
 export interface ClosedDayAssetVolume {
@@ -38,6 +51,7 @@ export interface ClosedDayTotals {
   crossCheck: string | null;
   gapPct: number | null;
   uncoveredPools: number;
+  dexscreenerH24Fallbacks: ClosedDayFallback[];
 }
 
 /** Spot snapshots do not include perp markets. Perplexity is a company, not a perp. */
@@ -97,6 +111,7 @@ export function buildClosedDayTotals(input: {
   const geckoParts: number[] = [];
   const sources = new Set<string>();
   let uncoveredPools = 0;
+  const dexscreenerH24Fallbacks: ClosedDayFallback[] = [];
 
   for (const pool of input.pools) {
     const pair = pool.pairAddress.trim();
@@ -120,6 +135,16 @@ export function buildClosedDayTotals(input: {
       continue;
     }
     sources.add(source);
+    if (source === "geckoterminal-h24-fallback" || source === "dexscreener-h24-fallback") {
+      dexscreenerH24Fallbacks.push({
+        pairAddress: pair,
+        dexId: pool.dexId || "unknown",
+        volume24hUsd: roundUsd(chosen),
+        symbol: pool.symbol ?? "",
+        source,
+        reason: pool.fallbackReason ?? "no-geckoterminal-candles",
+      });
+    }
     const row = byAddress.get(owner);
     if (!row) continue;
     row.volumeUsd = row.volumeUsd === null ? chosen : row.volumeUsd + chosen;
@@ -174,6 +199,7 @@ export function buildClosedDayTotals(input: {
     crossCheck: gapPct !== null && gapPct > CLOSED_DAY_GAP_FRACTION * 100 ? "dex-gecko-gap" : null,
     gapPct,
     uncoveredPools,
+    dexscreenerH24Fallbacks,
   };
 }
 
@@ -208,8 +234,6 @@ export interface ClosedDayAssetInput {
     quoteAddress?: string | null;
   }[];
 }
-
-const GECKO_GAP_MS = 3200;
 
 export interface KnownPoolSide {
   pair: string;
@@ -250,10 +274,17 @@ export async function loadSolanaClosedDayPools(input: {
   geckoBaseUrl?: string;
   minH24?: number;
   knownPools?: readonly KnownPoolSide[];
+  sleep?: (ms: number) => Promise<void>;
+  now?: () => number;
+  random?: () => number;
+  maxAttempts?: number;
+  minIntervalMs?: number;
+  cache?: Map<string, unknown>;
 }): Promise<ClosedDayPool[]> {
   const geckoBase = (input.geckoBaseUrl ?? "https://api.geckoterminal.com/api/v2").replace(/\/+$/, "");
   const minH24 = input.minH24 ?? CLOSED_DAY_MIN_H24_USD;
   const desk = new Set(input.assets.map((asset) => asset.contractAddress));
+  const symbolByAddress = new Map(input.assets.map((asset) => [asset.contractAddress, asset.symbol] as const));
   const pools = new Map<string, ClosedDayPool>();
   const candleAnyway = new Set<string>();
 
@@ -272,6 +303,7 @@ export async function loadSolanaClosedDayPools(input: {
         geckoVolumeUsd: null,
         geckoOk: false,
         includeInDexSample: true,
+        symbol: asset.symbol,
       });
     }
   }
@@ -294,33 +326,27 @@ export async function loadSolanaClosedDayPools(input: {
     });
   }
 
-  let nextAt = 0;
-  const geckoGet = async (url: string): Promise<unknown> => {
-    for (let attempt = 0; attempt < 4; attempt += 1) {
-      const wait = nextAt - Date.now();
-      if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
-      nextAt = Date.now() + GECKO_GAP_MS;
-      try {
-        const response = await input.fetchImpl(url);
-        if (response.status === 429 && attempt < 3) {
-          await new Promise((resolve) => setTimeout(resolve, 15_000 * (attempt + 1)));
-          continue;
-        }
-        if (!response.ok) return null;
-        return await response.json();
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  };
+  const pace: GeckoPace = { nextAt: 0 };
+  const geckoGet = async (url: string) =>
+    fetchGeckoJson({
+      url,
+      fetchImpl: input.fetchImpl,
+      pace,
+      cache: input.cache,
+      sleep: input.sleep,
+      now: input.now,
+      random: input.random,
+      maxAttempts: input.maxAttempts,
+      minIntervalMs: input.minIntervalMs,
+    });
 
   for (const asset of input.assets) {
     if (isPerpInstrument(asset.symbol, asset.name)) continue;
     for (let page = 1; page <= 3; page += 1) {
-      const payload = await geckoGet(
+      const result = await geckoGet(
         `${geckoBase}/networks/solana/tokens/${encodeURIComponent(asset.contractAddress)}/pools?page=${page}`,
       );
+      const payload = result.ok ? result.body : null;
       const rows = payload && typeof payload === "object" ? (payload as { data?: unknown }).data : null;
       if (!Array.isArray(rows) || rows.length === 0) break;
       for (const row of rows) {
@@ -342,6 +368,7 @@ export async function loadSolanaClosedDayPools(input: {
           geckoVolumeUsd: null,
           geckoOk: false,
           includeInDexSample: false,
+          symbol: symbolByAddress.get(base) || symbolByAddress.get(quote) || asset.symbol,
         });
       }
       if (rows.length < 20) break;
@@ -351,12 +378,20 @@ export async function loadSolanaClosedDayPools(input: {
   for (const pool of pools.values()) {
     const signal = Math.max(pool.dexVolumeUsd ?? 0, pool.liquidityUsd ?? 0);
     if (signal < minH24 && !candleAnyway.has(pool.pairAddress)) continue;
-    const payload = await geckoGet(
+    const result = await geckoGet(
       `${geckoBase}/networks/solana/pools/${encodeURIComponent(pool.pairAddress)}/ohlcv/hour?aggregate=1&limit=1000&currency=usd`,
     );
-    const summed = sumHourlyCandlesOnEasternDay(parseGeckoOhlcvCandles(payload), input.dayKey);
+    const summed = result.ok
+      ? sumHourlyCandlesOnEasternDay(parseGeckoOhlcvCandles(result.body), input.dayKey)
+      : { volumeUsd: null, covered: false };
     pool.geckoOk = summed.covered;
     pool.geckoVolumeUsd = summed.volumeUsd;
+    if (!pool.symbol) {
+      pool.symbol = symbolByAddress.get(pool.baseAddress) || symbolByAddress.get(pool.quoteAddress) || "";
+    }
+    if (!summed.covered) {
+      pool.fallbackReason = result.ok ? "no-geckoterminal-candles" : result.reason;
+    }
   }
   return [...pools.values()];
 }

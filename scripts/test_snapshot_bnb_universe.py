@@ -769,9 +769,9 @@ class BnbUniverseTest(unittest.TestCase):
         ]
         tracked = {ppoly: {"address": ppoly, "symbol": "pPOLY"}}
         vols, counts, details, _pair_h24 = _MOD.fold_desk_pools(pairs, tracked)
-        self.assertEqual(vols[ppoly], 12.5)
-        self.assertEqual(counts[ppoly], 1)
-        self.assertEqual([pool["pairAddress"] for pool in details[ppoly]], ["0xgoodppoly"])
+        self.assertIsNone(vols.get(ppoly))
+        self.assertEqual(counts.get(ppoly, 0), 0)
+        self.assertEqual(details.get(ppoly, []), [])
 
     def test_backfill_skips_ppoly_united_stables_pool(self) -> None:
         path = Path(__file__).resolve().parent / "backfill-bnb-gecko-hourly.py"
@@ -808,11 +808,11 @@ class BnbUniverseTest(unittest.TestCase):
             catalog,
             {wash: [(start, 50_000_000.0)], good: [(start, 12.5)]},
         )
-        asset = next(row for row in rebuilt["assets"] if row["symbol"] == "pPOLY")
-        self.assertEqual(asset["volume24hUsd"], 12.5)
-        self.assertEqual([pool["pairAddress"] for pool in asset["pools"]], [good])
-        self.assertEqual(rebuilt["private24hUsd"], 12.5)
+        self.assertFalse(any(row.get("symbol") == "pPOLY" for row in rebuilt["assets"]))
+        self.assertIsNone(rebuilt["private24hUsd"])
+        self.assertEqual(rebuilt["excludedVolumeUsd"], 50_000_012.5)
         self.assertIn(f"excluded-pool:pPOLY:{wash}:", rebuilt["backfillNote"])
+        self.assertIn(f"excluded-pool:pPOLY:{good}:", rebuilt["backfillNote"])
 
     def test_registry_keeps_cash_pools_and_drops_meme_pairs(self) -> None:
         usdt = "0x55d398326f99059ff775485246999027b3197955"

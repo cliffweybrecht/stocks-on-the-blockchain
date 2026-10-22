@@ -33,6 +33,17 @@ export interface DeskSnapshotPool {
   dexId: string;
   volume24hUsd: number | null;
   liquidityUsd: number | null;
+  /** Eastern candle, or the h24 fallback used after Gecko retries. */
+  source?: string;
+}
+
+export interface DexscreenerH24Fallback {
+  pairAddress: string;
+  dexId: string;
+  volume24hUsd: number | null;
+  symbol?: string;
+  source: string;
+  reason: string;
 }
 
 /**
@@ -66,6 +77,7 @@ export type DeskSnapshotAssetSource = Pick<
   pools: readonly (Pick<AssetPoolMark, "pairAddress" | "dexId" | "volume24hUsd" | "liquidityUsd"> & {
     /** GeckoTerminal `reserve_in_usd` beside the reported reserve. */
     geckoReserveUsd?: number | null;
+    source?: string;
   })[];
 };
 
@@ -88,6 +100,8 @@ export interface DeskVolumeSnapshot {
   gapPct?: number | null;
   /** Previous stored dollars when a day was replaced from Gecko coverage. */
   correction?: Record<string, unknown>;
+  /** Pools that kept h24 after GeckoTerminal retries were exhausted or candles were missing. */
+  dexscreenerH24Fallbacks?: DexscreenerH24Fallback[];
   /**
    * Per-mint DexScreener rows for this Eastern day.
    * Absent on totals-only rewrites and on days recorded before per-asset rows.
@@ -238,12 +252,14 @@ export function deskSnapshotAssetsFromSummaries(
       const pairAddress = pool.pairAddress.trim();
       if (!pairAddress || seenPairs.has(pairAddress)) continue;
       seenPairs.add(pairAddress);
-      pools.push({
+      const stored: DeskSnapshotPool = {
         pairAddress,
         dexId: pool.dexId.trim() || "unknown",
         volume24hUsd: roundUsd(asNonNegativeNumber(pool.volume24hUsd)),
         liquidityUsd: roundUsd(asNonNegativeNumber(pool.liquidityUsd)),
-      });
+      };
+      if (typeof pool.source === "string" && pool.source.trim()) stored.source = pool.source.trim();
+      pools.push(stored);
       geckoByPair.set(pairAddress, asNonNegativeNumber(pool.geckoReserveUsd));
     }
     const sanity = applyLiquiditySanity({
@@ -297,7 +313,13 @@ export function deskVolumeSnapshotFromChain(
   assetSource?: readonly DeskSnapshotAssetSource[],
   extras?: Pick<
     DeskVolumeSnapshot,
-    "volumeSource" | "dexCombined24hUsd" | "geckoCombined24hUsd" | "crossCheck" | "gapPct" | "correction"
+    | "volumeSource"
+    | "dexCombined24hUsd"
+    | "geckoCombined24hUsd"
+    | "crossCheck"
+    | "gapPct"
+    | "correction"
+    | "dexscreenerH24Fallbacks"
   >,
 ): DeskVolumeSnapshot {
   const parsed = Date.parse(generatedAt);
@@ -334,6 +356,7 @@ export function deskVolumeSnapshotFromChain(
   if (extras?.crossCheck) snapshot.crossCheck = extras.crossCheck;
   if (extras?.gapPct !== undefined && extras.gapPct !== null) snapshot.gapPct = extras.gapPct;
   if (extras?.correction) snapshot.correction = extras.correction;
+  if (extras?.dexscreenerH24Fallbacks) snapshot.dexscreenerH24Fallbacks = extras.dexscreenerH24Fallbacks;
   return snapshot;
 }
 
@@ -384,7 +407,13 @@ export async function recordDeskVolumeFromChain(
   assetSource?: readonly DeskSnapshotAssetSource[],
   extras?: Pick<
     DeskVolumeSnapshot,
-    "volumeSource" | "dexCombined24hUsd" | "geckoCombined24hUsd" | "crossCheck" | "gapPct" | "correction"
+    | "volumeSource"
+    | "dexCombined24hUsd"
+    | "geckoCombined24hUsd"
+    | "crossCheck"
+    | "gapPct"
+    | "correction"
+    | "dexscreenerH24Fallbacks"
   >,
 ): Promise<RecordDeskVolumeResult> {
   const incoming = deskVolumeSnapshotFromChain(chain, generatedAt, nowT, assetSource, extras);
@@ -561,6 +590,8 @@ function parseOneSnapshot(row: unknown): DeskVolumeSnapshot | null {
   if (rec.correction && typeof rec.correction === "object" && !Array.isArray(rec.correction)) {
     snapshot.correction = rec.correction as Record<string, unknown>;
   }
+  const fallbacks = parseDexscreenerH24Fallbacks(rec.dexscreenerH24Fallbacks);
+  if (fallbacks.length > 0) snapshot.dexscreenerH24Fallbacks = fallbacks;
   if (Array.isArray(rec.assets)) snapshot.assets = parseSnapshotAssets(rec.assets);
   return snapshot;
 }
@@ -571,12 +602,36 @@ function parseSnapshotPool(row: unknown): DeskSnapshotPool | null {
   const pairAddress = typeof rec.pairAddress === "string" ? rec.pairAddress.trim() : "";
   if (!pairAddress) return null;
   const dexId = typeof rec.dexId === "string" && rec.dexId.trim() ? rec.dexId.trim() : "unknown";
-  return {
+  const pool: DeskSnapshotPool = {
     pairAddress,
     dexId,
     volume24hUsd: asNonNegativeNumber(rec.volume24hUsd),
     liquidityUsd: asNonNegativeNumber(rec.liquidityUsd),
   };
+  if (typeof rec.source === "string" && rec.source.trim()) pool.source = rec.source.trim();
+  return pool;
+}
+
+function parseDexscreenerH24Fallbacks(value: unknown): DexscreenerH24Fallback[] {
+  if (!Array.isArray(value)) return [];
+  const parsed: DexscreenerH24Fallback[] = [];
+  for (const row of value) {
+    if (!row || typeof row !== "object") continue;
+    const rec = row as Record<string, unknown>;
+    const pairAddress = typeof rec.pairAddress === "string" ? rec.pairAddress.trim() : "";
+    const source = typeof rec.source === "string" ? rec.source.trim() : "";
+    const reason = typeof rec.reason === "string" ? rec.reason.trim() : "";
+    if (!pairAddress || !source || !reason) continue;
+    parsed.push({
+      pairAddress,
+      dexId: typeof rec.dexId === "string" && rec.dexId.trim() ? rec.dexId.trim() : "unknown",
+      volume24hUsd: asNonNegativeNumber(rec.volume24hUsd),
+      ...(typeof rec.symbol === "string" && rec.symbol.trim() ? { symbol: rec.symbol.trim() } : {}),
+      source,
+      reason,
+    });
+  }
+  return parsed;
 }
 
 function parseExcludedLiquidityPools(value: unknown): ExcludedLiquidityPool[] {

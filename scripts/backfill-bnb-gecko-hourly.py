@@ -309,6 +309,7 @@ def rebuild(record: dict, catalog: dict[str, dict], cache: dict[str, list[tuple[
     gaps: list[dict] = []
     assets: list[dict] = []
     excluded_notes: list[str] = []
+    excluded_usd = 0.0
     for token, meta in catalog.items():
         pool_rows = []
         volumes: list[float | None] = []
@@ -316,10 +317,15 @@ def rebuild(record: dict, catalog: dict[str, dict], cache: dict[str, list[tuple[
         for pool in meta["pools"]:
             pair = pool["pairAddress"]
             base, quote = pool_meta(pair)
-            if volume_pool_excluded(pair, base, quote):
+            # The catalog token covers a new pPOLY pool whose sides were not stored.
+            if volume_pool_excluded(pair, base or str(token).lower(), quote):
                 excluded_notes.append(
-                    f"excluded-pool:{meta['symbol']}:{pair.lower()}:united-stables-wash"
+                    f"excluded-pool:{meta['symbol']}:{pair.lower()}:ppoly-wash"
                 )
+                cached = cache.get(pair.lower())
+                vol = volume_on_day(cached, day) if cached else None
+                if vol is not None:
+                    excluded_usd += vol
                 continue
             cash = (not base and not quote) or base in CASH_QUOTES or quote in CASH_QUOTES
             crossed = base in catalog and quote in catalog
@@ -420,8 +426,10 @@ def rebuild(record: dict, catalog: dict[str, dict], cache: dict[str, list[tuple[
         "A pool with no hourly coverage keeps its original slice when this day stored one."
     )
     if excluded_notes:
-        note = note + " " + "; ".join(excluded_notes)
+        note = note + " Excluded pPOLY wash pools. " + "; ".join(excluded_notes)
     rebuilt["backfillNote"] = note
+    if excluded_usd:
+        rebuilt["excludedVolumeUsd"] = round_usd(excluded_usd)
     if gaps:
         # load_candles appends a generic gap and the caller appends a dated one. Keep the dated rows.
         rebuilt["backfillGaps"] = [gap for gap in gaps if gap.get("date") == day]
