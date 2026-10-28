@@ -16301,6 +16301,4302 @@
           "capturedAt": "2026-10-27T04:42:13.893Z"
         }
       ]
+    },
+    {
+      "date": "2026-10-27",
+      "t": 1793073600,
+      "capturedAt": "2026-10-28T04:00:45.512Z",
+      "holderCount": 1331062,
+      "supplyUsd": 162253948.74035308,
+      "publicMarketValueUsd": 109874398.47038227,
+      "privateMarketValueUsd": 13178473.6440051,
+      "etfMarketValueUsd": 39201076.62596572,
+      "assetCount": 198,
+      "assetsWithHolders": 139,
+      "assetsWithSupplyUsd": 132,
+      "limits": [
+        "Supply is eth_call totalSupply() and decimals() on https://rpc.mainnet.chain.robinhood.com. totalSupplyRaw is the integer. totalSupply and circulatingSupply are raw / 10^decimals. ERC-20 totalSupply is the outstanding mint; this capture does not see a separate unminted cap. A missing decimals() leaves both supplies null. Issuer treasury and bridge vaults are not subtracted, because this host has no published per-token treasury list for the chain. Those balances stay inside outstanding supply rather than a guessed circulating float.",
+        "Holders are GeckoTerminal token-info holders.count (network robinhood), the same integer this desk already shows on the asset page. Calls are one at a time, at least 6.5 seconds apart, because a faster pace receives HTTP 429 on this host. HTTP 429 is retried and is not stored as a count. Blockscout's public API for this chain returned a Cloudflare challenge from the snapshot host, and Routescan tokenholdercount does not index chain 4663 (response: chain not supported). A 404 or a payload with no holders.count stays null. The chain total sums per-token counts and is not unique wallets.",
+        "supplyUsd is circulating supply times the desk DexScreener price already on the asset. Circulating supply is the outstanding amount in the unit that price quotes. A missing price, a displayed pool reserve under $1, or an unreadable supply leaves supplyUsd null. It is not volume, and it is not a pool's reported market cap. Issuer treasury, escrow, and bridge balances are not subtracted unless this capture read them. Unreadable balances stay null rather than a guessed float."
+      ],
+      "assets": [
+        {
+          "address": "0x521Cf887E6531c6F667b5BC4D896E5d9bfE8EB2E",
+          "symbol": "AAOI",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "184767000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 184.767,
+          "circulatingSupply": 184.767,
+          "priceUsd": 76.85,
+          "supplyUsd": 14199.343949999999,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:27:38.291Z"
+        },
+        {
+          "address": "0xaF3D76f1834A1d425780943C99Ea8A608f8a93f9",
+          "symbol": "AAPL",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "11475420033290000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 11475.42003329,
+          "circulatingSupply": 11475.42003329,
+          "priceUsd": 346.61,
+          "supplyUsd": 3977495.337738647,
+          "holderCount": 85534,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:04:14.441Z"
+        },
+        {
+          "address": "0x3139D77Ace0cbAA5bDfD38bD1F1911a794AF0B0e",
+          "symbol": "ABCL",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "492534020000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 492.53402,
+          "circulatingSupply": 492.53402,
+          "priceUsd": 12.21,
+          "supplyUsd": 6013.840384200001,
+          "holderCount": 87,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:42:03.098Z"
+        },
+        {
+          "address": "0x232B8ed6377BE97813853B0Ac104c4Cda8378d1B",
+          "symbol": "ADBE",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "88926050000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 88.92605,
+          "circulatingSupply": 88.92605,
+          "priceUsd": 255.43,
+          "supplyUsd": 22714.380951500003,
+          "holderCount": 849,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:43:27.595Z"
+        },
+        {
+          "address": "0x5F604fBA1162193A4388A5DFa56F556f3E133cC2",
+          "symbol": "AEHR",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "36061000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 36.061,
+          "circulatingSupply": 36.061,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 53,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:47:41.206Z"
+        },
+        {
+          "address": "0xfAf9cb261B5FCC1f404Bb10CD39C5c6C1974E612",
+          "symbol": "AEIS",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "16169000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 16.169,
+          "circulatingSupply": 16.169,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 61,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:48:13.631Z"
+        },
+        {
+          "address": "0x748c32c3ca24eDf31ea597Db1F3d330a7a6DA3Dc",
+          "symbol": "ALAB",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "22809000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 22.809,
+          "circulatingSupply": 22.809,
+          "priceUsd": 270.77,
+          "supplyUsd": 6175.992929999999,
+          "holderCount": 62,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:37:49.629Z"
+        },
+        {
+          "address": "0x36046893810a7E7fCE501229d57dc3FC8c8716d0",
+          "symbol": "AMAT",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "226564842460000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 226.56484246,
+          "circulatingSupply": 226.56484246,
+          "priceUsd": 396.69,
+          "supplyUsd": 89876.00735545739,
+          "holderCount": 2597,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:38:28.641Z"
+        },
+        {
+          "address": "0x99D9D8663545151603863C5AcbD6FC3218899009",
+          "symbol": "AMBA",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "106229000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 106.229,
+          "circulatingSupply": 106.229,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 64,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:49:51.198Z"
+        },
+        {
+          "address": "0x05a3d1Cd21d0C88145E82600E62e7E496e0F222B",
+          "symbol": "AMC",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "640883224190000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 640883.22419,
+          "circulatingSupply": 640883.22419,
+          "priceUsd": 3.045,
+          "supplyUsd": 1951489.41765855,
+          "holderCount": 12983,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:04:27.463Z"
+        },
+        {
+          "address": "0x86923f96303D656E4aa86D9d42D1e57ad2023fdC",
+          "symbol": "AMD",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "4358075680000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 4358.07568,
+          "circulatingSupply": 4358.07568,
+          "priceUsd": 567.61,
+          "supplyUsd": 2473687.3367248,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:05:38.772Z"
+        },
+        {
+          "address": "0xDd356AA38F40A7b7076755aC854B6FBb1F0D305B",
+          "symbol": "AMKR",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "71860567600000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 71.8605676,
+          "circulatingSupply": 71.8605676,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 52,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:48:32.917Z"
+        },
+        {
+          "address": "0x12f190a9F9d7D37a250758b26824B97CE941bF54",
+          "symbol": "AMZN",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "13329697220000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 13329.69722,
+          "circulatingSupply": 13329.69722,
+          "priceUsd": 253.51,
+          "supplyUsd": 3379211.5422422,
+          "holderCount": 55553,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:05:12.932Z"
+        },
+        {
+          "address": "0x28bABD556b60E53663B8615036479a29c2CDd1Bf",
+          "symbol": "ANET",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "28366000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 28.366,
+          "circulatingSupply": 28.366,
+          "priceUsd": 179.2,
+          "supplyUsd": 5083.187199999999,
+          "holderCount": 628,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:40:12.468Z"
+        },
+        {
+          "address": "0xb8DBf92F9741c9ac1c32115E78581f23509916FD",
+          "symbol": "APLD",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "1031167650000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 1031.16765,
+          "circulatingSupply": 1031.16765,
+          "priceUsd": 19.48,
+          "supplyUsd": 20087.145822000002,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:40:38.261Z"
+        },
+        {
+          "address": "0xA249BAF1063Af884807C1E1400AEf7784836917E",
+          "symbol": "APP",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "138951480000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 138.95148,
+          "circulatingSupply": 138.95148,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 102,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:50:43.042Z"
+        },
+        {
+          "address": "0x47F93d52cBeC7C6D2CfC080e154002370a60dAEA",
+          "symbol": "ASML",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "90965373160000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 90.96537316,
+          "circulatingSupply": 90.96537316,
+          "priceUsd": 1645.6,
+          "supplyUsd": 149692.618072096,
+          "holderCount": 4641,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:22:39.505Z"
+        },
+        {
+          "address": "0x1AF6446f07eb1d97c546AFC8c9544cBDF3AD5137",
+          "symbol": "ASTS",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "662366000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 662.366,
+          "circulatingSupply": 662.366,
+          "priceUsd": 43.35,
+          "supplyUsd": 28713.5661,
+          "holderCount": 182,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:32:05.169Z"
+        },
+        {
+          "address": "0x373C06c4f7BDe527D7Dae4BA169E42b55E393CeD",
+          "symbol": "AUR",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "1771152010000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 1771.15201,
+          "circulatingSupply": 1771.15201,
+          "priceUsd": 4.86,
+          "supplyUsd": 8607.798768600001,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:47:08.274Z"
+        },
+        {
+          "address": "0xF6290b5e7C26502e2dA514C31509849718EA76A5",
+          "symbol": "AVAV",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "48041010000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 48.04101,
+          "circulatingSupply": 48.04101,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 57,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:48:52.676Z"
+        },
+        {
+          "address": "0x156E175DD063a8cE274C50654eF40e0032b3fbcF",
+          "symbol": "AVGO",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "845137752660000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 845.13775266,
+          "circulatingSupply": 845.13775266,
+          "priceUsd": 346.42,
+          "supplyUsd": 292772.62027647725,
+          "holderCount": 4504,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:09:26.483Z"
+        },
+        {
+          "address": "0xC27dBD474aF5181c5A8777903690D8D262D12648",
+          "symbol": "AXON",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "10854010000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 10.85401,
+          "circulatingSupply": 10.85401,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": null,
+            "price": null
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:51:28.270Z"
+        },
+        {
+          "address": "0x141eEa040c2250eEc0314e336975e81f85f6585e",
+          "symbol": "AXTI",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "115485010000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 115.48501,
+          "circulatingSupply": 115.48501,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 44,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:49:38.136Z"
+        },
+        {
+          "address": "0x4D21483a44Bf67a86b77E3dA301411880797D452",
+          "symbol": "BA",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "936593750000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 936.59375,
+          "circulatingSupply": 936.59375,
+          "priceUsd": 168.96,
+          "supplyUsd": 158246.88,
+          "holderCount": 3597,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:12:21.955Z"
+        },
+        {
+          "address": "0xad25Ac6C84D497db898fa1E8387bf6Af3532a1c4",
+          "symbol": "BABA",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "15730233920000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 15730.23392,
+          "circulatingSupply": 15730.23392,
+          "priceUsd": 101.19,
+          "supplyUsd": 1591742.3703648,
+          "holderCount": 6147,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:09:13.482Z"
+        },
+        {
+          "address": "0x48E39E56aCdbA37b09020C0b734A613C9a2f100A",
+          "symbol": "BB",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "19657976100000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 19657.9761,
+          "circulatingSupply": 19657.9761,
+          "priceUsd": 9.55,
+          "supplyUsd": 187733.67175500002,
+          "holderCount": 5476,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:23:38.207Z"
+        },
+        {
+          "address": "0x822CC93fFD030293E9842c30BBD678F530701867",
+          "symbol": "BE",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "4485185650000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 4485.18565,
+          "circulatingSupply": 4485.18565,
+          "priceUsd": 223.25,
+          "supplyUsd": 1001317.6963625001,
+          "holderCount": 19621,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:05:51.997Z"
+        },
+        {
+          "address": "0x2F62fC9fAbb470C690f141c28340eD832bB27020",
+          "symbol": "BND",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "0",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 0,
+          "circulatingSupply": 0,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": null,
+            "price": null
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T05:20:56.260Z"
+        },
+        {
+          "address": "0xceF9027c7d6985b85f0BA431125073529A947A68",
+          "symbol": "BULL",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "25294723030000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 25294.72303,
+          "circulatingSupply": 25294.72303,
+          "priceUsd": 5.61,
+          "supplyUsd": 141903.3961983,
+          "holderCount": 1879,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:27:25.628Z"
+        },
+        {
+          "address": "0x5c90450Bbb4273D7b2f17CF6917AEB237A569679",
+          "symbol": "CBRS",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "692360120000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 692.36012,
+          "circulatingSupply": 692.36012,
+          "priceUsd": 116.38,
+          "supplyUsd": 80576.8707656,
+          "holderCount": 111,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:37:16.809Z"
+        },
+        {
+          "address": "0x9651342CeA770aE9a2969Ba2A52611523146aef9",
+          "symbol": "CCL",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "910402683150000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 910.40268315,
+          "circulatingSupply": 910.40268315,
+          "priceUsd": 28.34,
+          "supplyUsd": 25800.812040471,
+          "holderCount": 135,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:30:27.482Z"
+        },
+        {
+          "address": "0xaE517A2903E68bd929Dfd15be875F8369D53e94a",
+          "symbol": "CEG",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "148013840000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 148.01384,
+          "circulatingSupply": 148.01384,
+          "priceUsd": 261.24,
+          "supplyUsd": 38667.1355616,
+          "holderCount": 176,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:21:02.183Z"
+        },
+        {
+          "address": "0x8cF07C5A878945185d327aAa6e33FAa95F95e7bF",
+          "symbol": "CELH",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "214612020000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 214.61202,
+          "circulatingSupply": 214.61202,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": null,
+            "price": null
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:52:07.262Z"
+        },
+        {
+          "address": "0x44f6D488021f8233B9416294d1FE9b1fEe28382d",
+          "symbol": "CIEN",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "6818000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 6.818,
+          "circulatingSupply": 6.818,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": null,
+            "price": null
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:52:33.268Z"
+        },
+        {
+          "address": "0x62200915e7DEab1eC7f79fb246daDbB80eACdDd0",
+          "symbol": "CLOV",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "2240828020000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 2240.82802,
+          "circulatingSupply": 2240.82802,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 230,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:51:02.622Z"
+        },
+        {
+          "address": "0xBf449977089c718C004a66C554B26B94ef3Ad4De",
+          "symbol": "CLS",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "24894020000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 24.89402,
+          "circulatingSupply": 24.89402,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 48,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:53:51.602Z"
+        },
+        {
+          "address": "0xcBB95BBF36099d34dA091dc6Fa6F49EfA257Cee3",
+          "symbol": "CLSK",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "2021839000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 2021.839,
+          "circulatingSupply": 2021.839,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 97,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:52:40.138Z"
+        },
+        {
+          "address": "0x92F9F459F1a9a5AD266b182BE7Bffd1C6c666894",
+          "symbol": "COHR",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "23685010000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 23.68501,
+          "circulatingSupply": 23.68501,
+          "priceUsd": 222.13,
+          "supplyUsd": 5261.151271299999,
+          "holderCount": 53,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:41:50.075Z"
+        },
+        {
+          "address": "0x6330D8C3178a418788dF01a47479c0ce7CCF450b",
+          "symbol": "COIN",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "18330721100000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 18330.7211,
+          "circulatingSupply": 18330.7211,
+          "priceUsd": 159.76,
+          "supplyUsd": 2928516.0029359995,
+          "holderCount": 30051,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:07:03.560Z"
+        },
+        {
+          "address": "0x4EA005168D7F09a7A0Ba9D1DEf21a479950E44C2",
+          "symbol": "COST",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "724487754570000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 724.48775457,
+          "circulatingSupply": 724.48775457,
+          "priceUsd": 991.54,
+          "supplyUsd": 718358.5881663378,
+          "holderCount": 19462,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:10:37.969Z"
+        },
+        {
+          "address": "0xdF0992E440dD0be65BD8439b609d6D4366bf1CB5",
+          "symbol": "CRCL",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "126382366450000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 126382.36645,
+          "circulatingSupply": 126382.36645,
+          "priceUsd": 81.38,
+          "supplyUsd": 10284996.981701,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:03:22.269Z"
+        },
+        {
+          "address": "0x4D67253bc223e6b0e104F1084c1fb2b669dDC41b",
+          "symbol": "CRDO",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "51278000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 51.278,
+          "circulatingSupply": 51.278,
+          "priceUsd": 162.15,
+          "supplyUsd": 8314.7277,
+          "holderCount": 59,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:39:40.141Z"
+        },
+        {
+          "address": "0xd95B44124e475743a7589e68F3D74008A5536D44",
+          "symbol": "CRM",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "117266839820000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 117.26683982,
+          "circulatingSupply": 117.26683982,
+          "priceUsd": 242.69,
+          "supplyUsd": 28459.4893559158,
+          "holderCount": 1720,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:27:51.628Z"
+        },
+        {
+          "address": "0xea72Ecca2d0f6bFA1394DBBCff85b52CD4233931",
+          "symbol": "CRWD",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "11058495000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 11.058495,
+          "circulatingSupply": 11.058495,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 161,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:52:27.208Z"
+        },
+        {
+          "address": "0x5f10A1C971B69e47e059e1dC91901B59b3fB49C3",
+          "symbol": "CRWV",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "8130734930000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 8130.73493,
+          "circulatingSupply": 8130.73493,
+          "priceUsd": 59.78,
+          "supplyUsd": 486055.3341154,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:09:39.272Z"
+        },
+        {
+          "address": "0xF543967EEBB6f1917992eF0E68De63ab07a5a0dA",
+          "symbol": "CSCO",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "75366919860000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 75.36691986,
+          "circulatingSupply": 75.36691986,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": null,
+            "price": null
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:54:56.290Z"
+        },
+        {
+          "address": "0x63D5a3b6939a33f1e75d8Bcd85759858239600DB",
+          "symbol": "CTSH",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "82014010000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 82.01401,
+          "circulatingSupply": 82.01401,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 41,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:53:25.611Z"
+        },
+        {
+          "address": "0xa4f319104089FE321dc8093C6E707d4fE190A988",
+          "symbol": "CVNA",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "151807370000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 151.80737,
+          "circulatingSupply": 151.80737,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": null,
+            "price": null
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:55:22.262Z"
+        },
+        {
+          "address": "0x27c99fBde9D0d2AA4f4Bfb4943f237843DdF6958",
+          "symbol": "DDOG",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "342222500000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 342.2225,
+          "circulatingSupply": 342.2225,
+          "priceUsd": 279.08,
+          "supplyUsd": 95507.4553,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:28:04.262Z"
+        },
+        {
+          "address": "0x941AE714EC6D8130c7B75d67160Ca08f1e7d11Dd",
+          "symbol": "DELL",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "1306780027080000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 1306.78002708,
+          "circulatingSupply": 1306.78002708,
+          "priceUsd": 505.15,
+          "supplyUsd": 660119.930679462,
+          "holderCount": 6966,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:08:27.929Z"
+        },
+        {
+          "address": "0x1D11f0496982706C5e14A514D4E79F2e6BdE4516",
+          "symbol": "DJT",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "202595913430000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 202595.91343,
+          "circulatingSupply": 202595.91343,
+          "priceUsd": 6.35,
+          "supplyUsd": 1286484.0502804997,
+          "holderCount": 35387,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:12:54.486Z"
+        },
+        {
+          "address": "0xc02f12B9fe9E707079EC0d546f3050d3F6C1F8bD",
+          "symbol": "DOCN",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "40790020000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 40.79002,
+          "circulatingSupply": 40.79002,
+          "priceUsd": 101.89,
+          "supplyUsd": 4156.0951378,
+          "holderCount": 45,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:38:02.459Z"
+        },
+        {
+          "address": "0x39EC44Bee4F6A116c6F9B8De566848a985C53C60",
+          "symbol": "ELF",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "104762290000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 104.76229,
+          "circulatingSupply": 104.76229,
+          "priceUsd": 112.73,
+          "supplyUsd": 11809.852951699999,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:32:43.772Z"
+        },
+        {
+          "address": "0x1c690498150252222C275A5CEd69d3A6b1f52D5E",
+          "symbol": "EWT",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "87446000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 87.446,
+          "circulatingSupply": 87.446,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 51,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:19:51.596Z"
+        },
+        {
+          "address": "0x7f0aBeF0C07280F82c6a08ead09dEd6BAE2C13Fc",
+          "symbol": "EWY",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "711838630000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 711.83863,
+          "circulatingSupply": 711.83863,
+          "priceUsd": 163.94,
+          "supplyUsd": 116698.8250022,
+          "holderCount": 313,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:17:22.080Z"
+        },
+        {
+          "address": "0x25C288E6D899b9BC30160965aD9644c67e73bE0C",
+          "symbol": "F",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "12331143993040000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 12331.14399304,
+          "circulatingSupply": 12331.14399304,
+          "priceUsd": 11.74,
+          "supplyUsd": 144767.6304782896,
+          "holderCount": 2566,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:19:37.465Z"
+        },
+        {
+          "address": "0xa48F22A46C0F1C46CA7D111CB6c137c271987180",
+          "symbol": "FICO",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "6639000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 6.639,
+          "circulatingSupply": 6.639,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 55,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:54:43.438Z"
+        },
+        {
+          "address": "0x41F4267525a8AFf329540eF24fD83d9044758B33",
+          "symbol": "FIG",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "6806437780000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 6806.43778,
+          "circulatingSupply": 6806.43778,
+          "priceUsd": 22.9,
+          "supplyUsd": 155867.425162,
+          "holderCount": 2200,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:14:25.515Z"
+        },
+        {
+          "address": "0x9ECe29A4A2397C0a35fb5fA8EE2b9509130a98cc",
+          "symbol": "FISV",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "69210000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 69.21,
+          "circulatingSupply": 69.21,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 53,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:56:40.619Z"
+        },
+        {
+          "address": "0x93Dbb1d2Dc5D63F4abACFF30485273f538Df68Ac",
+          "symbol": "FIX",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "10606990000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 10.60699,
+          "circulatingSupply": 10.60699,
+          "priceUsd": 1288.51,
+          "supplyUsd": 13667.2126849,
+          "holderCount": 98,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:40:31.979Z"
+        },
+        {
+          "address": "0x282e87451E10fA6679BC7D76C69BE44cD3fC777C",
+          "symbol": "FLNC",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "715351000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 715.351,
+          "circulatingSupply": 715.351,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": null,
+            "price": null
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:57:19.265Z"
+        },
+        {
+          "address": "0x03BC731Ffb162cdd7B98D3C6542bFC291126075d",
+          "symbol": "FLY",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "719603020000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 719.60302,
+          "circulatingSupply": 719.60302,
+          "priceUsd": 19.62,
+          "supplyUsd": 14118.611252400002,
+          "holderCount": 148,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:31:26.153Z"
+        },
+        {
+          "address": "0x3FB8976980d486084b2eb4a404BD12e72823958f",
+          "symbol": "FTNT",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "29926000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 29.926,
+          "circulatingSupply": 29.926,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 82,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:55:16.179Z"
+        },
+        {
+          "address": "0xeB30663bDFf0622Ef4e4E5cBb4E975F19f33f51D",
+          "symbol": "FUTU",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "234778000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 234.778,
+          "circulatingSupply": 234.778,
+          "priceUsd": 101.61,
+          "supplyUsd": 23855.792579999998,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:43:07.765Z"
+        },
+        {
+          "address": "0x63b814DDBd6BF339f25Fed8c36158a008D5B373e",
+          "symbol": "GE",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "135154305920000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 135.15430592,
+          "circulatingSupply": 135.15430592,
+          "priceUsd": 292.5,
+          "supplyUsd": 39532.634481600006,
+          "holderCount": 331,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:20:16.761Z"
+        },
+        {
+          "address": "0x94B8AAE43A1cCc08Aa64B7D1F29b4D920aF4a0C9",
+          "symbol": "GEV",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "5341000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 5.341,
+          "circulatingSupply": 5.341,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 55,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:56:01.715Z"
+        },
+        {
+          "address": "0xC9a981FEE1F9DEc688bb123ccDeCc63D0deBFC4e",
+          "symbol": "GLD",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "20370568720000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 20370.56872,
+          "circulatingSupply": 20370.56872,
+          "priceUsd": 370.56,
+          "supplyUsd": 7548517.944883199,
+          "holderCount": 41538,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:15:51.095Z"
+        },
+        {
+          "address": "0x7c04E6A3368F2A1DE3874f0e80d2e0A1a9915da6",
+          "symbol": "GLW",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "56467000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 56.467,
+          "circulatingSupply": 56.467,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 1102,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:56:14.765Z"
+        },
+        {
+          "address": "0x2D427692E928fa156ec22acfaBaFA0447C5805B7",
+          "symbol": "GLXY",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "16639585690000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 16639.58569,
+          "circulatingSupply": 16639.58569,
+          "priceUsd": 17.3,
+          "supplyUsd": 287864.832437,
+          "holderCount": 1665,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:08:01.991Z"
+        },
+        {
+          "address": "0x1b0E319c6A659F002271B69dB8A7df2F911c153E",
+          "symbol": "GME",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "120002389490000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 120002.38949,
+          "circulatingSupply": 120002.38949,
+          "priceUsd": 23.52,
+          "supplyUsd": 2822456.2008048,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:16:09.261Z"
+        },
+        {
+          "address": "0x2e0847E8910a9732eB3fb1bb4b70a580ADAD4FE3",
+          "symbol": "GOOGL",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "20311978771470000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 20311.97877147,
+          "circulatingSupply": 20311.97877147,
+          "priceUsd": 324.91,
+          "supplyUsd": 6599565.022638318,
+          "holderCount": 70547,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:01:45.210Z"
+        },
+        {
+          "address": "0xEB61c0Ed490A367d4E3631cCf8a74B3bfc7E775D",
+          "symbol": "HII",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "18925010000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 18.92501,
+          "circulatingSupply": 18.92501,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": null,
+            "price": null
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:58:37.277Z"
+        },
+        {
+          "address": "0xCceE82fE024c36fA15E1005edE3E9e4787e23D09",
+          "symbol": "HIMS",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "92810436510000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 92810.43651,
+          "circulatingSupply": 92810.43651,
+          "priceUsd": 27.93,
+          "supplyUsd": 2592195.4917242997,
+          "holderCount": 10337,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:03:15.969Z"
+        },
+        {
+          "address": "0x59dd09d4900C2E4B5F75b7c0d4E6796fcc234Cb1",
+          "symbol": "HPE",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "528059124750000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 528.05912475,
+          "circulatingSupply": 528.05912475,
+          "priceUsd": 59.87,
+          "supplyUsd": 31614.8997987825,
+          "holderCount": 504,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:25:15.581Z"
+        },
+        {
+          "address": "0xAEa445c5F3DB1a462998ccC422A875A361ee5d99",
+          "symbol": "HWM",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "32184260000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 32.18426,
+          "circulatingSupply": 32.18426,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 636,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:59:03.406Z"
+        },
+        {
+          "address": "0x980dcf6766FA79f5Cf0c4AAdb3ab477ff15a9619",
+          "symbol": "IBM",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "1697865840000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 1697.86584,
+          "circulatingSupply": 1697.86584,
+          "priceUsd": 249.97,
+          "supplyUsd": 424415.5240248,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:22:32.779Z"
+        },
+        {
+          "address": "0x7c148F74ac7445D1F28366b7FcDC6792a9Fcd0Cf",
+          "symbol": "IBRX",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "654826020000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 654.82602,
+          "circulatingSupply": 654.82602,
+          "priceUsd": 8.16,
+          "supplyUsd": 5343.3803232,
+          "holderCount": 77,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:45:50.649Z"
+        },
+        {
+          "address": "0xACEF2e09adb47aD6aBeBAD9fF06689E60615C2B6",
+          "symbol": "INDA",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "2529944600000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 2529.9446,
+          "circulatingSupply": 2529.9446,
+          "priceUsd": 46.75,
+          "supplyUsd": 118274.91004999999,
+          "holderCount": 1213,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:17:35.191Z"
+        },
+        {
+          "address": "0xB853bC83a753342a4f8320ea680b4B1E84118D21",
+          "symbol": "INFQ",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "3888090020000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 3888.09002,
+          "circulatingSupply": 3888.09002,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 52,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:57:26.212Z"
+        },
+        {
+          "address": "0xf1953DAB6FaD537488d5A022361FfAa8B4c95eC6",
+          "symbol": "INOD",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "89967020000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 89.96702,
+          "circulatingSupply": 89.96702,
+          "priceUsd": 56.95,
+          "supplyUsd": 5123.621789000001,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:40:44.775Z"
+        },
+        {
+          "address": "0xc72b96e0E48ecd4DC75E1e45396e26300BC39681",
+          "symbol": "INTC",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "26152961150000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 26152.96115,
+          "circulatingSupply": 26152.96115,
+          "priceUsd": 94.97,
+          "supplyUsd": 2483746.7204155,
+          "holderCount": 30858,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:01:51.455Z"
+        },
+        {
+          "address": "0x56d23beE5f41A7120170b0c603Dae30128e460e9",
+          "symbol": "INTU",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "25503930490000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 25.50393049,
+          "circulatingSupply": 25.50393049,
+          "priceUsd": 325.97,
+          "supplyUsd": 8313.5162218253,
+          "holderCount": 83,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:35:26.665Z"
+        },
+        {
+          "address": "0x558378E000D634A36593E338eBacdd6207640EfE",
+          "symbol": "IONQ",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "412336010000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 412.33601,
+          "circulatingSupply": 412.33601,
+          "priceUsd": 35.82,
+          "supplyUsd": 14769.8758782,
+          "holderCount": 144,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:46:03.593Z"
+        },
+        {
+          "address": "0xF0AB0c93bE6F41369d302e55db1A96b3c430212D",
+          "symbol": "IREN",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "5531122450000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 5531.12245,
+          "circulatingSupply": 5531.12245,
+          "priceUsd": 27.66,
+          "supplyUsd": 152990.846967,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:30:14.270Z"
+        },
+        {
+          "address": "0xEAf2512dFC1bEAc608F8794B3793CD4E02894Aa6",
+          "symbol": "JBL",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "15108010000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 15.10801,
+          "circulatingSupply": 15.10801,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 45,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:57:39.146Z"
+        },
+        {
+          "address": "0x03DfbBE0AC4E7bCDaFd08eD41A400326B77D8c80",
+          "symbol": "JNJ",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "828930276020000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 828.93027602,
+          "circulatingSupply": 828.93027602,
+          "priceUsd": 267.47,
+          "supplyUsd": 221713.9809270694,
+          "holderCount": 4705,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:23:50.991Z"
+        },
+        {
+          "address": "0xb334C5cE741B80B5B671F47F5C269Cb193fe8E24",
+          "symbol": "JOBY",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "1441216000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 1441.216,
+          "circulatingSupply": 1441.216,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": null,
+            "price": null
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T05:00:08.272Z"
+        },
+        {
+          "address": "0x96b933C74eCB4A0926b9210cef7b743EF46be2E9",
+          "symbol": "KLAC",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "16826000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 16.826,
+          "circulatingSupply": 16.826,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 1167,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:58:50.665Z"
+        },
+        {
+          "address": "0x12e3c047bf9AeCAF9dDC98c05C31BFD1dd043993",
+          "symbol": "KSS",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "336566654590000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 336.56665459,
+          "circulatingSupply": 336.56665459,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": null,
+            "price": null
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T05:01:19.757Z"
+        },
+        {
+          "address": "0x7FD06a4d81cCfA3F351394E144d5191874C31313",
+          "symbol": "KTOS",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "171669760000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 171.66976,
+          "circulatingSupply": 171.66976,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 69,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:00:02.239Z"
+        },
+        {
+          "address": "0x48d60243c66437c6ac3c2495Be94747aEd5Dfe25",
+          "symbol": "LHX",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "19390201950000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 19.39020195,
+          "circulatingSupply": 19.39020195,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 46,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:00:41.204Z"
+        },
+        {
+          "address": "0x8eF20885F94e3D9bc7eB3080279188Bd5ED7c08C",
+          "symbol": "LITE",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "254724060000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 254.72406,
+          "circulatingSupply": 254.72406,
+          "priceUsd": 874.21,
+          "supplyUsd": 222682.3204926,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:23:44.273Z"
+        },
+        {
+          "address": "0x8005d266423c7ea827372c9c864491e5786600ea",
+          "symbol": "LLY",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "602894100230000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 602.89410023,
+          "circulatingSupply": 602.89410023,
+          "priceUsd": 1283.95,
+          "supplyUsd": 774085.8799903085,
+          "holderCount": 6975,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:30:01.585Z"
+        },
+        {
+          "address": "0x329fcACEb9AD6F9580DD5F643fed0646900D043c",
+          "symbol": "LMT",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "197481442800000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 197.4814428,
+          "circulatingSupply": 197.4814428,
+          "priceUsd": 616.84,
+          "supplyUsd": 121814.45317675201,
+          "holderCount": 1708,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:16:28.950Z"
+        },
+        {
+          "address": "0x57b0030166DB0C31690d1A5aA167e2e26e2C29a4",
+          "symbol": "LRCX",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "27706323360000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 27.70632336,
+          "circulatingSupply": 27.70632336,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 61,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:01:13.590Z"
+        },
+        {
+          "address": "0x4e62068525Ab11FE768e29dfD00ef909B9803016",
+          "symbol": "LULU",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "3025350830000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 3025.35083,
+          "circulatingSupply": 3025.35083,
+          "priceUsd": 104.59,
+          "supplyUsd": 316421.4433097,
+          "holderCount": 6648,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:17:27.499Z"
+        },
+        {
+          "address": "0xa5D4968421bA94814Be3B136b15cf422101aC1a3",
+          "symbol": "LUNR",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "626302930000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 626.30293,
+          "circulatingSupply": 626.30293,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": null,
+            "price": null
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T05:02:57.269Z"
+        },
+        {
+          "address": "0xDdf2266b79abf0B48898959B0ed6E6adf512be74",
+          "symbol": "MDB",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "23016370000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 23.01637,
+          "circulatingSupply": 23.01637,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 89,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:02:51.131Z"
+        },
+        {
+          "address": "0xc0D6457C16Cc70d6790Dd43521C899C87ce02f35",
+          "symbol": "META",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "11009270681830000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 11009.27068183,
+          "circulatingSupply": 11009.27068183,
+          "priceUsd": 619.36,
+          "supplyUsd": 6818701.889498228,
+          "holderCount": 55163,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:01:32.089Z"
+        },
+        {
+          "address": "0xc6Cbad1016b38B797610c25E1dc7D95988B1f362",
+          "symbol": "MOD",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "56463020000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 56.46302,
+          "circulatingSupply": 56.46302,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 39,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:01:33.146Z"
+        },
+        {
+          "address": "0x52D50D0280AD1054b43f052bD70a49a212A1b128",
+          "symbol": "MPWR",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "4190635380000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 4.19063538,
+          "circulatingSupply": 4.19063538,
+          "priceUsd": 1155.49,
+          "supplyUsd": 4842.2372752362,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:42:28.764Z"
+        },
+        {
+          "address": "0x43B07D15cE533bEc5476d70C22a78a1B2B662155",
+          "symbol": "MRNA",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "3451618400000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 3451.6184,
+          "circulatingSupply": 3451.6184,
+          "priceUsd": 206.24,
+          "supplyUsd": 711861.778816,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:06:50.270Z"
+        },
+        {
+          "address": "0x62fd0668e10D8B72339BE2DCF7643001688ff13B",
+          "symbol": "MRVL",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "1160416686330000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 1160.41668633,
+          "circulatingSupply": 1160.41668633,
+          "priceUsd": 247.61,
+          "supplyUsd": 287330.7757021713,
+          "holderCount": 5564,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:22:26.453Z"
+        },
+        {
+          "address": "0xe93237C50D904957Cf27E7B1133b510C669c2e74",
+          "symbol": "MSFT",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "3641131325440000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 3641.13132544,
+          "circulatingSupply": 3641.13132544,
+          "priceUsd": 529.014,
+          "supplyUsd": 1926209.4469963163,
+          "holderCount": 63186,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:05:32.492Z"
+        },
+        {
+          "address": "0xec262a75e413fAfD0dF80480274532C79D42da09",
+          "symbol": "MSTR",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "48116160420000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 48116.16042,
+          "circulatingSupply": 48116.16042,
+          "priceUsd": 142.44,
+          "supplyUsd": 6853665.8902247995,
+          "holderCount": 19156,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:02:04.424Z"
+        },
+        {
+          "address": "0xC93f4d80e268AB922e871bd169156C3CC41894e6",
+          "symbol": "MTSI",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "14491030000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 14.49103,
+          "circulatingSupply": 14.49103,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 39,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:03:04.230Z"
+        },
+        {
+          "address": "0xfF080c8ce2E5feadaCa0Da81314Ae59D232d4afD",
+          "symbol": "MU",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "5120036265070000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 5120.03626507,
+          "circulatingSupply": 5120.03626507,
+          "priceUsd": 960.9,
+          "supplyUsd": 4919842.847105763,
+          "holderCount": 40127,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:03:28.982Z"
+        },
+        {
+          "address": "0x48961813349333209994750ffA89b3c5C22eC969",
+          "symbol": "MXL",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "131157330000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 131.15733,
+          "circulatingSupply": 131.15733,
+          "priceUsd": 74.056,
+          "supplyUsd": 9712.98723048,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:31:32.259Z"
+        },
+        {
+          "address": "0xf7181b63Fdb858558A74ba96BC42732684cd7965",
+          "symbol": "NAVN",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "93973010000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 93.97301,
+          "circulatingSupply": 93.97301,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": null,
+            "price": null
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T05:04:15.284Z"
+        },
+        {
+          "address": "0x9D9c6684F596F66a64C030B93A886D51Fd4D7931",
+          "symbol": "NBIS",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "3198647070000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 3198.64707,
+          "circulatingSupply": 3198.64707,
+          "priceUsd": 172.59,
+          "supplyUsd": 552054.4978113,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:14:38.264Z"
+        },
+        {
+          "address": "0x116F00968269B7bfbaD4109cE591d6E74c0601d4",
+          "symbol": "NET",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "503035160000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 503.03516,
+          "circulatingSupply": 503.03516,
+          "priceUsd": 328.98,
+          "supplyUsd": 165488.50693680003,
+          "holderCount": 2702,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:13:14.089Z"
+        },
+        {
+          "address": "0xE0444EF8BF4eD74f74FD73686e2ddF4C1c5591E8",
+          "symbol": "NFLX",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "11486266770000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 11486.26677,
+          "circulatingSupply": 11486.26677,
+          "priceUsd": 62.7,
+          "supplyUsd": 720188.926479,
+          "holderCount": 16002,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:20:03.656Z"
+        },
+        {
+          "address": "0xBEF75684C43c4ea7BD18Dd532a2244674Ee8b926",
+          "symbol": "NNE",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "15646423640000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 15646.42364,
+          "circulatingSupply": 15646.42364,
+          "priceUsd": 12.28,
+          "supplyUsd": 192138.0822992,
+          "holderCount": 217,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:32:37.487Z"
+        },
+        {
+          "address": "0x0C3260aF4B8f13a69c4c2dFb84fD667890CDFa14",
+          "symbol": "NOW",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "56025630000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 56.02563,
+          "circulatingSupply": 56.02563,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 113,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:05:27.204Z"
+        },
+        {
+          "address": "0x408c14038a04f7bD235329E26d2bf569ee20e250",
+          "symbol": "NU",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "11274009020000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 11274.00902,
+          "circulatingSupply": 11274.00902,
+          "priceUsd": 12.49,
+          "supplyUsd": 140812.3726598,
+          "holderCount": 1059,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:17:01.482Z"
+        },
+        {
+          "address": "0xd0601CE157Db5bdC3162BbaC2a2C8aF5320D9EEC",
+          "symbol": "NVDA",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "85052147338340000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 85052.14733834,
+          "circulatingSupply": 85052.14733834,
+          "priceUsd": 218.69,
+          "supplyUsd": 18600054.101421576,
+          "holderCount": 192409,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:00:46.474Z"
+        },
+        {
+          "address": "0xf1b95AE4E7700b962714702EA53784Dc8492a856",
+          "symbol": "NVDAON",
+          "issuer": "Ondo-named (unverified)",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "119761782000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 119.761782,
+          "circulatingSupply": 119.761782,
+          "priceUsd": 216.59,
+          "supplyUsd": 25939.20436338,
+          "holderCount": 5,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:47:28.244Z"
+        },
+        {
+          "address": "0xbE6702d7b70315376dC48a3293f24f0982F86386",
+          "symbol": "NVTS",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "286120020000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 286.12002,
+          "circulatingSupply": 286.12002,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 69,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:03:51.460Z"
+        },
+        {
+          "address": "0x8B2f88497f15A18E9D4FFa1a8fFB8538399aE774",
+          "symbol": "OKLO",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "311408000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 311.408,
+          "circulatingSupply": 311.408,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 66,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:05:40.000Z"
+        },
+        {
+          "address": "0xbBD09F72b025360FeE5C928053Dca6248d35be54",
+          "symbol": "ON",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "460782470000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 460.78247,
+          "circulatingSupply": 460.78247,
+          "priceUsd": 77.14,
+          "supplyUsd": 35544.7597358,
+          "holderCount": 1257,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:22:52.454Z"
+        },
+        {
+          "address": "0x8ff63eAeEe3fE54Ba450c4F5538064Ec5A893Aef",
+          "symbol": "ONTO",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "16821000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 16.821,
+          "circulatingSupply": 16.821,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 43,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:04:42.177Z"
+        },
+        {
+          "address": "0xb0992820E760d836549ba69BC7598b4af75dEE03",
+          "symbol": "ORCL",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "5159748018940000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 5159.74801894,
+          "circulatingSupply": 5159.74801894,
+          "priceUsd": 131.37,
+          "supplyUsd": 677836.0972481478,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:19:04.768Z"
+        },
+        {
+          "address": "0x40E7a279850e443f582059ae5dC1c3b6563E6395",
+          "symbol": "OUST",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "121188000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 121.188,
+          "circulatingSupply": 121.188,
+          "priceUsd": 31.21,
+          "supplyUsd": 3782.27748,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:38:15.283Z"
+        },
+        {
+          "address": "0x1Cdad396DB64BDa184d5182A97Dd9B3C62100b7D",
+          "symbol": "P",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "111450500000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 111.4505,
+          "circulatingSupply": 111.4505,
+          "priceUsd": 131.068,
+          "supplyUsd": 14607.594134000003,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:36:57.275Z"
+        },
+        {
+          "address": "0xB039597eD45CBa7B6E2fb9E8BE51802969CEe5Be",
+          "symbol": "PANW",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "16988000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 16.988,
+          "circulatingSupply": 16.988,
+          "priceUsd": 384.68,
+          "supplyUsd": 6534.94384,
+          "holderCount": 73,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:45:05.158Z"
+        },
+        {
+          "address": "0xfb2664f07B6Aadd29ea7a59D8859b1AeB8645cDa",
+          "symbol": "PATH",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "1600973470000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 1600.97347,
+          "circulatingSupply": 1600.97347,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 113,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:04:35.976Z"
+        },
+        {
+          "address": "0x9b23573b156B52565012F5cE02CDF60AFBaa70Be",
+          "symbol": "PENG",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "1397702590000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 1397.70259,
+          "circulatingSupply": 1397.70259,
+          "priceUsd": 60.014,
+          "supplyUsd": 83881.72323626,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:19:43.776Z"
+        },
+        {
+          "address": "0x7066A64c24e4206CD62E83bf198c1E7EB361F51e",
+          "symbol": "PFE",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "8546916690000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 8546.91669,
+          "circulatingSupply": 8546.91669,
+          "priceUsd": 30.013,
+          "supplyUsd": 256518.61061697002,
+          "holderCount": 3932,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:25:02.492Z"
+        },
+        {
+          "address": "0xAA4d64474c172010aB57719cb9951E6142a100d3",
+          "symbol": "PL",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "516763020000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 516.76302,
+          "circulatingSupply": 516.76302,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": null,
+            "price": null
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T05:07:17.272Z"
+        },
+        {
+          "address": "0x894E1EC2D74FFE5AEF8Dc8A9e84686acCB964F2A",
+          "symbol": "PLTR",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "10648853750000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 10648.85375,
+          "circulatingSupply": 10648.85375,
+          "priceUsd": 197.68,
+          "supplyUsd": 2105065.4093,
+          "holderCount": 39715,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:02:49.909Z"
+        },
+        {
+          "address": "0xcf6B2D875361be807EAfa57458c80f28521F9333",
+          "symbol": "POET",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "1835249020000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 1835.24902,
+          "circulatingSupply": 1835.24902,
+          "priceUsd": 5.35,
+          "supplyUsd": 9818.582257,
+          "holderCount": 256,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:36:51.204Z"
+        },
+        {
+          "address": "0x237c16D66590F67B886d978ACD362EAeaD8B18c7",
+          "symbol": "POWL",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "42065000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 42.065,
+          "circulatingSupply": 42.065,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": null,
+            "price": null
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T05:07:23.774Z"
+        },
+        {
+          "address": "0x4189F0c66EBBB0bfeF1C31f763131361EF32f77C",
+          "symbol": "PR",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "232311950490000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 232.31195049,
+          "circulatingSupply": 232.31195049,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": null,
+            "price": null
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T05:07:56.269Z"
+        },
+        {
+          "address": "0x9Ab02Ead789b6903c3c44d0ED32F9c707CDF12FD",
+          "symbol": "PWR",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "4361000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 4.361,
+          "circulatingSupply": 4.361,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 37,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:06:25.623Z"
+        },
+        {
+          "address": "0xC583c60aeF9Dc401Da72cEC1B404743a93cea1Cc",
+          "symbol": "QBTS",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "557845000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 557.845,
+          "circulatingSupply": 557.845,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 117,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:08:42.173Z"
+        },
+        {
+          "address": "0x0f17206447090e464C277571124dD2688E48AEA9",
+          "symbol": "QCOM",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "254154167500000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 254.1541675,
+          "circulatingSupply": 254.1541675,
+          "priceUsd": 184.82,
+          "supplyUsd": 46972.77323735,
+          "holderCount": 2682,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:11:49.676Z"
+        },
+        {
+          "address": "0xD5f3879160bc7c32ebb4dC785F8a4F505888de68",
+          "symbol": "QQQ",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "7263407957340000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 7263.40795734,
+          "circulatingSupply": 7263.40795734,
+          "priceUsd": 722.79,
+          "supplyUsd": 5249918.637485779,
+          "holderCount": 28845,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:14:13.464Z"
+        },
+        {
+          "address": "0x59818904ab4cE163b3cE4FfB64f2D6Ca02c434B4",
+          "symbol": "QUBT",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "22139158230000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 22139.15823,
+          "circulatingSupply": 22139.15823,
+          "priceUsd": 6.89,
+          "supplyUsd": 152538.8002047,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:10:44.263Z"
+        },
+        {
+          "address": "0xF0C4BF4C582cb3836e98394b1d4e7B7281101bE8",
+          "symbol": "RBLX",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "9538565740000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 9538.56574,
+          "circulatingSupply": 9538.56574,
+          "priceUsd": 54.57,
+          "supplyUsd": 520519.5324318,
+          "holderCount": 8966,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:13:33.433Z"
+        },
+        {
+          "address": "0xFDE6b5d9BB419B10C23268c74e369AbFF39C0460",
+          "symbol": "RCAT",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "15292208850000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 15292.20885,
+          "circulatingSupply": 15292.20885,
+          "priceUsd": 4.92,
+          "supplyUsd": 75237.66754200001,
+          "holderCount": 800,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:16:03.100Z"
+        },
+        {
+          "address": "0x05b37Fb53A299a1b874A619e1c4C404D52C36F4C",
+          "symbol": "RDDT",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "14115182420000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 14115.18242,
+          "circulatingSupply": 14115.18242,
+          "priceUsd": 137.71,
+          "supplyUsd": 1943801.7710582,
+          "holderCount": 20478,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:06:11.658Z"
+        },
+        {
+          "address": "0x92Ef19E82bD8fF36661DE838D5eaE7e5CEF0EfFE",
+          "symbol": "RDW",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "1390221000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 1390.221,
+          "circulatingSupply": 1390.221,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": null,
+            "price": null
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T05:09:53.269Z"
+        },
+        {
+          "address": "0x284358abc07F9359f19f4b5b4aC91901Be2597Ba",
+          "symbol": "RGTI",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "608821000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 608.821,
+          "circulatingSupply": 608.821,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 109,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:07:50.173Z"
+        },
+        {
+          "address": "0xB1BF26c1D20ff267A4f93550d1E0d06ac40a114B",
+          "symbol": "RIVN",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "30206770770000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 30206.77077,
+          "circulatingSupply": 30206.77077,
+          "priceUsd": 11.92,
+          "supplyUsd": 360064.7075784,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:22:19.765Z"
+        },
+        {
+          "address": "0x3b14C39E89D60D627b42a1A4CA45b5bb45Fc12e2",
+          "symbol": "RKLB",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "892673230000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 892.67323,
+          "circulatingSupply": 892.67323,
+          "priceUsd": 58.41,
+          "supplyUsd": 52141.0433643,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:35:32.764Z"
+        },
+        {
+          "address": "0x756Bc80af765C82da966a788858d65aDF14f3793",
+          "symbol": "RUN",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "4487505890000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 4487.50589,
+          "circulatingSupply": 4487.50589,
+          "priceUsd": 7.27,
+          "supplyUsd": 32624.1678203,
+          "holderCount": 311,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:32:50.436Z"
+        },
+        {
+          "address": "0x95052ddcd5DC25641657424A8Cf04834997E1730",
+          "symbol": "SATS",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "103000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 0.103,
+          "circulatingSupply": 0.103,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": null,
+            "price": null
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T05:10:32.261Z"
+        },
+        {
+          "address": "0xd63ABB2C13d7a8421a8017a712802053568e3C1D",
+          "symbol": "SCHD",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "230334169580000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 230.33416958,
+          "circulatingSupply": 230.33416958,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 108,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:21:16.131Z"
+        },
+        {
+          "address": "0x92FD66527192E3e61d4DDd13322Aa222DE86F9B5",
+          "symbol": "SGOV",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "16398942780200000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 16398.9427802,
+          "circulatingSupply": 16398.9427802,
+          "priceUsd": 101.39,
+          "supplyUsd": 1662688.808484478,
+          "holderCount": 12754,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:16:17.092Z"
+        },
+        {
+          "address": "0xF53F66751B1Eff985311b693531E3290F600c410",
+          "symbol": "SHOP",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "460994390000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 460.99439,
+          "circulatingSupply": 460.99439,
+          "priceUsd": 164.46,
+          "supplyUsd": 75815.13737940001,
+          "holderCount": 2393,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:34:27.967Z"
+        },
+        {
+          "address": "0xBE274710Bf3d9567e1B290eF6a5F9f90ca016FD8",
+          "symbol": "SHY",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "100285179820000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 100.28517982,
+          "circulatingSupply": 100.28517982,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 44,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:21:03.157Z"
+        },
+        {
+          "address": "0x77E655E37F4d913fB9540e0d541D824171a60e81",
+          "symbol": "SIMO",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "20457020000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 20.45702,
+          "circulatingSupply": 20.45702,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 69,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:09:14.693Z"
+        },
+        {
+          "address": "0x84CAb63bc87912E71ad199ff14A0bA45de68FeF8",
+          "symbol": "SKHY",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "13262926575350000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 13262.92657535,
+          "circulatingSupply": 13262.92657535,
+          "priceUsd": 155.45,
+          "supplyUsd": 2061721.9361381575,
+          "holderCount": 4781,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:01:12.440Z"
+        },
+        {
+          "address": "0x285b231728c7E4333799183DF1094d775246a535",
+          "symbol": "SLS",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "306000000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 306,
+          "circulatingSupply": 306,
+          "priceUsd": 11.61,
+          "supplyUsd": 3552.66,
+          "holderCount": 51,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:44:13.250Z"
+        },
+        {
+          "address": "0x411eFb0E7f985935DAec3D4C3ebaEa0d0AD7D89f",
+          "symbol": "SLV",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "25424017800000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 25424.0178,
+          "circulatingSupply": 25424.0178,
+          "priceUsd": 48.21,
+          "supplyUsd": 1225691.8981380002,
+          "holderCount": 8619,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:16:49.601Z"
+        },
+        {
+          "address": "0xc01aA1fECeC0605b13bc84874ff7256C0f5F562a",
+          "symbol": "SMCI",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "443061690000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 443.06169,
+          "circulatingSupply": 443.06169,
+          "priceUsd": 34.89,
+          "supplyUsd": 15458.4223641,
+          "holderCount": 147,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:29:15.932Z"
+        },
+        {
+          "address": "0x072f979c2CAc8e1391B0162a87Fee094bF8744a0",
+          "symbol": "SMH",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "209397020000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 209.39702,
+          "circulatingSupply": 209.39702,
+          "priceUsd": 524.27,
+          "supplyUsd": 109780.57567539999,
+          "holderCount": 88,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:17:41.556Z"
+        },
+        {
+          "address": "0x1Eebee7F74517e0279dFb09d25B0407bEEc3FDd6",
+          "symbol": "SMR",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "1396604750000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 1396.60475,
+          "circulatingSupply": 1396.60475,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 83,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:09:01.620Z"
+        },
+        {
+          "address": "0xF6589F11Bc40b669e584073F428B05562F568733",
+          "symbol": "SNAP",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "47668236770000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 47668.23677,
+          "circulatingSupply": 47668.23677,
+          "priceUsd": 6.078,
+          "supplyUsd": 289727.54308806005,
+          "holderCount": 3447,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:12:41.459Z"
+        },
+        {
+          "address": "0xB90A19fF0Af67f7779afF50A882A9CfF42446400",
+          "symbol": "SNDK",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "1158057980000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 1158.05798,
+          "circulatingSupply": 1158.05798,
+          "priceUsd": 1351.7,
+          "supplyUsd": 1565346.971566,
+          "holderCount": 27128,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:11:17.321Z"
+        },
+        {
+          "address": "0xBa0CAB75495255d0cB58E22B648bFED4ECD1F47E",
+          "symbol": "SNOW",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "294660120000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 294.66012,
+          "circulatingSupply": 294.66012,
+          "priceUsd": 337.38,
+          "supplyUsd": 99412.4312856,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:25:28.273Z"
+        },
+        {
+          "address": "0x98E75885157C80992A8D41b696D8c9C6Fb30A926",
+          "symbol": "SOFI",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "2729411590000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 2729.41159,
+          "circulatingSupply": 2729.41159,
+          "priceUsd": 16.11,
+          "supplyUsd": 43970.8207149,
+          "holderCount": 195,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:24:16.926Z"
+        },
+        {
+          "address": "0x6E3Dfd9f7e1649BaA14D25cac18C94d62dB10A54",
+          "symbol": "SOUN",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "7888691380000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 7888.69138,
+          "circulatingSupply": 7888.69138,
+          "priceUsd": 4.29,
+          "supplyUsd": 33842.4860202,
+          "holderCount": 157,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:47:15.161Z"
+        },
+        {
+          "address": "0x75742c18BC1f1C5c5f448f4C9D9C6F66dafAAa38",
+          "symbol": "SOXX",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "142750932590000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 142.75093259,
+          "circulatingSupply": 142.75093259,
+          "priceUsd": 515.24,
+          "supplyUsd": 73550.9905076716,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T05:18:39.781Z"
+        },
+        {
+          "address": "0x4a0E65A3EcceC6dBe60AE065F2e7bb85Fae35eEa",
+          "symbol": "SPCX",
+          "issuer": "RHJ",
+          "instrumentKind": "private",
+          "totalSupplyRaw": "87750413590000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 87750.41359,
+          "circulatingSupply": 87750.41359,
+          "priceUsd": 149.89,
+          "supplyUsd": 13152909.493005099,
+          "holderCount": 116307,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:20:49.985Z"
+        },
+        {
+          "address": "0x9B8294F24453379aa87C807ab82bf1d5722153Fc",
+          "symbol": "SPCXON",
+          "issuer": "Ondo-named (unverified)",
+          "instrumentKind": "private",
+          "totalSupplyRaw": "172300000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 172.3,
+          "circulatingSupply": 172.3,
+          "priceUsd": 148.37,
+          "supplyUsd": 25564.151,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T05:22:10.385Z"
+        },
+        {
+          "address": "0xAd622320e520de39e72d41EF07438C3Fd3354875",
+          "symbol": "SPMO",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "37375339280000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 37.37533928,
+          "circulatingSupply": 37.37533928,
+          "priceUsd": 133.21,
+          "supplyUsd": 4978.7689454888005,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T05:20:23.773Z"
+        },
+        {
+          "address": "0x117cc2133c37B721F49dE2A7a74833232B3B4C0C",
+          "symbol": "SPY",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "26748481354930000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 26748.48135493,
+          "circulatingSupply": 26748.48135493,
+          "priceUsd": 771.45,
+          "supplyUsd": 20635115.94126075,
+          "holderCount": 70659,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:14:39.478Z"
+        },
+        {
+          "address": "0xb1969f6604CA1AE7a2cD3F1827876e914594CA2D",
+          "symbol": "TE",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "2598143360000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 2598.14336,
+          "circulatingSupply": 2598.14336,
+          "priceUsd": 2.43,
+          "supplyUsd": 6313.4883648,
+          "holderCount": 109,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:43:40.713Z"
+        },
+        {
+          "address": "0x5B97476b922F3305131B8f0B9D333172E87f4aaE",
+          "symbol": "TEAM",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "14123010000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 14.12301,
+          "circulatingSupply": 14.12301,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 58,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:11:37.707Z"
+        },
+        {
+          "address": "0xB1CC0EC7Db69Cf43539119814df40071b9d61793",
+          "symbol": "TEM",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "79216000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 79.216,
+          "circulatingSupply": 79.216,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 101,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:11:50.583Z"
+        },
+        {
+          "address": "0x2778C5024D5cA2CdB0f8eAD671ffc69963AdCD9C",
+          "symbol": "TER",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "19821118720000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 19.82111872,
+          "circulatingSupply": 19.82111872,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 87,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:10:39.096Z"
+        },
+        {
+          "address": "0x89776d4Cd68193597A2fC132cfaC1fDe36CCeA8a",
+          "symbol": "TSEM",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "35034000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 35.034,
+          "circulatingSupply": 35.034,
+          "priceUsd": 180.072,
+          "supplyUsd": 6308.642448,
+          "holderCount": 70,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:43:01.682Z"
+        },
+        {
+          "address": "0x322F0929c4625eD5bAd873c95208D54E1c003b2d",
+          "symbol": "TSLA",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "10551679400000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 10551.6794,
+          "circulatingSupply": 10551.6794,
+          "priceUsd": 406.71,
+          "supplyUsd": 4291473.528774,
+          "holderCount": 72918,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:04:01.467Z"
+        },
+        {
+          "address": "0xB197F36C25BA9b66960688882A4dC595C6b04309",
+          "symbol": "TSLAON",
+          "issuer": "Ondo-named (unverified)",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "68293647000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 68.293647,
+          "circulatingSupply": 68.293647,
+          "priceUsd": 402.82,
+          "supplyUsd": 27510.046884540003,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:36:44.261Z"
+        },
+        {
+          "address": "0x58FfE4a942d3885bAa22D7520691F611EF09e7AA",
+          "symbol": "TSM",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "3033028538120000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 3033.02853812,
+          "circulatingSupply": 3033.02853812,
+          "priceUsd": 435.5,
+          "supplyUsd": 1320883.92835126,
+          "holderCount": 11228,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:06:43.980Z"
+        },
+        {
+          "address": "0x0b5fb4031cae9163db10B169Ee72685F0EdC8545",
+          "symbol": "TTD",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "442269000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 442.269,
+          "circulatingSupply": 442.269,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": null,
+            "price": null
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T05:13:08.270Z"
+        },
+        {
+          "address": "0x5e81213613b6B86EaB4c6c50d718d34359459786",
+          "symbol": "TTWO",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "5928716110000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 5928.71611,
+          "circulatingSupply": 5928.71611,
+          "priceUsd": 201.81,
+          "supplyUsd": 1196474.1981591,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:11:55.773Z"
+        },
+        {
+          "address": "0x0E6e67Ba88e7b5d9B67636A215c76779B948dE79",
+          "symbol": "UMC",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "182072000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 182.072,
+          "circulatingSupply": 182.072,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": null,
+            "price": null
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T05:13:27.760Z"
+        },
+        {
+          "address": "0xcF364ea52787e289De6F32077834056E3E70D6A8",
+          "symbol": "UNH",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "55896684140000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 55.89668414,
+          "circulatingSupply": 55.89668414,
+          "priceUsd": 411.59,
+          "supplyUsd": 23006.516225182597,
+          "holderCount": 1156,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:41:04.594Z"
+        },
+        {
+          "address": "0xf23250dac154D05Bb671CB0d0eBEf3c635c79CE2",
+          "symbol": "UPS",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "1315771532570000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 1315.77153257,
+          "circulatingSupply": 1315.77153257,
+          "priceUsd": 105.63,
+          "supplyUsd": 138984.9469853691,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:17:07.778Z"
+        },
+        {
+          "address": "0xd917B029C761D264c6A312BBbcDA868658eF86a6",
+          "symbol": "USAR",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "37312970320000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 37312.97032,
+          "circulatingSupply": 37312.97032,
+          "priceUsd": 10.43,
+          "supplyUsd": 389174.2804376,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:13:46.285Z"
+        },
+        {
+          "address": "0xa30FA36Db767ad9eD3f7a60fC79526fB4d56D344",
+          "symbol": "USO",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "14400453600000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 14400.4536,
+          "circulatingSupply": 14400.4536,
+          "priceUsd": 165.36,
+          "supplyUsd": 2381259.007296,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T05:16:55.774Z"
+        },
+        {
+          "address": "0x6006ed4B2F94110851ff7509D97D034f0EeD9226",
+          "symbol": "VICR",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "30006000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 30.006,
+          "circulatingSupply": 30.006,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 41,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:13:15.235Z"
+        },
+        {
+          "address": "0xFA78C12E6488814A0262E4e802749a4a737d5fB7",
+          "symbol": "VRT",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "32184930650000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 32.18493065,
+          "circulatingSupply": 32.18493065,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": 649,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": "geckoterminal:holders.count",
+            "price": null
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:13:01.957Z"
+        },
+        {
+          "address": "0x26dCbfb34FC83CAbD6990f449674efDc6097fF85",
+          "symbol": "VSAT",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "89631000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 89.631,
+          "circulatingSupply": 89.631,
+          "priceUsd": 68.66,
+          "supplyUsd": 6154.06446,
+          "holderCount": 63,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:34:02.163Z"
+        },
+        {
+          "address": "0x561e2a49212b7cCF47f2744Ccb83e200722fADBc",
+          "symbol": "VST",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "104587682080000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 104.58768208,
+          "circulatingSupply": 104.58768208,
+          "priceUsd": 139.74,
+          "supplyUsd": 14615.0826938592,
+          "holderCount": 92,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:44:32.595Z"
+        },
+        {
+          "address": "0x0594134DF3f171a354D9C85eBD65b7A6148F6D09",
+          "symbol": "VTI",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "175015006560000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 175.01500656,
+          "circulatingSupply": 175.01500656,
+          "priceUsd": 375.1,
+          "supplyUsd": 65648.128960656,
+          "holderCount": 1267,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T05:18:27.574Z"
+        },
+        {
+          "address": "0x82DA4646242e1D962e96e932269Dc644c94a9CaA",
+          "symbol": "WDAY",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "149593660000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 149.59366,
+          "circulatingSupply": 149.59366,
+          "priceUsd": 209.81,
+          "supplyUsd": 31386.2458046,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:48:19.766Z"
+        },
+        {
+          "address": "0xF52597345A8Edf418bc4071b4a35112472277D3e",
+          "symbol": "WDC",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "280926030250000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 280.92603025,
+          "circulatingSupply": 280.92603025,
+          "priceUsd": 379.88,
+          "supplyUsd": 106718.18037136999,
+          "holderCount": 87,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:18:39.222Z"
+        },
+        {
+          "address": "0x348Be1A8663f15edDe5CDf8A96BB69078f7aB6Fd",
+          "symbol": "WULF",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "1476023020000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 1476.02302,
+          "circulatingSupply": 1476.02302,
+          "priceUsd": 12.65,
+          "supplyUsd": 18671.691203000002,
+          "holderCount": 264,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:28:50.149Z"
+        },
+        {
+          "address": "0x9e7ABD3C9139D14E4c86DcE0e455AAB7A0C2FB3E",
+          "symbol": "WYFI",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "7175000000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 7175,
+          "circulatingSupply": 7175,
+          "priceUsd": 11.028,
+          "supplyUsd": 79125.90000000001,
+          "holderCount": 1515,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:24:49.463Z"
+        },
+        {
+          "address": "0x15Cd20759CE7F3285c29A319dE2D1A2e098c6f43",
+          "symbol": "XLK",
+          "issuer": "RHJ",
+          "instrumentKind": "etf",
+          "totalSupplyRaw": "48592462010000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 48.59246201,
+          "circulatingSupply": 48.59246201,
+          "priceUsd": 184.23,
+          "supplyUsd": 8952.1892761023,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T05:20:17.274Z"
+        },
+        {
+          "address": "0xA8eB3BCcbf2017eE7CBfb652eB51CF2E1B153289",
+          "symbol": "XNDU",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "564000000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 564,
+          "circulatingSupply": 564,
+          "priceUsd": 6.58,
+          "supplyUsd": 3711.12,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:48:39.282Z"
+        },
+        {
+          "address": "0xf9B46d3D1B22199D4D1025a9cEDB540A33F1a2d5",
+          "symbol": "XOM",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "204450550570000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 204.45055057,
+          "circulatingSupply": 204.45055057,
+          "priceUsd": 181.79,
+          "supplyUsd": 37167.0655881203,
+          "holderCount": 4941,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": "geckoterminal:holders.count",
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [],
+          "capturedAt": "2026-10-28T04:33:03.619Z"
+        },
+        {
+          "address": "0xE674C5c071821f48BB2d12CAdb83617Eff438f9e",
+          "symbol": "ZETA",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "0",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 0,
+          "circulatingSupply": 0,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": null,
+            "price": null
+          },
+          "notes": [
+            "GeckoTerminal token info has no holders.count. Blockscout and Routescan did not provide a holder count for this chain."
+          ],
+          "capturedAt": "2026-10-28T05:15:37.923Z"
+        },
+        {
+          "address": "0x44c4F142009036cF477eD2d09932051843137CF1",
+          "symbol": "ZM",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "357110980000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 357.11098,
+          "circulatingSupply": 357.11098,
+          "priceUsd": 97.34,
+          "supplyUsd": 34761.1827932,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": "dexscreener:dexMedianPriceUsd×evm-rpc:eth_call:totalSupply+decimals",
+            "holderCount": null,
+            "price": "dexscreener:dexMedianPriceUsd"
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T04:45:37.272Z"
+        },
+        {
+          "address": "0x7dc013eB55e436f30d7ED1AFE4E36d6e45e3c3f7",
+          "symbol": "ZS",
+          "issuer": "RHJ",
+          "instrumentKind": "equity",
+          "totalSupplyRaw": "16502000000000000000",
+          "totalSupplyDecimals": 18,
+          "totalSupply": 16.502,
+          "circulatingSupply": 16.502,
+          "priceUsd": null,
+          "supplyUsd": null,
+          "holderCount": null,
+          "sources": {
+            "totalSupply": "evm-rpc:eth_call:totalSupply+decimals",
+            "supplyUsd": null,
+            "holderCount": null,
+            "price": null
+          },
+          "notes": [
+            "GeckoTerminal rate limit persisted after retries, so holderCount is null. The count was not estimated."
+          ],
+          "capturedAt": "2026-10-28T05:15:44.268Z"
+        }
+      ]
     }
   ]
 }
