@@ -59,7 +59,8 @@ _SCRIPT_DIR = str(Path(__file__).resolve().parent)
 if _SCRIPT_DIR not in sys.path:
     sys.path.insert(0, _SCRIPT_DIR)
 
-from et_closed_day import overlay_gecko_day
+from et_closed_day import eastern_midnight, next_day, overlay_gecko_day
+from volume_guards import make_guard
 from snapshot_asset_rows import assets_for, pool_row, reported_usd, upsert_day_record
 from volume_snapshot_day import snapshot_date_override, snapshot_day_key
 
@@ -681,6 +682,7 @@ def main() -> int:
 
     vols, pool_counts, pool_details, failed_batches = hydrate_volumes(rows, known_pair_addresses(out_file))
     closed = None
+    guard = None
     if os.environ.get("SNAPSHOT_GECKO_CANDLES", "1") != "0":
         dex_pools = []
         for addr, pools in pool_details.items():
@@ -702,6 +704,8 @@ def main() -> int:
             f"discovery={discovery_budget:.0f}s highest-volume first",
             flush=True,
         )
+        guard = make_guard(eastern_midnight(next_day(date)))
+        print(f"snapshot:robinhood guards on late_run={guard.late_run}", flush=True)
         try:
             closed = overlay_gecko_day(
                 "robinhood",
@@ -710,6 +714,7 @@ def main() -> int:
                 dex_pools,
                 budget_s=candle_budget,
                 discovery_budget_s=discovery_budget,
+                guard=guard,
             )
         except Exception as exc:  # noqa: BLE001
             print(f"warn gecko eastern day failed, keeping DexScreener h24: {exc}", file=sys.stderr)
@@ -798,6 +803,11 @@ def main() -> int:
         "poolCoveragePct": pool_coverage,
         "dexCombined24hUsd": None if closed is None else closed.get("dexCombined"),
         "geckoCombined24hUsd": None if closed is None else closed.get("geckoCombined"),
+        "lateRun": bool(getattr(guard, "late_run", False)) if closed is not None else None,
+        "excludedPools": [] if closed is None else closed.get("excludedPools") or [],
+        "excludedVolumeUsd": None if closed is None else closed.get("excludedVolumeUsd"),
+        "noClosedDayData": [] if closed is None else closed.get("noClosedDayData") or [],
+        "noClosedDayDataUsd": None if closed is None else closed.get("noClosedDayDataUsd"),
         "issuers": issuers,
         "assets": assets_for(rows, vols, pool_details),
         "method": (

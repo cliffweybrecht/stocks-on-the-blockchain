@@ -193,6 +193,7 @@ def choose_pool_volume(gecko_volume: float | None, gecko_ok: bool, dex_volume: f
 def build_closed_totals(
     rows: list[dict],
     pools: list[dict],
+    guard=None,
 ) -> dict[str, Any]:
     """Sum unique pools into lanes.
 
@@ -218,6 +219,7 @@ def build_closed_totals(
     excluded_pools: list[dict] = []
     excluded_usd = 0.0
     excluded_by_kind = {"equity": 0.0, "etf": 0.0, "preipo": 0.0}
+    no_closed_day: list[dict] = []
     for pool in pools:
         pair = canon(str(pool.get("pair") or ""))
         if not pair or pair in seen:
@@ -266,6 +268,30 @@ def build_closed_totals(
             gecko_ok,
             dex_volume,
         )
+        if guard is not None and chosen is not None:
+            src = "geckoterminal-h24-fallback" if source == "dexscreener-h24-fallback" and pool.get("from_gecko") else source
+            verdict = guard(pool, chosen, src)
+            if verdict is not None:
+                bucket, why = verdict
+                owner_row = universe.get(owner) or {}
+                entry = {
+                    "pairAddress": str(pool.get("pair") or pair),
+                    "dexId": str(pool.get("dex") or "unknown"),
+                    "symbol": str(owner_row.get("symbol") or ""),
+                    "volume24hUsd": round(chosen, 2),
+                    "liquidityUsd": _num(pool.get("liquidity")),
+                    "source": src,
+                    "reason": why,
+                }
+                if bucket == "excluded":
+                    excluded_pools.append(entry)
+                    excluded_usd += chosen
+                    kind = str(owner_row.get("kind") or "")
+                    if kind in excluded_by_kind:
+                        excluded_by_kind[kind] += chosen
+                else:
+                    no_closed_day.append(entry)
+                continue
         # Gecko-only pools (Infinity, v4, past the token-pairs cap) are not a DexScreener total.
         if dex_volume is not None and not pool.get("from_gecko"):
             dex_parts.append(dex_volume)
@@ -370,6 +396,8 @@ def build_closed_totals(
         if excluded_pools
         else {},
         "excludedPools": excluded_pools,
+        "noClosedDayData": no_closed_day,
+        "noClosedDayDataUsd": round(sum(e["volume24hUsd"] for e in no_closed_day), 2) if no_closed_day else None,
     }
 
 
@@ -659,6 +687,9 @@ def attach_gecko_candles(
                     flush=True,
                 )
         volume, ok = sum_candles_for_day(candles, day) if candles else (None, False)
+        if ok:
+            start, end = eastern_midnight(day), eastern_midnight(next_day(day))
+            item["gecko_hourly"] = [float(c[1]) for c in candles if start <= int(c[0]) < end]
         item["gecko_volume"] = volume
         item["gecko_ok"] = ok
         if ok:
@@ -794,6 +825,7 @@ def overlay_gecko_day(
     discovery_budget_s: float | None = None,
     fetch_ohlcv=None,
     monotonic=None,
+    guard=None,
 ) -> dict[str, Any]:
     """Replace rolling h24 with the Eastern candle sum when Gecko covers the pool.
 
@@ -858,7 +890,7 @@ def overlay_gecko_day(
                 }
     if remembered:
         remember_known_pairs(chain, remembered, remembered_sides)
-    totals = build_closed_totals(rows, enriched)
+    totals = build_closed_totals(rows, enriched, guard)
     _stamp_coverage(totals, attached["stats"])
     if totals["combined"] is None:
         # Never blank a day the Dex sample already measured.
@@ -868,7 +900,7 @@ def overlay_gecko_day(
             item["gecko_ok"] = False
             item["gecko_volume"] = None
             fallback.append(item)
-        totals = build_closed_totals(rows, fallback)
+        totals = build_closed_totals(rows, fallback, guard)
         totals["volumeSource"] = "dexscreener-h24-fallback"
         totals["barMethod"] = "dex"
         _stamp_coverage(totals, attached["stats"])
