@@ -9,6 +9,10 @@ on:
   schedule:
     - cron: "10 4 * * *"
     - cron: "10 5 * * *"
+  push:
+    # Registers the workflow from this branch; push runs only plan (skip=true).
+    branches: [actions-nightly]
+    paths: [".github/workflows/nightly-capture.yml"]
   workflow_dispatch:
     inputs:
       chain:
@@ -56,6 +60,7 @@ jobs:
           # schedule => always dry run for now
           if [ "$EVENT" = workflow_dispatch ] && [ "$IN_DRY" = false ]; then dry=false; else dry=true; fi
           skip=false
+          if [ "$EVENT" = push ]; then skip=true; fi
           if [ "$EVENT" = schedule ]; then
             # Skip if robinhood (last chain in the PC flow) already has this day.
             if python3 - "$day" <<'PY'
