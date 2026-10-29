@@ -32,7 +32,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: nightly-capture
+  group: nightly-capture-${{ inputs.snapshot_date || 'closed-day' }}
   cancel-in-progress: false
 
 jobs:
