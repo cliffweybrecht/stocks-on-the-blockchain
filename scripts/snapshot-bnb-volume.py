@@ -51,7 +51,11 @@ Writes data/volume-snapshots/bnb.json.
   midnight. The closed-day number is the GeckoTerminal hourly candle sum over
   that window. DexScreener volume.h24 is the fallback and is tagged.
   BNB_SNAPSHOT_DATE or SNAPSHOT_DATE (YYYY-MM-DD) forces the key only; it does
-  not invent volume. There is no switch that skips the candle overlay.
+  not invent volume. SNAPSHOT_GECKO_CANDLES=0 skips every Gecko read (pool
+  discovery and candles) and keeps the DexScreener sample. Otherwise all Gecko
+  work shares one wall-clock budget, BNB_GECKO_BUDGET_SECONDS (default 5400).
+  Pools left when it runs out keep the late-run guard's fallback rules and are
+  counted on geckoBudgetSkippedPools.
   pPOLY pools are wash and stay out of the lanes; their dollars are stored on
   excludedVolumeUsd and original* .
 - Each night also writes `assets[]` (Base schema) from that same sample:
@@ -94,7 +98,8 @@ from bnb_volume_universe import (  # noqa: E402
     issuer_slug,
     load_universe,
 )
-from et_closed_day import overlay_gecko_day, volume_pool_excluded  # noqa: E402
+from et_closed_day import eastern_midnight, next_day, overlay_gecko_day, volume_pool_excluded  # noqa: E402
+from volume_guards import make_guard  # noqa: E402
 from snapshot_asset_rows import INSTRUMENT_KIND, assets_for, pool_row, upsert_day_record  # noqa: E402
 from volume_snapshot_day import snapshot_date_override, snapshot_day_key  # noqa: E402
 
@@ -715,6 +720,7 @@ def hydrate_volumes(
     fetch: Any = None,
     discover_gecko: bool = True,
     price_pairs: list[dict] | None = None,
+    gecko_deadline: float | None = None,
 ) -> tuple[
     dict[str, float | None],
     dict[str, int],
@@ -801,7 +807,10 @@ def hydrate_volumes(
         gecko_pace = _Pace(GECKO_MIN_INTERVAL_S)
         targets = _gecko_targets(rows, known, returned_counts, vols)
         gecko_pairs: list[dict] = []
-        for addr in targets:
+        for n, addr in enumerate(targets):
+            if gecko_deadline is not None and time.monotonic() >= gecko_deadline:
+                print(f"gecko budget: pool discovery stopped, skipped {len(targets) - n} tokens", flush=True)
+                break
             for page in (1, 2):
                 gecko_pace.wait()
                 url = GECKO_TOKEN_POOLS.format(addr=by_addr[addr]["address"], page=page)
@@ -952,6 +961,16 @@ def attach_market_values(assets: list[dict], rows: list[dict], readings: dict[st
     return assets
 
 
+def _budget_seconds(name: str, default: float) -> float:
+    raw = (os.environ.get(name) or "").strip()
+    if not raw:
+        return default
+    try:
+        return max(0.0, float(raw))
+    except ValueError:
+        return default
+
+
 def main() -> int:
     now = datetime.now(timezone.utc)
     override = snapshot_date_override(specific_key="BNB_SNAPSHOT_DATE")
@@ -1001,8 +1020,19 @@ def main() -> int:
 
     dry_run = "--dry-run" in sys.argv
     price_pairs: list[dict] = []
-    vols, pool_counts, pool_details, vol_warns, pair_h24, known = hydrate_volumes(rows, known, price_pairs=price_pairs)
+    gecko_on = os.environ.get("SNAPSHOT_GECKO_CANDLES", "1") != "0"
+    gecko_budget = _budget_seconds("BNB_GECKO_BUDGET_SECONDS", 5400)
+    gecko_started = time.monotonic()
+    vols, pool_counts, pool_details, vol_warns, pair_h24, known = hydrate_volumes(
+        rows,
+        known,
+        price_pairs=price_pairs,
+        discover_gecko=gecko_on,
+        gecko_deadline=gecko_started + gecko_budget * 0.15,
+    )
     closed = None
+    guard = None
+    budget_skipped = None
     dex_pools = []
     for addr, pools in pool_details.items():
         for pool in pools:
@@ -1016,11 +1046,40 @@ def main() -> int:
                     "dex": pool.get("dexId"),
                 }
             )
-    try:
-        closed = overlay_gecko_day("bnb", date, rows, dex_pools)
-    except Exception as exc:  # noqa: BLE001
-        print(f"warn gecko eastern day failed, keeping DexScreener h24: {exc}", file=sys.stderr)
-        closed = None
+    if not gecko_on:
+        print("gecko budget: fetched 0 pools, skipped 0 after budget (SNAPSHOT_GECKO_CANDLES=0)", flush=True)
+    else:
+        remaining = max(0.0, gecko_budget - (time.monotonic() - gecko_started))
+        discovery_budget = remaining * 0.15
+        candle_budget = remaining - discovery_budget
+        print(
+            f"snapshot:bnb gecko budget total={gecko_budget:.0f}s candles={candle_budget:.0f}s "
+            f"discovery={discovery_budget:.0f}s highest-volume first",
+            flush=True,
+        )
+        guard = make_guard(eastern_midnight(next_day(date)))
+        print(f"snapshot:bnb guards on late_run={guard.late_run}", flush=True)
+        try:
+            closed = overlay_gecko_day(
+                "bnb",
+                date,
+                rows,
+                dex_pools,
+                budget_s=candle_budget,
+                discovery_budget_s=discovery_budget,
+                guard=guard,
+            )
+        except Exception as exc:  # noqa: BLE001
+            print(f"warn gecko eastern day failed, keeping DexScreener h24: {exc}", file=sys.stderr)
+            closed = None
+        stats = (closed or {}).get("candleStats") or {}
+        budget_skipped = int(stats.get("budgetSkipped") or 0) if closed is not None else None
+        print(
+            f"gecko budget: fetched {int(stats.get('networkFetches') or 0)} pools, "
+            f"skipped {budget_skipped or 0} after budget "
+            f"(cache hits {int(stats.get('cacheHits') or 0)}, elapsed {time.monotonic() - gecko_started:.0f}s)",
+            flush=True,
+        )
     if closed and closed.get("combined") is not None:
         vols = closed["vols"]
         pool_details = closed["details"]
@@ -1124,6 +1183,14 @@ def main() -> int:
         "volumeSource": (closed or {}).get("volumeSource") or "dexscreener-h24-fallback",
         "dexCombined24hUsd": None if closed is None else closed.get("dexCombined"),
         "geckoCombined24hUsd": None if closed is None else closed.get("geckoCombined"),
+        "geckoCandles": gecko_on,
+        "geckoBudgetSeconds": gecko_budget if gecko_on else None,
+        "geckoBudgetSkippedPools": budget_skipped,
+        "barMethod": (closed or {}).get("barMethod") or "dex",
+        "poolCoveragePct": None if closed is None else closed.get("poolCoveragePct"),
+        "lateRun": bool(getattr(guard, "late_run", False)) if closed is not None else None,
+        "noClosedDayData": [] if closed is None else closed.get("noClosedDayData") or [],
+        "noClosedDayDataUsd": None if closed is None else closed.get("noClosedDayDataUsd"),
         "sources": {
             "universe": "BNB chainId 56 equity/pre-IPO/ETF union by contract address",
             "volume": (
@@ -1170,6 +1237,8 @@ def main() -> int:
         record["marketValueWarnings"] = market_warnings
     if market_nulls:
         record["marketValueNulls"] = dict(sorted(market_nulls.items()))
+    if closed and closed.get("candleStats"):
+        record["candleStats"] = closed["candleStats"]
     if closed and closed.get("crossCheck"):
         record["crossCheck"] = closed["crossCheck"]
         record["gapPct"] = closed.get("gapPct")

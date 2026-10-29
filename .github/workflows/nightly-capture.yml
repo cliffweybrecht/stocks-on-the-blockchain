@@ -126,8 +126,9 @@ jobs:
           npm run snapshot:volume
       - name: Closed-day volume
         if: matrix.chain != 'solana'
+        timeout-minutes: ${{ matrix.chain == 'bnb' && 150 || 320 }}
         run: |
-          if [ "${{ matrix.chain }}" = bnb ]; then export SNAPSHOT_GECKO_CANDLES=0; fi
+          if [ "${{ matrix.chain }}" = bnb ]; then export BNB_GECKO_BUDGET_SECONDS=5400; fi
           python scripts/snapshot-${{ matrix.chain }}-volume.py
       - name: Collect changed data files
         if: always()
