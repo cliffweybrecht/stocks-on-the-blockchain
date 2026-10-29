@@ -407,6 +407,9 @@ def volume_recipients(base: str, quote: str, universe: set[str]) -> list[str]:
     return ordered
 
 
+PAIR_CREATED_MS: dict[str, float] = {}
+
+
 def accumulate_pair_volumes(
     pairs: list,
     universe: set[str],
@@ -439,6 +442,9 @@ def accumulate_pair_volumes(
             if pool_id:
                 seen.add(pool_id)
             pool_counts[addr] = pool_counts.get(addr, 0) + 1
+            created = pair.get("pairCreatedAt")
+            if pool_id and isinstance(created, (int, float)):
+                PAIR_CREATED_MS[str(pair_display_address(pair)).lower()] = created
             if pool_details is not None:
                 pool_details.setdefault(addr, []).append(
                     pool_row(pair_display_address(pair), pair_dex_id(pair), vol, pair_liquidity_usd(pair))
@@ -695,6 +701,7 @@ def main() -> int:
                         "dex_volume": pool.get("volume24hUsd"),
                         "liquidity": pool.get("liquidityUsd"),
                         "dex": pool.get("dexId"),
+                        "created_ms": PAIR_CREATED_MS.get(str(pool.get("pairAddress") or "").lower()),
                     }
                 )
         candle_budget = _budget_seconds("SNAPSHOT_GECKO_BUDGET_S", 1500)
@@ -837,10 +844,42 @@ def main() -> int:
     def fmt(v: float | None) -> str:
         return "null" if v is None else f"{v:.2f}"
 
+    # Guard report: printed before the coverage check so a refused run still shows it.
+    for bucket in ("excludedPools", "noClosedDayData"):
+        items = record.get(bucket) or []
+        print(f"snapshot:robinhood guard {bucket} n={len(items)} usd={sum(e.get('volume24hUsd') or 0 for e in items):.2f}", flush=True)
+        for e in sorted(items, key=lambda e: -(e.get("volume24hUsd") or 0)):
+            print(
+                f"snapshot:robinhood guard {bucket} pool={e.get('pairAddress')} asset={e.get('symbol')} "
+                f"usd={e.get('volume24hUsd')} liq={e.get('liquidityUsd')} reason={e.get('reason')}",
+                flush=True,
+            )
+    print(
+        f"snapshot:robinhood totals lateRun={record.get('lateRun')} public={fmt(eq_vol)} private={fmt(pre_vol)} "
+        f"etfIndex={fmt(etf_vol)} combined={fmt(combined)} geckoCoverage={record.get('geckoCoveragePct')} "
+        f"withVolEquity={record['withVolumeEquityCount']}/{eq_mints}",
+        flush=True,
+    )
+    # Equities whose only pools were deliberately dropped (wash / created after day) are not rate-limit gaps.
+    deliberate = {
+        str(e.get("address") or "").lower()
+        for bucket in ("excludedPools", "noClosedDayData")
+        for e in (record.get(bucket) or [])
+        if e.get("address")
+    }
+    deliberate_equity = sum(
+        1
+        for r in rows
+        if r["kind"] == "equity" and r["address"].lower() in deliberate and vols.get(r["address"].lower()) is None
+    )
+    coverage_count = record["withVolumeEquityCount"] + deliberate_equity
+    if deliberate_equity:
+        print(f"snapshot:robinhood coverage counts {deliberate_equity} deliberately excluded equities", flush=True)
+
     # Fail closed before write. A thin pass must not replace a better same-day record.
     # Typical equity withVol is ~130+; below ~35% is a rate-limit under-count, not $0.
     if combined is None or (
-        eq_mints >= 50 and record["withVolumeEquityCount"] < max(40, int(eq_mints * 0.35))
+        eq_mints >= 50 and coverage_count < max(40, int(eq_mints * 0.35))
     ):
         print(
             f"snapshot:robinhood failed: under-coverage withVol={record['withVolumeEquityCount']} "

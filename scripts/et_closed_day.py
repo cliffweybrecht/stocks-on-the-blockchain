@@ -275,6 +275,7 @@ def build_closed_totals(
                 bucket, why = verdict
                 owner_row = universe.get(owner) or {}
                 entry = {
+                    "address": owner,
                     "pairAddress": str(pool.get("pair") or pair),
                     "dexId": str(pool.get("dex") or "unknown"),
                     "symbol": str(owner_row.get("symbol") or ""),
@@ -687,6 +688,9 @@ def attach_gecko_candles(
                     flush=True,
                 )
         volume, ok = sum_candles_for_day(candles, day) if candles else (None, False)
+        opens = [int(c[0]) for c in candles if isinstance(c, (list, tuple)) and c and isinstance(c[0], (int, float))]
+        if opens:
+            item["first_candle_ts"] = min(opens)
         if ok:
             start, end = eastern_midnight(day), eastern_midnight(next_day(day))
             item["gecko_hourly"] = [float(c[1]) for c in candles if start <= int(c[0]) < end]

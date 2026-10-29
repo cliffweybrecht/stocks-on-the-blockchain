@@ -16,9 +16,8 @@ on:
   workflow_dispatch:
     inputs:
       chain:
-        description: "Chain to capture"
-        type: choice
-        options: [all, base, bnb, robinhood, solana]
+        description: "all, one chain, or a comma list (base,bnb,robinhood,solana)"
+        type: string
         default: all
       snapshot_date:
         description: "Closed ET day YYYY-MM-DD (blank = ET date of now-3h)"
@@ -56,7 +55,16 @@ jobs:
           set -euo pipefail
           day="${IN_DATE:-$(TZ=America/New_York date -d '-3 hours' +%F)}"
           chain="${IN_CHAIN:-all}"
-          if [ "$chain" = all ]; then chains='["base","bnb","robinhood","solana"]'; else chains="[\"$chain\"]"; fi
+          chain="$(echo "$chain" | tr -d ' ' | tr 'A-Z' 'a-z')"
+          [ "$chain" = all ] && chain=base,bnb,robinhood,solana
+          chains="["; sep=""
+          for c in $(echo "$chain" | tr ',' ' '); do
+            case "$c" in base|bnb|robinhood|solana) ;; *) echo "unknown chain: $c"; exit 1;; esac
+            case "$chains" in *"\"$c\""*) continue;; esac
+            chains="$chains$sep\"$c\""; sep=","
+          done
+          chains="$chains]"
+          [ "$chains" != "[]" ] || { echo "no chains"; exit 1; }
           # schedule => always dry run for now
           if [ "$EVENT" = workflow_dispatch ] && [ "$IN_DRY" = false ]; then dry=false; else dry=true; fi
           skip=false
