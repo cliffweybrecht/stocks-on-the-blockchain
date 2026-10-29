@@ -1,0 +1,167 @@
+name: nightly-capture
+
+# Nightly closed-ET-day capture (port of .nightly/run-local-nightly.ps1).
+# Cron is UTC: 04:10 UTC = 00:10 EDT, 05:10 UTC = 00:10 EST. A gate step skips
+# a run when the closed ET day (ET date of now-3h) is already captured.
+# SAFETY: everything defaults to dry run (artifact only). The commit job only
+# runs when a manual dispatch sets dry_run=false.
+on:
+  schedule:
+    - cron: "10 4 * * *"
+    - cron: "10 5 * * *"
+  workflow_dispatch:
+    inputs:
+      chain:
+        description: "Chain to capture"
+        type: choice
+        options: [all, base, bnb, robinhood, solana]
+        default: all
+      snapshot_date:
+        description: "Closed ET day YYYY-MM-DD (blank = ET date of now-3h)"
+        required: false
+        default: ""
+      dry_run:
+        description: "Upload artifact only, no commit"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-capture
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      day: ${{ steps.d.outputs.day }}
+      chains: ${{ steps.d.outputs.chains }}
+      skip: ${{ steps.d.outputs.skip }}
+      dry_run: ${{ steps.d.outputs.dry_run }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: d
+        env:
+          IN_DATE: ${{ inputs.snapshot_date }}
+          IN_CHAIN: ${{ inputs.chain }}
+          IN_DRY: ${{ inputs.dry_run }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          day="${IN_DATE:-$(TZ=America/New_York date -d '-3 hours' +%F)}"
+          chain="${IN_CHAIN:-all}"
+          if [ "$chain" = all ]; then chains='["base","bnb","robinhood","solana"]'; else chains="[\"$chain\"]"; fi
+          # schedule => always dry run for now
+          if [ "$EVENT" = workflow_dispatch ] && [ "$IN_DRY" = false ]; then dry=false; else dry=true; fi
+          skip=false
+          if [ "$EVENT" = schedule ]; then
+            # Skip if robinhood (last chain in the PC flow) already has this day.
+            if python3 - "$day" <<'PY'
+          import json,sys
+          d=sys.argv[1]
+          try: rows=json.load(open("data/volume-snapshots/robinhood.json"))
+          except Exception: sys.exit(1)
+          rows=rows if isinstance(rows,list) else rows.get("days") or rows.get("snapshots") or []
+          sys.exit(0 if any(isinstance(r,dict) and r.get("date")==d for r in rows) else 1)
+          PY
+            then skip=true; fi
+          fi
+          echo "closed ET day=$day chains=$chains dry_run=$dry skip=$skip"
+          { echo "day=$day"; echo "chains=$chains"; echo "skip=$skip"; echo "dry_run=$dry"; } >> "$GITHUB_OUTPUT"
+
+  capture:
+    needs: plan
+    if: needs.plan.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    strategy:
+      fail-fast: false
+      matrix:
+        chain: ${{ fromJson(needs.plan.outputs.chains) }}
+    env:
+      BASE_SNAPSHOT_DATE: ${{ needs.plan.outputs.day }}
+      BNB_SNAPSHOT_DATE: ${{ needs.plan.outputs.day }}
+      ROBINHOOD_SNAPSHOT_DATE: ${{ needs.plan.outputs.day }}
+      HOLDER_SNAPSHOT_DATE: ${{ needs.plan.outputs.day }}
+      SOLANA_MARKET_ENABLED: "true"
+      # Holder/market-value reads are time-sensitive: only on the schedule, never late.
+      IS_SCHEDULE: ${{ github.event_name == 'schedule' }}
+      SKIP_HOLDER_SNAPSHOT: "1"   # volume scripts never run the holder hook; holders run as their own step
+      SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
+      BSC_RPC_URL: ${{ secrets.BSC_RPC_URL }}
+      ONDO_API_KEY: ${{ secrets.ONDO_API_KEY }}
+      ONDO_GM_API_KEY: ${{ secrets.ONDO_GM_API_KEY }}
+      DINARI_API_KEY_ID: ${{ secrets.DINARI_API_KEY_ID }}
+      DINARI_API_SECRET_KEY: ${{ secrets.DINARI_API_SECRET_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: npm }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: npm ci
+      - name: Holders (schedule only)
+        if: env.IS_SCHEDULE == 'true' && matrix.chain != 'solana'
+        continue-on-error: true
+        run: npm run snapshot:holders -- --chain ${{ matrix.chain }}
+      - name: Solana volume (+holders on schedule)
+        if: matrix.chain == 'solana'
+        run: |
+          if [ "$IS_SCHEDULE" = true ]; then unset SKIP_HOLDER_SNAPSHOT; fi
+          npm run snapshot:volume
+      - name: Closed-day volume
+        if: matrix.chain != 'solana'
+        run: |
+          if [ "${{ matrix.chain }}" = bnb ]; then export SNAPSHOT_GECKO_CANDLES=0; fi
+          python scripts/snapshot-${{ matrix.chain }}-volume.py
+      - name: Collect changed data files
+        if: always()
+        run: |
+          mkdir -p out
+          git status --porcelain -- data/volume-snapshots data/holder-snapshots | awk '{print $2}' | tee out/changed.txt
+          while read -r f; do [ -n "$f" ] && mkdir -p "out/$(dirname "$f")" && cp "$f" "out/$f"; done < out/changed.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: data-${{ matrix.chain }}-${{ needs.plan.outputs.day }}
+          path: out/
+          if-no-files-found: warn
+          retention-days: 14
+
+  land:
+    # Present but disabled unless a manual dispatch sets dry_run=false.
+    needs: [plan, capture]
+    if: always() && needs.plan.outputs.dry_run == 'false' && github.event_name == 'workflow_dispatch' && needs.plan.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main, fetch-depth: 0 }
+      - uses: actions/download-artifact@v4
+        with: { path: arts, pattern: "data-*" }
+      - name: Append-only guard + commit to main
+        run: |
+          set -euo pipefail
+          git config user.name "Cliff Weybrecht"; git config user.email "cliff.weybrecht@gmail.com"
+          changed=0
+          for a in arts/*/; do
+            [ -f "$a/changed.txt" ] || continue
+            while read -r f; do
+              [ -n "$f" ] && [ -f "$a/$f" ] || continue
+              cp "$a/$f" "$f"
+              del=$(git diff --numstat -- "$f" | awk '{print $2}')
+              before=$(git show "HEAD:$f" 2>/dev/null | { grep -o '"date"' || true; } | wc -l)
+              after=$({ grep -o '"date"' "$f" || true; } | wc -l)
+              if [ "${del:-0}" -gt 2 ] || [ "$after" -lt "$before" ]; then
+                echo "REFUSED $f (deletions=$del dates $before->$after)"; git checkout -q -- "$f"; continue
+              fi
+              git add "$f"; changed=1; echo "staged $f ($before->$after)"
+            done < "$a/changed.txt"
+          done
+          [ "$changed" = 1 ] || { echo "nothing to land"; exit 0; }
+          git commit -m "snapshot: nightly ${{ needs.plan.outputs.day }} (actions capture)"
+          for i in 1 2 3; do git pull --rebase -q origin main && git push origin HEAD:main && exit 0; sleep 10; done
+          exit 1
