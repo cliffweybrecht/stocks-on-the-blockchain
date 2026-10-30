@@ -44,7 +44,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: nightly-capture-${{ github.event.schedule || inputs.what }}-${{ inputs.snapshot_date || 'auto' }}
+  group: nightly-capture-${{ github.event.schedule || inputs.what }}-${{ inputs.chain || 'all' }}-${{ inputs.snapshot_date || 'auto' }}
   cancel-in-progress: false
 
 jobs:
