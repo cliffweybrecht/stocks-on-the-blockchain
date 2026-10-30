@@ -220,7 +220,7 @@ jobs:
         if: steps.sel.outputs.sel == 'true'
         with: { python-version: "3.12" }
       - if: steps.sel.outputs.sel == 'true'
-        run: npm ci && pip install -q requests
+        run: npm ci && pip install -q requests pycryptodome
       - uses: actions/cache@v4
         if: steps.sel.outputs.sel == 'true'
         with:
