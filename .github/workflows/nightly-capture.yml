@@ -2,9 +2,11 @@ name: nightly-capture
 
 # DRY RUN ONLY: every job uploads artifacts. Nothing is pushed to Origin or committed.
 #
-# Holders: crons 03:40 and 04:40 UTC. ET is UTC-4 until 2026-11-01 02:00, then UTC-5, so exactly
-# one of the two lands at 23:40 ET; the plan gate keeps that one (ET hour 23) and the shard jobs
-# sleep until 23:59:00 ET, then read supply/price/holders in parallel shards.
+# Holders: crons 03:57 and 04:57 UTC. ET is UTC-4 until 2026-11-01 02:00, then UTC-5, so exactly
+# one of the two lands at 23:57 ET; the plan gate keeps that one (ET 23:50-00:29). Shards do setup,
+# then wait at most ~3 min for 23:59:00 ET (never longer: no idle runners), then read. A shard whose
+# read starts outside [23:59:00, 00:30) ET of the holder day is marked LATE and its chain is NOT READY
+# (never landed).
 # Volume: crons 04:10 and 05:10 UTC; the gate keeps the one at 00:10 ET (ET hour 0) and captures
 # the just-closed ET day. Per chain:
 #   base       exact onchain recount of every pool (no Gecko, no DexScreener h24)
@@ -14,8 +16,8 @@ name: nightly-capture
 # A chain-day with anything unresolved is NOT READY and its row is not written.
 on:
   schedule:
-    - cron: "40 3 * * *"
-    - cron: "40 4 * * *"
+    - cron: "57 3 * * *"
+    - cron: "57 4 * * *"
     - cron: "10 4 * * *"
     - cron: "10 5 * * *"
   workflow_dispatch:
@@ -34,7 +36,7 @@ on:
         required: false
         default: ""
       wait_for_close:
-        description: "Holders: sleep until 23:59:00 ET before reading"
+        description: "Holders: wait for 23:59:00 ET if it is at most 5 min away (else read now, marked off-window/test)"
         type: boolean
         default: true
 
@@ -48,6 +50,7 @@ concurrency:
 jobs:
   plan:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       day: ${{ steps.d.outputs.day }}
       hday: ${{ steps.d.outputs.hday }}
@@ -72,7 +75,7 @@ jobs:
           holders=false; volume=false
           if [ "$EVENT" = schedule ]; then
             case "$CRON" in
-              "40 3 * * *"|"40 4 * * *") [ "$etH" = 23 ] && holders=true ;;
+              "57 3 * * *"|"57 4 * * *") { [ "$etH" = 23 ] && [ "$etM" -ge 50 ]; } || [ "$etH$etM" \< 0030 ] && holders=true ;;
               *) [ "$etH" = 00 ] && volume=true ;;
             esac
           else
@@ -88,10 +91,11 @@ jobs:
             case "$c" in base|bnb|robinhood|solana) ;; *) echo "unknown chain: $c"; exit 1;; esac
             chains="$chains$sep\"$c\""; sep=","
           done; chains="$chains]"
-          # Holder shards: Gecko token-info is paced 6.5 s/asset per IP. bnb ~1830 assets/8, base ~550/3, robinhood ~210/2, solana /4.
+          # Holder shards: Gecko token-info is paced 6.5 s/asset per IP. Read times (Oct 29 test, 1 shard each):
+          # bnb 1/8 ~40-50 min, base 1/3 ~38 min, robinhood 1/2 ~20 min, solana 1/4 ~25 min -> robinhood 1, solana 2.
           hs="["; sep=""
           for c in $(echo "$chain" | tr ',' ' '); do
-            case "$c" in bnb) n=8;; base) n=3;; robinhood) n=2;; solana) n=4;; esac
+            case "$c" in bnb) n=8;; base) n=3;; robinhood) n=1;; solana) n=2;; esac
             for i in $(seq 0 $((n-1))); do hs="$hs$sep{\"chain\":\"$c\",\"i\":$i,\"n\":$n}"; sep=","; done
           done; hs="$hs]"
           echo "volume day=$day holders day=$hday holders=$holders volume=$volume chains=$chains has_bsc=$HAS_BSC"
@@ -103,7 +107,7 @@ jobs:
     needs: plan
     if: needs.plan.outputs.holders == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 240  # includes the wait for 23:59 ET on a manual dispatch
+    timeout-minutes: 90  # setup + <=5 min wait + read (slowest shard ~50 min)
     strategy:
       fail-fast: false
       matrix:
@@ -130,12 +134,15 @@ jobs:
           if [ -z "${SOLANA_RPC_URL:-}" ] && [ -n "${HELIUS_API_KEY:-}" ]; then
             echo "SOLANA_RPC_URL=https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}" >> "$GITHUB_ENV"; echo "using Helius"
           fi
-      - name: Wait for 23:59:00 ET
-        if: github.event_name == 'schedule' || inputs.wait_for_close
+      - name: Short wait for 23:59:00 ET (max 5 min) + on-time check
+        env:
+          WAIT: ${{ github.event_name == 'schedule' || inputs.wait_for_close }}
         run: |
-          target=$(TZ=America/New_York date -d "$(TZ=America/New_York date +%F) 23:59:00" +%s); now=$(date +%s)
-          if [ "$(TZ=America/New_York date +%H)" = 23 ] && [ "$target" -gt "$now" ]; then echo "sleep $((target-now))s"; sleep $((target-now)); fi
-          echo "reading at ET $(TZ=America/New_York date '+%F %T %Z')"
+          target=$(TZ=America/New_York date -d "$HOLDER_SNAPSHOT_DATE 23:59:00" +%s); now=$(date +%s)
+          if [ "$WAIT" = true ] && [ "$target" -gt "$now" ] && [ $((target-now)) -le 300 ]; then echo "sleep $((target-now))s"; sleep $((target-now)); fi
+          now=$(date +%s); mkdir -p hshard
+          if [ "$now" -ge "$target" ] && [ "$now" -lt $((target+1860)) ]; then t=ON_TIME; else t=LATE; fi
+          echo "$t $(TZ=America/New_York date '+%F %T %Z')" | tee "hshard/${{ matrix.s.chain }}-${{ matrix.s.i }}.timing"
       - name: Holder shard
         run: |
           s=$(date +%s); npm run snapshot:holders -- --chain ${{ matrix.s.chain }}
@@ -148,6 +155,7 @@ jobs:
     needs: [plan, holders-shard]
     if: always() && needs.plan.outputs.holders == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -166,6 +174,9 @@ jobs:
           n=$(echo '${{ needs.plan.outputs.hshards }}' | python3 -c "import json,sys;print(sum(1 for s in json.load(sys.stdin) if s['chain']=='${{ matrix.chain }}'))")
           mkdir -p out
           if npx tsx scripts/merge-holder-shards.ts ${{ matrix.chain }} hshard "$n" 2>&1 | tee out/holders.log; then r=READY; else r="NOT READY"; fi
+          # Late or off-window reads are never landable.
+          nt=$(cat hshard/*/*.timing 2>/dev/null | grep -c '^ON_TIME' || true)
+          if [ "$nt" != "$n" ]; then r="NOT READY (only $nt/$n shards read in 23:59-00:30 ET; late reads not landed)"; git checkout -- data/holder-snapshots 2>/dev/null || true; fi
           echo "| holders ${{ matrix.chain }} ${{ needs.plan.outputs.hday }} | $r | $(tail -1 out/holders.log | cut -c1-300) |" >> out/summary.md
           cat out/summary.md >> "$GITHUB_STEP_SUMMARY"
           git status --porcelain -- data/holder-snapshots | awk '{print $2}' > out/changed.txt
@@ -312,6 +323,7 @@ jobs:
     needs: [plan, solana-shard]
     if: always() && needs.plan.outputs.volume == 'true' && contains(fromJson(needs.plan.outputs.chains), 'solana')
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       DAY: ${{ needs.plan.outputs.day }}
       SOLANA_SNAPSHOT_DATE: ${{ needs.plan.outputs.day }}
