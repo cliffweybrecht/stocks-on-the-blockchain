@@ -103,7 +103,7 @@ jobs:
     needs: plan
     if: needs.plan.outputs.holders == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 240  # includes the wait for 23:59 ET on a manual dispatch
     strategy:
       fail-fast: false
       matrix:
