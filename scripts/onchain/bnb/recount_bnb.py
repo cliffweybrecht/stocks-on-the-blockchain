@@ -204,6 +204,9 @@ for pool in sorted(POOLS|CPOOLS):
     new['assets'].append(assets[own])
   q={'pairAddress':pool,'dexId':KN.get(pool) or (SP.get(pool,{}).get('dex')) or 'onchain-discovered','volume24hUsd':round(v,2),'liquidityUsd':None,'source':'onchain-swap-logs-et','method':'onchain','onchainPricing':how,'swapCount':n,'discoveredOnchain':True}
   assets[own]['pools'].append(q); rep['added'].append({'pool':pool,'symbol':assets[own]['symbol'],'new':round(v,2),'swaps':n,'pricing':how})
+# The Gecko row's top-level dexscreenerH24Fallbacks list is stale once pools are recounted: keep only entries still sourced from a rolling-24h fallback.
+_rem={x['pairAddress'].lower() for a_ in new['assets'] for x in a_['pools'] if x.get('source') in FB}
+new['dexscreenerH24Fallbacks']=[x for x in new.get('dexscreenerH24Fallbacks') or [] if str(x.get('pairAddress','')).lower() in _rem]
 new['unresolvedPools']=unres; new['unresolvedFallbackUsdNotCounted']=round(sum(u['oldFallbackUsd'] or 0 for u in unres),2)
 new['excludedPools']=newexcl; new['excludedVolumeUsd']=round(sum(p.get('volume24hUsd') or 0 for p in newexcl),2)
 lane={'equity':'publicEquity24hUsd','etf':'etfIndex24hUsd','private':'private24hUsd'}; cnt={'equity':'publicPoolCount','etf':'etfPoolCount','private':'preipoPoolCount'}
