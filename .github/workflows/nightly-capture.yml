@@ -1,30 +1,40 @@
 name: nightly-capture
 
-# Nightly closed-ET-day capture (port of .nightly/run-local-nightly.ps1).
-# Cron is UTC: 04:10 UTC = 00:10 EDT, 05:10 UTC = 00:10 EST. A gate step skips
-# a run when the closed ET day (ET date of now-3h) is already captured.
-# SAFETY: everything defaults to dry run (artifact only). The commit job only
-# runs when a manual dispatch sets dry_run=false.
+# DRY RUN ONLY: every job uploads artifacts. Nothing is pushed to Origin or committed.
+#
+# Holders: crons 03:40 and 04:40 UTC. ET is UTC-4 until 2026-11-01 02:00, then UTC-5, so exactly
+# one of the two lands at 23:40 ET; the plan gate keeps that one (ET hour 23) and the shard jobs
+# sleep until 23:59:00 ET, then read supply/price/holders in parallel shards.
+# Volume: crons 04:10 and 05:10 UTC; the gate keeps the one at 00:10 ET (ET hour 0) and captures
+# the just-closed ET day. Per chain:
+#   base       exact onchain recount of every pool (no Gecko, no DexScreener h24)
+#   bnb        Gecko (budget) then onchain recount of every pool without candles (needs BSC_RPC_URL archive)
+#   robinhood  Gecko then onchain recount of every pool without candles
+#   solana     capture -> 16 Gecko shards (separate runners/IPs, cached) -> merge
+# A chain-day with anything unresolved is NOT READY and its row is not written.
 on:
   schedule:
+    - cron: "40 3 * * *"
+    - cron: "40 4 * * *"
     - cron: "10 4 * * *"
     - cron: "10 5 * * *"
-  push:
-    # Registers the workflow from this branch; push runs only plan (skip=true).
-    branches: [actions-nightly]
-    paths: [".github/workflows/nightly-capture.yml"]
   workflow_dispatch:
     inputs:
+      what:
+        description: "holders, volume, or both"
+        type: choice
+        options: [volume, holders, both]
+        default: volume
       chain:
-        description: "all, one chain, or a comma list (base,bnb,robinhood,solana)"
+        description: "all, or a comma list (base,bnb,robinhood,solana)"
         type: string
         default: all
       snapshot_date:
-        description: "Closed ET day YYYY-MM-DD (blank = ET date of now-3h)"
+        description: "ET day YYYY-MM-DD (volume: closed day; blank = ET date of now-3h). Holders always use the live ET day."
         required: false
         default: ""
-      dry_run:
-        description: "Upload artifact only, no commit"
+      wait_for_close:
+        description: "Holders: sleep until 23:59:00 ET before reading"
         type: boolean
         default: true
 
@@ -32,7 +42,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: nightly-capture-${{ inputs.snapshot_date || 'closed-day' }}
+  group: nightly-capture-${{ github.event.schedule || inputs.what }}-${{ inputs.snapshot_date || 'auto' }}
   cancel-in-progress: false
 
 jobs:
@@ -40,68 +50,69 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       day: ${{ steps.d.outputs.day }}
+      hday: ${{ steps.d.outputs.hday }}
+      holders: ${{ steps.d.outputs.holders }}
+      volume: ${{ steps.d.outputs.volume }}
       chains: ${{ steps.d.outputs.chains }}
-      skip: ${{ steps.d.outputs.skip }}
-      dry_run: ${{ steps.d.outputs.dry_run }}
+      hshards: ${{ steps.d.outputs.hshards }}
+      has_bsc: ${{ steps.d.outputs.has_bsc }}
     steps:
-      - uses: actions/checkout@v4
       - id: d
         env:
           IN_DATE: ${{ inputs.snapshot_date }}
           IN_CHAIN: ${{ inputs.chain }}
-          IN_DRY: ${{ inputs.dry_run }}
+          IN_WHAT: ${{ inputs.what }}
           EVENT: ${{ github.event_name }}
+          CRON: ${{ github.event.schedule }}
+          HAS_BSC: ${{ secrets.BSC_RPC_URL != '' }}
         run: |
           set -euo pipefail
+          etH=$(TZ=America/New_York date +%H); etM=$(TZ=America/New_York date +%M)
+          echo "now ET $(TZ=America/New_York date '+%F %T %Z')  UTC $(date -u '+%F %T')"
+          holders=false; volume=false
+          if [ "$EVENT" = schedule ]; then
+            case "$CRON" in
+              "40 3 * * *"|"40 4 * * *") [ "$etH" = 23 ] && holders=true ;;
+              *) [ "$etH" = 00 ] && volume=true ;;
+            esac
+          else
+            case "$IN_WHAT" in holders) holders=true;; volume) volume=true;; both) holders=true; volume=true;; esac
+          fi
           day="${IN_DATE:-$(TZ=America/New_York date -d '-3 hours' +%F)}"
-          chain="${IN_CHAIN:-all}"
-          chain="$(echo "$chain" | tr -d ' ' | tr 'A-Z' 'a-z')"
+          # Holders read the live ET day; between 00:00-00:59 ET a late run is labelled with the day that just closed.
+          if [ "$etH" = 00 ]; then hday=$(TZ=America/New_York date -d '-1 hour' +%F); else hday=$(TZ=America/New_York date +%F); fi
+          chain="$(echo "${IN_CHAIN:-all}" | tr -d ' ' | tr 'A-Z' 'a-z')"
           [ "$chain" = all ] && chain=base,bnb,robinhood,solana
           chains="["; sep=""
           for c in $(echo "$chain" | tr ',' ' '); do
             case "$c" in base|bnb|robinhood|solana) ;; *) echo "unknown chain: $c"; exit 1;; esac
-            case "$chains" in *"\"$c\""*) continue;; esac
             chains="$chains$sep\"$c\""; sep=","
-          done
-          chains="$chains]"
-          [ "$chains" != "[]" ] || { echo "no chains"; exit 1; }
-          # schedule => always dry run for now
-          if [ "$EVENT" = workflow_dispatch ] && [ "$IN_DRY" = false ]; then dry=false; else dry=true; fi
-          skip=false
-          if [ "$EVENT" = push ]; then skip=true; fi
-          if [ "$EVENT" = schedule ]; then
-            # Skip if robinhood (last chain in the PC flow) already has this day.
-            if python3 - "$day" <<'PY'
-          import json,sys
-          d=sys.argv[1]
-          try: rows=json.load(open("data/volume-snapshots/robinhood.json"))
-          except Exception: sys.exit(1)
-          rows=rows if isinstance(rows,list) else rows.get("days") or rows.get("snapshots") or []
-          sys.exit(0 if any(isinstance(r,dict) and r.get("date")==d for r in rows) else 1)
-          PY
-            then skip=true; fi
-          fi
-          echo "closed ET day=$day chains=$chains dry_run=$dry skip=$skip"
-          { echo "day=$day"; echo "chains=$chains"; echo "skip=$skip"; echo "dry_run=$dry"; } >> "$GITHUB_OUTPUT"
+          done; chains="$chains]"
+          # Holder shards: Gecko token-info is paced 6.5 s/asset per IP. bnb ~1830 assets/8, base ~550/3, robinhood ~210/2, solana /4.
+          hs="["; sep=""
+          for c in $(echo "$chain" | tr ',' ' '); do
+            case "$c" in bnb) n=8;; base) n=3;; robinhood) n=2;; solana) n=4;; esac
+            for i in $(seq 0 $((n-1))); do hs="$hs$sep{\"chain\":\"$c\",\"i\":$i,\"n\":$n}"; sep=","; done
+          done; hs="$hs]"
+          echo "volume day=$day holders day=$hday holders=$holders volume=$volume chains=$chains has_bsc=$HAS_BSC"
+          { echo "day=$day"; echo "hday=$hday"; echo "holders=$holders"; echo "volume=$volume"
+            echo "chains=$chains"; echo "hshards=$hs"; echo "has_bsc=$HAS_BSC"; } >> "$GITHUB_OUTPUT"
 
-  capture:
+  # ---------------------------------------------------------------- holders at 23:59 ET
+  holders-shard:
     needs: plan
-    if: needs.plan.outputs.skip != 'true'
+    if: needs.plan.outputs.holders == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 330
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
-        chain: ${{ fromJson(needs.plan.outputs.chains) }}
+        s: ${{ fromJson(needs.plan.outputs.hshards) }}
     env:
-      BASE_SNAPSHOT_DATE: ${{ needs.plan.outputs.day }}
-      BNB_SNAPSHOT_DATE: ${{ needs.plan.outputs.day }}
-      ROBINHOOD_SNAPSHOT_DATE: ${{ needs.plan.outputs.day }}
-      HOLDER_SNAPSHOT_DATE: ${{ needs.plan.outputs.day }}
+      HOLDER_SNAPSHOT_DATE: ${{ needs.plan.outputs.hday }}
+      HOLDER_SHARD: ${{ matrix.s.i }}/${{ matrix.s.n }}
+      HOLDER_SHARD_OUT: hshard/${{ matrix.s.chain }}-${{ matrix.s.i }}.json
       SOLANA_MARKET_ENABLED: "true"
-      # Holder/market-value reads are time-sensitive: only on the schedule, never late.
-      IS_SCHEDULE: ${{ github.event_name == 'schedule' }}
-      SKIP_HOLDER_SNAPSHOT: "1"   # volume scripts never run the holder hook; holders run as their own step
       SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
       BSC_RPC_URL: ${{ secrets.BSC_RPC_URL }}
       ONDO_API_KEY: ${{ secrets.ONDO_API_KEY }}
@@ -112,70 +123,212 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: "20", cache: npm }
-      - uses: actions/setup-python@v5
-        with: { python-version: "3.12" }
       - run: npm ci
-      - name: Holders (schedule only)
-        if: env.IS_SCHEDULE == 'true' && matrix.chain != 'solana'
-        continue-on-error: true
-        run: npm run snapshot:holders -- --chain ${{ matrix.chain }}
-      - name: Solana volume (+holders on schedule)
-        if: matrix.chain == 'solana'
+      - name: Wait for 23:59:00 ET
+        if: github.event_name == 'schedule' || inputs.wait_for_close
         run: |
-          if [ "$IS_SCHEDULE" = true ]; then unset SKIP_HOLDER_SNAPSHOT; fi
-          npm run snapshot:volume
-      - name: Closed-day volume
-        if: matrix.chain != 'solana'
-        timeout-minutes: ${{ matrix.chain == 'bnb' && 150 || 320 }}
+          target=$(TZ=America/New_York date -d "$(TZ=America/New_York date +%F) 23:59:00" +%s); now=$(date +%s)
+          if [ "$(TZ=America/New_York date +%H)" = 23 ] && [ "$target" -gt "$now" ]; then echo "sleep $((target-now))s"; sleep $((target-now)); fi
+          echo "reading at ET $(TZ=America/New_York date '+%F %T %Z')"
+      - name: Holder shard
         run: |
-          if [ "${{ matrix.chain }}" = bnb ]; then export BNB_GECKO_BUDGET_SECONDS=5400; fi
-          python scripts/snapshot-${{ matrix.chain }}-volume.py
-      - name: Collect changed data files
+          s=$(date +%s); npm run snapshot:holders -- --chain ${{ matrix.s.chain }}
+          echo "holders ${{ matrix.s.chain }} shard ${{ matrix.s.i }}/${{ matrix.s.n }} $(( $(date +%s)-s ))s"
+      - uses: actions/upload-artifact@v4
         if: always()
+        with: { name: "hshard-${{ matrix.s.chain }}-${{ matrix.s.i }}", path: hshard/, retention-days: 3 }
+
+  holders-merge:
+    needs: [plan, holders-shard]
+    if: always() && needs.plan.outputs.holders == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        chain: ${{ fromJson(needs.plan.outputs.chains) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: npm }
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with: { path: hshard, pattern: "hshard-${{ matrix.chain }}-*" }
+      - name: Merge + guard
+        id: m
         run: |
+          set -o pipefail
+          n=$(echo '${{ needs.plan.outputs.hshards }}' | python3 -c "import json,sys;print(sum(1 for s in json.load(sys.stdin) if s['chain']=='${{ matrix.chain }}'))")
           mkdir -p out
-          git status --porcelain -- data/volume-snapshots data/holder-snapshots | awk '{print $2}' | tee out/changed.txt
+          if npx tsx scripts/merge-holder-shards.ts ${{ matrix.chain }} hshard "$n" 2>&1 | tee out/holders.log; then r=READY; else r="NOT READY"; fi
+          echo "| holders ${{ matrix.chain }} ${{ needs.plan.outputs.hday }} | $r | $(tail -1 out/holders.log | cut -c1-300) |" >> out/summary.md
+          cat out/summary.md >> "$GITHUB_STEP_SUMMARY"
+          git status --porcelain -- data/holder-snapshots | awk '{print $2}' > out/changed.txt
           while read -r f; do [ -n "$f" ] && mkdir -p "out/$(dirname "$f")" && cp "$f" "out/$f"; done < out/changed.txt
       - uses: actions/upload-artifact@v4
         if: always()
-        with:
-          name: data-${{ matrix.chain }}-${{ needs.plan.outputs.day }}
-          path: out/
-          if-no-files-found: warn
-          retention-days: 14
+        with: { name: "holders-${{ matrix.chain }}-${{ needs.plan.outputs.hday }}", path: out/, retention-days: 14 }
 
-  land:
-    # Present but disabled unless a manual dispatch sets dry_run=false.
-    needs: [plan, capture]
-    if: always() && needs.plan.outputs.dry_run == 'false' && github.event_name == 'workflow_dispatch' && needs.plan.outputs.skip != 'true'
+  # ---------------------------------------------------------------- volume, closed ET day
+  volume-evm:
+    needs: plan
+    if: needs.plan.outputs.volume == 'true'
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    timeout-minutes: 330
+    strategy:
+      fail-fast: false
+      matrix:
+        chain: [base, bnb, robinhood]
+    env:
+      DAY: ${{ needs.plan.outputs.day }}
+      BASE_SNAPSHOT_DATE: ${{ needs.plan.outputs.day }}
+      BNB_SNAPSHOT_DATE: ${{ needs.plan.outputs.day }}
+      ROBINHOOD_SNAPSHOT_DATE: ${{ needs.plan.outputs.day }}
+      SKIP_HOLDER_SNAPSHOT: "1"
+      BSC_RPC_URL: ${{ secrets.BSC_RPC_URL }}
+      BASE_RPC_URL: ${{ secrets.BASE_RPC_URL }}
+      ONDO_API_KEY: ${{ secrets.ONDO_API_KEY }}
+      ONDO_GM_API_KEY: ${{ secrets.ONDO_GM_API_KEY }}
+      DINARI_API_KEY_ID: ${{ secrets.DINARI_API_KEY_ID }}
+      DINARI_API_SECRET_KEY: ${{ secrets.DINARI_API_SECRET_KEY }}
+    steps:
+      - name: Selected?
+        id: sel
+        run: echo 'sel=${{ contains(fromJson(needs.plan.outputs.chains), matrix.chain) }}' >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        if: steps.sel.outputs.sel == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.sel.outputs.sel == 'true'
+        with: { node-version: "20", cache: npm }
+      - uses: actions/setup-python@v5
+        if: steps.sel.outputs.sel == 'true'
+        with: { python-version: "3.12" }
+      - if: steps.sel.outputs.sel == 'true'
+        run: npm ci && pip install -q requests
+      - uses: actions/cache@v4
+        if: steps.sel.outputs.sel == 'true'
+        with:
+          path: work/${{ matrix.chain }}
+          key: onchain-${{ matrix.chain }}-${{ github.run_id }}
+          restore-keys: onchain-${{ matrix.chain }}-
+      - name: Gecko closed-day capture (into work/snap, not data/)
+        if: steps.sel.outputs.sel == 'true' && matrix.chain != 'base'
+        timeout-minutes: 150
+        run: |
+          s=$(date +%s); mkdir -p work/snap
+          export BNB_VOLUME_SNAPSHOT_DIR=$PWD/work/snap ROBINHOOD_VOLUME_SNAPSHOT_DIR=$PWD/work/snap BNB_GECKO_BUDGET_SECONDS=5400
+          python scripts/snapshot-${{ matrix.chain }}-volume.py
+          echo "gecko ${{ matrix.chain }} $(( $(date +%s)-s ))s" | tee -a work/times.txt
+      - name: Onchain recount
+        if: steps.sel.outputs.sel == 'true'
+        run: |
+          s=$(date +%s)
+          if [ "${{ matrix.chain }}" = base ]; then
+            bash scripts/onchain/base/run.sh "$DAY" "$PWD/work/base"
+          else
+            bash scripts/onchain/${{ matrix.chain }}/run.sh "$DAY" "$PWD/work/${{ matrix.chain }}" "work/snap/${{ matrix.chain }}.json"
+          fi
+          echo "onchain ${{ matrix.chain }} $(( $(date +%s)-s ))s" | tee -a work/times.txt
+      - name: READY gate + artifact
+        if: always() && steps.sel.outputs.sel == 'true'
+        run: |
+          W=work/${{ matrix.chain }}; mkdir -p out
+          st=$W/out/$DAY.status.json
+          if [ -f "$st" ]; then
+            python3 scripts/onchain/upsert_row.py ${{ matrix.chain }} "$st" "$W/out/$DAY.json" | tee out/upsert.log
+            cp $W/out/$DAY.* out/ 2>/dev/null || true
+            python3 -c "import json;s=json.load(open('$st'));print('| volume ${{ matrix.chain }} $DAY |', 'READY' if s['ready'] else 'NOT READY', '|', s.get('combined24hUsd'), '|', '; '.join(s['reasons'])[:600], '|')" >> out/summary.md
+          else
+            echo "| volume ${{ matrix.chain }} $DAY | NOT READY | | pipeline did not finish |" >> out/summary.md
+          fi
+          cp work/times.txt $W/time-$DAY.log out/ 2>/dev/null || true
+          git status --porcelain -- data/volume-snapshots | awk '{print $2}' > out/changed.txt
+          while read -r f; do [ -n "$f" ] && mkdir -p "out/$(dirname "$f")" && cp "$f" "out/$f"; done < out/changed.txt
+          cat out/summary.md work/times.txt >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.sel.outputs.sel == 'true'
+        with: { name: "volume-${{ matrix.chain }}-${{ needs.plan.outputs.day }}", path: out/, retention-days: 14 }
+
+  solana-capture:
+    needs: plan
+    if: needs.plan.outputs.volume == 'true' && contains(fromJson(needs.plan.outputs.chains), 'solana')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      SOLANA_SNAPSHOT_DATE: ${{ needs.plan.outputs.day }}
+      SOLANA_MARKET_ENABLED: "true"
+      SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
     steps:
       - uses: actions/checkout@v4
-        with: { ref: main, fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: npm }
+      - run: npm ci
+      - run: mkdir -p sol && npx tsx scripts/snapshot-solana-sharded.ts capture sol/detail.json
+      - uses: actions/upload-artifact@v4
+        with: { name: solana-detail, path: sol/, retention-days: 3 }
+
+  solana-shard:
+    needs: [plan, solana-capture]
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        i: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    env:
+      SOLANA_SNAPSHOT_DATE: ${{ needs.plan.outputs.day }}
+      SOLANA_GECKO_CACHE: ${{ github.workspace }}/gcache
+      SOLANA_MIN_H24: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: npm }
+      - run: npm ci
       - uses: actions/download-artifact@v4
-        with: { path: arts, pattern: "data-*" }
-      - name: Append-only guard + commit to main
+        with: { name: solana-detail, path: sol }
+      - uses: actions/cache/restore@v4
+        with: { path: gcache, key: "solana-gecko-${{ github.run_id }}", restore-keys: "solana-gecko-" }
+      - run: |
+          s=$(date +%s); mkdir -p pools
+          npx tsx scripts/snapshot-solana-sharded.ts shard ${{ matrix.i }} 16 sol/detail.json pools/shard-${{ matrix.i }}.json
+          echo "solana shard ${{ matrix.i }} $(( $(date +%s)-s ))s" | tee pools/time-${{ matrix.i }}.txt
+      - uses: actions/upload-artifact@v4
+        with: { name: "solana-pools-${{ matrix.i }}", path: pools/, retention-days: 3 }
+      - uses: actions/upload-artifact@v4
+        with: { name: "solana-gcache-${{ matrix.i }}", path: gcache/, retention-days: 1, if-no-files-found: ignore }
+
+  solana-merge:
+    needs: [plan, solana-shard]
+    if: always() && needs.plan.outputs.volume == 'true' && contains(fromJson(needs.plan.outputs.chains), 'solana')
+    runs-on: ubuntu-latest
+    env:
+      DAY: ${{ needs.plan.outputs.day }}
+      SOLANA_SNAPSHOT_DATE: ${{ needs.plan.outputs.day }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: npm }
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with: { name: solana-detail, path: sol }
+      - uses: actions/download-artifact@v4
+        with: { pattern: "solana-pools-*", path: pools, merge-multiple: true }
+      - uses: actions/download-artifact@v4
+        with: { pattern: "solana-gcache-*", path: gcache, merge-multiple: true }
+      - uses: actions/cache/save@v4
+        if: always()
+        with: { path: gcache, key: "solana-gecko-${{ github.run_id }}" }
+      - name: Merge (row written only when READY)
         run: |
-          set -euo pipefail
-          git config user.name "Cliff Weybrecht"; git config user.email "cliff.weybrecht@gmail.com"
-          changed=0
-          for a in arts/*/; do
-            [ -f "$a/changed.txt" ] || continue
-            while read -r f; do
-              [ -n "$f" ] && [ -f "$a/$f" ] || continue
-              cp "$a/$f" "$f"
-              del=$(git diff --numstat -- "$f" | awk '{print $2}')
-              before=$(git show "HEAD:$f" 2>/dev/null | { grep -o '"date"' || true; } | wc -l)
-              after=$({ grep -o '"date"' "$f" || true; } | wc -l)
-              if [ "${del:-0}" -gt 2 ] || [ "$after" -lt "$before" ]; then
-                echo "REFUSED $f (deletions=$del dates $before->$after)"; git checkout -q -- "$f"; continue
-              fi
-              git add "$f"; changed=1; echo "staged $f ($before->$after)"
-            done < "$a/changed.txt"
-          done
-          [ "$changed" = 1 ] || { echo "nothing to land"; exit 0; }
-          git commit -m "snapshot: nightly ${{ needs.plan.outputs.day }} (actions capture)"
-          for i in 1 2 3; do git pull --rebase -q origin main && git push origin HEAD:main && exit 0; sleep 10; done
-          exit 1
+          mkdir -p out; n=$(ls pools/shard-*.json 2>/dev/null | wc -l)
+          if [ "$n" != 16 ]; then echo "{\"ready\":false,\"reasons\":[\"only $n/16 shards finished\"]}" > out/status.json
+          else npx tsx scripts/snapshot-solana-sharded.ts merge sol/detail.json pools out/status.json || true; fi
+          cat pools/time-*.txt > out/times.txt 2>/dev/null || true
+          python3 -c "import json;s=json.load(open('out/status.json'));print('| volume solana $DAY |', 'READY' if s.get('ready') else 'NOT READY', '|', s.get('combined24hUsd'), '|', '; '.join(s.get('reasons',[]))[:600], '|')" >> out/summary.md
+          git status --porcelain -- data/volume-snapshots | awk '{print $2}' > out/changed.txt
+          while read -r f; do [ -n "$f" ] && mkdir -p "out/$(dirname "$f")" && cp "$f" "out/$f"; done < out/changed.txt
+          cat out/summary.md out/times.txt >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: "volume-solana-${{ needs.plan.outputs.day }}", path: out/, retention-days: 14 }
+
+  # No land/push job. Pushing to Origin needs a credential (e.g. ORIGIN_PUSH_TOKEN) that is not configured.

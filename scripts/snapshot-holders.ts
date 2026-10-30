@@ -6,6 +6,9 @@ import {
   rpcUrlFor,
 } from "../src/lib/market/holder-snapshot-job";
 import { holderSnapshotPath, saveHolderSnapshotDay } from "../src/lib/market/holder-snapshot-store";
+import { holderGuard, holderShardOf, priorHolderDay, unionWithPriorDay } from "../src/lib/market/holder-universe-union";
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
 import { easternDayKey } from "../src/lib/market/volume-snapshots";
 
 const CHAINS: readonly HolderSnapshotChainId[] = ["solana", "base", "bnb", "robinhood"];
@@ -72,7 +75,16 @@ Then land with:
   for (const chainId of chains) {
     try {
       console.log(`snapshot:holders loading ${chainId} universe`);
-      const universe = await loadHolderUniverse(chainId);
+      const live = await loadHolderUniverse(chainId);
+      const date = override || today;
+      const prior = await priorHolderDay(chainId, date, dir);
+      const { universe: full, carried } = await unionWithPriorDay({ chainId, universe: live, prior });
+      console.log(`snapshot:holders ${chainId} live=${live.length} carriedFromPrior=${carried} prior=${prior?.date ?? "none"}`);
+      const shardSpec = process.env.HOLDER_SHARD?.trim() || "";
+      const shardMatch = /^(\d+)\/(\d+)$/.exec(shardSpec);
+      const universe = shardMatch
+        ? full.filter((row) => holderShardOf(row.address, Number(shardMatch[2])) === Number(shardMatch[1]))
+        : full;
       if (universe.length === 0) {
         console.error(`snapshot:holders ${chainId} universe was empty. Nothing was written.`);
         failed += 1;
@@ -83,9 +95,22 @@ Then land with:
         chainId,
         universe,
         unixSeconds: nowSeconds,
-        date: override || today,
+        date,
         log: (message) => console.log(message),
       });
+      const shardOut = process.env.HOLDER_SHARD_OUT?.trim();
+      if (shardMatch && shardOut) {
+        await mkdir(dirname(shardOut), { recursive: true });
+        await writeFile(shardOut, JSON.stringify({ chainId, shard: shardSpec, universeTotal: full.length, day }), "utf8");
+        console.log(`snapshot:holders ${chainId} shard ${shardSpec} assets=${day.assets.length} -> ${shardOut}`);
+        continue;
+      }
+      const refused = holderGuard(day, prior);
+      if (refused) {
+        console.error(`snapshot:holders ${chainId} NOT READY: ${refused}`);
+        failed += 1;
+        continue;
+      }
       await saveHolderSnapshotDay(chainId, day, dir);
       console.log(formatHolderSnapshotLine(chainId, day, holderSnapshotPath(chainId, dir)));
     } catch (error) {
