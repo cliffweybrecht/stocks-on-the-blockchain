@@ -23,6 +23,15 @@ for pid in left:
   if c0 is None and c1 and un0==len(sw): c0='0x'+'0'*40   # currency0 never an ERC20 transfer -> native ETH
   res[pid]=(c0,c1,len(sw))
   if c0 and c1 and c0<c1: SP[pid]={'manager':sw[0]['a'],'dex':'uniswap-v4','c0':c0,'c1':c1,'via':'Swap amounts matched to vault Transfer values'}
+# Ids still without a pool key: use the pair GeckoTerminal reported for this pool id (known_pools.json).
+# V4 PoolKey orders currency0 < currency1, so the two addresses are sorted.
+import os
+KN=json.load(open('known_pools.json')) if os.path.exists('known_pools.json') else {}
+for pid in [x[0] if isinstance(x,list) else x for x in (json.load(open(f'v4left2-{day}.json')) if os.path.exists(f'v4left2-{day}.json') else [])]:
+  k=KN.get(pid)
+  if pid in SP or not k or not k.get('base') or not k.get('quote'): continue
+  c0,c1=sorted([k['base'].lower(),k['quote'].lower()])
+  SP[pid]={'manager':None,'dex':k.get('dex'),'c0':c0,'c1':c1,'via':'GeckoTerminal pool metadata (known_pools)'}; print(pid[:12],'resolved via known_pools')
 json.dump(SP,open('singleton_pools.json','w'))
 U=set(json.load(open('universe.json')))
 for k,v in res.items(): print(k[:12],v,'STOCK' if (v[0] in U or v[1] in U) else '', 'resolved' if k in SP else 'LEFT')

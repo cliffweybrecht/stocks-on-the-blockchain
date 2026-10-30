@@ -114,6 +114,7 @@ jobs:
       HOLDER_SHARD_OUT: hshard/${{ matrix.s.chain }}-${{ matrix.s.i }}.json
       SOLANA_MARKET_ENABLED: "true"
       SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
+      HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
       BSC_RPC_URL: ${{ secrets.BSC_RPC_URL }}
       ONDO_API_KEY: ${{ secrets.ONDO_API_KEY }}
       ONDO_GM_API_KEY: ${{ secrets.ONDO_GM_API_KEY }}
@@ -124,6 +125,11 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: "20", cache: npm }
       - run: npm ci
+      - name: Solana RPC (Helius fallback; secret stays masked)
+        run: |
+          if [ -z "${SOLANA_RPC_URL:-}" ] && [ -n "${HELIUS_API_KEY:-}" ]; then
+            echo "SOLANA_RPC_URL=https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}" >> "$GITHUB_ENV"; echo "using Helius"
+          fi
       - name: Wait for 23:59:00 ET
         if: github.event_name == 'schedule' || inputs.wait_for_close
         run: |
@@ -257,11 +263,17 @@ jobs:
       SOLANA_SNAPSHOT_DATE: ${{ needs.plan.outputs.day }}
       SOLANA_MARKET_ENABLED: "true"
       SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
+      HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: "20", cache: npm }
       - run: npm ci
+      - name: Solana RPC (Helius fallback; secret stays masked)
+        run: |
+          if [ -z "${SOLANA_RPC_URL:-}" ] && [ -n "${HELIUS_API_KEY:-}" ]; then
+            echo "SOLANA_RPC_URL=https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}" >> "$GITHUB_ENV"; echo "using Helius"
+          fi
       - run: mkdir -p sol && npx tsx scripts/snapshot-solana-sharded.ts capture sol/detail.json
       - uses: actions/upload-artifact@v4
         with: { name: solana-detail, path: sol/, retention-days: 3 }
