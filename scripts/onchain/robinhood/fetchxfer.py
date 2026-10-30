@@ -13,15 +13,15 @@ print(day,len(pools),len(txs),flush=True)
 pt={'0x'+'0'*24+p[2:]:p for p in pools}
 def batch(hs):
   body=json.dumps([{"jsonrpc":"2.0","id":i,"method":"eth_getTransactionReceipt","params":[h]} for i,h in enumerate(hs)]).encode()
-  for a in range(8):
+  for a in range(20):
     try:
       r=json.loads(urllib.request.urlopen(urllib.request.Request(RPC,body,{"content-type":"application/json","user-agent":"curl/8"}),timeout=90).read())
       if all('result' in x and x['result'] for x in r): return [x['result'] for x in r]
       raise Exception('partial')
-    except Exception as e: time.sleep(2*(a+1))
+    except Exception as e: time.sleep(min(30,3*(a+1)))  # public RPC 429s on GH runners: back off longer
   raise Exception('batch failed')
 out=[]
-with ThreadPoolExecutor(4) as ex:
+with ThreadPoolExecutor(2) as ex:
   for n,rs in enumerate(ex.map(batch,[txs[i:i+40] for i in range(0,len(txs),40)])):
     for r in rs:
       for l in r['logs']:
