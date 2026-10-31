@@ -85,6 +85,7 @@ _SCRIPT_DIR = str(Path(__file__).resolve().parent)
 if _SCRIPT_DIR not in sys.path:
     sys.path.insert(0, _SCRIPT_DIR)
 
+from gecko_http import gecko_get_json_or_raise  # noqa: E402
 from bnb_market_value import (  # noqa: E402
     MARKET_VALUE_SOURCE,
     bsc_rpc_urls,
@@ -804,7 +805,7 @@ def hydrate_volumes(
     }
 
     if discover_gecko:
-        gecko_pace = _Pace(GECKO_MIN_INTERVAL_S)
+        gecko_getter = fetch or gecko_get_json_or_raise  # shared paced client; it spaces calls
         targets = _gecko_targets(rows, known, returned_counts, vols)
         gecko_pairs: list[dict] = []
         for n, addr in enumerate(targets):
@@ -812,10 +813,9 @@ def hydrate_volumes(
                 print(f"gecko budget: pool discovery stopped, skipped {len(targets) - n} tokens", flush=True)
                 break
             for page in (1, 2):
-                gecko_pace.wait()
                 url = GECKO_TOKEN_POOLS.format(addr=by_addr[addr]["address"], page=page)
                 try:
-                    payload = getter(url)
+                    payload = gecko_getter(url)
                 except Exception as e:  # noqa: BLE001
                     failed += 1
                     print(f"warn gecko pools failed {by_addr[addr].get('symbol')}: {e}", file=sys.stderr)

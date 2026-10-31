@@ -19,6 +19,13 @@ export interface GeckoPace {
   nextAt: number;
 }
 
+/**
+ * One pace per process. Every Gecko caller in a run (closed-day pools, holder token info) shares it,
+ * so the whole process stays under the public ~30/min cap. Slots are reserved synchronously, so
+ * concurrent callers queue in order instead of waking together.
+ */
+export const sharedGeckoPace: GeckoPace = { nextAt: 0 };
+
 export type GeckoFetchSuccess = { ok: true; body: unknown; attempts: number; status: number };
 export type GeckoFetchFailure = {
   ok: false;
@@ -53,6 +60,7 @@ export async function fetchGeckoJson(input: {
   maxAttempts?: number;
   minIntervalMs?: number;
   timeoutMs?: number;
+  headers?: Record<string, string>;
 }): Promise<GeckoFetchResult> {
   const cached = readGeckoCache(input.cache?.get(input.url));
   if (cached) return cached;
@@ -66,11 +74,16 @@ export async function fetchGeckoJson(input: {
   let lastStatus: number | null = null;
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-    const wait = input.pace.nextAt - now();
+    // Reserve the slot before awaiting so concurrent callers cannot share it.
+    const startAt = Math.max(now(), input.pace.nextAt);
+    input.pace.nextAt = startAt + minIntervalMs;
+    const wait = startAt - now();
     if (wait > 0) await sleep(wait);
-    input.pace.nextAt = now() + minIntervalMs;
     try {
-      const response = await input.fetchImpl(input.url, { signal: AbortSignal.timeout(timeoutMs) });
+      const response = await input.fetchImpl(input.url, {
+        signal: AbortSignal.timeout(timeoutMs),
+        ...(input.headers ? { headers: input.headers } : {}),
+      });
       const status = response.status;
       if (status === 404) {
         return rememberGeckoFailure(input.cache, input.url, {

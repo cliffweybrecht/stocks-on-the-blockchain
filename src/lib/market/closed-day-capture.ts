@@ -1,4 +1,4 @@
-import { fetchGeckoJson, type GeckoPace } from "./gecko-fetch";
+import { fetchGeckoJson, sharedGeckoPace, type GeckoPace } from "./gecko-fetch";
 import { easternDayKey, easternMidnightUnix } from "./volume-snapshots";
 
 /** Pools quieter than this are left on the DexScreener sample. Their h24 is dust. */
@@ -326,7 +326,8 @@ export async function loadSolanaClosedDayPools(input: {
     });
   }
 
-  const pace: GeckoPace = { nextAt: 0 };
+  // Process-wide pace; an injected clock (tests) gets its own so fake time cannot leak across calls.
+  const pace: GeckoPace = input.sleep || input.now ? { nextAt: 0 } : sharedGeckoPace;
   const geckoGet = async (url: string) =>
     fetchGeckoJson({
       url,

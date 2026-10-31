@@ -135,6 +135,22 @@ class GeckoHttpTest(unittest.TestCase):
         self.assertTrue(client.get_json("https://example.test/b").ok)
         self.assertEqual([round(item, 2) for item in clock.sleeps], [2.1])
 
+    def test_concurrent_callers_get_distinct_slots(self) -> None:
+        import threading
+
+        def opener(_req, timeout):  # noqa: ANN001
+            return Resp({"ok": True})
+
+        client, clock = self.client(opener)
+        threads = [threading.Thread(target=client.get_json, args=("https://example.test/x",)) for _ in range(5)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        self.assertEqual(client.requests, 5)
+        # 5 calls from one shared client: the clock advances by 4 intervals in total, never less.
+        self.assertAlmostEqual(sum(clock.sleeps), 4 * 2.1, places=6)
+
 
 if __name__ == "__main__":
     unittest.main()

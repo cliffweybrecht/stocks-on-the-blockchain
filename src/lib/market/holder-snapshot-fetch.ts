@@ -1,4 +1,5 @@
-import { createRequestGate, sleep } from "./async-pool";
+import { sleep } from "./async-pool";
+import { fetchGeckoJson, sharedGeckoPace } from "./gecko-fetch";
 import { asHolderCount } from "./solana-holders";
 import { parseUiAmountString } from "./solana-supply";
 import type { FetchLike } from "./solana-http";
@@ -206,7 +207,7 @@ export interface GeckoHolderRead {
  * Public GeckoTerminal allows about 30 calls a minute.
  * Token-info reads stay under that. A 429 is not a holder count.
  */
-const geckoInfoGate = createRequestGate({ maxConcurrent: 1, minGapMs: 6_500 });
+const HOLDER_GECKO_GAP_MS = 6_500;
 
 export function classifyGeckoHolderResponse(status: number, payload: unknown): GeckoHolderRead {
   if (status === 404) {
@@ -355,36 +356,24 @@ export async function fetchGeckoHolderRead(
   geckoBaseUrl: string,
   timeoutMs: number,
   fetchImpl: FetchLike,
-  options?: { maxAttempts?: number; rateLimitDelayMs?: number; pace?: boolean },
+  options?: { maxAttempts?: number },
 ): Promise<GeckoHolderRead> {
   const base = geckoBaseUrl.replace(/\/+$/, "");
   const url = `${base}/networks/${encodeURIComponent(network)}/tokens/${address}/info`;
-  const maxAttempts = options?.maxAttempts ?? 6;
-  const rateLimitDelayMs = options?.rateLimitDelayMs ?? 12_000;
-  const pace = options?.pace !== false;
-  let last: GeckoHolderRead = { holderCount: null, settled: false, note: "GeckoTerminal token info request failed." };
-  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-    const run = async () => {
-      const { signal, cancel } = timeoutSignal(timeoutMs);
-      try {
-        const response = await fetchImpl(url, {
-          method: "GET",
-          headers: { accept: "application/json", "user-agent": "stocks-on-the-blockchain/0.1" },
-          signal,
-          cache: "no-store",
-        });
-        const payload = response.ok || response.status === 404 ? await response.json().catch(() => null) : null;
-        return classifyGeckoHolderResponse(response.status, payload);
-      } catch {
-        return classifyGeckoHolderResponse(0, null);
-      } finally {
-        cancel();
-      }
-    };
-    last = pace ? await geckoInfoGate.run(run) : await run();
-    if (last.settled) return last;
-    if (attempt < maxAttempts - 1) await sleep(rateLimitDelayMs);
-  }
+  // Shared process-wide pace + 429/5xx/timeout backoff (Retry-After, jitter). Token info keeps its
+  // wider 6.5 s gap (shard sizing in the workflow assumes it); the slot queue is shared with other Gecko calls.
+  const result = await fetchGeckoJson({
+    url,
+    fetchImpl: fetchImpl as typeof fetch,
+    pace: sharedGeckoPace,
+    minIntervalMs: HOLDER_GECKO_GAP_MS,
+    timeoutMs,
+    maxAttempts: options?.maxAttempts ?? 6,
+    headers: { accept: "application/json", "user-agent": "stocks-on-the-blockchain/0.1" },
+  });
+  if (result.ok) return classifyGeckoHolderResponse(result.status, result.body);
+  if (result.reason === "not-found") return classifyGeckoHolderResponse(404, null);
+  if (result.reason === "http-error") return classifyGeckoHolderResponse(result.status ?? 0, null);
   return {
     holderCount: null,
     settled: false,

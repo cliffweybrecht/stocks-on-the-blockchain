@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import random
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -85,15 +86,19 @@ class GeckoHttpClient:
         self.monotonic = monotonic
         self.random_fn = random_fn
         self.opener = opener or urllib.request.urlopen
+        self._lock = threading.Lock()
         self._next = 0.0
         self.requests = 0
         self.retries = 0
 
     def _pace(self) -> None:
-        delay = self._next - self.monotonic()
-        if delay > 0:
-            self.sleep(delay)
-        self._next = self.monotonic() + self.interval
+        # Reserve the next slot under the lock, sleep outside it: threads queue in order.
+        with self._lock:
+            now = self.monotonic()
+            slot = max(now, self._next)
+            self._next = slot + self.interval
+        if slot > now:
+            self.sleep(slot - now)
 
     def _backoff(self, attempt: int, headers: Any) -> None:
         exp = min(GECKO_BACKOFF_CAP_S, GECKO_BACKOFF_BASE_S * (2**attempt))
@@ -103,7 +108,8 @@ class GeckoHttpClient:
         if retry_after is not None:
             delay = max(delay, retry_after)
         self.sleep(delay)
-        self._next = max(self._next, self.monotonic() + self.interval)
+        with self._lock:
+            self._next = max(self._next, self.monotonic() + self.interval)
 
     def get_json(self, url: str) -> GeckoFetchResult:
         last_status: int | None = None
@@ -153,15 +159,25 @@ class GeckoHttpClient:
 
 
 _SHARED: GeckoHttpClient | None = None
+_SHARED_LOCK = threading.Lock()
 
 
 def shared_gecko_client() -> GeckoHttpClient:
     """Process-wide client so discovery and candle reads share one throttle."""
     global _SHARED
-    if _SHARED is None:
-        _SHARED = GeckoHttpClient()
-    return _SHARED
+    with _SHARED_LOCK:
+        if _SHARED is None:
+            _SHARED = GeckoHttpClient()
+        return _SHARED
 
 
 def gecko_get_json(url: str) -> GeckoFetchResult:
     return shared_gecko_client().get_json(url)
+
+
+def gecko_get_json_or_raise(url: str) -> Any:
+    """Shared-client GET for callers that treat any failure as an exception."""
+    result = gecko_get_json(url)
+    if not result.ok:
+        raise RuntimeError(f"gecko {result.reason} status={result.status} attempts={result.attempts}: {url}")
+    return result.body

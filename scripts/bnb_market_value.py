@@ -766,15 +766,7 @@ def collect_market_values(
 
 
 def fetch_gecko_json(url: str, timeout: float = 30) -> Any:
-    req = urllib.request.Request(
-        url,
-        headers={
-            "Accept": "application/json",
-            "User-Agent": "Mozilla/5.0 (compatible; BnbVolumeSnapshot/1.0)",
-        },
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read().decode())
-    except urllib.error.HTTPError as exc:
-        raise RuntimeError(f"HTTP {exc.code} for {url}") from exc
+    """Shared paced Gecko client (429/5xx/timeout backoff, Retry-After). Raises when retries are exhausted."""
+    from gecko_http import gecko_get_json_or_raise
+
+    return gecko_get_json_or_raise(url)

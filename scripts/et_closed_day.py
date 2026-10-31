@@ -32,6 +32,8 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from gecko_http import gecko_get_json
+
 EASTERN = ZoneInfo("America/New_York")
 ROOT = Path(__file__).resolve().parents[1]
 CACHE = Path("/tmp/volume-audit/cache")
@@ -72,7 +74,6 @@ EXCLUDED_VOLUME_POOLS = frozenset(
         "0xb21a69c49b9db2be06d5afa34530205f19565e75d1db42c0533e0a20e85698b3",
     }
 )
-GECKO_GAP_S = 3.2
 UA = {"accept": "application/json", "user-agent": "stocks-on-the-blockchain-closed-day/1.0"}
 
 CHAIN_NETWORK = {
@@ -81,7 +82,6 @@ CHAIN_NETWORK = {
     "solana": "solana",
 }
 
-_next_gecko = 0.0
 
 
 def eastern_midnight(day: str) -> int:
@@ -431,24 +431,16 @@ def _cache_write(path: Path, payload: Any) -> None:
 
 
 def _get_json(url: str, *, gecko: bool = False) -> Any:
-    global _next_gecko
-    for attempt in range(4):
-        if gecko:
-            wait = _next_gecko - time.time()
-            if wait > 0:
-                time.sleep(wait)
-            _next_gecko = time.time() + GECKO_GAP_S
-        req = urllib.request.Request(url, headers=UA)
-        try:
-            with urllib.request.urlopen(req, timeout=25) as resp:
-                return json.loads(resp.read().decode())
-        except Exception as exc:
-            message = str(exc)
-            if gecko and "429" in message and attempt < 3:
-                time.sleep(15 * (attempt + 1))
-                continue
-            return None
-    return None
+    """Body or None. Gecko calls use the process-wide paced client (429/5xx/timeout backoff)."""
+    if gecko:
+        result = gecko_get_json(url)
+        return result.body if result.ok else None
+    req = urllib.request.Request(url, headers=UA)
+    try:
+        with urllib.request.urlopen(req, timeout=25) as resp:
+            return json.loads(resp.read().decode())
+    except Exception:
+        return None
 
 
 def ohlcv_cache_path(chain: str, pool: str) -> Path:
