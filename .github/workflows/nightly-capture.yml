@@ -190,6 +190,8 @@ jobs:
     needs: plan
     if: needs.plan.outputs.volume == 'true'
     runs-on: ubuntu-latest
+    # Step budget (min): sel 1 + checkout 5 + node 5 + python 5 + install 10 + cache 10 + gecko 135
+    # + onchain 135 + gate 10 + upload 10 = 326 < 330 < 360 (GitHub's 6h job cap).
     timeout-minutes: 330
     strategy:
       fail-fast: false
@@ -210,43 +212,53 @@ jobs:
     steps:
       - name: Selected?
         id: sel
+        timeout-minutes: 1
         run: echo 'sel=${{ contains(fromJson(needs.plan.outputs.chains), matrix.chain) }}' >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
         if: steps.sel.outputs.sel == 'true'
+        timeout-minutes: 5
       - uses: actions/setup-node@v4
         if: steps.sel.outputs.sel == 'true'
+        timeout-minutes: 5
         with: { node-version: "20", cache: npm }
       - uses: actions/setup-python@v5
         if: steps.sel.outputs.sel == 'true'
+        timeout-minutes: 5
         with: { python-version: "3.12" }
       - if: steps.sel.outputs.sel == 'true'
+        timeout-minutes: 10
         run: npm ci && pip install -q requests pycryptodome
       - uses: actions/cache@v4
         if: steps.sel.outputs.sel == 'true'
+        timeout-minutes: 10
         with:
           path: work/${{ matrix.chain }}
           key: onchain-${{ matrix.chain }}-${{ github.run_id }}
           restore-keys: onchain-${{ matrix.chain }}-
       - name: Gecko closed-day capture (into work/snap, not data/)
         if: steps.sel.outputs.sel == 'true' && matrix.chain != 'base'
-        timeout-minutes: 150
+        timeout-minutes: 135
         run: |
           s=$(date +%s); mkdir -p work/snap
           export BNB_VOLUME_SNAPSHOT_DIR=$PWD/work/snap ROBINHOOD_VOLUME_SNAPSHOT_DIR=$PWD/work/snap BNB_GECKO_BUDGET_SECONDS=5400
-          python scripts/snapshot-${{ matrix.chain }}-volume.py
+          # Up to 2 re-runs after a failure; the Gecko pool/candle caches under /tmp/volume-audit make re-runs resume.
+          bash scripts/ci_retry.sh python scripts/snapshot-${{ matrix.chain }}-volume.py
           echo "gecko ${{ matrix.chain }} $(( $(date +%s)-s ))s" | tee -a work/times.txt
       - name: Onchain recount
         if: steps.sel.outputs.sel == 'true'
+        timeout-minutes: 135
         run: |
           s=$(date +%s)
+          # Up to 2 re-runs after a failure; run.sh re-copies scripts and each script resumes from its work/<chain> files.
           if [ "${{ matrix.chain }}" = base ]; then
-            bash scripts/onchain/base/run.sh "$DAY" "$PWD/work/base"
+            bash scripts/ci_retry.sh bash scripts/onchain/base/run.sh "$DAY" "$PWD/work/base"
           else
-            bash scripts/onchain/${{ matrix.chain }}/run.sh "$DAY" "$PWD/work/${{ matrix.chain }}" "work/snap/${{ matrix.chain }}.json"
+            bash scripts/ci_retry.sh bash scripts/onchain/${{ matrix.chain }}/run.sh "$DAY" "$PWD/work/${{ matrix.chain }}" "work/snap/${{ matrix.chain }}.json"
           fi
           echo "onchain ${{ matrix.chain }} $(( $(date +%s)-s ))s" | tee -a work/times.txt
       - name: READY gate + artifact
         if: always() && steps.sel.outputs.sel == 'true'
+        timeout-minutes: 10
         run: |
           W=work/${{ matrix.chain }}; mkdir -p out
           st=$W/out/$DAY.status.json
@@ -263,13 +275,15 @@ jobs:
           cat out/summary.md work/times.txt >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
       - uses: actions/upload-artifact@v4
         if: always() && steps.sel.outputs.sel == 'true'
+        timeout-minutes: 10
         with: { name: "volume-${{ matrix.chain }}-${{ needs.plan.outputs.day }}", path: out/, retention-days: 14 }
 
   solana-capture:
     needs: plan
     if: needs.plan.outputs.volume == 'true' && contains(fromJson(needs.plan.outputs.chains), 'solana')
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # Steps (min): checkout 5 + node 5 + npm 10 + rpc 1 + capture 55 + upload 5 = 81 < 85.
+    timeout-minutes: 85
     env:
       SOLANA_SNAPSHOT_DATE: ${{ needs.plan.outputs.day }}
       SOLANA_MARKET_ENABLED: "true"
@@ -277,21 +291,29 @@ jobs:
       HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
     steps:
       - uses: actions/checkout@v4
+        timeout-minutes: 5
       - uses: actions/setup-node@v4
+        timeout-minutes: 5
         with: { node-version: "20", cache: npm }
       - run: npm ci
+        timeout-minutes: 10
       - name: Solana RPC (Helius fallback; secret stays masked)
+        timeout-minutes: 1
         run: |
           if [ -z "${SOLANA_RPC_URL:-}" ] && [ -n "${HELIUS_API_KEY:-}" ]; then
             echo "SOLANA_RPC_URL=https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}" >> "$GITHUB_ENV"; echo "using Helius"
           fi
-      - run: mkdir -p sol && npx tsx scripts/snapshot-solana-sharded.ts capture sol/detail.json
+      - name: Solana capture (up to 2 re-runs after a failure)
+        timeout-minutes: 55
+        run: mkdir -p sol && bash scripts/ci_retry.sh npx tsx scripts/snapshot-solana-sharded.ts capture sol/detail.json
       - uses: actions/upload-artifact@v4
+        timeout-minutes: 5
         with: { name: solana-detail, path: sol/, retention-days: 3 }
 
   solana-shard:
     needs: [plan, solana-capture]
     runs-on: ubuntu-latest
+    # Steps (min): checkout 5 + node 5 + npm 10 + download 10 + cache 10 + shard 235 + uploads 2x10 = 295 < 300 < 360.
     timeout-minutes: 300
     strategy:
       fail-fast: false
@@ -303,20 +325,29 @@ jobs:
       SOLANA_MIN_H24: "0"
     steps:
       - uses: actions/checkout@v4
+        timeout-minutes: 5
       - uses: actions/setup-node@v4
+        timeout-minutes: 5
         with: { node-version: "20", cache: npm }
       - run: npm ci
+        timeout-minutes: 10
       - uses: actions/download-artifact@v4
+        timeout-minutes: 10
         with: { name: solana-detail, path: sol }
       - uses: actions/cache/restore@v4
+        timeout-minutes: 10
         with: { path: gcache, key: "solana-gecko-${{ github.run_id }}", restore-keys: "solana-gecko-" }
-      - run: |
+      - name: Solana shard (up to 2 re-runs after a failure; pool lists resume from gcache)
+        timeout-minutes: 235
+        run: |
           s=$(date +%s); mkdir -p pools
-          npx tsx scripts/snapshot-solana-sharded.ts shard ${{ matrix.i }} 16 sol/detail.json pools/shard-${{ matrix.i }}.json
+          bash scripts/ci_retry.sh npx tsx scripts/snapshot-solana-sharded.ts shard ${{ matrix.i }} 16 sol/detail.json pools/shard-${{ matrix.i }}.json
           echo "solana shard ${{ matrix.i }} $(( $(date +%s)-s ))s" | tee pools/time-${{ matrix.i }}.txt
       - uses: actions/upload-artifact@v4
+        timeout-minutes: 10
         with: { name: "solana-pools-${{ matrix.i }}", path: pools/, retention-days: 3 }
       - uses: actions/upload-artifact@v4
+        timeout-minutes: 10
         with: { name: "solana-gcache-${{ matrix.i }}", path: gcache/, retention-days: 1, if-no-files-found: ignore }
 
   solana-merge:
