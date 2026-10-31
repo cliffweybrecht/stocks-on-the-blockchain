@@ -1,5 +1,6 @@
 """For pools with swap events we cannot decode, fetch receipts of their swap txs (batched) and keep Transfer logs touching the pool."""
 import json,gzip,sys,urllib.request,time
+from rpcretry import backoff
 from rpc import RPC
 from concurrent.futures import ThreadPoolExecutor
 UNK=('0xcad09799','0x97348197','0xad7d6f97','0xc528cda9','0xec36bf57','0x8113d738')
@@ -18,8 +19,8 @@ def batch(hs):
       r=json.loads(urllib.request.urlopen(urllib.request.Request(RPC,body,{"content-type":"application/json","user-agent":"curl/8"}),timeout=90).read())
       if all('result' in x and x['result'] for x in r): return [x['result'] for x in r]
       raise Exception('partial')
-    except Exception as e: time.sleep(min(30,3*(a+1)))  # public RPC 429s on GH runners: back off longer
-  raise Exception('batch failed')
+    except Exception as e: backoff(a,e,20,base=3.0,cap=45.0)  # public RPC 429s on GH runners: exponential + jitter + Retry-After
+  raise Exception('batch failed after 20 attempts')
 out=[]
 with ThreadPoolExecutor(2) as ex:
   for n,rs in enumerate(ex.map(batch,[txs[i:i+40] for i in range(0,len(txs),40)])):

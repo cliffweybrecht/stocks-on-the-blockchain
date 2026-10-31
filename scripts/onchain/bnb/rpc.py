@@ -1,4 +1,5 @@
 import json,os,urllib.request,time,itertools
+from rpcretry import backoff
 # BSC_RPC_URL secret (archive-grade, many addresses per getLogs) if set; else public publicnode
 # (10 addresses and 50k blocks per eth_getLogs; getlogs.py splits to fit).
 _SECRET=os.environ.get('BSC_RPC_URL') or ''
@@ -17,7 +18,7 @@ def call(m,p,tries=6,ep=None):
       if 'error' in j: raise Exception(str(j['error'])[:200])
       return j['result']
     except Exception as e:
-      err=e; time.sleep((4+k*4) if '429' in str(e) else min(8,1+k*1.5))
+      err=e; backoff(k,e,tries)
   raise err
 def batch(reqs,tries=10):
   body=[{'jsonrpc':'2.0','id':i,'method':m,'params':p} for i,(m,p) in enumerate(reqs)]
@@ -30,5 +31,5 @@ def batch(reqs,tries=10):
       out=[None]*len(reqs)
       for x in j: out[x['id']]=x.get('result')
       return out
-    except Exception as e: err=e; time.sleep((5+k*5) if '429' in str(e) else 1+k*2)
+    except Exception as e: err=e; backoff(k,e,tries)
   raise err

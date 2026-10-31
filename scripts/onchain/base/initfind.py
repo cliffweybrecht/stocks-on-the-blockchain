@@ -1,5 +1,5 @@
 import json,sys,time,urllib.error
-from rpc import _post
+from rpc import post_retry as _post
 day=sys.argv[1]; left=[x[0] for x in json.load(open(f'v4left-{day}.json'))]
 SP=json.load(open('singleton_pools.json'))
 MG=['0x498581ff718922c3f8e6a244956af099b2652b2b','0xa0ffb9c1ce1fe56963b0321b32e7a0302114058b','0xc697d2898e0d09264376196696c51d7abbbaa4a9']
@@ -10,7 +10,7 @@ MAXSTEPS=int(__import__('os').environ.get('INITFIND_MAX_STEPS','400')); n=0
 while todo and b>0 and n<MAXSTEPS:
   n+=1
   try: j=_post({'jsonrpc':'2.0','id':1,'method':'eth_getLogs','params':[{'address':MG,'topics':[None,sorted(todo)],'fromBlock':hex(b-step),'toBlock':hex(b)}]})
-  except urllib.error.HTTPError as e: print('stop at',b,e.read()[:120]); break
+  except Exception as e: print('stop at',b,str(e)[:120]); break  # retries exhausted: leave ids unresolved
   if 'error' in j: print('err',b,str(j['error'])[:120]); time.sleep(2); continue
   for l in j['result']:
     pid=l['topics'][1]

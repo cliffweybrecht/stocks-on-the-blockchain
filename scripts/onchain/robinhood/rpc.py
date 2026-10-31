@@ -1,6 +1,8 @@
 import json,urllib.request,time
+from rpcretry import backoff
 RPC="https://rpc.mainnet.chain.robinhood.com"
 def call(m,p,rpc=None,tries=8):
+  err=None
   for i in range(tries):
     try:
       r=urllib.request.urlopen(urllib.request.Request(rpc or RPC,json.dumps({"jsonrpc":"2.0","id":1,"method":m,"params":p}).encode(),{"content-type":"application/json","user-agent":"curl/8"}),timeout=60)
@@ -8,7 +10,7 @@ def call(m,p,rpc=None,tries=8):
       if 'error' in j: raise Exception(j['error'])
       return j['result']
     except Exception as e:
-      err=e; time.sleep(1.5*(i+1))
+      err=e; backoff(i,e,tries,base=1.5,cap=45.0)
   raise err
 
 def logs(flt, a, b, step=50000):

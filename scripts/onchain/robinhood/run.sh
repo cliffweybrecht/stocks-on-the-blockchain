@@ -2,7 +2,7 @@
 # Robinhood Chain exact onchain recount of every pool the Gecko step did not candle. Usage: run.sh DAY WORKDIR SNAPSHOT_JSON
 set -euo pipefail
 DAY=$1; W=$2; SNAP=$(readlink -f "$3"); HERE=$(cd "$(dirname "$0")" && pwd)
-mkdir -p "$W"; cp -n "$HERE"/state/*.json "$W"/ 2>/dev/null || true; cp "$HERE"/*.py "$W"/; cd "$W"
+mkdir -p "$W"; cp -n "$HERE"/state/*.json "$W"/ 2>/dev/null || true; cp "$HERE"/*.py "$HERE/../rpcretry.py" "$HERE/../../gecko_http.py" "$W"/; cd "$W"
 st(){ s=$(date +%s); echo "::group::$*"; "$@"; echo "::endgroup::"; echo "$2 $(( $(date +%s)-s ))s" | tee -a "time-$DAY.log"; }
 python3 - "$DAY" "$SNAP" <<'P'
 import json,sys,os
